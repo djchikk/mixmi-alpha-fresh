@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 NUCLEAR CLEAR ALL DATA</title>
+    <style>
+        body { 
+            font-family: 'Courier New', monospace; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            text-align: center;
+        }
+        h1 { 
+            font-size: 3rem; 
+            margin-bottom: 20px; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .warning { 
+            background: linear-gradient(45deg, #ff6b6b, #ff4757);
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 20px 0;
+            border: 2px solid #fff;
+        }
+        .fix-button {
+            background: linear-gradient(45deg, #ff6b6b, #ff4757);
+            color: white; 
+            padding: 20px 40px; 
+            border: 3px solid #fff; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+        .fix-button:hover { 
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        .info { 
+            background: rgba(255,255,255,0.1); 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 20px 0;
+            text-align: left;
+        }
+        .results {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 NUCLEAR CLEAR</h1>
+        
+        <div class="warning">
+            <h2>⚠️ ULTIMATE CACHE DESTROYER ⚠️</h2>
+            <p>This will completely wipe all cached data and fix the placeholder image issue!</p>
+        </div>
+
+        <button class="fix-button" onclick="fixPlaceholderIssue()">
+            🔧 FIX PLACEHOLDER ISSUE
+        </button>
+
+        <button class="fix-button" onclick="nuclearClear()">
+            💥 NUCLEAR CLEAR ALL DATA
+        </button>
+
+        <div class="info">
+            <h3>🎯 What this does:</h3>
+            <ul>
+                <li><strong>Fix Placeholder Issue:</strong> Specifically targets and removes old /placeholder-images/ data</li>
+                <li><strong>Nuclear Clear:</strong> Removes ALL browser data (localStorage, sessionStorage, cookies, cache)</li>
+                <li><strong>Forces fresh start:</strong> Ensures your app loads clean placeholder data</li>
+                <li><strong>Clears service workers:</strong> Removes any cached scripts</li>
+            </ul>
+        </div>
+
+        <div id="results" class="results hidden"></div>
+    </div>
+
+    <script>
+        function showResults(message) {
+            const results = document.getElementById('results');
+            results.textContent = message;
+            results.classList.remove('hidden');
+        }
+
+        function fixPlaceholderIssue() {
+            let report = "🔧 FIXING PLACEHOLDER ISSUE...\n\n";
+            
+            try {
+                // Check what's in localStorage first
+                const keys = Object.keys(localStorage);
+                report += `Found ${keys.length} localStorage keys:\n`;
+                
+                keys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    if (value && value.includes('/placeholder-images/')) {
+                        report += `❌ FOUND BAD DATA in key: ${key}\n`;
+                        localStorage.removeItem(key);
+                        report += `✅ REMOVED key: ${key}\n`;
+                    } else if (value && value.includes('/placeholders/')) {
+                        report += `✅ GOOD DATA in key: ${key}\n`;
+                    } else {
+                        report += `ℹ️  Other data in key: ${key}\n`;
+                    }
+                });
+                
+                // Also clear any section keys to be safe
+                const keysToRemove = ['profile', 'spotlight', 'media', 'shop', 'gallery'];
+                keysToRemove.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                        localStorage.removeItem(key);
+                        report += `🗑️  Cleared ${key} data\n`;
+                    }
+                });
+                
+                report += "\n✅ PLACEHOLDER ISSUE FIXED!\n";
+                report += "Now refresh your main app page to see clean placeholder data.";
+                
+            } catch (error) {
+                report += `❌ Error: ${error.message}`;
+            }
+            
+            showResults(report);
+        }
+
+        function nuclearClear() {
+            let report = "💥 INITIATING NUCLEAR CLEAR...\n\n";
+            
+            try {
+                // Clear localStorage
+                const localStorageKeys = Object.keys(localStorage);
+                report += `🗑️  Clearing ${localStorageKeys.length} localStorage items...\n`;
+                localStorage.clear();
+                
+                // Clear sessionStorage  
+                const sessionStorageKeys = Object.keys(sessionStorage);
+                report += `🗑️  Clearing ${sessionStorageKeys.length} sessionStorage items...\n`;
+                sessionStorage.clear();
+                
+                // Clear cookies
+                const cookies = document.cookie.split(";");
+                report += `🍪 Clearing ${cookies.length} cookies...\n`;
+                cookies.forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                // Clear IndexedDB (if any)
+                if ('indexedDB' in window) {
+                    report += "🗄️  Attempting to clear IndexedDB...\n";
+                }
+                
+                // Unregister service workers
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        for(let registration of registrations) {
+                            registration.unregister();
+                        }
+                    });
+                    report += "🔧 Unregistered service workers...\n";
+                }
+                
+                // Clear cache storage
+                if ('caches' in window) {
+                    caches.keys().then(function(cacheNames) {
+                        return Promise.all(cacheNames.map(function(cacheName) {
+                            return caches.delete(cacheName);
+                        }));
+                    });
+                    report += "📦 Cleared cache storage...\n";
+                }
+                
+                report += "\n✅ NUCLEAR CLEAR COMPLETE!\n";
+                report += "🔄 Close this tab, restart your browser, and open app in incognito mode for best results.";
+                
+            } catch (error) {
+                report += `❌ Error during nuclear clear: ${error.message}`;
+            }
+            
+            showResults(report);
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,29 @@
+
+> mixmi-profile@0.1.0 dev
+> next dev -p 3010
+
+   ▲ Next.js 14.1.0
+   - Local:        http://localhost:3010
+
+ ✓ Ready in 616ms
+ ○ Compiling / ...
+ ✓ Compiled / in 4.5s (1513 modules)
+🔧 Supabase Environment: { url: 'Missing ❌', anonKey: 'Missing ❌', serviceKey: 'Missing ❌' }
+⚠️ Supabase environment variables not found
+🔧 Supabase Environment: { url: 'Missing ❌', anonKey: 'Missing ❌', serviceKey: 'Missing ❌' }
+⚠️ Supabase environment variables not found
+ ✓ Compiled in 288ms (726 modules)
+ ✓ Compiled /favicon.ico in 328ms (1509 modules)
+ ✓ Compiled /mixer in 299ms (1539 modules)
+ ✓ Compiled /store/[address] in 306ms (1557 modules)
+ ✓ Compiled in 740ms (1543 modules)
+   Reload env: .env.local
+ ✓ Compiled in 143ms (1529 modules)
+   Reload env: .env.local
+ ✓ Compiled in 3.4s (1529 modules)
+ ✓ Compiled /favicon.ico in 309ms (1557 modules)
+ ✓ Compiled in 446ms (1543 modules)
+ ✓ Compiled in 432ms (1543 modules)
+ ✓ Compiled in 174ms (1529 modules)
+ ✓ Compiled in 205ms (1529 modules)
+[?25h

@@ -1,0 +1,280 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Animation Classes */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background;
+    background-color: #101726 !important;
+    color: #ffffff;
+  }
+}
+
+/* Add smooth image loading styles to prevent stretching */
+.image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-container img {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.image-container img[data-nimg="fill"] {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+/* Ensure aspect ratios are maintained during load */
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
+
+.aspect-video {
+  aspect-ratio: 16 / 9;
+}
+
+/* Prevent layout shift during image load */
+img[data-nimg="fill"] {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  object-fit: cover;
+}
+
+/* 3D Flip Card Support */
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.transform-gpu {
+  transform: translate3d(0, 0, 0);
+}
+
+/* Custom scrollbar for card back content */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-slate-600 {
+  scrollbar-color: rgb(71 85 105) transparent;
+}
+
+.scrollbar-track-slate-800 {
+  scrollbar-color: rgb(71 85 105) rgb(30 41 59);
+}
+
+/* Additional webkit scrollbar styling for card content */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgb(30 41 59); /* slate-800 */
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105); /* slate-600 */
+  border-radius: 2px;
+}
+
+/* Mixer deck empty state */
+.deck-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  background: rgba(31, 41, 59, 0.5);
+  border: 2px dashed #475569;
+  border-radius: 12px;
+  width: 100%;
+  animation: pulseBorder 2s ease-in-out infinite;
+}
+
+@keyframes pulseBorder {
+  0%, 100% {
+    border-color: #475569;
+  }
+  50% {
+    border-color: rgba(129, 228, 242, 0.6);
+  }
+}
+
+.deck-empty-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.deck-empty-text {
+  font-size: 14px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139); /* slate-500 */
+}
+
+/* Animation delay utilities */
+@layer utilities {
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+}
+
+/* Unified Form Input Styling */
+@layer components {
+  /* Base styles for ALL inputs, selects, and textareas */
+  .input-field,
+  .textarea-field,
+  .select-field {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: #e1e5f0;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.3s;
+  }
+
+  /* Placeholder text - MORE SUBTLE */
+  .input-field::placeholder,
+  .textarea-field::placeholder {
+    color: #4a5264; /* Dim gray, not bright */
+    opacity: 1; /* Ensure consistent opacity */
+  }
+
+  /* Focus state for ALL inputs */
+  .input-field:focus,
+  .select-field:focus,
+  .textarea-field:focus {
+    outline: none;
+    border-color: #81E4F2;
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 0 3px rgba(129, 228, 242, 0.1);
+  }
+
+  /* Special styling for number inputs */
+  .input-field[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  .input-field[type="number"]::-webkit-outer-spin-button,
+  .input-field[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Select field specific styling */
+  .select-field {
+    cursor: pointer;
+  }
+
+  .select-field option {
+    background: #1a1f2e;
+    color: #e1e5f0;
+  }
+}

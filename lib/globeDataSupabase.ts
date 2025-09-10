@@ -1,0 +1,203 @@
+import { TrackNode } from '@/components/globe/types';
+import { IPTrack } from '@/types';
+import { supabase } from '@/lib/supabase';
+
+// Function to generate random coordinates with better distribution
+function generateRandomCoordinates(): { lat: number; lng: number } {
+  // Use a more realistic distribution that favors populated areas
+  const regions = [
+    // North America
+    { latRange: [25, 50], lngRange: [-130, -70], weight: 3 },
+    // Europe
+    { latRange: [35, 60], lngRange: [-10, 40], weight: 3 },
+    // Asia
+    { latRange: [10, 50], lngRange: [60, 140], weight: 3 },
+    // South America
+    { latRange: [-35, 10], lngRange: [-80, -35], weight: 2 },
+    // Africa
+    { latRange: [-35, 35], lngRange: [-20, 50], weight: 2 },
+    // Australia/Oceania
+    { latRange: [-45, -10], lngRange: [110, 180], weight: 1 },
+  ];
+
+  // Pick a region based on weights
+  const totalWeight = regions.reduce((sum, r) => sum + r.weight, 0);
+  let random = Math.random() * totalWeight;
+  let selectedRegion = regions[0];
+
+  for (const region of regions) {
+    random -= region.weight;
+    if (random <= 0) {
+      selectedRegion = region;
+      break;
+    }
+  }
+
+  // Generate coordinates within the selected region
+  const lat = selectedRegion.latRange[0] + 
+    Math.random() * (selectedRegion.latRange[1] - selectedRegion.latRange[0]);
+  const lng = selectedRegion.lngRange[0] + 
+    Math.random() * (selectedRegion.lngRange[1] - selectedRegion.lngRange[0]);
+
+  return { lat, lng };
+}
+
+// Convert IP tracks to globe nodes
+export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
+  // Check if we have multiple locations
+  if (track.locations && Array.isArray(track.locations) && track.locations.length > 0) {
+    // Create a node for each location
+    return track.locations.map((location, index) => ({
+      id: `${track.id}-loc-${index}`,
+      title: track.title,
+      artist: track.artist || track.creator || 'Unknown Artist',
+      coordinates: { lat: location.lat, lng: location.lng },
+      genre: track.loop_category || track.content_type,
+      content_type: track.content_type,
+      duration: track.duration,
+      imageUrl: track.cover_image_url || undefined, // Now uses clean Supabase Storage URLs
+      audioUrl: track.audio_url,
+      location: location.name, // Add location name for display
+      // Include metadata fields
+      tags: track.tags,
+      description: track.description,
+      license: track.license,
+      price_stx: track.price_stx,
+      bpm: track.bpm,
+      // Add aggregation support fields
+      uploaderAddress: track.uploader_address || track.primary_uploader_wallet,
+      latestActivity: track.updated_at || track.created_at,
+      // Add profile image URL - for now using a placeholder
+      profileImageUrl: track.profile_image_url || undefined,
+      artistName: track.artist || track.creator || 'Unknown Artist',
+      // Add IP rights fields for modal display
+      composition_split: track.composition_split_1_percentage || 0,
+      production_split: track.production_split_1_percentage || 0,
+      wallet_address: track.composition_split_1_wallet || track.uploader_address || track.primary_uploader_wallet
+    }));
+  }
+  
+  // Use single coordinates if available, otherwise generate random ones
+  const coordinates = (track.location_lat && track.location_lng) 
+    ? { lat: track.location_lat, lng: track.location_lng }
+    : generateRandomCoordinates();
+    
+  return {
+    id: track.id,
+    title: track.title,
+    artist: track.artist || track.creator || 'Unknown Artist',
+    coordinates,
+    genre: track.loop_category || track.content_type,
+    content_type: track.content_type,
+    duration: track.duration,
+    imageUrl: track.cover_image_url || undefined, // Now uses clean Supabase Storage URLs
+    audioUrl: track.audio_url,
+    location: track.primary_location, // Add location name for display
+    // Include metadata fields
+    tags: track.tags,
+    description: track.description,
+    license: track.license,
+    price_stx: track.price_stx,
+    bpm: track.bpm,
+    // Add aggregation support fields
+    uploaderAddress: track.uploader_address || track.primary_uploader_wallet,
+    latestActivity: track.updated_at || track.created_at,
+    // Add profile image URL - for now using a placeholder
+    // In production, this would come from joining with profiles table
+    profileImageUrl: track.profile_image_url || undefined,
+    artistName: track.artist || track.creator || 'Unknown Artist',
+    // Add IP rights fields for modal display
+    composition_split: track.composition_split_1_percentage || 0,
+    production_split: track.production_split_1_percentage || 0,
+    wallet_address: track.composition_split_1_wallet || track.uploader_address || track.primary_uploader_wallet
+  };
+}
+
+// Sample profile images for testing
+const sampleProfileImages = [
+  'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&q=80',
+  'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=200&h=200&q=80',
+  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&h=200&q=80',
+  'https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=200&h=200&q=80',
+  'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=200&h=200&q=80'
+];
+
+
+// Fetch tracks from all known creators
+export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
+  try {
+    // Fetching tracks from Supabase
+    
+    // Fetch all tracks from the ip_tracks table
+    // We're not filtering by wallet address to get ALL tracks for the globe
+    // Filter out individual tracks that belong to packs/EPs (keep standalone content and master pack/EP records)
+    // REMOVED 50-track limit for alpha testing - users need to see all their content
+    // TODO: For production scaling, implement pagination/virtual loading:
+    // - Load tracks in geographic regions as user navigates globe
+    // - Implement distance-based LOD (Level of Detail)  
+    // - Add pagination with "load more" for dense areas
+    // - Consider clustering/aggregation for performance
+    // Fetch all tracks with proper filtering for loop packs
+    const { data, error } = await supabase
+      .from('ip_tracks')
+      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, cover_image_url, tags, description, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations') // Now includes cover_image_url - will contain clean URLs
+      .is('pack_id', null) // Only show standalone content and master pack/EP records
+      .order('created_at', { ascending: false })
+    
+    // Tracks found in Supabase
+    
+    if (error) {
+      console.error('Error fetching tracks:', error);
+      return [];
+    }
+    
+    if (!data || data.length === 0) {
+      // No tracks found in Supabase
+      return [];
+    }
+    
+    // Processing tracks data
+    
+    
+    // Convert IP tracks to globe nodes
+    const nodes: TrackNode[] = [];
+    
+    for (const track of data) {
+      const result = convertIPTrackToNode(track);
+      if (Array.isArray(result)) {
+        nodes.push(...result);
+      } else {
+        nodes.push(result);
+      }
+    }
+    
+    // Add sample profile images for testing
+    // In production, these would come from user profiles
+    const artistMap = new Map<string, string>();
+    nodes.forEach((node, index) => {
+      // Map artists to consistent profile images
+      const artistKey = node.uploaderAddress || node.artist;
+      if (!artistMap.has(artistKey)) {
+        artistMap.set(artistKey, sampleProfileImages[artistMap.size % sampleProfileImages.length]);
+      }
+      node.profileImageUrl = artistMap.get(artistKey);
+    });
+    
+    // Created nodes from tracks
+    
+    return nodes;
+  } catch (error) {
+    console.error('Failed to fetch globe tracks:', error);
+    return [];
+  }
+}
+
+// Export a cached version that can be used immediately while real data loads
+export const fallbackGlobeNodes: TrackNode[] = [
+  {
+    id: "fallback-1",
+    title: "Loading tracks...",
+    artist: "Please wait",
+    coordinates: { lat: 40.7128, lng: -74.0060 },
+  }
+];

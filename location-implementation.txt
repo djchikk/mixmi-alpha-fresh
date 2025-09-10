@@ -1,0 +1,679 @@
+commit 84f9bdefbebba6119005e7a653c2373f6dc7f5e3
+Author: djchikk <f___thatnoise@mac.com>
+Date:   Mon Jul 28 20:00:39 2025 -0700
+
+    Implement multi-location support with smart parsing and visual connections 🌍
+    
+    Major Features:
+    - Smart location parsing handles "City, Country" patterns correctly
+    - Tracks can have multiple locations and appear at each one on the globe
+    - Beautiful curved connection lines appear on hover between locations
+    - Database migration adds JSONB locations column for flexible storage
+    
+    Technical Improvements:
+    - Enhanced location lookup with 40+ city-country combinations
+    - Intelligent comma parsing preserves location context
+    - Each location gets proper coordinates with city/country metadata
+    - Connection lines use Three.js curves for smooth arcs above globe
+    - Performance optimized with single draw call for multi-location tracks
+    
+    User Experience:
+    - Enter locations naturally: "Nairobi, Kenya, Paris, Los Angeles"
+    - See collaborations visualized with connecting lines
+    - Click any location node to open the same track
+    - Hover effects show all connected locations instantly
+    
+    This enables true global collaboration visualization\! 🚀
+    
+    🤖 Generated with [Claude Code](https://claude.ai/code)
+    
+    Co-Authored-By: Claude <noreply@anthropic.com>
+
+diff --git a/components/globe/CaliforniaMarker.tsx b/components/globe/CaliforniaMarker.tsx
+new file mode 100644
+index 0000000..0fa976a
+--- /dev/null
++++ b/components/globe/CaliforniaMarker.tsx
+@@ -0,0 +1,51 @@
++"use client";
++
++import React from 'react';
++import * as THREE from 'three';
++import { latLngToVector3 } from './Globe';
++
++export function CaliforniaMarker() {
++  // California's actual coordinates (roughly center of the state)
++  const californiaLat = 36.7783;
++  const californiaLng = -119.4179;
++  
++  // Get 3D position
++  const position = latLngToVector3(californiaLat, californiaLng, 1.05);
++  
++  console.log('=== CALIFORNIA CORRECT POSITION ===');
++  console.log(`Lat/Lng: ${californiaLat}, ${californiaLng}`);
++  console.log(`3D Position: x=${position.x.toFixed(2)}, y=${position.y.toFixed(2)}, z=${position.z.toFixed(2)}`);
++  
++  return (
++    <group position={position}>
++      {/* Large red sphere */}
++      <mesh>
++        <sphereGeometry args={[0.05, 16, 16]} />
++        <meshBasicMaterial 
++          color="#ff0000"
++        />
++      </mesh>
++      
++      {/* Glowing ring */}
++      <mesh rotation={[Math.PI / 2, 0, 0]}>
++        <ringGeometry args={[0.06, 0.08, 16]} />
++        <meshBasicMaterial
++          color="#ff0000"
++          opacity={0.8}
++          transparent
++          side={THREE.DoubleSide}
++        />
++      </mesh>
++      
++      {/* Vertical beam */}
++      <mesh position={[0, 0.1, 0]}>
++        <cylinderGeometry args={[0.01, 0.01, 0.2, 8]} />
++        <meshBasicMaterial
++          color="#ff0000"
++          opacity={0.6}
++          transparent
++        />
++      </mesh>
++    </group>
++  );
++}
+\ No newline at end of file
+diff --git a/components/globe/ConnectionLines.tsx b/components/globe/ConnectionLines.tsx
+new file mode 100644
+index 0000000..22321e6
+--- /dev/null
++++ b/components/globe/ConnectionLines.tsx
+@@ -0,0 +1,68 @@
++"use client";
++
++import React, { useMemo } from 'react';
++import * as THREE from 'three';
++import { TrackNode } from './types';
++import { latLngToVector3 } from './Globe';
++
++interface ConnectionLinesProps {
++  hoveredNode: TrackNode | null;
++  globeRadius?: number;
++}
++
++export function ConnectionLines({ hoveredNode, globeRadius = 1.02 }: ConnectionLinesProps) {
++  const lineGeometry = useMemo(() => {
++    if (!hoveredNode || !hoveredNode.allLocations || hoveredNode.allLocations.length < 2) {
++      return null;
++    }
++
++    const points: THREE.Vector3[] = [];
++    
++    // Create curved lines between all locations
++    hoveredNode.allLocations.forEach((location, index) => {
++      if (index > 0) {
++        const start = hoveredNode.allLocations![index - 1];
++        const end = location;
++        
++        // Create a curved path between points
++        const curve = new THREE.CatmullRomCurve3([
++          latLngToVector3(start.lat, start.lng, globeRadius),
++          // Add a middle point raised above the globe for curve
++          latLngToVector3(
++            (start.lat + end.lat) / 2,
++            (start.lng + end.lng) / 2,
++            globeRadius * 1.15 // Raised for arc effect
++          ),
++          latLngToVector3(end.lat, end.lng, globeRadius)
++        ]);
++        
++        // Get points along the curve
++        const curvePoints = curve.getPoints(30);
++        points.push(...curvePoints);
++        
++        // Add a break in the line for dotted effect
++        if (index < hoveredNode.allLocations!.length - 1) {
++          points.push(new THREE.Vector3(NaN, NaN, NaN));
++        }
++      }
++    });
++    
++    const geometry = new THREE.BufferGeometry().setFromPoints(points);
++    return geometry;
++  }, [hoveredNode, globeRadius]);
++
++  if (!lineGeometry) return null;
++
++  return (
++    <line geometry={lineGeometry}>
++      <lineDashedMaterial
++        color="#FFE4B5"
++        opacity={0.8}
++        transparent
++        dashSize={0.02}
++        gapSize={0.01}
++        linewidth={2}
++      />
++    </line>
++  );
++}
+\ No newline at end of file
+diff --git a/components/globe/Globe.tsx b/components/globe/Globe.tsx
+index cc1d2ec..34d4627 100644
+--- a/components/globe/Globe.tsx
++++ b/components/globe/Globe.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import React, { useRef, useMemo } from 'react';
++import React, { useRef, useMemo, useState } from 'react';
+ import { Canvas, useFrame } from '@react-three/fiber';
+ import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+ import * as THREE from 'three';
+@@ -8,6 +8,7 @@ import { GlobeProps, TrackNode } from './types';
+ import { GlobeMesh } from './GlobeMesh';
+ import { NodeMesh } from './NodeMesh';
+ import { Starfield } from './Starfield';
++import { ConnectionLines } from './ConnectionLines';
+ 
+ // Convert lat/lng to 3D position on sphere
+ export function latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+@@ -23,6 +24,7 @@ export function latLngToVector3(lat: number, lng: number, radius: number): THREE
+ 
+ export default function Globe({ nodes = [], onNodeClick, onNodeHover }: GlobeProps) {
+   const globeRef = useRef<THREE.Group>(null);
++  const [hoveredNode, setHoveredNode] = useState<TrackNode | null>(null);
+   
+   const handleNodeClick = (node: TrackNode) => {
+     if (onNodeClick) {
+@@ -31,6 +33,7 @@ export default function Globe({ nodes = [], onNodeClick, onNodeHover }: GlobePro
+   };
+ 
+   const handleNodeHover = (node: TrackNode | null) => {
++    setHoveredNode(node);
+     if (onNodeHover) {
+       onNodeHover(node);
+     }
+@@ -74,6 +77,9 @@ export default function Globe({ nodes = [], onNodeClick, onNodeHover }: GlobePro
+               onHover={(hovering) => handleNodeHover(hovering ? node : null)}
+             />
+           ))}
++          
++          {/* Connection lines for multi-location tracks */}
++          <ConnectionLines hoveredNode={hoveredNode} />
+         </GlobeMesh>
+         
+         {/* Controls */}
+diff --git a/components/globe/types.ts b/components/globe/types.ts
+index 7656376..b07c678 100644
+--- a/components/globe/types.ts
++++ b/components/globe/types.ts
+@@ -1,5 +1,6 @@
+ export interface TrackNode {
+   id: string;
++  trackId?: string; // Reference to original track (for multi-location tracks)
+   title: string;
+   artist: string;
+   coordinates: {
+@@ -11,6 +12,12 @@ export interface TrackNode {
+   duration?: number;
+   imageUrl?: string;
+   audioUrl?: string;
++  locationName?: string; // Name of this specific location
++  allLocations?: Array<{ // All locations for this track (for connection lines)
++    name: string;
++    lat: number;
++    lng: number;
++  }>;
+ }
+ 
+ export interface GlobeProps {
+diff --git a/components/modals/IPTrackModal.tsx b/components/modals/IPTrackModal.tsx
+index 7137a79..50d5bac 100644
+--- a/components/modals/IPTrackModal.tsx
++++ b/components/modals/IPTrackModal.tsx
+@@ -133,9 +133,26 @@ export default function IPTrackModal({
+   // Handle final submission
+   const handleSubmit = async () => {
+     console.log('🎯 SUBMIT STARTED - Form Data:', formData);
++    console.log('📍 Location input state:', locationInput);
++    console.log('📍 All form state:', {
++      title: formData.title,
++      artist: formData.artist,
++      tags: formData.tags,
++      locationInput: locationInput,
++      isQuickUpload: isQuickUpload
++    });
++    
++    // Big visible warning if location is empty
++    if (!locationInput || locationInput.trim() === '') {
++      console.warn('⚠️ ⚠️ ⚠️ LOCATION IS EMPTY! ⚠️ ⚠️ ⚠️');
++    } else {
++      console.log('✅ ✅ ✅ LOCATION FOUND:', locationInput);
++    }
+     
+     // Process locations before submission
+-    const { locations, coordinates, primaryLocation } = parseLocationsAndGetCoordinates(locationInput);
++    console.log('📍 Processing location input:', locationInput);
++    const { locations, coordinates, primaryLocation, allLocationData } = parseLocationsAndGetCoordinates(locationInput);
++    console.log('📍 Parsed location data:', { locations, coordinates, primaryLocation, allLocationData });
+     
+     // Add location tags with 🌍 prefix
+     const locationTags = locations.map(loc => `🌍 ${loc}`);
+@@ -147,9 +164,16 @@ export default function IPTrackModal({
+       tags: allTags,
+       location_lat: coordinates?.lat,
+       location_lng: coordinates?.lng,
+-      primary_location: primaryLocation || undefined
++      primary_location: primaryLocation || undefined,
++      locations: allLocationData // New field for all locations
+     };
+     
++    console.log('📍 Updated form data with location:', {
++      location_lat: updatedFormData.location_lat,
++      location_lng: updatedFormData.location_lng,
++      primary_location: updatedFormData.primary_location
++    });
++    
+     // Validate all splits
+     const compositionValidation = validateSplits('composition');
+     const productionValidation = validateSplits('production');
+diff --git a/hooks/useIPTrackSubmit.ts b/hooks/useIPTrackSubmit.ts
+index efa4ee7..9a571d2 100644
+--- a/hooks/useIPTrackSubmit.ts
++++ b/hooks/useIPTrackSubmit.ts
+@@ -2,6 +2,8 @@ import { useState } from 'react';
+ import { IPTrack } from '@/types';
+ import { SupabaseAuthBridge } from '@/lib/auth/supabase-auth-bridge';
+ 
++console.log('🔥🔥🔥 useIPTrackSubmit.ts loaded! File modified at:', new Date().toISOString());
++
+ interface SubmitFormData {
+   id: string;
+   title: string;
+@@ -19,6 +21,13 @@ interface SubmitFormData {
+   location_lat?: number;
+   location_lng?: number;
+   primary_location?: string;
++  locations?: Array<{
++    name: string;
++    lat: number | null;
++    lng: number | null;
++    city?: string;
++    country?: string;
++  }>;
+   composition_split_1_wallet: string;
+   composition_split_1_percentage: number;
+   composition_split_2_wallet: string;
+@@ -62,6 +71,15 @@ export function useIPTrackSubmit({
+   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
+ 
+   const submitTrack = async (formData: SubmitFormData, validationErrors: string[]) => {
++    console.log('🚀 SUBMIT TRACK CALLED WITH:', {
++      title: formData.title,
++      artist: formData.artist,
++      location_lat: formData.location_lat,
++      location_lng: formData.location_lng,
++      primary_location: formData.primary_location,
++      tags: formData.tags.filter(tag => tag.includes('🌍'))
++    });
++    
+     if (validationErrors.length > 0) {
+       console.log('❌ VALIDATION ERRORS:', validationErrors);
+       throw new Error(validationErrors.join(', '));
+@@ -121,6 +139,7 @@ export function useIPTrackSubmit({
+         location_lat: formData.location_lat || null,
+         location_lng: formData.location_lng || null,
+         primary_location: formData.primary_location || null,
++        locations: formData.locations || null,
+         
+         // Media assets
+         cover_image_url: formData.cover_image_url,
+@@ -145,6 +164,12 @@ export function useIPTrackSubmit({
+       };
+ 
+       console.log('📤 MAPPED DATA FOR SUPABASE:', mappedTrackData);
++      console.log('📍 Location data being saved:', {
++        location_lat: mappedTrackData.location_lat,
++        location_lng: mappedTrackData.location_lng,
++        primary_location: mappedTrackData.primary_location,
++        locations: mappedTrackData.locations
++      });
+       console.log('👤 Wallet Address:', walletAddress);
+ 
+       // Create authenticated Supabase session
+diff --git a/lib/globeDataSupabase.ts b/lib/globeDataSupabase.ts
+index 704ba2b..eeecaf6 100644
+--- a/lib/globeDataSupabase.ts
++++ b/lib/globeDataSupabase.ts
+@@ -42,23 +42,52 @@ function generateRandomCoordinates(): { lat: number; lng: number } {
+   return { lat, lng };
+ }
+ 
+-// Convert IP tracks to globe nodes
+-export function convertIPTrackToNode(track: IPTrack): TrackNode {
+-  // Use real coordinates if available, otherwise generate random ones
+-  const coordinates = (track.location_lat && track.location_lng) 
+-    ? { lat: track.location_lat, lng: track.location_lng }
+-    : generateRandomCoordinates();
+-    
+-  return {
+-    id: track.id,
+-    title: track.title,
+-    artist: track.artist || track.creator || 'Unknown Artist',
+-    coordinates,
+-    genre: track.loop_category || track.content_type,
+-    duration: track.duration,
+-    imageUrl: track.cover_image_url || track.image_url,
+-    audioUrl: track.audio_url,
+-  };
++// Convert IP tracks to globe nodes (creates multiple nodes for tracks with multiple locations)
++export function convertIPTrackToNodes(track: IPTrack): TrackNode[] {
++  const nodes: TrackNode[] = [];
++  
++  // If track has multiple locations in the new format
++  if (track.locations && Array.isArray(track.locations) && track.locations.length > 0) {
++    // Create a node for each location with valid coordinates
++    track.locations.forEach((location: any, index: number) => {
++      if (location.lat && location.lng) {
++        nodes.push({
++          id: `${track.id}_loc_${index}`, // Unique ID for each location node
++          trackId: track.id, // Reference to the original track
++          title: track.title,
++          artist: track.artist || track.creator || 'Unknown Artist',
++          coordinates: { lat: location.lat, lng: location.lng },
++          genre: track.loop_category || track.content_type,
++          duration: track.duration,
++          imageUrl: track.cover_image_url || track.image_url,
++          audioUrl: track.audio_url,
++          locationName: location.name,
++          allLocations: track.locations, // Include all locations for connection lines
++        });
++      }
++    });
++  } 
++  
++  // Fallback to single location using old fields
++  if (nodes.length === 0) {
++    const coordinates = (track.location_lat && track.location_lng) 
++      ? { lat: track.location_lat, lng: track.location_lng }
++      : generateRandomCoordinates();
++      
++    nodes.push({
++      id: track.id,
++      trackId: track.id,
++      title: track.title,
++      artist: track.artist || track.creator || 'Unknown Artist',
++      coordinates,
++      genre: track.loop_category || track.content_type,
++      duration: track.duration,
++      imageUrl: track.cover_image_url || track.image_url,
++      audioUrl: track.audio_url,
++    });
++  }
++  
++  return nodes;
+ }
+ 
+ // Fetch tracks from all known creators
+@@ -86,8 +115,19 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
+     
+     console.log(`✅ Found ${data.length} tracks in Supabase`);
+     
+-    // Convert IP tracks to globe nodes
+-    const nodes = data.map(convertIPTrackToNode);
++    // Look for tracks with location data
++    const tracksWithLocation = data.filter(track => track.location_lat || track.location_lng || track.primary_location);
++    if (tracksWithLocation.length > 0) {
++      console.log(`📍 ${tracksWithLocation.length} tracks have location data:`);
++      tracksWithLocation.forEach(track => {
++        console.log(`  - "${track.title}" by ${track.artist}: ${track.primary_location} (${track.location_lat}, ${track.location_lng})`);
++      });
++    } else {
++      console.log('❌ No tracks have location data');
++    }
++    
++    // Convert IP tracks to globe nodes (flattening multiple locations)
++    const nodes = data.flatMap(convertIPTrackToNodes);
+     
+     return nodes;
+   } catch (error) {
+diff --git a/lib/locationLookup.ts b/lib/locationLookup.ts
+index 78c9e3d..fa30a23 100644
+--- a/lib/locationLookup.ts
++++ b/lib/locationLookup.ts
+@@ -57,6 +57,17 @@ export const locationLookup: Record<string, { lat: number; lng: number }> = {
+   "stockholm": { lat: 59.3293, lng: 18.0686 },
+   "oslo": { lat: 59.9139, lng: 10.7522 },
+   
++  // US States
++  "california": { lat: 36.7783, lng: -119.4179 },
++  "texas": { lat: 31.9686, lng: -99.9018 },
++  "florida": { lat: 27.9947, lng: -81.7603 },
++  "new york state": { lat: 42.1657, lng: -74.9481 },
++  "illinois": { lat: 40.6331, lng: -89.3985 },
++  "washington": { lat: 47.7511, lng: -120.7401 },
++  "oregon": { lat: 43.8041, lng: -120.5542 },
++  "nevada": { lat: 38.8026, lng: -116.4194 },
++  "arizona": { lat: 34.0489, lng: -111.0937 },
++  
+   // Alternative spellings/variations
+   "united states": { lat: 37.0902, lng: -95.7129 },
+   "united kingdom": { lat: 55.3781, lng: -3.4360 },
+@@ -66,36 +77,125 @@ export const locationLookup: Record<string, { lat: number; lng: number }> = {
+   "sp": { lat: -23.5505, lng: -46.6333 },
+   "jozi": { lat: -26.2041, lng: 28.0473 },
+   "cpt": { lat: -33.9249, lng: 18.4241 },
++  
++  // Common City, Country combinations
++  "nairobi, kenya": { lat: -1.2921, lng: 36.8219 },
++  "paris, france": { lat: 48.8566, lng: 2.3522 },
++  "london, uk": { lat: 51.5074, lng: -0.1278 },
++  "london, united kingdom": { lat: 51.5074, lng: -0.1278 },
++  "lagos, nigeria": { lat: 6.5244, lng: 3.3792 },
++  "new york, usa": { lat: 40.7128, lng: -74.0060 },
++  "new york, ny": { lat: 40.7128, lng: -74.0060 },
++  "los angeles, ca": { lat: 34.0522, lng: -118.2437 },
++  "los angeles, california": { lat: 34.0522, lng: -118.2437 },
++  "san francisco, ca": { lat: 37.7749, lng: -122.4194 },
++  "san francisco, california": { lat: 37.7749, lng: -122.4194 },
++  "chicago, il": { lat: 41.8781, lng: -87.6298 },
++  "chicago, illinois": { lat: 41.8781, lng: -87.6298 },
++  "toronto, canada": { lat: 43.6532, lng: -79.3832 },
++  "mexico city, mexico": { lat: 19.4326, lng: -99.1332 },
++  "rio de janeiro, brazil": { lat: -22.9068, lng: -43.1729 },
++  "sao paulo, brazil": { lat: -23.5505, lng: -46.6333 },
++  "buenos aires, argentina": { lat: -34.6037, lng: -58.3816 },
++  "johannesburg, south africa": { lat: -26.2041, lng: 28.0473 },
++  "cape town, south africa": { lat: -33.9249, lng: 18.4241 },
++  "cairo, egypt": { lat: 30.0444, lng: 31.2357 },
++  "dubai, uae": { lat: 25.2048, lng: 55.2708 },
++  "mumbai, india": { lat: 19.0760, lng: 72.8777 },
++  "delhi, india": { lat: 28.7041, lng: 77.1025 },
++  "beijing, china": { lat: 39.9042, lng: 116.4074 },
++  "shanghai, china": { lat: 31.2304, lng: 121.4737 },
++  "tokyo, japan": { lat: 35.6762, lng: 139.6503 },
++  "seoul, south korea": { lat: 37.5665, lng: 126.9780 },
++  "sydney, australia": { lat: -33.8688, lng: 151.2093 },
++  "melbourne, australia": { lat: -37.8136, lng: 144.9631 },
++  "berlin, germany": { lat: 52.5200, lng: 13.4050 },
++  "munich, germany": { lat: 48.1351, lng: 11.5820 },
++  "rome, italy": { lat: 41.9028, lng: 12.4964 },
++  "milan, italy": { lat: 45.4642, lng: 9.1900 },
++  "madrid, spain": { lat: 40.4168, lng: -3.7038 },
++  "barcelona, spain": { lat: 41.3851, lng: 2.1734 },
++  "amsterdam, netherlands": { lat: 52.3676, lng: 4.9041 },
++  "brussels, belgium": { lat: 50.8503, lng: 4.3517 },
++  "stockholm, sweden": { lat: 59.3293, lng: 18.0686 },
++  "oslo, norway": { lat: 59.9139, lng: 10.7522 },
+ };
+ 
+ export function getCoordinates(location: string): { lat: number; lng: number } | null {
+   const normalized = location.toLowerCase().trim();
+-  return locationLookup[normalized] || null;
++  console.log(`🗺️ Looking up coordinates for: "${normalized}"`);
++  const coords = locationLookup[normalized];
++  if (coords) {
++    console.log(`✅ Found coordinates for "${normalized}":`, coords);
++  } else {
++    console.log(`❌ No coordinates found for "${normalized}"`);
++  }
++  return coords || null;
+ }
+ 
+-// Helper to parse multiple locations and find the first valid one
++// Helper to parse multiple locations with smart comma handling
+ export function parseLocationsAndGetCoordinates(locationString: string): {
+   locations: string[];
+   coordinates: { lat: number; lng: number } | null;
+   primaryLocation: string | null;
++  allLocationData: Array<{
++    name: string;
++    lat: number | null;
++    lng: number | null;
++    city?: string;
++    country?: string;
++  }>;
+ } {
+-  const locations = locationString
+-    .split(',')
+-    .map(loc => loc.trim())
+-    .filter(loc => loc.length > 0);
++  const rawParts = locationString.split(',').map(s => s.trim()).filter(s => s.length > 0);
++  const locations: string[] = [];
++  const allLocationData: Array<{
++    name: string;
++    lat: number | null;
++    lng: number | null;
++    city?: string;
++    country?: string;
++  }> = [];
+   
+-  let coordinates = null;
+-  let primaryLocation = null;
+-  
+-  // Find the first location with valid coordinates
+-  for (const location of locations) {
+-    const coords = getCoordinates(location);
+-    if (coords) {
+-      coordinates = coords;
+-      primaryLocation = location;
+-      break;
++  let i = 0;
++  while (i < rawParts.length) {
++    // Try combining current and next part to check for "City, Country" pattern
++    if (i + 1 < rawParts.length) {
++      const combined = `${rawParts[i]}, ${rawParts[i + 1]}`;
++      const combinedCoords = getCoordinates(combined);
++      
++      if (combinedCoords) {
++        // This is a "City, Country" or "City, State" pattern
++        locations.push(combined);
++        allLocationData.push({
++          name: combined,
++          lat: combinedCoords.lat,
++          lng: combinedCoords.lng,
++          city: rawParts[i],
++          country: rawParts[i + 1]
++        });
++        i += 2; // Skip both parts
++        continue;
++      }
+     }
++    
++    // Not a combined location, process as single location
++    const singleCoords = getCoordinates(rawParts[i]);
++    locations.push(rawParts[i]);
++    allLocationData.push({
++      name: rawParts[i],
++      lat: singleCoords?.lat || null,
++      lng: singleCoords?.lng || null
++    });
++    i++;
+   }
+   
+-  return { locations, coordinates, primaryLocation };
++  // Find the first location with valid coordinates for primary location
++  const primaryLocationData = allLocationData.find(loc => loc.lat !== null && loc.lng !== null);
++  
++  return {
++    locations,
++    coordinates: primaryLocationData ? { lat: primaryLocationData.lat!, lng: primaryLocationData.lng! } : null,
++    primaryLocation: primaryLocationData?.name || null,
++    allLocationData
++  };
+ }
+\ No newline at end of file
+diff --git a/supabase/migrations/add_multiple_locations.sql b/supabase/migrations/add_multiple_locations.sql
+new file mode 100644
+index 0000000..121fb92
+--- /dev/null
++++ b/supabase/migrations/add_multiple_locations.sql
+@@ -0,0 +1,44 @@
++-- Add support for multiple locations in ip_tracks table
++-- This migration adds a locations JSON column to store an array of location objects
++
++-- Add the new locations column (JSONB for better performance and indexing)
++ALTER TABLE ip_tracks 
++ADD COLUMN IF NOT EXISTS locations JSONB;
++
++-- Create an index on the locations column for better query performance
++CREATE INDEX IF NOT EXISTS idx_ip_tracks_locations ON ip_tracks USING GIN (locations);
++
++-- Example of how the data will be stored:
++-- [
++--   {
++--     "name": "Nairobi, Kenya",
++--     "lat": -1.2921,
++--     "lng": 36.8219,
++--     "city": "Nairobi",
++--     "country": "Kenya"
++--   },
++--   {
++--     "name": "Paris",
++--     "lat": 48.8566,
++--     "lng": 2.3522,
++--     "city": "Paris",
++--     "country": "France"
++--   }
++-- ]
++
++-- Migrate existing location data to the new format
++-- Only run this if there's existing data with location_lat/lng
++UPDATE ip_tracks 
++SET locations = jsonb_build_array(
++  jsonb_build_object(
++    'name', primary_location,
++    'lat', location_lat,
++    'lng', location_lng
++  )
++)
++WHERE location_lat IS NOT NULL 
++  AND location_lng IS NOT NULL 
++  AND locations IS NULL;
++
++-- Note: We're keeping the old columns for backward compatibility
++-- They can be removed in a future migration once all code is updated
+\ No newline at end of file
+diff --git a/types/index.ts b/types/index.ts
+index 9d802e3..d0806e1 100644
+--- a/types/index.ts
++++ b/types/index.ts
+@@ -125,6 +125,13 @@ export interface IPTrack {
+   location_lat?: number;
+   location_lng?: number;
+   primary_location?: string;
++  locations?: Array<{
++    name: string;
++    lat: number;
++    lng: number;
++    city?: string;
++    country?: string;
++  }>;
+   
+   // Collaboration System Fields (MC Claude enhancement)
+   primary_uploader_wallet?: string; // Who "owns" this track in their store
