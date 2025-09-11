@@ -29,10 +29,15 @@ export default function Welcome() {
     >
       <Header />
       
-      <div className="max-w-6xl mx-auto px-6 py-16">
+      <div className="max-w-6xl mx-auto px-6 py-16" style={{ paddingTop: '40px' }}>
         {/* Hero Section - Desktop Claude specification */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl mb-4 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl mb-4 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent font-semibold"
+              style={{
+                fontSize: '3.5rem', // 56px
+                fontWeight: '600',  // semibold
+                lineHeight: '1.2'
+              }}>
             Welcome to Mixmi Alpha
             <span className="ml-3 text-3xl">🌍</span>
           </h1>
@@ -92,7 +97,7 @@ export default function Welcome() {
             <div className="flex-1 p-5 bg-[rgba(255,228,181,0.05)] border border-[rgba(255,228,181,0.2)] rounded-xl">
               <h3 className="text-[#FFE4B5] text-lg mb-2">Advanced Options</h3>
               <p className="text-[#a8b2c3] text-sm">
-                Teams: Split composition & recording rights between up to 3 creators. Add ISRC codes.
+                Split composition & recording rights between up to 3 creators. Add ISRC codes.
               </p>
             </div>
           </div>
@@ -102,7 +107,7 @@ export default function Welcome() {
             <div className="grid grid-cols-2 gap-4">
               {/* Top left: 8-Bar Loop - Thin purple border */}
               <div 
-                className="p-6 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-5 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#9772F4',
@@ -121,7 +126,7 @@ export default function Welcome() {
               
               {/* Top right: Loop Pack - Thick purple border */}
               <div 
-                className="p-6 rounded-xl border-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-5 rounded-xl border-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#9772F4',
@@ -140,7 +145,7 @@ export default function Welcome() {
               
               {/* Bottom left: Song - Thin gold border */}
               <div 
-                className="p-6 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-5 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#FFE4B5',
@@ -159,7 +164,7 @@ export default function Welcome() {
               
               {/* Bottom right: EP - Thick gold border */}
               <div 
-                className="p-6 rounded-xl border-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-5 rounded-xl border-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#FFE4B5',
@@ -196,6 +201,10 @@ export default function Welcome() {
             <div className="mt-4 pt-4 border-t border-[rgba(129,228,242,0.1)]">
               <p className="text-[#81E4F2] text-sm">
                 💡 Switch between Quick/Advanced anytime - your data is saved
+              </p>
+              <p className="text-[#6b7489] text-sm mt-2">
+                Alpha perk: Made a mistake? Want to start fresh? Just message me - 
+                I can change or delete anything while we're in early days.
               </p>
             </div>
           </div>
@@ -249,6 +258,7 @@ export default function Welcome() {
                 className="h-40 flex items-center justify-center text-sm"
                 style={{ 
                   background: 'rgba(10, 14, 26, 0.5)',
+                  border: '1px solid rgba(129, 228, 242, 0.1)',
                   color: designVars.textMuted 
                 }}
               >
@@ -276,6 +286,7 @@ export default function Welcome() {
                 className="h-40 flex items-center justify-center text-sm"
                 style={{ 
                   background: 'rgba(10, 14, 26, 0.5)',
+                  border: '1px solid rgba(129, 228, 242, 0.1)',
                   color: designVars.textMuted 
                 }}
               >
@@ -303,6 +314,7 @@ export default function Welcome() {
                 className="h-40 flex items-center justify-center text-sm"
                 style={{ 
                   background: 'rgba(10, 14, 26, 0.5)',
+                  border: '1px solid rgba(129, 228, 242, 0.1)',
                   color: designVars.textMuted 
                 }}
               >
@@ -330,6 +342,7 @@ export default function Welcome() {
                 className="h-40 flex items-center justify-center text-sm"
                 style={{ 
                   background: 'rgba(10, 14, 26, 0.5)',
+                  border: '1px solid rgba(129, 228, 242, 0.1)',
                   color: designVars.textMuted 
                 }}
               >
