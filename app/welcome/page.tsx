@@ -29,7 +29,7 @@ export default function Welcome() {
     >
       <Header />
       
-      <div className="max-w-6xl mx-auto px-6 py-16" style={{ paddingTop: '60px' }}>
+      <div className="max-w-6xl mx-auto px-6 py-16" style={{ paddingTop: '120px' }}>
         {/* Hero Section - Desktop Claude specification */}
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl mb-4 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent font-semibold"
@@ -79,9 +79,10 @@ export default function Welcome() {
           padding: '40px',
           backdropFilter: 'blur(10px)'
         }}>
-          <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '12px', color: designVars.textPrimary, textAlign: 'center' }}>
-            How It Works
-          </h2>
+          <h2 className="text-2xl font-semibold mb-3" style={{ color: '#e1e5f0' }}>How It Works</h2>
+          <p className="text-[#81E4F2] mb-6">
+            Alpha perk: Made a mistake? Everything can be changed or deleted - just message me!
+          </p>
 
           {/* Wallet Verification Step */}
           <div className="mb-6 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
@@ -93,19 +94,27 @@ export default function Welcome() {
 
           {/* Mode Selection */}
           <div className="flex gap-5 mb-6">
-            <div className="flex-1 p-4 bg-[rgba(129,228,242,0.05)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <h3 className="text-[#81E4F2] text-base mb-2">Quick Upload</h3>
+            <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
+              <h3 className="text-[#e1e5f0] flex items-center gap-2 text-base mb-2">
+                <span>⚡</span> Quick Upload
+              </h3>
               <p className="text-[#a8b2c3] text-sm">
-                Solo creators: Auto-assigns 100% rights to you. Simple and fast.
+                Solo creators: Auto-assigns 100% rights to you.
               </p>
             </div>
-            <div className="flex-1 p-4 bg-[rgba(129,228,242,0.05)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <h3 className="text-[#FFE4B5] text-base mb-2">Advanced Options</h3>
+            <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
+              <h3 className="text-[#e1e5f0] flex items-center gap-2 text-base mb-2">
+                <span>⚙️</span> Advanced Options
+              </h3>
               <p className="text-[#a8b2c3] text-sm">
-                Split composition & recording rights between up to 3 creators. Add ISRC codes.
+                Split rights between up to 3 creators. Add ISRC codes.
               </p>
             </div>
           </div>
+
+          <p className="text-[#6b7489] text-sm mb-6">
+            💡 Switch between Quick/Advanced anytime - your data is saved
+          </p>
           
           {/* 2x2 Content Type Grid - Matching actual form appearance */}
           <div className="max-w-2xl mx-auto">
@@ -191,31 +200,20 @@ export default function Welcome() {
           {/* Form Details */}
           <div className="bg-[rgba(10,14,26,0.4)] rounded-xl p-6 mb-6 max-w-3xl mx-auto">
             <h3 className="text-[#e1e5f0] text-lg mb-4">Fill In Your Details:</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
-                <div>• Title & Description</div>
-                <div>• BPM (required for loops)</div>
-                <div>• Key & Tags (optional)</div>
-              </div>
-              <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
-                <div>• Location (your creative spot)</div>
-                <div>• Liner Notes / Credits</div>
-                <div>• Cover Art & Audio Files</div>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-[rgba(129,228,242,0.1)]">
-              <p className="text-[#81E4F2] text-sm">
-                💡 Switch between Quick/Advanced anytime - your data is saved
-              </p>
-              <p className="text-[#6b7489] text-sm mt-2">
-                Alpha perk: Made a mistake? Want to start fresh? Just message me - 
-                I can change or delete anything while we're in early days.
-              </p>
+            <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
+              <div>• Artist Name & Title</div>
+              <div>• Description</div>
+              <div>• BPM (required for loops)</div>
+              <div>• Key (optional)</div>
+              <div>• Tags (important for discovery!)</div>
+              <div>• Location (your creative spot)</div>
+              <div>• Liner Notes / Credits</div>
+              <div>• Cover Art & Audio Files</div>
             </div>
           </div>
 
           {/* Simple Final Steps */}
-          <div className="flex justify-center gap-8">
+          <div className="flex justify-center gap-15">
             <div className="text-center">
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">✓</span>
