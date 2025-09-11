@@ -953,7 +953,8 @@ export default function IPTrackModal({
               id="location-dropdown"
               className="absolute z-50 w-full mt-1 border rounded-md shadow-lg max-h-60 overflow-auto"
               style={{
-                background: 'rgba(0, 0, 0, 0.25)',
+                background: 'rgba(0, 0, 0, 0.9)',
+                backdropFilter: 'blur(8px)',
                 borderColor: 'rgba(255, 255, 255, 0.08)',
                 borderRadius: '10px'
               }}
