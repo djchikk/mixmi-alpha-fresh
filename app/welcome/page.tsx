@@ -63,6 +63,22 @@ export default function Welcome() {
           <p className="text-lg mb-12 text-center max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
             Choose your content type and watch it appear on our 3D globe in real-time.
           </p>
+
+          {/* Mode Selection */}
+          <div className="flex gap-5 mb-8">
+            <div className="flex-1 p-5 bg-[rgba(129,228,242,0.05)] border border-[rgba(129,228,242,0.2)] rounded-xl">
+              <h3 className="text-[#81E4F2] text-lg mb-2">Quick Upload</h3>
+              <p className="text-[#a8b2c3] text-sm">
+                Solo creators: Auto-assigns 100% rights to you. Simple and fast.
+              </p>
+            </div>
+            <div className="flex-1 p-5 bg-[rgba(255,228,181,0.05)] border border-[rgba(255,228,181,0.2)] rounded-xl">
+              <h3 className="text-[#FFE4B5] text-lg mb-2">Advanced Options</h3>
+              <p className="text-[#a8b2c3] text-sm">
+                Teams: Split composition & recording rights between up to 3 creators. Add ISRC codes.
+              </p>
+            </div>
+          </div>
           
           {/* 2x2 Content Type Grid - Matching actual form appearance */}
           <div className="max-w-2xl mx-auto">
@@ -146,6 +162,50 @@ export default function Welcome() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Form Details */}
+          <div className="bg-[rgba(10,14,26,0.4)] rounded-xl p-6 mb-6 max-w-3xl mx-auto">
+            <h3 className="text-[#e1e5f0] text-lg mb-4">Fill In Your Details:</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-[#6b7489] text-sm space-y-1">
+                <div>• Title & Description</div>
+                <div>• BPM (required for loops)</div>
+                <div>• Key & Tags (optional)</div>
+              </div>
+              <div className="text-[#6b7489] text-sm space-y-1">
+                <div>• Location (your creative spot)</div>
+                <div>• Liner Notes / Credits</div>
+                <div>• Cover Art & Audio Files</div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-[rgba(129,228,242,0.1)]">
+              <p className="text-[#81E4F2] text-sm">
+                💡 Switch between Quick/Advanced anytime - your data is saved
+              </p>
+            </div>
+          </div>
+
+          {/* Simple Final Steps */}
+          <div className="flex justify-center gap-8">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
+                <span className="text-[#81E4F2]">✓</span>
+              </div>
+              <p className="text-[#a8b2c3] text-sm">Review</p>
+            </div>
+            <div className="text-center">
+              <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
+                <span className="text-[#81E4F2]">→</span>
+              </div>
+              <p className="text-[#a8b2c3] text-sm">Submit</p>
+            </div>
+            <div className="text-center">
+              <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
+                <span className="text-[#81E4F2]">🌍</span>
+              </div>
+              <p className="text-[#a8b2c3] text-sm">See on Globe</p>
             </div>
           </div>
         </div>
