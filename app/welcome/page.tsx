@@ -1,197 +1,313 @@
 "use client";
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 
+// Design variables from Desktop Claude specification
+const designVars = {
+  welcomeBgGradient: 'linear-gradient(135deg, #0a0e1a 0%, #141927 50%, #0a0e1a 100%)',
+  cardBg: 'rgba(20, 25, 39, 0.6)',
+  cardBorder: 'rgba(129, 228, 242, 0.1)',
+  cardBorderHover: 'rgba(129, 228, 242, 0.3)',
+  textPrimary: '#e1e5f0',
+  textSecondary: '#a8b2c3',
+  textMuted: '#6b7489',
+  accentCyan: '#81E4F2',
+  accentGold: '#FFE4B5',
+  accentPurple: '#9772F4',
+};
+
 export default function Welcome() {
   return (
-    <div className="min-h-screen" style={{ 
-      background: 'linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 100%)',
-      color: '#ffffff'
-    }}>
+    <div 
+      className="min-h-screen"
+      style={{ 
+        background: designVars.welcomeBgGradient,
+        color: designVars.textPrimary
+      }}
+    >
       <Header />
       
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold mb-6" style={{
-            background: 'linear-gradient(135deg, #e1e5f0 0%, #a8b2c3 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            Welcome to Mixmi Alpha, Fellow Tribe Members 🌍
+      <div className="max-w-6xl mx-auto px-6 py-16">
+        {/* Hero Section - Exact Desktop Claude specification */}
+        <div className="text-center mb-20">
+          <h1 className="text-5xl mb-5 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent">
+            Welcome to Mixmi Alpha
+            <span className="ml-3 text-3xl">🌍</span>
           </h1>
-          
-          <div className="text-lg text-gray-300 leading-relaxed max-w-2xl mx-auto">
-            <p className="mb-4">
-              Hey friends! Music... It's never just about the final track - it's never really done. 
-              And when it's done we're bored with it.
-            </p>
-            <p className="text-xl font-medium" style={{ color: '#81E4F2' }}>
-              So let's surrender and embrace infinite remix. At a global scale.
-            </p>
+          <div className="text-2xl text-[#81E4F2] mb-4 font-light">
+            Infinite remix. Global scale.
           </div>
-        </div>
-
-        {/* What We're Building Together */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-semibold mb-6 text-center">Here's What We're Building Together</h2>
-          <p className="text-gray-300 text-center max-w-3xl mx-auto leading-relaxed">
-            Picture your music traveling the globe. Watch a melody you created in Kenya join a beat in Colombia, 
-            then bloom into a full song in Seoul. We're tracking every step, honoring every contributor, 
-            making sure everyone benefits.
+          <p className="text-[#a8b2c3] text-lg max-w-2xl mx-auto leading-relaxed">
+            Your music traveling the world while you sleep.<br/>
+            Every loop tells a story. Every collaboration breaks down walls.
           </p>
         </div>
 
-        {/* What's Live Now - Simple Text */}
-        <div className="mb-16 text-center">
-          <h2 className="text-2xl font-semibold mb-6">What's Live Right Now</h2>
+        {/* What's Live Section */}
+        <div className="mb-20 text-center">
+          <h2 className="text-3xl font-semibold mb-6" style={{ color: designVars.textPrimary }}>
+            What's Live
+          </h2>
+          <p className="text-xl max-w-2xl mx-auto" style={{ color: designVars.textSecondary }}>
+            The globe uploader is ready. Pin your sounds anywhere on Earth.
+          </p>
+        </div>
+
+        {/* How It Works - Content Type Grid (Exact match to form) */}
+        <div className="mb-20">
+          <h2 className="text-3xl font-semibold mb-8 text-center" style={{ color: designVars.textPrimary }}>
+            How It Works
+          </h2>
+          <p className="text-lg mb-12 text-center max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
+            Choose your content type and watch it appear on our 3D globe in real-time.
+          </p>
+          
+          {/* 2x2 Content Type Grid - Matching actual form appearance */}
           <div className="max-w-2xl mx-auto">
-            <p className="text-xl mb-4">This globe uploader you're using!</p>
-            <p className="text-gray-400 mb-4">Upload tracks, watch them appear as nodes on the globe. 8-bar loops, loop packs, full songs and EPs, we got you!</p>
-            <p className="text-sm text-gray-500 italic">
-              Pro tip: Feeling truly borderless? Try our adorable Null Island - the tropical paradise 
-              for music that transcends geography! 🏝️
-            </p>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Top left: 8-Bar Loop - Cyan border */}
+              <div 
+                className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                style={{
+                  background: designVars.cardBg,
+                  borderColor: designVars.accentCyan,
+                  boxShadow: `0 0 20px ${designVars.accentCyan}20`,
+                }}
+              >
+                <div className="text-center">
+                  <div className="text-2xl mb-2">⚡</div>
+                  <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
+                    8-Bar Loop
+                  </div>
+                  <div className="text-sm mt-2" style={{ color: designVars.textMuted }}>
+                    Quick creative building blocks
+                  </div>
+                </div>
+              </div>
+              
+              {/* Top right: Loop Pack - Purple border */}
+              <div 
+                className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                style={{
+                  background: designVars.cardBg,
+                  borderColor: designVars.accentPurple,
+                  boxShadow: `0 0 20px ${designVars.accentPurple}20`,
+                }}
+              >
+                <div className="text-center">
+                  <div className="text-2xl mb-2">🎛️</div>
+                  <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
+                    Loop Pack
+                  </div>
+                  <div className="text-sm mt-2" style={{ color: designVars.textMuted }}>
+                    2-5 loops working together
+                  </div>
+                </div>
+              </div>
+              
+              {/* Bottom left: Song - Cyan border */}
+              <div 
+                className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                style={{
+                  background: designVars.cardBg,
+                  borderColor: designVars.accentCyan,
+                  boxShadow: `0 0 20px ${designVars.accentCyan}20`,
+                }}
+              >
+                <div className="text-center">
+                  <div className="text-2xl mb-2">🎵</div>
+                  <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
+                    Song
+                  </div>
+                  <div className="text-sm mt-2" style={{ color: designVars.textMuted }}>
+                    Complete musical piece
+                  </div>
+                </div>
+              </div>
+              
+              {/* Bottom right: EP - Gold border */}
+              <div 
+                className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                style={{
+                  background: designVars.cardBg,
+                  borderColor: designVars.accentGold,
+                  boxShadow: `0 0 20px ${designVars.accentGold}20`,
+                }}
+              >
+                <div className="text-center">
+                  <div className="text-2xl mb-2">💰</div>
+                  <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
+                    EP
+                  </div>
+                  <div className="text-sm mt-2" style={{ color: designVars.textMuted }}>
+                    2-5 songs collection
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Coming Soon Section */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-semibold mb-6 text-center">
-            Coming Soon (Q4 2025 - The Real Money Moment)
+        <div className="mb-20">
+          <h2 className="text-3xl font-semibold mb-8 text-center" style={{ color: designVars.textPrimary }}>
+            Coming Soon
           </h2>
           
-          <div className="text-center mb-8 max-w-3xl mx-auto">
-            <p className="text-lg text-gray-300 leading-relaxed">
-              Yes, we all want to make money from our music (honestly, who doesn't?!) and that's exactly 
-              why we're building this... AND for the pure joy of watching our alpha tribe create magic 
-              together across continents.
-            </p>
-          </div>
-
+          {/* 4-column feature grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Globe + Mixer Preview */}
-            <div className="rounded-lg overflow-hidden" style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
-                [Globe + Tiny Mixer]
+            {/* Globe + Mixer */}
+            <div 
+              className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
+              style={{
+                background: designVars.cardBg,
+                border: `1px solid ${designVars.cardBorder}`,
+              }}
+            >
+              <div 
+                className="h-40 flex items-center justify-center text-sm"
+                style={{ 
+                  background: 'rgba(10, 14, 26, 0.5)',
+                  color: designVars.textMuted 
+                }}
+              >
+                [Globe + Tiny Mixer Screenshot]
               </div>
-              <div className="p-3">
-                <h3 className="font-semibold mb-1 text-sm">Globe + Mixer</h3>
-                <p className="text-xs text-gray-400">Discover and mix in real-time</p>
+              <div className="p-4">
+                <h3 className="font-semibold mb-2" style={{ color: designVars.textPrimary }}>
+                  Globe + Mixer
+                </h3>
+                <p className="text-sm" style={{ color: designVars.textMuted }}>
+                  Discover and mix in real-time
+                </p>
               </div>
             </div>
 
-            {/* Big Mixer Preview */}
-            <div className="rounded-lg overflow-hidden" style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
-                [Big Mixer Screenshot]
+            {/* Professional Mixer */}
+            <div 
+              className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
+              style={{
+                background: designVars.cardBg,
+                border: `1px solid ${designVars.cardBorder}`,
+              }}
+            >
+              <div 
+                className="h-40 flex items-center justify-center text-sm"
+                style={{ 
+                  background: 'rgba(10, 14, 26, 0.5)',
+                  color: designVars.textMuted 
+                }}
+              >
+                [Professional Mixer Screenshot]
               </div>
-              <div className="p-3">
-                <h3 className="font-semibold mb-1 text-sm">Professional Mixer</h3>
-                <p className="text-xs text-gray-400">Dual decks with waveforms</p>
+              <div className="p-4">
+                <h3 className="font-semibold mb-2" style={{ color: designVars.textPrimary }}>
+                  Professional Mixer
+                </h3>
+                <p className="text-sm" style={{ color: designVars.textMuted }}>
+                  Dual decks with waveforms
+                </p>
               </div>
             </div>
 
-            {/* Creator Store Preview */}
-            <div className="rounded-lg overflow-hidden" style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
+            {/* Creator Store */}
+            <div 
+              className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
+              style={{
+                background: designVars.cardBg,
+                border: `1px solid ${designVars.cardBorder}`,
+              }}
+            >
+              <div 
+                className="h-40 flex items-center justify-center text-sm"
+                style={{ 
+                  background: 'rgba(10, 14, 26, 0.5)',
+                  color: designVars.textMuted 
+                }}
+              >
                 [Creator Store Screenshot]
               </div>
-              <div className="p-3">
-                <h3 className="font-semibold mb-1 text-sm">Your Creator Store</h3>
-                <p className="text-xs text-gray-400">Finally, somewhere to sell your music that isn't terrible</p>
+              <div className="p-4">
+                <h3 className="font-semibold mb-2" style={{ color: designVars.textPrimary }}>
+                  Creator Stores
+                </h3>
+                <p className="text-sm" style={{ color: designVars.textMuted }}>
+                  Your own music marketplace
+                </p>
               </div>
             </div>
 
-            {/* Profile Page Preview */}
-            <div className="rounded-lg overflow-hidden" style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
-                [Profile Screenshot]
+            {/* Artist Profiles */}
+            <div 
+              className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
+              style={{
+                background: designVars.cardBg,
+                border: `1px solid ${designVars.cardBorder}`,
+              }}
+            >
+              <div 
+                className="h-40 flex items-center justify-center text-sm"
+                style={{ 
+                  background: 'rgba(10, 14, 26, 0.5)',
+                  color: designVars.textMuted 
+                }}
+              >
+                [Artist Profile Screenshot]
               </div>
-              <div className="p-3">
-                <h3 className="font-semibold mb-1 text-sm">Artist Profiles</h3>
-                <p className="text-xs text-gray-400">Built for artists, not corporate headshots</p>
+              <div className="p-4">
+                <h3 className="font-semibold mb-2" style={{ color: designVars.textPrimary }}>
+                  Artist Profiles
+                </h3>
+                <p className="text-sm" style={{ color: designVars.textMuted }}>
+                  Rich creator showcases
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="text-center p-6 rounded-lg" style={{
-            background: 'linear-gradient(135deg, rgba(129, 228, 242, 0.08) 0%, rgba(129, 228, 242, 0.03) 100%)',
-            border: '1px solid rgba(129, 228, 242, 0.2)'
-          }}>
-            <p className="text-lg font-medium mb-2" style={{ color: '#81E4F2' }}>
-              Your Content Will Be There Day One!
-            </p>
-            <p className="text-gray-300">
-              While others are just discovering the platform, you'll already have your musical territory staked out across the globe.
+          {/* Real Money Moment - Gold highlight box */}
+          <div 
+            className="text-center p-8 rounded-xl border-2 backdrop-blur-sm"
+            style={{
+              background: `linear-gradient(135deg, ${designVars.accentGold}08 0%, ${designVars.accentGold}03 100%)`,
+              borderColor: designVars.accentGold,
+              boxShadow: `0 0 30px ${designVars.accentGold}20`,
+            }}
+          >
+            <div className="text-2xl mb-4">💰</div>
+            <h3 className="text-2xl font-bold mb-4" style={{ color: designVars.accentGold }}>
+              Real Money Moment
+            </h3>
+            <p className="text-lg max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
+              Your content uploaded today will be ready to sell when payments launch. 
+              Build your catalog now, earn from day one when we go live.
             </p>
           </div>
         </div>
 
-        {/* Quick Start Guide */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-semibold mb-8 text-center">Quick Start Guide</h2>
+        {/* Call to Action */}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-semibold mb-6" style={{ color: designVars.textPrimary }}>
+            Ready to light up the planet? 🚀✨
+          </h2>
+          <p className="text-lg mb-8 max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
+            You're not just uploading tracks - you're creating the world's music discovery map.
+          </p>
           
-          <div className="max-w-2xl mx-auto">
-            <ol className="space-y-4">
-              {[
-                'Click "Upload" (the big obvious button)',
-                'Drop in your track or loop',
-                'Tell us where you made it (or pick Null Island, we don\'t judge)',
-                'Add splits if you\'re feeling generous',
-                'Hit save, watch it appear on the globe after refresh',
-                'That\'s it'
-              ].map((step, index) => (
-                <li key={index} className="flex items-center space-x-4">
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center font-semibold"
-                    style={{ background: '#81E4F2', color: '#0a0f1c' }}
-                  >
-                    {index + 1}
-                  </div>
-                  <span className="text-gray-300">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-
-        {/* Alpha Tribe Message */}
-        <div className="text-center mb-16 p-8 rounded-xl" style={{
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.08)'
-        }}>
-          <h2 className="text-2xl font-semibold mb-4">For Our Amazing Alpha Tribe</h2>
-          <p className="text-lg text-gray-300 leading-relaxed max-w-3xl mx-auto mb-6">
-            You're not just uploading tracks - you're creating the world's music discovery map. 
-            When millions of people start exploring this globe, YOUR content will be the first thing they find.
-          </p>
-          <p className="text-xl font-medium" style={{ color: '#81E4F2' }}>
-            Ready to see our tribe light up the planet? 🚀✨
-          </p>
-        </div>
-
-        {/* Contact */}
-        <div className="text-center">
-          <p className="text-gray-400">
-            Questions? WhatsApp me. You probably have my number.
-          </p>
+          <Link href="/">
+            <button 
+              className="px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-xl"
+              style={{
+                background: `linear-gradient(135deg, ${designVars.accentCyan} 0%, ${designVars.accentPurple} 100%)`,
+                color: '#0a0e1a',
+                boxShadow: `0 0 30px ${designVars.accentCyan}30`,
+              }}
+            >
+              Start Uploading
+            </button>
+          </Link>
         </div>
       </div>
     </div>
