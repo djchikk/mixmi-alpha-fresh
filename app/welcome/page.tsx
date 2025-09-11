@@ -34,7 +34,7 @@ export default function Welcome() {
         <div className="text-center mb-20">
           <h1 className="text-5xl mb-5 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent">
             Welcome to Mixmi Alpha
-            <span className="ml-3 text-3xl">🌍</span>
+            <span className="ml-3 text-3xl" style={{ color: '#81E4F2' }}>🌍</span>
           </h1>
           <div className="text-2xl text-[#81E4F2] mb-4 font-light">
             Infinite remix. Global scale.
@@ -46,17 +46,31 @@ export default function Welcome() {
         </div>
 
         {/* What's Live Section */}
-        <div className="mb-20 text-center">
-          <h2 className="text-3xl font-semibold mb-6" style={{ color: designVars.textPrimary }}>
-            What's Live
-          </h2>
-          <p className="text-xl max-w-2xl mx-auto" style={{ color: designVars.textSecondary }}>
-            The globe uploader is ready. Pin your sounds anywhere on Earth.
-          </p>
+        <div className="section-card mb-20" style={{
+          background: 'rgba(20, 25, 39, 0.6)',
+          border: '1px solid rgba(129, 228, 242, 0.1)',
+          borderRadius: '16px',
+          padding: '40px',
+          backdropFilter: 'blur(10px)'
+        }}>
+          <div className="text-center">
+            <h2 className="text-3xl font-semibold mb-6" style={{ color: designVars.textPrimary }}>
+              What's Live
+            </h2>
+            <p className="text-xl max-w-2xl mx-auto" style={{ color: designVars.textSecondary }}>
+              The globe uploader is ready. Pin your sounds anywhere on Earth.
+            </p>
+          </div>
         </div>
 
         {/* How It Works - Content Type Grid (Exact match to form) */}
-        <div className="mb-20">
+        <div className="section-card mb-20" style={{
+          background: 'rgba(20, 25, 39, 0.6)',
+          border: '1px solid rgba(129, 228, 242, 0.1)',
+          borderRadius: '16px',
+          padding: '40px',
+          backdropFilter: 'blur(10px)'
+        }}>
           <h2 className="text-3xl font-semibold mb-8 text-center" style={{ color: designVars.textPrimary }}>
             How It Works
           </h2>
@@ -93,7 +107,7 @@ export default function Welcome() {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-2xl mb-2">⚡</div>
+                  <div className="text-lg mb-2">⚡</div>
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     8-Bar Loop
                   </div>
@@ -113,7 +127,7 @@ export default function Welcome() {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-2xl mb-2">🎛️</div>
+                  <div className="text-lg mb-2">🎛️</div>
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     Loop Pack
                   </div>
@@ -133,7 +147,7 @@ export default function Welcome() {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-2xl mb-2">🎵</div>
+                  <div className="text-lg mb-2">🎵</div>
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     Song
                   </div>
@@ -153,7 +167,7 @@ export default function Welcome() {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-2xl mb-2">💰</div>
+                  <div className="text-lg mb-2">💰</div>
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     EP
                   </div>
@@ -211,7 +225,13 @@ export default function Welcome() {
         </div>
 
         {/* Coming Soon Section */}
-        <div className="mb-20">
+        <div className="section-card mb-20" style={{
+          background: 'rgba(20, 25, 39, 0.6)',
+          border: '1px solid rgba(129, 228, 242, 0.1)',
+          borderRadius: '16px',
+          padding: '40px',
+          backdropFilter: 'blur(10px)'
+        }}>
           <h2 className="text-3xl font-semibold mb-8 text-center" style={{ color: designVars.textPrimary }}>
             Coming Soon
           </h2>
