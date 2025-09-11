@@ -117,6 +117,12 @@ const CITY_COORDINATES: Record<string, { lat: number; lng: number; name: string 
   'hopi reservation': { lat: 35.800, lng: -110.200, name: 'Hopi Reservation' },
   'blackfeet reservation': { lat: 48.600, lng: -113.000, name: 'Blackfeet Reservation' },
   
+  // Developer Folklore 🏝️
+  'null island': { lat: 0.000, lng: 0.000, name: 'Null Island 🏝️' },
+  'nullisland': { lat: 0.000, lng: 0.000, name: 'Null Island 🏝️' },
+  '0,0': { lat: 0.000, lng: 0.000, name: 'Null Island 🏝️' },
+  'null': { lat: 0.000, lng: 0.000, name: 'Null Island 🏝️' },
+  
   // Middle East
   'tel aviv': { lat: 32.0853, lng: 34.7818, name: 'Tel Aviv' },
   'jerusalem': { lat: 31.7683, lng: 35.2137, name: 'Jerusalem' },
