@@ -2434,8 +2434,8 @@ export default function IPTrackModal({
           <div className="flex justify-center pt-8 border-t border-slate-700">
           <div className="flex gap-6">
             <button
-              onClick={prevStep}
-              disabled={currentStep === 0}
+              onClick={currentStep === 0 ? onClose : prevStep}
+              disabled={false}
               className="px-4 py-1.5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               style={{
                 background: 'rgba(255, 255, 255, 0.05)',
@@ -2455,7 +2455,7 @@ export default function IPTrackModal({
                 }
               }}
             >
-              Previous
+              {currentStep === 0 ? 'Cancel' : 'Previous'}
             </button>
 
             {currentStep === getStepsArray.length - 1 ? (
