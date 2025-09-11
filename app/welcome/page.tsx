@@ -107,7 +107,6 @@ export default function Welcome() {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-lg mb-2">⚡</div>
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     8-Bar Loop
                   </div>
@@ -127,7 +126,6 @@ export default function Welcome() {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-lg mb-2">🎛️</div>
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     Loop Pack
                   </div>
@@ -147,7 +145,6 @@ export default function Welcome() {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-lg mb-2">🎵</div>
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     Song
                   </div>
@@ -167,7 +164,6 @@ export default function Welcome() {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-lg mb-2">💰</div>
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     EP
                   </div>
