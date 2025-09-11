@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Header from '@/components/layout/Header';
 
 export default function Welcome() {
   return (
@@ -10,8 +11,7 @@ export default function Welcome() {
       background: 'linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 100%)',
       color: '#ffffff'
     }}>
-      {/* Navigation placeholder - matches existing nav */}
-      <div className="h-16"></div>
+      <Header />
       
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Hero Section */}
@@ -46,24 +46,13 @@ export default function Welcome() {
           </p>
         </div>
 
-        {/* What's Live Now - Hero Image */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-semibold mb-8 text-center">What's Live Right Now</h2>
-          
-          <div className="rounded-xl overflow-hidden shadow-2xl mb-6" style={{
-            background: 'linear-gradient(135deg, rgba(129, 228, 242, 0.1) 0%, rgba(129, 228, 242, 0.05) 100%)',
-            border: '1px solid rgba(129, 228, 242, 0.2)'
-          }}>
-            {/* Globe screenshot will go here */}
-            <div className="h-96 bg-gray-800 flex items-center justify-center text-gray-400">
-              [Globe with Search - Image #2]
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <p className="text-xl mb-4">The Alpha Uploader - Pin your tracks anywhere on Earth</p>
-            <p className="text-gray-400">8-bar loops, loop packs, full songs and EPs, we got you!</p>
-            <p className="text-sm text-gray-500 mt-3 italic">
+        {/* What's Live Now - Simple Text */}
+        <div className="mb-16 text-center">
+          <h2 className="text-2xl font-semibold mb-6">What's Live Right Now</h2>
+          <div className="max-w-2xl mx-auto">
+            <p className="text-xl mb-4">This globe uploader you're using!</p>
+            <p className="text-gray-400 mb-4">Upload tracks, watch them appear as nodes on the globe. 8-bar loops, loop packs, full songs and EPs, we got you!</p>
+            <p className="text-sm text-gray-500 italic">
               Pro tip: Feeling truly borderless? Try our adorable Null Island - the tropical paradise 
               for music that transcends geography! 🏝️
             </p>
@@ -84,32 +73,18 @@ export default function Welcome() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-            {/* Creator Store Preview */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Globe + Mixer Preview */}
             <div className="rounded-lg overflow-hidden" style={{
               background: 'rgba(255, 255, 255, 0.02)',
               border: '1px solid rgba(255, 255, 255, 0.08)'
             }}>
-              <div className="h-48 bg-gray-800 flex items-center justify-center text-gray-400">
-                [Creator Store Screenshot]
+              <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
+                [Globe + Tiny Mixer]
               </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2">Your Creator Store</h3>
-                <p className="text-sm text-gray-400">Finally, somewhere to sell your music that isn't terrible</p>
-              </div>
-            </div>
-
-            {/* Profile Page Preview */}
-            <div className="rounded-lg overflow-hidden" style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              <div className="h-48 bg-gray-800 flex items-center justify-center text-gray-400">
-                [Profile GIF/Screenshot]
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2">The Profile Page</h3>
-                <p className="text-sm text-gray-400">Built for artists, not corporate headshots</p>
+              <div className="p-3">
+                <h3 className="font-semibold mb-1 text-sm">Globe + Mixer</h3>
+                <p className="text-xs text-gray-400">Discover and mix in real-time</p>
               </div>
             </div>
 
@@ -118,12 +93,40 @@ export default function Welcome() {
               background: 'rgba(255, 255, 255, 0.02)',
               border: '1px solid rgba(255, 255, 255, 0.08)'
             }}>
-              <div className="h-48 bg-gray-800 flex items-center justify-center text-gray-400">
+              <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
                 [Big Mixer Screenshot]
               </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2">The Mixer</h3>
-                <p className="text-sm text-gray-400">Blend sounds from everywhere</p>
+              <div className="p-3">
+                <h3 className="font-semibold mb-1 text-sm">Professional Mixer</h3>
+                <p className="text-xs text-gray-400">Dual decks with waveforms</p>
+              </div>
+            </div>
+
+            {/* Creator Store Preview */}
+            <div className="rounded-lg overflow-hidden" style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
+                [Creator Store Screenshot]
+              </div>
+              <div className="p-3">
+                <h3 className="font-semibold mb-1 text-sm">Your Creator Store</h3>
+                <p className="text-xs text-gray-400">Finally, somewhere to sell your music that isn't terrible</p>
+              </div>
+            </div>
+
+            {/* Profile Page Preview */}
+            <div className="rounded-lg overflow-hidden" style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
+                [Profile Screenshot]
+              </div>
+              <div className="p-3">
+                <h3 className="font-semibold mb-1 text-sm">Artist Profiles</h3>
+                <p className="text-xs text-gray-400">Built for artists, not corporate headshots</p>
               </div>
             </div>
           </div>
