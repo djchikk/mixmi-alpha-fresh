@@ -194,16 +194,10 @@ export function ConnectionArcs({ selectedNode, allNodes }: ConnectionArcsProps) 
     });
   }, [selectedNode, allNodes]);
   
-  // Always render something to see if component is active
+  // No arcs to render
   if (arcs.length === 0) {
     console.log('⚠️ No arcs to render');
-    // Return a test sphere at origin to verify rendering works
-    return (
-      <mesh position={[0, 1.5, 0]}>
-        <sphereGeometry args={[0.05, 16, 16]} />
-        <meshBasicMaterial color="#ff0000" />
-      </mesh>
-    );
+    return null;
   }
   
   console.log(`🎨 Rendering ${arcs.length} arcs`);
