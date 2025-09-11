@@ -82,9 +82,14 @@ export default function Welcome() {
           <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '12px', color: designVars.textPrimary, textAlign: 'center' }}>
             How It Works
           </h2>
-          <p className="text-lg mb-6 text-center max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
-            Choose your content type and watch it appear on our 3D globe in real-time.
-          </p>
+
+          {/* Wallet Verification Step */}
+          <div className="mb-6 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
+            <h3 className="text-[#e1e5f0] text-base mb-2">First: Verify Your Access</h3>
+            <p className="text-[#a8b2c3] text-sm">
+              Enter the wallet address from your alpha invite
+            </p>
+          </div>
 
           {/* Mode Selection */}
           <div className="flex gap-5 mb-6">
@@ -94,7 +99,7 @@ export default function Welcome() {
                 Solo creators: Auto-assigns 100% rights to you. Simple and fast.
               </p>
             </div>
-            <div className="flex-1 p-4 bg-[rgba(255,228,181,0.05)] border border-[rgba(255,228,181,0.2)] rounded-xl">
+            <div className="flex-1 p-4 bg-[rgba(129,228,242,0.05)] border border-[rgba(129,228,242,0.2)] rounded-xl">
               <h3 className="text-[#FFE4B5] text-base mb-2">Advanced Options</h3>
               <p className="text-[#a8b2c3] text-sm">
                 Split composition & recording rights between up to 3 creators. Add ISRC codes.
@@ -227,7 +232,7 @@ export default function Welcome() {
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">🌍</span>
               </div>
-              <p className="text-[#a8b2c3] text-sm">See on Globe</p>
+              <p className="text-[#a8b2c3] text-sm">Refresh & View</p>
             </div>
           </div>
         </div>
