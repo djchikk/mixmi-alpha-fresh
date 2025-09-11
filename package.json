@@ -37,7 +37,7 @@
     "@stacks/connect": "^8.1.7",
     "@stacks/network": "^7.0.2",
     "@stacks/transactions": "7.0.5",
-    "@supabase/supabase-js": "^2.50.2",
+    "@supabase/supabase-js": "^2.57.4",
     "@types/canvas-confetti": "^1.9.0",
     "@types/qrcode": "^1.5.5",
     "canvas-confetti": "^1.9.3",

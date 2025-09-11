@@ -67,13 +67,13 @@ export default function Welcome() {
           {/* 2x2 Content Type Grid - Matching actual form appearance */}
           <div className="max-w-2xl mx-auto">
             <div className="grid grid-cols-2 gap-4">
-              {/* Top left: 8-Bar Loop - Thin cyan border */}
+              {/* Top left: 8-Bar Loop - Thin purple border */}
               <div 
                 className="p-6 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
-                  borderColor: '#81E4F2',
-                  boxShadow: `0 0 20px #81E4F220`,
+                  borderColor: '#9772F4',
+                  boxShadow: `0 0 20px #9772F420`,
                 }}
               >
                 <div className="text-center">
