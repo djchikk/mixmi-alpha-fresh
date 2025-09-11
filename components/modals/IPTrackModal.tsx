@@ -647,7 +647,7 @@ export default function IPTrackModal({
               borderRadius: '12px'
             }}
           >
-            Loop Pack (2-5 loops)
+            Loop Pack
           </button>
           
           {/* Bottom left: Song */}
