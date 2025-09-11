@@ -11,6 +11,7 @@ import { GridNodeSystem } from './GridNodeSystem';
 import { Starfield } from './Starfield';
 import { ConnectionArcs } from './ConnectionArcs';
 import { CityMarkers } from './CityMarkers';
+import { NullIsland } from './NullIsland';
 
 // Convert lat/lng to 3D position on sphere
 export function latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
@@ -68,6 +69,9 @@ export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNo
         <GlobeMesh ref={globeRef}>
           {/* Subtle city markers - appear when zoomed in */}
           <CityMarkers />
+          
+          {/* Null Island - Home of (0,0) coordinates! 🏝️ */}
+          <NullIsland />
           
           {/* Grid-based node system with zoom levels */}
           <GridNodeSystem
