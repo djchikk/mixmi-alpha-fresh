@@ -30,23 +30,20 @@ export default function Welcome() {
       <Header />
       
       <div className="max-w-6xl mx-auto px-6 py-16">
-        {/* Hero Section - Exact Desktop Claude specification */}
-        <div className="text-center mb-20">
-          <h1 className="text-5xl mb-5 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent">
+        {/* Hero Section - Desktop Claude specification */}
+        <div className="text-center mb-16">
+          <h1 className="text-5xl mb-4 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent">
             Welcome to Mixmi Alpha
-            <span className="ml-3 text-3xl" style={{ color: '#81E4F2' }}>🌍</span>
+            <span className="ml-3 text-3xl">🌍</span>
           </h1>
-          <div className="text-2xl text-[#81E4F2] mb-4 font-light">
-            Infinite remix. Global scale.
-          </div>
-          <p className="text-[#a8b2c3] text-lg max-w-2xl mx-auto leading-relaxed">
-            Your music traveling the world while you sleep.<br/>
-            Every loop tells a story. Every collaboration breaks down walls.
+          <p className="text-[#a8b2c3] text-lg max-w-2xl mx-auto">
+            Hey friends! You're the first to populate a world of infinite remix, 
+            where you own your distribution and every collaboration gets proper credit.
           </p>
         </div>
 
-        {/* What's Live Section */}
-        <div className="section-card mb-20" style={{
+        {/* What's Live + CTA Combined Section */}
+        <div className="section-card mb-16" style={{
           background: 'rgba(20, 25, 39, 0.6)',
           border: '1px solid rgba(129, 228, 242, 0.1)',
           borderRadius: '16px',
@@ -54,32 +51,38 @@ export default function Welcome() {
           backdropFilter: 'blur(10px)'
         }}>
           <div className="text-center">
-            <h2 className="text-3xl font-semibold mb-6" style={{ color: designVars.textPrimary }}>
+            <h2 className="text-3xl mb-3 text-[#e1e5f0]">
               What's Live
             </h2>
-            <p className="text-xl max-w-2xl mx-auto" style={{ color: designVars.textSecondary }}>
+            <p className="text-[#a8b2c3] mb-8">
               The globe uploader is ready. Pin your sounds anywhere on Earth.
             </p>
+            
+            <Link href="/">
+              <button className="bg-gradient-to-r from-[#81E4F2] to-[#5ac8d8] text-[#0a0e1a] px-10 py-4 rounded-lg font-semibold hover:-translate-y-0.5 transition-transform">
+                Start Uploading
+              </button>
+            </Link>
           </div>
         </div>
 
         {/* How It Works - Content Type Grid (Exact match to form) */}
-        <div className="section-card mb-20" style={{
+        <div className="section-card mb-16" style={{
           background: 'rgba(20, 25, 39, 0.6)',
           border: '1px solid rgba(129, 228, 242, 0.1)',
           borderRadius: '16px',
           padding: '40px',
           backdropFilter: 'blur(10px)'
         }}>
-          <h2 className="text-3xl font-semibold mb-8 text-center" style={{ color: designVars.textPrimary }}>
+          <h2 className="text-3xl font-semibold mb-6 text-center" style={{ color: designVars.textPrimary }}>
             How It Works
           </h2>
-          <p className="text-lg mb-12 text-center max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
+          <p className="text-lg mb-6 text-center max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
             Choose your content type and watch it appear on our 3D globe in real-time.
           </p>
 
           {/* Mode Selection */}
-          <div className="flex gap-5 mb-8">
+          <div className="flex gap-5 mb-6">
             <div className="flex-1 p-5 bg-[rgba(129,228,242,0.05)] border border-[rgba(129,228,242,0.2)] rounded-xl">
               <h3 className="text-[#81E4F2] text-lg mb-2">Quick Upload</h3>
               <p className="text-[#a8b2c3] text-sm">
@@ -221,19 +224,19 @@ export default function Welcome() {
         </div>
 
         {/* Coming Soon Section */}
-        <div className="section-card mb-20" style={{
+        <div className="section-card mb-16" style={{
           background: 'rgba(20, 25, 39, 0.6)',
           border: '1px solid rgba(129, 228, 242, 0.1)',
           borderRadius: '16px',
           padding: '40px',
           backdropFilter: 'blur(10px)'
         }}>
-          <h2 className="text-3xl font-semibold mb-8 text-center" style={{ color: designVars.textPrimary }}>
+          <h2 className="text-3xl font-semibold mb-6 text-center" style={{ color: designVars.textPrimary }}>
             Coming Soon
           </h2>
           
           {/* 4-column feature grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Globe + Mixer */}
             <div 
               className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
@@ -342,48 +345,20 @@ export default function Welcome() {
               </div>
             </div>
           </div>
-
-          {/* Real Money Moment - Gold highlight box */}
-          <div 
-            className="text-center p-8 rounded-xl border-2 backdrop-blur-sm"
-            style={{
-              background: `linear-gradient(135deg, ${designVars.accentGold}08 0%, ${designVars.accentGold}03 100%)`,
-              borderColor: designVars.accentGold,
-              boxShadow: `0 0 30px ${designVars.accentGold}20`,
-            }}
-          >
-            <div className="text-2xl mb-4">💰</div>
-            <h3 className="text-2xl font-bold mb-4" style={{ color: designVars.accentGold }}>
-              Real Money Moment
-            </h3>
-            <p className="text-lg max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
-              Your content uploaded today will be ready to sell when payments launch. 
-              Build your catalog now, earn from day one when we go live.
-            </p>
-          </div>
         </div>
 
-        {/* Call to Action */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-semibold mb-6" style={{ color: designVars.textPrimary }}>
-            Ready to light up the planet? 🚀✨
-          </h2>
-          <p className="text-lg mb-8 max-w-3xl mx-auto" style={{ color: designVars.textSecondary }}>
-            You're not just uploading tracks - you're creating the world's music discovery map.
+        {/* Real Money Moment - Standalone */}
+        <div className="bg-[rgba(255,228,181,0.1)] border border-[rgba(255,228,181,0.3)] rounded-xl p-6 text-center mb-16">
+          <h3 className="text-xl text-[#FFE4B5] mb-3">💰 Real Money Moment</h3>
+          <p className="text-[#a8b2c3]">
+            Your content uploaded today will be ready to sell when payments launch. 
+            Build your catalog now, earn from day one when we go live.
           </p>
-          
-          <Link href="/">
-            <button 
-              className="px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-xl"
-              style={{
-                background: `linear-gradient(135deg, ${designVars.accentCyan} 0%, ${designVars.accentPurple} 100%)`,
-                color: '#0a0e1a',
-                boxShadow: `0 0 30px ${designVars.accentCyan}30`,
-              }}
-            >
-              Start Uploading
-            </button>
-          </Link>
+        </div>
+
+        {/* Simple Closing */}
+        <div className="text-center text-[#6b7489]">
+          Ready to light up the planet? 🚀✨
         </div>
       </div>
     </div>
