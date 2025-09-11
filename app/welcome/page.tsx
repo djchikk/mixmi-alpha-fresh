@@ -67,13 +67,13 @@ export default function Welcome() {
           {/* 2x2 Content Type Grid - Matching actual form appearance */}
           <div className="max-w-2xl mx-auto">
             <div className="grid grid-cols-2 gap-4">
-              {/* Top left: 8-Bar Loop - Cyan border */}
+              {/* Top left: 8-Bar Loop - Thin cyan border */}
               <div 
-                className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-6 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
-                  borderColor: designVars.accentCyan,
-                  boxShadow: `0 0 20px ${designVars.accentCyan}20`,
+                  borderColor: '#81E4F2',
+                  boxShadow: `0 0 20px #81E4F220`,
                 }}
               >
                 <div className="text-center">
@@ -87,13 +87,13 @@ export default function Welcome() {
                 </div>
               </div>
               
-              {/* Top right: Loop Pack - Purple border */}
+              {/* Top right: Loop Pack - Thick purple border */}
               <div 
-                className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-6 rounded-xl border-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
-                  borderColor: designVars.accentPurple,
-                  boxShadow: `0 0 20px ${designVars.accentPurple}20`,
+                  borderColor: '#9772F4',
+                  boxShadow: `0 0 20px #9772F420`,
                 }}
               >
                 <div className="text-center">
@@ -107,13 +107,13 @@ export default function Welcome() {
                 </div>
               </div>
               
-              {/* Bottom left: Song - Cyan border */}
+              {/* Bottom left: Song - Thin gold border */}
               <div 
-                className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-6 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
-                  borderColor: designVars.accentCyan,
-                  boxShadow: `0 0 20px ${designVars.accentCyan}20`,
+                  borderColor: '#FFE4B5',
+                  boxShadow: `0 0 20px #FFE4B520`,
                 }}
               >
                 <div className="text-center">
@@ -127,13 +127,13 @@ export default function Welcome() {
                 </div>
               </div>
               
-              {/* Bottom right: EP - Gold border */}
+              {/* Bottom right: EP - Thick gold border */}
               <div 
-                className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-6 rounded-xl border-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
-                  borderColor: designVars.accentGold,
-                  boxShadow: `0 0 20px ${designVars.accentGold}20`,
+                  borderColor: '#FFE4B5',
+                  boxShadow: `0 0 20px #FFE4B520`,
                 }}
               >
                 <div className="text-center">
