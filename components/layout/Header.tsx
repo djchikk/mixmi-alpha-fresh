@@ -45,10 +45,10 @@ export default function Header() {
           upload
         </Link>
         <Link 
-          href="/about" 
+          href="/welcome" 
           className="text-gray-300 hover:text-white transition-colors font-medium tracking-wide"
         >
-          about
+          welcome
         </Link>
       </nav>
 
@@ -72,11 +72,11 @@ export default function Header() {
         <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg z-50">
           <nav className="flex flex-col py-4 px-6 space-y-4">
             <Link 
-              href="/about" 
+              href="/welcome" 
               className="text-gray-300 hover:text-white transition-colors font-medium"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              About
+              Welcome
             </Link>
             
             <Link 
