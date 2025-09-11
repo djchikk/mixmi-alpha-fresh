@@ -1991,17 +1991,7 @@ export default function IPTrackModal({
     };
 
     return (
-      <div 
-        className="mx-auto"
-        style={{
-          maxWidth: '480px',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          background: 'linear-gradient(135deg, #1a2235 0%, #141927 100%)',
-          borderRadius: '20px',
-          padding: '26px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08)'
-        }}
-      >
+      <div className="space-y-6" style={{ gap: '24px' }}>
         {/* Compact Header */}
         <div className="text-center mb-5">
           {/* Lock Emoji Icon */}
