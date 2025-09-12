@@ -204,8 +204,8 @@ export default function Welcome() {
           </div>
 
           {/* Step 4: Form Details */}
-          <h3 className="text-center text-[#a8b2c3] mb-4">Fourth: Fill In Your Details</h3>
           <div className="bg-[rgba(10,14,26,0.4)] rounded-xl p-6 mb-6" style={{ marginTop: '20px' }}>
+            <h3 className="text-center text-[#a8b2c3] mb-4">Fourth: Fill In Your Details</h3>
             <div className="text-center">
               <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
               <div>• Artist Name & Title</div>
