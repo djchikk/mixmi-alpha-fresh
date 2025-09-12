@@ -126,7 +126,7 @@ export default function Welcome() {
 
           {/* Wallet Verification Step */}
           <div className="mb-6 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl text-center">
-            <p className="text-[#e1e5f0] text-base">
+            <p className="text-[#a8b2c3] text-base">
               First: Verify Your Access - Enter the wallet address from your alpha invite
             </p>
           </div>
