@@ -33,12 +33,7 @@ export default function Welcome() {
       <div 
         className="max-w-6xl mx-auto px-6 py-16 relative" 
         style={{ 
-          paddingTop: '120px',
-          backgroundImage: 'url(/welcome-images/globe-welcome.png)',
-          backgroundPosition: 'center 200px',
-          backgroundSize: '800px',
-          backgroundAttachment: 'fixed',
-          backgroundRepeat: 'no-repeat'
+          paddingTop: '120px'
         }}
       >
         {/* Subtle globe overlay - whisper of visual texture */}
@@ -47,10 +42,10 @@ export default function Welcome() {
           style={{
             backgroundImage: 'url(/welcome-images/globe-welcome.png)',
             backgroundPosition: 'center center',
-            backgroundSize: 'contain',
+            backgroundSize: '1200px',
             backgroundRepeat: 'no-repeat',
             opacity: 0.04,
-            width: '150%',
+            width: '200%',
             height: '100%',
             left: '50%',
             top: '0',
