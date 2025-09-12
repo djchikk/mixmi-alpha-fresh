@@ -119,16 +119,15 @@ export default function Welcome() {
           position: 'relative',
           zIndex: 1
         }}>
-          <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600' }}>How It Works</h2>
-          <p className="text-[#81E4F2] mb-6">
+          <h2 className="text-2xl font-semibold mb-3 text-center" style={{ fontSize: '2rem', fontWeight: '600' }}>How It Works</h2>
+          <p className="text-[#81E4F2] mb-6 text-center">
             Alpha perk: Made a mistake? Everything can be changed or deleted - just message me!
           </p>
 
           {/* Wallet Verification Step */}
-          <div className="mb-6 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-            <h3 className="text-[#e1e5f0] text-base mb-2">First: Verify Your Access</h3>
-            <p className="text-[#a8b2c3] text-sm">
-              Enter the wallet address from your alpha invite
+          <div className="mb-6 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl text-center">
+            <p className="text-[#e1e5f0] text-base">
+              First: Verify Your Access - Enter the wallet address from your alpha invite
             </p>
           </div>
 
