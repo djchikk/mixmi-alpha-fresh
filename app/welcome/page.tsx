@@ -79,7 +79,7 @@ export default function Welcome() {
           padding: '40px',
           backdropFilter: 'blur(10px)'
         }}>
-          <h2 className="text-2xl font-semibold mb-3" style={{ color: '#e1e5f0' }}>How It Works</h2>
+          <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600' }}>How It Works</h2>
           <p className="text-[#81E4F2] mb-6">
             Alpha perk: Made a mistake? Everything can be changed or deleted - just message me!
           </p>
@@ -95,7 +95,7 @@ export default function Welcome() {
           {/* Mode Selection */}
           <div className="flex gap-5 mb-6">
             <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <h3 className="text-[#e1e5f0] flex items-center justify-center gap-2 text-base mb-3">
+              <h3 className="text-[#a8b2c3] text-center text-base mb-3" style={{ fontSize: '15px' }}>
                 <span>⚡</span> Quick Upload
               </h3>
               <p className="text-[#a8b2c3] text-sm">
@@ -103,7 +103,7 @@ export default function Welcome() {
               </p>
             </div>
             <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <h3 className="text-[#e1e5f0] flex items-center justify-center gap-2 text-base mb-3">
+              <h3 className="text-[#a8b2c3] text-center text-base mb-3" style={{ fontSize: '15px' }}>
                 <span>⚙️</span> Advanced Options
               </h3>
               <p className="text-[#a8b2c3] text-sm">
@@ -121,7 +121,7 @@ export default function Welcome() {
             <div className="grid grid-cols-2 gap-4">
               {/* Top left: 8-Bar Loop - Thin purple border */}
               <div 
-                className="p-4 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-4 rounded-xl border transition-all duration-300 backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#9772F4',
@@ -140,7 +140,7 @@ export default function Welcome() {
               
               {/* Top right: Loop Pack - Thick purple border */}
               <div 
-                className="p-4 rounded-xl border-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-4 rounded-xl border-4 transition-all duration-300 backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#9772F4',
@@ -159,7 +159,7 @@ export default function Welcome() {
               
               {/* Bottom left: Song - Thin gold border */}
               <div 
-                className="p-4 rounded-xl border transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-4 rounded-xl border transition-all duration-300 backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#FFE4B5',
@@ -178,7 +178,7 @@ export default function Welcome() {
               
               {/* Bottom right: EP - Thick gold border */}
               <div 
-                className="p-4 rounded-xl border-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer backdrop-blur-sm"
+                className="p-4 rounded-xl border-4 transition-all duration-300 backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#FFE4B5',
@@ -198,9 +198,10 @@ export default function Welcome() {
           </div>
 
           {/* Form Details */}
-          <div className="bg-[rgba(10,14,26,0.4)] rounded-xl p-6 mb-6 max-w-3xl mx-auto">
+          <div className="bg-[rgba(10,14,26,0.4)] rounded-xl p-6 mb-6" style={{ marginTop: '20px' }}>
             <h3 className="text-[#e1e5f0] text-lg mb-4 text-center">Fill In Your Details:</h3>
-            <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
+            <div className="text-center">
+              <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
               <div>• Artist Name & Title</div>
               <div>• Description</div>
               <div>• BPM (required for loops)</div>
@@ -208,25 +209,26 @@ export default function Welcome() {
               <div>• Tags (important for discovery!)</div>
               <div>• Location (your creative spot)</div>
               <div>• Liner Notes / Credits</div>
-              <div>• Cover Art & Audio Files</div>
+                <div>• Cover Art & Audio Files</div>
+              </div>
             </div>
           </div>
 
           {/* Simple Final Steps */}
-          <div className="flex justify-center" style={{ gap: '80px' }}>
-            <div className="text-center">
+          <div className="flex justify-center">
+            <div className="w-30 text-center">
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">✓</span>
               </div>
               <p className="text-[#a8b2c3] text-sm">Review</p>
             </div>
-            <div className="text-center">
+            <div className="w-30 text-center">
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">→</span>
               </div>
               <p className="text-[#a8b2c3] text-sm">Submit</p>
             </div>
-            <div className="text-center">
+            <div className="w-30 text-center">
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">🌍</span>
               </div>
@@ -243,7 +245,7 @@ export default function Welcome() {
           padding: '40px',
           backdropFilter: 'blur(10px)'
         }}>
-          <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '12px', color: designVars.textPrimary, textAlign: 'center' }}>
+          <h2 className="text-2xl font-semibold mb-10" style={{ marginBottom: '40px' }}>
             Coming Soon
           </h2>
           
