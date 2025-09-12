@@ -92,7 +92,8 @@ export default function Welcome() {
             </p>
           </div>
 
-          {/* Mode Selection */}
+          {/* Step 2: Mode Selection */}
+          <h3 className="text-center text-[#a8b2c3] mb-4">Second: Choose Your Upload Mode</h3>
           <div className="flex gap-5 mb-6">
             <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
               <h3 className="text-[#a8b2c3] text-center text-base mb-3" style={{ fontSize: '15px' }}>
@@ -120,7 +121,8 @@ export default function Welcome() {
             💡 Switch between Quick/Advanced anytime - your data is saved
           </p>
           
-          {/* 2x2 Content Type Grid - Matching actual form appearance */}
+          {/* Step 3: Content Type Selection */}
+          <h3 className="text-center text-[#a8b2c3] mb-4">Third: Select Content Type</h3>
           <div className="max-w-2xl mx-auto">
             <div className="grid grid-cols-2 gap-4">
               {/* Top left: 8-Bar Loop - Thin purple border */}
@@ -201,9 +203,9 @@ export default function Welcome() {
             </div>
           </div>
 
-          {/* Form Details */}
+          {/* Step 4: Form Details */}
+          <h3 className="text-center text-[#a8b2c3] mb-4">Fourth: Fill In Your Details</h3>
           <div className="bg-[rgba(10,14,26,0.4)] rounded-xl p-6 mb-6" style={{ marginTop: '20px' }}>
-            <h3 className="text-[#e1e5f0] text-lg mb-4 text-center">Fill In Your Details:</h3>
             <div className="text-center">
               <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
               <div>• Artist Name & Title</div>
@@ -258,10 +260,10 @@ export default function Welcome() {
           padding: '40px',
           backdropFilter: 'blur(10px)'
         }}>
-          <h2 className="text-2xl font-semibold mb-2" style={{ fontSize: '2rem', marginBottom: '8px' }}>
+          <h2 className="text-3xl text-center mb-2" style={{ fontSize: '2rem' }}>
             Coming Soon
           </h2>
-          <p className="text-[#6b7489] text-center mb-8">
+          <p className="text-center text-[#a8b2c3] mb-8">
             Within 3 weeks
           </p>
           
