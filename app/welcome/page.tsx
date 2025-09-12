@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Header from '@/components/layout/Header';
 
 // Design variables from Desktop Claude specification
@@ -267,119 +268,57 @@ export default function Welcome() {
             Within 3 weeks
           </p>
           
-          {/* 4-column feature grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Globe + Mixer */}
-            <div 
-              className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
-              style={{
-                background: designVars.cardBg,
-                border: `1px solid ${designVars.cardBorder}`,
-              }}
-            >
-              <div 
-                className="h-40 flex items-center justify-center text-sm"
-                style={{ 
-                  background: 'rgba(10, 14, 26, 0.5)',
-                  border: '1px solid rgba(129, 228, 242, 0.1)',
-                  color: designVars.textMuted 
-                }}
-              >
-                [Globe + Tiny Mixer Screenshot]
+          {/* Coming Soon - 2-column layout for wider aspect ratio */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            
+            {/* Globe + Tiny Mixer */}
+            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                 style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
+              <div className="aspect-video bg-gray-800 relative">
+                <Image src="/images/globe-tiny-mixer.png" alt="Globe with Tiny Mixer" fill className="object-cover" />
               </div>
               <div className="p-4">
-                <h3 className="font-semibold mb-2" style={{ color: designVars.textPrimary }}>
-                  Globe + Mixer
-                </h3>
-                <p className="text-sm" style={{ color: designVars.textMuted }}>
-                  Discover and mix in real-time
-                </p>
+                <h3 className="font-semibold mb-2 text-[#e1e5f0]">Globe + Mixer</h3>
+                <p className="text-sm text-[#6b7489]">Discover and mix in real-time</p>
               </div>
             </div>
-
+            
             {/* Professional Mixer */}
-            <div 
-              className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
-              style={{
-                background: designVars.cardBg,
-                border: `1px solid ${designVars.cardBorder}`,
-              }}
-            >
-              <div 
-                className="h-40 flex items-center justify-center text-sm"
-                style={{ 
-                  background: 'rgba(10, 14, 26, 0.5)',
-                  border: '1px solid rgba(129, 228, 242, 0.1)',
-                  color: designVars.textMuted 
-                }}
-              >
-                [Professional Mixer Screenshot]
+            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                 style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
+              <div className="aspect-video bg-gray-800 relative">
+                <Image src="/images/professional-mixer.png" alt="Professional Mixer Interface" fill className="object-cover" />
               </div>
               <div className="p-4">
-                <h3 className="font-semibold mb-2" style={{ color: designVars.textPrimary }}>
-                  Professional Mixer
-                </h3>
-                <p className="text-sm" style={{ color: designVars.textMuted }}>
-                  Dual decks with waveforms
-                </p>
+                <h3 className="font-semibold mb-2 text-[#e1e5f0]">Professional Mixer</h3>
+                <p className="text-sm text-[#6b7489]">Dual decks with waveforms</p>
               </div>
             </div>
-
+            
             {/* Creator Store */}
-            <div 
-              className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
-              style={{
-                background: designVars.cardBg,
-                border: `1px solid ${designVars.cardBorder}`,
-              }}
-            >
-              <div 
-                className="h-40 flex items-center justify-center text-sm"
-                style={{ 
-                  background: 'rgba(10, 14, 26, 0.5)',
-                  border: '1px solid rgba(129, 228, 242, 0.1)',
-                  color: designVars.textMuted 
-                }}
-              >
-                [Creator Store Screenshot]
+            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                 style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
+              <div className="aspect-video bg-gray-800 relative">
+                <Image src="/images/creator-store.png" alt="Creator Store Interface" fill className="object-cover" />
               </div>
               <div className="p-4">
-                <h3 className="font-semibold mb-2" style={{ color: designVars.textPrimary }}>
-                  Creator Stores
-                </h3>
-                <p className="text-sm" style={{ color: designVars.textMuted }}>
-                  Your own music marketplace
-                </p>
+                <h3 className="font-semibold mb-2 text-[#e1e5f0]">Creator Stores</h3>
+                <p className="text-sm text-[#6b7489]">Your own music marketplace</p>
               </div>
             </div>
-
+            
             {/* Artist Profiles */}
-            <div 
-              className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 hover:border-opacity-50 backdrop-blur-sm"
-              style={{
-                background: designVars.cardBg,
-                border: `1px solid ${designVars.cardBorder}`,
-              }}
-            >
-              <div 
-                className="h-40 flex items-center justify-center text-sm"
-                style={{ 
-                  background: 'rgba(10, 14, 26, 0.5)',
-                  border: '1px solid rgba(129, 228, 242, 0.1)',
-                  color: designVars.textMuted 
-                }}
-              >
-                [Artist Profile Screenshot]
+            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                 style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
+              <div className="aspect-video bg-gray-800 relative">
+                <Image src="/images/profile-showcase.png" alt="Artist Profile Showcase" fill className="object-cover" />
               </div>
               <div className="p-4">
-                <h3 className="font-semibold mb-2" style={{ color: designVars.textPrimary }}>
-                  Artist Profiles
-                </h3>
-                <p className="text-sm" style={{ color: designVars.textMuted }}>
-                  Rich creator showcases
-                </p>
+                <h3 className="font-semibold mb-2 text-[#e1e5f0]">Artist Profiles</h3>
+                <p className="text-sm text-[#6b7489]">Rich creator showcases</p>
               </div>
             </div>
+            
           </div>
         </div>
 
