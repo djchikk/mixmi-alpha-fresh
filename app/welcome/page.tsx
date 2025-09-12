@@ -29,9 +29,9 @@ const designVars = {
 export default function Welcome() {
   return (
     <div 
-      className="min-h-screen"
+      className="min-h-screen relative"
       style={{ 
-        background: designVars.welcomeBgGradient,
+        background: 'linear-gradient(135deg, rgba(10,14,26,0.95) 0%, rgba(20,25,39,0.98) 50%, rgba(10,14,26,0.95) 100%)',
         color: designVars.textPrimary
       }}
     >
