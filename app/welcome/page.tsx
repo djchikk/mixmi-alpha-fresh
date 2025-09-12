@@ -261,7 +261,7 @@ export default function Welcome() {
           padding: '40px',
           backdropFilter: 'blur(10px)'
         }}>
-          <h2 className="text-3xl text-center mb-2" style={{ fontSize: '2rem' }}>
+          <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600' }}>
             Coming Soon
           </h2>
           <p className="text-center text-[#a8b2c3] mb-8">
