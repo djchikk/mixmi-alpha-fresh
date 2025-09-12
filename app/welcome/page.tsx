@@ -30,7 +30,29 @@ export default function Welcome() {
     >
       <Header />
       
-      <div className="max-w-6xl mx-auto px-6 py-16" style={{ paddingTop: '120px' }}>
+      <div 
+        className="max-w-6xl mx-auto px-6 py-16 relative" 
+        style={{ 
+          paddingTop: '120px',
+          backgroundImage: 'url(/welcome-images/globe-welcome.png)',
+          backgroundPosition: 'center 200px',
+          backgroundSize: '800px',
+          backgroundAttachment: 'fixed',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Subtle globe overlay */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'url(/welcome-images/globe-welcome.png)',
+            backgroundPosition: 'center 200px',
+            backgroundSize: '800px',
+            backgroundRepeat: 'no-repeat',
+            opacity: 0.06,
+            zIndex: -1
+          }}
+        ></div>
         {/* Hero Section - Desktop Claude specification */}
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl mb-4 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent font-semibold"
