@@ -45,17 +45,16 @@ export default function Welcome() {
       >
         {/* Breathing Globe Background - Whisper of life */}
         <div 
-          className="absolute pointer-events-none"
+          className="pointer-events-none"
           style={{
-            position: 'absolute',
-            width: '150%',
-            height: '150%',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100vw',
+            height: '100vh',
             opacity: 0.20,
             pointerEvents: 'none',
-            zIndex: -1
+            zIndex: 0
           }}
         >
           <Globe 
@@ -90,7 +89,9 @@ export default function Welcome() {
           border: '1px solid rgba(129, 228, 242, 0.1)',
           borderRadius: '16px',
           padding: '40px',
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'blur(10px)',
+          position: 'relative',
+          zIndex: 1
         }}>
           <div className="text-center">
             <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '12px', color: '#e1e5f0' }}>
@@ -114,7 +115,9 @@ export default function Welcome() {
           border: '1px solid rgba(129, 228, 242, 0.1)',
           borderRadius: '16px',
           padding: '40px',
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'blur(10px)',
+          position: 'relative',
+          zIndex: 1
         }}>
           <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600' }}>How It Works</h2>
           <p className="text-[#81E4F2] mb-6">
@@ -295,7 +298,9 @@ export default function Welcome() {
           border: '1px solid rgba(129, 228, 242, 0.1)',
           borderRadius: '16px',
           padding: '40px',
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'blur(10px)',
+          position: 'relative',
+          zIndex: 1
         }}>
           <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600' }}>
             Coming Soon
