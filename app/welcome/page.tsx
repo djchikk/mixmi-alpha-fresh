@@ -64,7 +64,7 @@ export default function Welcome() {
             </p>
             
             <Link href="/">
-              <button className="bg-gradient-to-r from-[#81E4F2] to-[#5ac8d8] text-[#0a0e1a] px-10 py-4 rounded-lg font-semibold hover:-translate-y-0.5 transition-transform">
+              <button className="bg-gradient-to-r from-[#81E4F2] to-[#5ac8d8] text-[#0a0e1a] px-10 py-3 rounded-lg font-semibold hover:-translate-y-0.5 transition-transform">
                 Start Uploading
               </button>
             </Link>
@@ -95,7 +95,7 @@ export default function Welcome() {
           {/* Mode Selection */}
           <div className="flex gap-5 mb-6">
             <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <h3 className="text-[#e1e5f0] flex items-center gap-2 text-base mb-2">
+              <h3 className="text-[#e1e5f0] flex items-center justify-center gap-2 text-base mb-3">
                 <span>⚡</span> Quick Upload
               </h3>
               <p className="text-[#a8b2c3] text-sm">
@@ -103,7 +103,7 @@ export default function Welcome() {
               </p>
             </div>
             <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <h3 className="text-[#e1e5f0] flex items-center gap-2 text-base mb-2">
+              <h3 className="text-[#e1e5f0] flex items-center justify-center gap-2 text-base mb-3">
                 <span>⚙️</span> Advanced Options
               </h3>
               <p className="text-[#a8b2c3] text-sm">
@@ -199,7 +199,7 @@ export default function Welcome() {
 
           {/* Form Details */}
           <div className="bg-[rgba(10,14,26,0.4)] rounded-xl p-6 mb-6 max-w-3xl mx-auto">
-            <h3 className="text-[#e1e5f0] text-lg mb-4">Fill In Your Details:</h3>
+            <h3 className="text-[#e1e5f0] text-lg mb-4 text-center">Fill In Your Details:</h3>
             <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
               <div>• Artist Name & Title</div>
               <div>• Description</div>
@@ -213,7 +213,7 @@ export default function Welcome() {
           </div>
 
           {/* Simple Final Steps */}
-          <div className="flex justify-center gap-15">
+          <div className="flex justify-center" style={{ gap: '80px' }}>
             <div className="text-center">
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">✓</span>
