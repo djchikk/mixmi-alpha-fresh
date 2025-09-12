@@ -44,6 +44,12 @@ export default function Header() {
         >
           upload
         </Link>
+        <Link 
+          href="/welcome" 
+          className="text-gray-300 hover:text-white transition-colors font-medium tracking-wide"
+        >
+          welcome
+        </Link>
       </nav>
 
       {/* Right: Alpha System Label */}
@@ -65,6 +71,13 @@ export default function Header() {
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg z-50">
           <nav className="flex flex-col py-4 px-6 space-y-4">
+            <Link 
+              href="/welcome" 
+              className="text-gray-300 hover:text-white transition-colors font-medium"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Welcome
+            </Link>
             
             <Link 
               href="/" 

@@ -76,7 +76,6 @@ export default function Welcome() {
                 lineHeight: '1.2'
               }}>
             Welcome to Mixmi Alpha
-            <span className="ml-3 text-3xl">🌍</span>
           </h1>
           <p className="text-[#a8b2c3] text-lg max-w-2xl mx-auto">
             Hey friends! You're the first to populate a world of infinite remix, 
