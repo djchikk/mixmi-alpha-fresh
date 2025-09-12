@@ -44,7 +44,7 @@ export default function Welcome() {
             backgroundPosition: 'center center',
             backgroundSize: '1200px',
             backgroundRepeat: 'no-repeat',
-            opacity: 0.04,
+            opacity: 0.20,
             width: '200%',
             height: '100%',
             left: '50%',
