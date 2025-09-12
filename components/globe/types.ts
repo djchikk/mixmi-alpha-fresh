@@ -38,6 +38,7 @@ export interface GlobeProps {
   onNodeHover?: (node: TrackNode | null) => void;
   selectedNode?: TrackNode | null;
   hoveredNode?: TrackNode | null;
+  backgroundMode?: boolean;
 }
 
 export interface NodeMeshProps {

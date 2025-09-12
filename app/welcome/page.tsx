@@ -63,6 +63,7 @@ export default function Welcome() {
             onNodeHover={() => {}}
             selectedNode={null}
             hoveredNode={null}
+            backgroundMode={true}
           />
         </div>
 

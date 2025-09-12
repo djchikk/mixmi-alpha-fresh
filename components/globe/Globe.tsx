@@ -25,7 +25,7 @@ export function latLngToVector3(lat: number, lng: number, radius: number): THREE
   return new THREE.Vector3(x, y, z);
 }
 
-export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNode, hoveredNode }: GlobeProps) {
+export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNode, hoveredNode, backgroundMode = false }: GlobeProps) {
   const globeRef = useRef<THREE.Group>(null);
 
   return (
@@ -87,17 +87,19 @@ export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNo
           />
         </GlobeMesh>
         
-        {/* Controls with deeper zoom */}
-        <OrbitControls
-          enableZoom={true}
-          enablePan={false}
-          minDistance={1.05}  // Much closer zoom
-          maxDistance={8}     // Slightly farther max
-          rotateSpeed={0.5}
-          zoomSpeed={0.2}     // Even more gradual zoom (was 0.4)
-          enableDamping={true}
-          dampingFactor={0.1}   // Even smoother damping (was 0.08)
-        />
+        {/* Controls with deeper zoom - disabled in background mode */}
+        {!backgroundMode && (
+          <OrbitControls
+            enableZoom={true}
+            enablePan={false}
+            minDistance={1.05}  // Much closer zoom
+            maxDistance={8}     // Slightly farther max
+            rotateSpeed={0.5}
+            zoomSpeed={0.2}     // Even more gradual zoom (was 0.4)
+            enableDamping={true}
+            dampingFactor={0.1}   // Even smoother damping (was 0.08)
+          />
+        )}
       </Canvas>
     </div>
   );
