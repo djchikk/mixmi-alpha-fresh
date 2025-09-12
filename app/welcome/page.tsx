@@ -4,6 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/layout/Header';
+import dynamic from 'next/dynamic';
+
+// Dynamically import Globe for breathing background effect
+const Globe = dynamic(() => import('@/components/globe/Globe'), { 
+  ssr: false,
+  loading: () => null
+});
 
 // Design variables from Desktop Claude specification
 const designVars = {
@@ -36,23 +43,30 @@ export default function Welcome() {
           paddingTop: '120px'
         }}
       >
-        {/* Subtle globe overlay - whisper of visual texture */}
+        {/* Breathing Globe Background - Whisper of life */}
         <div 
           className="absolute pointer-events-none"
           style={{
-            backgroundImage: 'url(/welcome-images/globe-welcome.png)',
-            backgroundPosition: 'center center',
-            backgroundSize: '1200px',
-            backgroundRepeat: 'no-repeat',
-            opacity: 0.20,
-            width: '200%',
-            height: '100%',
+            position: 'absolute',
+            width: '150%',
+            height: '150%',
+            top: '50%',
             left: '50%',
-            top: '0',
-            transform: 'translateX(-50%)',
+            transform: 'translate(-50%, -50%)',
+            opacity: 0.20,
+            pointerEvents: 'none',
             zIndex: -1
           }}
-        ></div>
+        >
+          <Globe 
+            nodes={[]} 
+            onNodeClick={() => {}}
+            onNodeHover={() => {}}
+            selectedNode={null}
+            hoveredNode={null}
+          />
+        </div>
+
         {/* Hero Section - Desktop Claude specification */}
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl mb-4 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent font-semibold"
