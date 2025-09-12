@@ -41,15 +41,20 @@ export default function Welcome() {
           backgroundRepeat: 'no-repeat'
         }}
       >
-        {/* Subtle globe overlay */}
+        {/* Subtle globe overlay - whisper of visual texture */}
         <div 
-          className="absolute inset-0 pointer-events-none"
+          className="absolute pointer-events-none"
           style={{
             backgroundImage: 'url(/welcome-images/globe-welcome.png)',
-            backgroundPosition: 'center 200px',
-            backgroundSize: '800px',
+            backgroundPosition: 'center center',
+            backgroundSize: 'contain',
             backgroundRepeat: 'no-repeat',
-            opacity: 0.06,
+            opacity: 0.04,
+            width: '150%',
+            height: '100%',
+            left: '50%',
+            top: '0',
+            transform: 'translateX(-50%)',
             zIndex: -1
           }}
         ></div>
