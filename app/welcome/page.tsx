@@ -275,7 +275,7 @@ export default function Welcome() {
             <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                  style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
               <div className="aspect-video bg-gray-800 relative">
-                <Image src="/images/globe-tiny-mixer.png" alt="Globe with Tiny Mixer" fill className="object-cover" />
+                <Image src="/welcome-images/globe-tiny-mixer.png" alt="Globe with Tiny Mixer" fill className="object-cover" />
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2 text-[#e1e5f0]">Globe + Mixer</h3>
@@ -287,7 +287,7 @@ export default function Welcome() {
             <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                  style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
               <div className="aspect-video bg-gray-800 relative">
-                <Image src="/images/professional-mixer.png" alt="Professional Mixer Interface" fill className="object-cover" />
+                <Image src="/welcome-images/professional-mixer.png" alt="Professional Mixer Interface" fill className="object-cover" />
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2 text-[#e1e5f0]">Professional Mixer</h3>
@@ -299,7 +299,7 @@ export default function Welcome() {
             <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                  style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
               <div className="aspect-video bg-gray-800 relative">
-                <Image src="/images/creator-store.png" alt="Creator Store Interface" fill className="object-cover" />
+                <Image src="/welcome-images/creator-store.png" alt="Creator Store Interface" fill className="object-cover" />
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2 text-[#e1e5f0]">Creator Stores</h3>
@@ -311,7 +311,7 @@ export default function Welcome() {
             <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                  style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
               <div className="aspect-video bg-gray-800 relative">
-                <Image src="/images/profile-showcase.png" alt="Artist Profile Showcase" fill className="object-cover" />
+                <Image src="/welcome-images/profile-showcase.gif" alt="Artist Profile Showcase" fill className="object-cover" />
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2 text-[#e1e5f0]">Artist Profiles</h3>
