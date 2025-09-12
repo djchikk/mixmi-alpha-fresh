@@ -98,21 +98,25 @@ export default function Welcome() {
               <h3 className="text-[#a8b2c3] text-center text-base mb-3" style={{ fontSize: '15px' }}>
                 <span>⚡</span> Quick Upload
               </h3>
-              <p className="text-[#a8b2c3] text-sm">
-                Solo creators: Auto-assigns 100% rights to you.
+              <p className="text-[#a8b2c3] text-sm text-center">
+                Solo creators: Auto-assigns 100% rights to you
               </p>
             </div>
             <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
               <h3 className="text-[#a8b2c3] text-center text-base mb-3" style={{ fontSize: '15px' }}>
                 <span>⚙️</span> Advanced Options
               </h3>
-              <p className="text-[#a8b2c3] text-sm">
-                Split rights between up to 3 creators. Add ISRC codes.
+              <p className="text-[#a8b2c3] text-sm text-center">
+                Split rights between up to 3 creators. Add ISRC codes
               </p>
             </div>
           </div>
 
-          <p className="text-[#6b7489] text-sm mb-6">
+          <p className="text-[#6b7489] text-center mb-6" style={{ 
+            fontSize: '16px',
+            margin: '20px auto',
+            display: 'block'
+          }}>
             💡 Switch between Quick/Advanced anytime - your data is saved
           </p>
           
@@ -121,7 +125,7 @@ export default function Welcome() {
             <div className="grid grid-cols-2 gap-4">
               {/* Top left: 8-Bar Loop - Thin purple border */}
               <div 
-                className="p-4 rounded-xl border transition-all duration-300 backdrop-blur-sm"
+                className="p-4 rounded-xl border backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#9772F4',
@@ -140,7 +144,7 @@ export default function Welcome() {
               
               {/* Top right: Loop Pack - Thick purple border */}
               <div 
-                className="p-4 rounded-xl border-4 transition-all duration-300 backdrop-blur-sm"
+                className="p-4 rounded-xl border-4 backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#9772F4',
@@ -159,7 +163,7 @@ export default function Welcome() {
               
               {/* Bottom left: Song - Thin gold border */}
               <div 
-                className="p-4 rounded-xl border transition-all duration-300 backdrop-blur-sm"
+                className="p-4 rounded-xl border backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#FFE4B5',
@@ -178,7 +182,7 @@ export default function Welcome() {
               
               {/* Bottom right: EP - Thick gold border */}
               <div 
-                className="p-4 rounded-xl border-4 transition-all duration-300 backdrop-blur-sm"
+                className="p-4 rounded-xl border-4 backdrop-blur-sm"
                 style={{
                   background: designVars.cardBg,
                   borderColor: '#FFE4B5',
@@ -214,25 +218,34 @@ export default function Welcome() {
             </div>
           </div>
 
-          {/* Simple Final Steps */}
+          {/* 4-Step Process Icons */}
           <div className="flex justify-center">
-            <div className="w-30 text-center">
+            <div className="w-30 text-center" style={{ width: '120px' }}>
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">✓</span>
               </div>
               <p className="text-[#a8b2c3] text-sm">Review</p>
             </div>
-            <div className="w-30 text-center">
+            
+            <div className="w-30 text-center" style={{ width: '120px' }}>
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">→</span>
               </div>
               <p className="text-[#a8b2c3] text-sm">Submit</p>
             </div>
-            <div className="w-30 text-center">
+            
+            <div className="w-30 text-center" style={{ width: '120px' }}>
+              <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
+                <span className="text-[#81E4F2]">🔄</span>
+              </div>
+              <p className="text-[#a8b2c3] text-sm">Refresh</p>
+            </div>
+            
+            <div className="w-30 text-center" style={{ width: '120px' }}>
               <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
                 <span className="text-[#81E4F2]">🌍</span>
               </div>
-              <p className="text-[#a8b2c3] text-sm">Refresh & View</p>
+              <p className="text-[#a8b2c3] text-sm">View</p>
             </div>
           </div>
         </div>
@@ -245,9 +258,12 @@ export default function Welcome() {
           padding: '40px',
           backdropFilter: 'blur(10px)'
         }}>
-          <h2 className="text-2xl font-semibold mb-10" style={{ marginBottom: '40px' }}>
+          <h2 className="text-2xl font-semibold mb-2" style={{ fontSize: '2rem', marginBottom: '8px' }}>
             Coming Soon
           </h2>
+          <p className="text-[#6b7489] text-center mb-8">
+            Within 3 weeks
+          </p>
           
           {/* 4-column feature grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
