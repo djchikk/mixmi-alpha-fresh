@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 export default function Header() {
   const pathname = usePathname();
   const isGlobePage = pathname === '/';
+  const isWelcomePage = pathname === '/welcome';
   
   // 🎯 PERFORMANCE FIX: Only use auth on non-globe pages to eliminate JWT overhead
   const auth = isGlobePage ? null : useAuth();
@@ -40,13 +41,21 @@ export default function Header() {
       <nav className="hidden md:flex items-center gap-8 font-mono">
         <Link 
           href="/" 
-          className="text-gray-300 hover:text-white transition-colors font-bold tracking-wide"
+          className={`transition-all duration-300 tracking-wide ${
+            isGlobePage 
+              ? 'text-white font-bold transform scale-105' 
+              : 'text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95'
+          }`}
         >
           upload
         </Link>
         <Link 
           href="/welcome" 
-          className="text-gray-300 hover:text-white transition-colors font-medium tracking-wide"
+          className={`transition-all duration-300 tracking-wide ${
+            isWelcomePage 
+              ? 'text-white font-bold transform scale-105' 
+              : 'text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95'
+          }`}
         >
           welcome
         </Link>
@@ -73,7 +82,11 @@ export default function Header() {
           <nav className="flex flex-col py-4 px-6 space-y-4">
             <Link 
               href="/welcome" 
-              className="text-gray-300 hover:text-white transition-colors font-medium"
+              className={`transition-all duration-300 ${
+                isWelcomePage 
+                  ? 'text-white font-bold' 
+                  : 'text-gray-300 hover:text-white font-medium active:scale-95'
+              }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Welcome
@@ -81,7 +94,11 @@ export default function Header() {
             
             <Link 
               href="/" 
-              className="text-gray-300 hover:text-white transition-colors font-medium"
+              className={`transition-all duration-300 ${
+                isGlobePage 
+                  ? 'text-white font-bold' 
+                  : 'text-gray-300 hover:text-white font-medium active:scale-95'
+              }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Globe

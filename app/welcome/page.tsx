@@ -302,7 +302,7 @@ export default function Welcome() {
           position: 'relative',
           zIndex: 1
         }}>
-          <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600' }}>
+          <h2 className="text-2xl font-semibold mb-3 text-center" style={{ fontSize: '2rem', fontWeight: '600' }}>
             Coming Soon
           </h2>
           <p className="text-center text-[#a8b2c3] mb-8">
