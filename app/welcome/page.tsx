@@ -332,7 +332,7 @@ export default function Welcome() {
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2 text-[#e1e5f0]">Professional Mixer</h3>
-                <p className="text-sm text-[#6b7489]">Dual decks with waveforms</p>
+                <p className="text-sm text-[#6b7489]">Dual decks with sync, loop length controls and FX</p>
               </div>
             </div>
             
