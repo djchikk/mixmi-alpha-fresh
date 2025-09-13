@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { AppConfig, UserSession, showConnect } from "@stacks/connect";
+import { AppConfig, UserSession } from "@stacks/connect";
 import { StorageService } from "@/lib/storage";
 import { STORAGE_KEYS } from "@/types";
 import { SupabaseAuthBridge } from "@/lib/auth/supabase-auth-bridge";
@@ -71,17 +71,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         icon: window.location.origin + "/favicon.ico",
       };
       
-      console.log("Connecting to wallet...");
+      // Import connect module dynamically to handle version differences
+      const connectModule = await import("@stacks/connect");
+      const connectFunction = connectModule.authenticate;
       
-      showConnect({
+      connectFunction({
         appDetails,
         redirectTo: '/',
         userSession,
         onFinish: async () => {
-          console.log("Wallet connection finished");
           if (userSession.isUserSignedIn()) {
             const userData = userSession.loadUserData();
-            console.log("User is signed in, data:", userData);
             
             // Extract addresses with fallbacks
             const stxAddress = userData.profile?.stxAddress?.mainnet || null;
@@ -95,38 +95,24 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
                 btcAddress: btcAddress
               });
               
-              // Log for debugging
-              console.log("Wallet addresses set:", {
-                stx: stxAddress,
-                btc: btcAddress
-              });
-              
-              // 🚀 Now create the Supabase session with JWT token
+              // Create the Supabase session with JWT token
               try {
-                console.log("🔐 Creating Supabase session for wallet:", stxAddress);
                 await SupabaseAuthBridge.createWalletSession(stxAddress);
-                console.log("✅ Supabase session created successfully");
               } catch (error) {
-                console.error("🚨 Failed to create Supabase session:", error);
+                console.error("Failed to create Supabase session:", error);
                 // Don't fail the wallet connection if JWT creation fails
-                // This allows the app to work in localStorage mode
               }
-            } else {
-              console.error("No STX address found in user data");
             }
-          } else {
-            console.log("User session finished but not signed in");
           }
         },
         onCancel: () => {
-          console.log("Wallet connection canceled");
+          // User canceled wallet connection
         }
       });
     } catch (error) {
       console.error("Error connecting to wallet:", error);
       
-      // ALPHA UPLOADER: No fallback to mock data - let connection fail gracefully
-      console.log("Wallet connection failed - users can still enter wallet address manually");
+      // Wallet connection failed - users can still use whitelist fallback
     }
   };
   

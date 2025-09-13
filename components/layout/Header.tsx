@@ -15,9 +15,8 @@ export default function Header() {
   const isGlobePage = pathname === '/';
   const isWelcomePage = pathname === '/welcome';
   
-  // 🎯 PERFORMANCE FIX: Only use auth on non-globe pages to eliminate JWT overhead
-  const auth = isGlobePage ? null : useAuth();
-  const { isAuthenticated, connectWallet, disconnectWallet, walletAddress } = auth || {};
+  // Use auth on all pages for global wallet connection
+  const { isAuthenticated, connectWallet, disconnectWallet, walletAddress } = useAuth();
   
   // Alpha version - no profile sync status needed
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,10 +60,35 @@ export default function Header() {
         </Link>
       </nav>
 
-      {/* Right: Alpha System Label */}
+      {/* Right: Wallet Connection */}
       <div className="flex-1 flex justify-end items-center gap-4">
-        <div className="text-sm text-gray-400 hidden md:block">
-          Alpha Upload System
+        {/* Wallet Connection Buttons - Show on all pages */}
+        <div className="hidden md:flex items-center gap-3">
+            {isAuthenticated && walletAddress ? (
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-300 font-mono">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </div>
+                <button
+                  onClick={disconnectWallet}
+                  className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={connectWallet}
+                className="px-4 py-2 text-sm bg-gradient-to-r from-[#81E4F2] to-[#5ac8d8] text-[#141927] font-medium rounded-md hover:scale-105 transition-transform"
+              >
+                Connect Wallet
+              </button>
+            )}
+        </div>
+        
+        {/* Alpha label - smaller, less prominent */}
+        <div className="text-xs text-gray-500 hidden lg:block">
+          Alpha
         </div>
         
         {/* Mobile Menu Button */}
@@ -104,7 +128,35 @@ export default function Header() {
               Globe
             </Link>
             
-            {/* Simplified alpha navigation */}
+            {/* Mobile Wallet Connection */}
+            <div className="pt-2 border-t border-gray-700">
+                {isAuthenticated && walletAddress ? (
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-300 font-mono">
+                      {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
+                    </div>
+                    <button
+                      onClick={() => {
+                        disconnectWallet?.();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
+                    >
+                      Disconnect Wallet
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      connectWallet?.();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-2 text-sm bg-gradient-to-r from-[#81E4F2] to-[#5ac8d8] text-[#141927] font-medium rounded-md transition-transform"
+                  >
+                    Connect Wallet
+                  </button>
+                )}
+            </div>
           </nav>
         </div>
       )}

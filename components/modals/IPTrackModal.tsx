@@ -33,20 +33,17 @@ export default function IPTrackModal({
   track,
   onSave,
 }: IPTrackModalProps) {
-  // 🎯 TWO-STEP AUTH: 1) Alpha verification 2) Content wallet selection
-  const [alphaWallet, setAlphaWallet] = useState<string>(''); // For alpha verification
+  // 🎯 AUTH: Check global wallet state, fallback to alpha whitelist
+  const [alphaWallet, setAlphaWallet] = useState<string>(''); // For alpha whitelist verification
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [inputWallet, setInputWallet] = useState(''); // For auth input
-  const [useVerificationWallet, setUseVerificationWallet] = useState(true); // For wallet checkbox
+  const [inputWallet, setInputWallet] = useState(''); // For whitelist auth input
+  const [useVerificationWallet, setUseVerificationWallet] = useState(true); // For wallet checkbox attribution
   
-  // 🔗 Wallet Connection States
-  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
-  const [connectedAccounts, setConnectedAccounts] = useState<string[]>([]);
-  const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [showAccountSelection, setShowAccountSelection] = useState(false);
+  const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress } = useAuth();
   
-  const { connectWallet, isAuthenticated: walletAuthenticated, walletAddress } = useAuth();
+  // Determine authentication state and wallet to use
+  const isAuthenticated = globalWalletConnected || !!alphaWallet;
+  const walletToUse = globalWalletAddress || alphaWallet;
   const { showToast } = useToast();
   
   // Use custom hooks
@@ -71,7 +68,7 @@ export default function IPTrackModal({
     getSteps,
     resetForm,
     handleLoadPreset,
-  } = useIPTrackForm({ track, walletAddress: '' }); // Will be updated when user selects content wallet
+  } = useIPTrackForm({ track, walletAddress: walletToUse });
   
   const {
     uploadedAudioFile,
@@ -85,7 +82,7 @@ export default function IPTrackModal({
     processAudioFile,
     resetAudioUpload,
   } = useAudioUpload({
-    walletAddress: alphaWallet, // Use alpha verification wallet for audio processing
+    walletAddress: walletToUse, // Use the determined wallet address
     contentType: formData.content_type,
     currentBPM: formData.bpm,
     onBPMDetected: (bpm) => {
@@ -190,11 +187,12 @@ export default function IPTrackModal({
   
   // Smart default behavior for wallet checkbox
   useEffect(() => {
-    if (alphaWallet && useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
-      // Auto-fill with verification wallet when checkbox is checked and field is empty
-      handleInputChange('wallet_address', alphaWallet);
+    const authWallet = globalWalletAddress || alphaWallet;
+    if (authWallet && useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
+      // Auto-fill with authenticated wallet when checkbox is checked and field is empty
+      handleInputChange('wallet_address', authWallet);
     }
-  }, [alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
+  }, [globalWalletAddress, alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
   
   // Show dropdown when suggestions are available
   useEffect(() => {
@@ -652,35 +650,35 @@ export default function IPTrackModal({
           type="text"
           value={formData.wallet_address || ''}
           onChange={(e) => handleInputChange('wallet_address', e.target.value)}
-          readOnly={useVerificationWallet && alphaWallet}
+          readOnly={useVerificationWallet && (globalWalletAddress || alphaWallet)}
           className={`w-full px-3 py-3 rounded-md text-white placeholder-gray-500 border focus:outline-none transition-all duration-200 ${
-            useVerificationWallet && alphaWallet 
+            useVerificationWallet && (globalWalletAddress || alphaWallet)
               ? 'bg-gray-700/50 cursor-not-allowed text-gray-300' 
               : 'bg-black/25 cursor-text text-white'
           }`}
           style={{
-            borderColor: useVerificationWallet && alphaWallet 
+            borderColor: useVerificationWallet && (globalWalletAddress || alphaWallet)
               ? 'rgba(129, 228, 242, 0.3)' 
               : 'rgba(255, 255, 255, 0.08)',
-            borderRadius: '10px',
-            placeholderColor: useVerificationWallet && alphaWallet ? '#9ca3af' : '#4a5264'
+            borderRadius: '10px'
           }}
           placeholder={
-            useVerificationWallet && alphaWallet 
-              ? "Using verification wallet (read-only)" 
+            useVerificationWallet && (globalWalletAddress || alphaWallet)
+              ? "Using authenticated wallet (read-only)" 
               : "SP1234... (Wallet for this content)"
           }
         />
-        {alphaWallet && (
+        {(globalWalletAddress || alphaWallet) && (
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={useVerificationWallet}
               onChange={(e) => {
                 setUseVerificationWallet(e.target.checked);
+                const authWallet = globalWalletAddress || alphaWallet;
                 if (e.target.checked) {
-                  // Auto-fill with verification wallet when checked
-                  handleInputChange('wallet_address', alphaWallet);
+                  // Auto-fill with authenticated wallet when checked
+                  handleInputChange('wallet_address', authWallet);
                 } else {
                   // Clear the field when unchecked
                   handleInputChange('wallet_address', '');
@@ -693,7 +691,7 @@ export default function IPTrackModal({
               }}
             />
             <span className="text-white text-sm">
-              Use verification wallet ({alphaWallet.substring(0, 8)}...)
+              Use authenticated wallet ({(globalWalletAddress || alphaWallet).substring(0, 8)}...)
             </span>
           </label>
         )}
@@ -2120,7 +2118,10 @@ export default function IPTrackModal({
               lineHeight: '1.4'
             }}
           >
-            Verify your alpha access to start uploading
+{globalWalletConnected 
+              ? 'Ready to upload with your connected wallet, or use alpha whitelist below'
+              : 'Connect wallet in header above, or verify alpha access below'
+            }
           </p>
         </div>
         
@@ -2253,74 +2254,13 @@ export default function IPTrackModal({
             </button>
           </div>
         </form>
-
-        {/* OR Divider */}
-        <div className="flex items-center gap-4 my-6">
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent"></div>
-          <span className="text-gray-400 text-sm font-medium">OR</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent"></div>
-        </div>
-
-        {/* Connect with Wallet Button */}
-        <button
-          type="button"
-          onClick={handleWalletConnect}
-          disabled={isConnectingWallet}
-          style={{
-            width: '100%',
-            padding: '14px 20px',
-            background: isConnectingWallet 
-              ? 'rgba(100, 116, 139, 0.5)' 
-              : 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-            color: '#ffffff',
-            borderRadius: '8px',
-            fontSize: '15px',
-            fontWeight: '600',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            cursor: isConnectingWallet ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s ease',
-            outline: 'none'
-          }}
-          onMouseEnter={(e) => {
-            if (!isConnectingWallet) {
-              e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = '0 6px 20px rgba(100, 116, 139, 0.3)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = 'none';
-          }}
-        >
-          {isConnectingWallet ? 'Connecting...' : '🔗 CONNECT WITH WALLET'}
-        </button>
-
-        {/* Multi-Account Selection UI */}
-        {showAccountSelection && connectedAccounts.length > 1 && (
-          <div className="mt-6 p-4 bg-slate-800/50 rounded-lg border border-slate-600">
-            <h3 className="text-white font-medium mb-3">Select Account</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              Your wallet has multiple accounts. Choose which one to use for uploading:
+        
+        {/* Note for users with connected wallets */}
+        {globalWalletConnected && (
+          <div className="mt-4 p-3 bg-blue-900/20 rounded-lg border border-blue-800/50">
+            <p className="text-blue-300 text-sm">
+              💡 <strong>Tip:</strong> You have a wallet connected in the header. You can use that for uploading, or enter an alpha whitelist address here for testing.
             </p>
-            <div className="space-y-2">
-              {connectedAccounts.map((account, index) => (
-                <button
-                  key={account}
-                  onClick={() => handleAccountSelect(account)}
-                  className="w-full p-3 text-left bg-slate-700/50 hover:bg-slate-700 rounded border border-slate-600 hover:border-slate-500 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-white font-mono text-sm">
-                        {account.slice(0, 8)}...{account.slice(-8)}
-                      </div>
-                      <div className="text-gray-400 text-xs">Account {index + 1}</div>
-                    </div>
-                    <div className="text-gray-400 text-xs">→</div>
-                  </div>
-                </button>
-              ))}
-            </div>
           </div>
         )}
       </div>
