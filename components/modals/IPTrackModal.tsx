@@ -181,7 +181,6 @@ export default function IPTrackModal({
       setShowLocationDropdown(false);
       // Reset authentication state
       setInputWallet('');
-      setIsAuthenticated(false);
       setAlphaWallet('');
     }
     // Remove dependencies that might cause re-renders
@@ -216,7 +215,6 @@ export default function IPTrackModal({
         const result = await response.json();
         if (result.success) {
           setAlphaWallet(inputWallet.trim()); // Store alpha verification wallet
-          setIsAuthenticated(true);
           showToast(`✅ Welcome ${result.user?.artist_name || 'Alpha User'}!`, 'success');
           return true;
         } else {
