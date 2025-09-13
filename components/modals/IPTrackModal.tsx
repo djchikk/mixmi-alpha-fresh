@@ -189,11 +189,12 @@ export default function IPTrackModal({
   
   // Smart default behavior for wallet checkbox
   useEffect(() => {
-    if (alphaWallet && useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
-      // Auto-fill with verification wallet when checkbox is checked and field is empty
-      handleInputChange('wallet_address', alphaWallet);
+    const authWallet = globalWalletAddress || alphaWallet;
+    if (authWallet && useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
+      // Auto-fill with authenticated wallet when checkbox is checked and field is empty
+      handleInputChange('wallet_address', authWallet);
     }
-  }, [alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
+  }, [globalWalletAddress, alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
   
   // Show dropdown when suggestions are available
   useEffect(() => {
@@ -572,37 +573,38 @@ export default function IPTrackModal({
           type="text"
           value={formData.wallet_address || ''}
           onChange={(e) => handleInputChange('wallet_address', e.target.value)}
-          readOnly={useVerificationWallet && alphaWallet}
+          readOnly={useVerificationWallet && (globalWalletAddress || alphaWallet)}
           className={`w-full px-3 py-3 rounded-md text-white placeholder-gray-500 border focus:outline-none transition-all duration-200 ${
-            useVerificationWallet && alphaWallet 
+            useVerificationWallet && (globalWalletAddress || alphaWallet)
               ? 'bg-gray-700/50 cursor-not-allowed text-gray-300' 
               : 'bg-black/25 cursor-text text-white'
           }`}
           style={{
-            borderColor: useVerificationWallet && alphaWallet 
+            borderColor: useVerificationWallet && (globalWalletAddress || alphaWallet)
               ? 'rgba(129, 228, 242, 0.3)' 
               : 'rgba(255, 255, 255, 0.08)',
             borderRadius: '10px',
-            placeholderColor: useVerificationWallet && alphaWallet ? '#9ca3af' : '#4a5264'
+            placeholderColor: useVerificationWallet && (globalWalletAddress || alphaWallet) ? '#9ca3af' : '#4a5264'
           }}
           placeholder={
-            useVerificationWallet && alphaWallet 
-              ? "Using verification wallet (read-only)" 
+            useVerificationWallet && (globalWalletAddress || alphaWallet)
+              ? "Using authenticated wallet (read-only)" 
               : "SP1234... (Wallet for this content)"
           }
         />
-        {alphaWallet && (
-          <label className="flex items-center gap-3 cursor-pointer">
+        
+        {/* Attribution Checkbox - Essential for business use cases */}
+        {(globalWalletAddress || alphaWallet) && (
+          <label className="flex items-center gap-3 cursor-pointer mt-3">
             <input
               type="checkbox"
               checked={useVerificationWallet}
               onChange={(e) => {
                 setUseVerificationWallet(e.target.checked);
+                const authWallet = globalWalletAddress || alphaWallet;
                 if (e.target.checked) {
-                  // Auto-fill with verification wallet when checked
-                  handleInputChange('wallet_address', alphaWallet);
+                  handleInputChange('wallet_address', authWallet);
                 } else {
-                  // Clear the field when unchecked
                   handleInputChange('wallet_address', '');
                 }
               }}
@@ -613,7 +615,7 @@ export default function IPTrackModal({
               }}
             />
             <span className="text-white text-sm">
-              Use verification wallet ({alphaWallet.substring(0, 8)}...)
+              Use authenticated wallet ({(globalWalletAddress || alphaWallet).substring(0, 8)}...)
             </span>
           </label>
         )}
