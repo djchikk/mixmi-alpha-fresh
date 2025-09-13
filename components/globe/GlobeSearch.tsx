@@ -85,12 +85,19 @@ export default function GlobeSearch({
       console.log('📊 Total nodes:', nodes.length);
     }
     
-    // Get all individual tracks (expand aggregated nodes)
+    // Get all individual tracks (expand aggregated AND clustered nodes)
     const allTracks: TrackNode[] = [];
     nodes.forEach(node => {
+      // Handle aggregated nodes (old system)
       if (node.isAggregated && node.tracks) {
         allTracks.push(...node.tracks);
-      } else {
+      }
+      // Handle clustered nodes (new system) - Check if it has tracks array
+      else if ((node as any).tracks && Array.isArray((node as any).tracks)) {
+        allTracks.push(...(node as any).tracks);
+      }
+      // Regular individual tracks
+      else {
         allTracks.push(node);
       }
     });
