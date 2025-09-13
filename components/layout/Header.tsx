@@ -79,7 +79,8 @@ export default function Header() {
             ) : (
               <button
                 onClick={connectWallet}
-                className="px-4 py-2 text-sm bg-gradient-to-r from-[#81E4F2] to-[#5ac8d8] text-[#141927] font-medium rounded-md hover:scale-105 transition-transform"
+                className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all"
+                style={{ backgroundColor: '#061F3C' }}
               >
                 Connect Wallet
               </button>
@@ -151,7 +152,8 @@ export default function Header() {
                       connectWallet?.();
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full px-4 py-2 text-sm bg-gradient-to-r from-[#81E4F2] to-[#5ac8d8] text-[#141927] font-medium rounded-md transition-transform"
+                    className="w-full px-4 py-2 text-sm text-gray-200 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all"
+                    style={{ backgroundColor: '#061F3C' }}
                   >
                     Connect Wallet
                   </button>
