@@ -79,6 +79,12 @@ export default function GlobeSearch({
   const performSearch = (query: string) => {
     const lowerQuery = query.toLowerCase();
     
+    // Debug logging for artist search issues
+    if (lowerQuery.includes('starla')) {
+      console.log('🔍 Searching for STARLA...');
+      console.log('📊 Total nodes:', nodes.length);
+    }
+    
     // Get all individual tracks (expand aggregated nodes)
     const allTracks: TrackNode[] = [];
     nodes.forEach(node => {
@@ -88,6 +94,16 @@ export default function GlobeSearch({
         allTracks.push(node);
       }
     });
+    
+    if (lowerQuery.includes('starla')) {
+      console.log('📊 All tracks after expansion:', allTracks.length);
+      const starlaMatches = allTracks.filter(track => 
+        track.artist?.toLowerCase().includes('starla') ||
+        track.artistName?.toLowerCase().includes('starla') ||
+        track.title?.toLowerCase().includes('starla')
+      );
+      console.log('🎯 STARLA matches found:', starlaMatches.length, starlaMatches);
+    }
 
     // Filter by search query
     let filtered = allTracks.filter(track => {

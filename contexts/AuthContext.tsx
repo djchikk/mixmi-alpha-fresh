@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { AppConfig, UserSession, showConnect } from "@stacks/connect";
+import { AppConfig, UserSession } from "@stacks/connect";
+import { openConnect } from "@stacks/connect";
 import { StorageService } from "@/lib/storage";
 import { STORAGE_KEYS } from "@/types";
 import { SupabaseAuthBridge } from "@/lib/auth/supabase-auth-bridge";
@@ -73,7 +74,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       console.log("Connecting to wallet...");
       
-      showConnect({
+      openConnect({
         appDetails,
         redirectTo: '/',
         userSession,
