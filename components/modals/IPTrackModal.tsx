@@ -235,6 +235,85 @@ export default function IPTrackModal({
       setIsAuthenticating(false);
     }
   };
+
+  // 🔗 Wallet Connection Handler with Multi-Account Support
+  const handleWalletConnect = async () => {
+    setIsConnectingWallet(true);
+    try {
+      await connectWallet();
+      
+      // After connection, check for multiple accounts
+      // For now, we'll use a single account approach but structure for multi-account
+      if (walletAuthenticated && walletAddress) {
+        // Simulate multiple accounts - in real implementation, you'd get this from wallet
+        const accounts = [walletAddress]; // For now, single account
+        setConnectedAccounts(accounts);
+        
+        if (accounts.length === 1) {
+          // Single account - authenticate directly using wallet-connect API
+          const success = await authenticateWalletAddress(accounts[0]);
+          if (success) {
+            setSelectedAccount(accounts[0]);
+            setAlphaWallet(accounts[0]);
+            setIsAuthenticated(true);
+            showToast('✅ Wallet connected successfully!', 'success');
+          }
+        } else {
+          // Multiple accounts - show selection UI
+          setShowAccountSelection(true);
+        }
+      }
+    } catch (error) {
+      console.error('Wallet connection error:', error);
+      showToast('Failed to connect wallet', 'error');
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  };
+
+  // Handle account selection for multi-account wallets
+  const handleAccountSelect = async (accountAddress: string) => {
+    const success = await authenticateWalletAddress(accountAddress);
+    if (success) {
+      setSelectedAccount(accountAddress);
+      setAlphaWallet(accountAddress);
+      setIsAuthenticated(true);
+      setShowAccountSelection(false);
+      showToast('✅ Account selected successfully!', 'success');
+    }
+  };
+
+  // Wallet-specific authentication using the wallet-connect API
+  const authenticateWalletAddress = async (walletAddress: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/wallet-connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          walletAddress: walletAddress.trim(),
+          walletType: 'stacks' // Could be enhanced to detect wallet type
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          showToast(`✅ Welcome ${result.user?.artist_name || 'Alpha User'}!`, 'success');
+          return true;
+        } else {
+          showToast(result.error || 'Wallet authentication failed', 'error');
+          return false;
+        }
+      } else {
+        showToast('Wallet authentication service unavailable', 'error');
+        return false;
+      }
+    } catch (error) {
+      console.error('Wallet auth error:', error);
+      showToast('Wallet authentication failed', 'error');
+      return false;
+    }
+  };
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -2174,6 +2253,76 @@ export default function IPTrackModal({
             </button>
           </div>
         </form>
+
+        {/* OR Divider */}
+        <div className="flex items-center gap-4 my-6">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent"></div>
+          <span className="text-gray-400 text-sm font-medium">OR</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent"></div>
+        </div>
+
+        {/* Connect with Wallet Button */}
+        <button
+          type="button"
+          onClick={handleWalletConnect}
+          disabled={isConnectingWallet}
+          style={{
+            width: '100%',
+            padding: '14px 20px',
+            background: isConnectingWallet 
+              ? 'rgba(100, 116, 139, 0.5)' 
+              : 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+            color: '#ffffff',
+            borderRadius: '8px',
+            fontSize: '15px',
+            fontWeight: '600',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            cursor: isConnectingWallet ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s ease',
+            outline: 'none'
+          }}
+          onMouseEnter={(e) => {
+            if (!isConnectingWallet) {
+              e.target.style.transform = 'translateY(-1px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(100, 116, 139, 0.3)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
+          }}
+        >
+          {isConnectingWallet ? 'Connecting...' : '🔗 CONNECT WITH WALLET'}
+        </button>
+
+        {/* Multi-Account Selection UI */}
+        {showAccountSelection && connectedAccounts.length > 1 && (
+          <div className="mt-6 p-4 bg-slate-800/50 rounded-lg border border-slate-600">
+            <h3 className="text-white font-medium mb-3">Select Account</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Your wallet has multiple accounts. Choose which one to use for uploading:
+            </p>
+            <div className="space-y-2">
+              {connectedAccounts.map((account, index) => (
+                <button
+                  key={account}
+                  onClick={() => handleAccountSelect(account)}
+                  className="w-full p-3 text-left bg-slate-700/50 hover:bg-slate-700 rounded border border-slate-600 hover:border-slate-500 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-white font-mono text-sm">
+                        {account.slice(0, 8)}...{account.slice(-8)}
+                      </div>
+                      <div className="text-gray-400 text-xs">Account {index + 1}</div>
+                    </div>
+                    <div className="text-gray-400 text-xs">→</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
