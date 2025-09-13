@@ -127,11 +127,16 @@ export default function GlobeSearch({
       console.log('🎯 STARLA matches found:', starlaMatches.length, starlaMatches);
     }
 
-    // Filter by search query
+    // Filter by search query - Search ALL metadata fields
     let filtered = allTracks.filter(track => {
       const matchesSearch = 
         track.title.toLowerCase().includes(lowerQuery) ||
         track.artist.toLowerCase().includes(lowerQuery) ||
+        (track.artistName && track.artistName.toLowerCase().includes(lowerQuery)) ||
+        (track.description && track.description.toLowerCase().includes(lowerQuery)) ||
+        (track.location && track.location.toLowerCase().includes(lowerQuery)) ||
+        (track.genre && track.genre.toLowerCase().includes(lowerQuery)) ||
+        (track.bpm && track.bpm.toString().includes(lowerQuery)) ||
         (track.tags && Array.isArray(track.tags) && track.tags.some(tag => tag.toLowerCase().includes(lowerQuery)));
       
       return matchesSearch;
