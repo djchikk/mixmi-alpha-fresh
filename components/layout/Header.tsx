@@ -15,9 +15,8 @@ export default function Header() {
   const isGlobePage = pathname === '/';
   const isWelcomePage = pathname === '/welcome';
   
-  // 🎯 PERFORMANCE FIX: Only use auth on non-globe pages to eliminate JWT overhead
-  const auth = isGlobePage ? null : useAuth();
-  const { isAuthenticated, connectWallet, disconnectWallet, walletAddress } = auth || {};
+  // Use auth on all pages for wallet functionality
+  const { isAuthenticated, connectWallet, disconnectWallet, walletAddress } = useAuth();
   
   // Alpha version - no profile sync status needed
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,10 +60,30 @@ export default function Header() {
         </Link>
       </nav>
 
-      {/* Right: Alpha System Label */}
+      {/* Right: Wallet Authentication */}
       <div className="flex-1 flex justify-end items-center gap-4">
-        <div className="text-sm text-gray-400 hidden md:block">
-          Alpha Upload System
+        <div className="hidden md:block">
+          {isAuthenticated && walletAddress ? (
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-300 font-mono">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </div>
+              <button 
+                onClick={disconnectWallet} 
+                className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={connectWallet} 
+              className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all" 
+              style={{ backgroundColor: '#061F3C' }}
+            >
+              Connect Wallet
+            </button>
+          )}
         </div>
         
         {/* Mobile Menu Button */}
@@ -104,7 +123,36 @@ export default function Header() {
               Globe
             </Link>
             
-            {/* Simplified alpha navigation */}
+            {/* Mobile Wallet Authentication */}
+            <div className="pt-2 border-t border-border">
+              {isAuthenticated && walletAddress ? (
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm text-gray-300 font-mono">
+                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      disconnectWallet();
+                      setIsMobileMenuOpen(false);
+                    }} 
+                    className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors w-fit"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => {
+                    connectWallet();
+                    setIsMobileMenuOpen(false);
+                  }} 
+                  className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all w-fit" 
+                  style={{ backgroundColor: '#061F3C' }}
+                >
+                  Connect Wallet
+                </button>
+              )}
+            </div>
           </nav>
         </div>
       )}

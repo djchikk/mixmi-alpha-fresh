@@ -19,6 +19,7 @@ import { useSplitPresets } from "@/hooks/useSplitPresets";
 import { useLocationAutocomplete } from "@/hooks/useLocationAutocomplete";
 import ArtistAutosuggest from "../shared/ArtistAutosuggest";
 import SimplifiedLicensingStep from "./steps/SimplifiedLicensingStep";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface IPTrackModalProps {
   isOpen: boolean;
@@ -33,13 +34,19 @@ export default function IPTrackModal({
   track,
   onSave,
 }: IPTrackModalProps) {
-  // 🎯 TWO-STEP AUTH: 1) Alpha verification 2) Content wallet selection
-  const [alphaWallet, setAlphaWallet] = useState<string>(''); // For alpha verification
+  // Global wallet auth state from header
+  const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress } = useAuth();
+  
+  // 🎯 UPDATED AUTH: Global wallet OR alpha verification
+  const [alphaWallet, setAlphaWallet] = useState<string>(''); // For alpha verification fallback
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inputWallet, setInputWallet] = useState(''); // For auth input
   const [useVerificationWallet, setUseVerificationWallet] = useState(true); // For wallet checkbox
   const { showToast } = useToast();
+  
+  // Combined authentication state
+  const isAuthenticated = globalWalletConnected || !!alphaWallet;
+  const walletToUse = globalWalletAddress || alphaWallet;
   
   // Use custom hooks
   const {
@@ -63,7 +70,7 @@ export default function IPTrackModal({
     getSteps,
     resetForm,
     handleLoadPreset,
-  } = useIPTrackForm({ track, walletAddress: '' }); // Will be updated when user selects content wallet
+  } = useIPTrackForm({ track, walletAddress: walletToUse }); // Use combined auth wallet
   
   const {
     uploadedAudioFile,
@@ -77,7 +84,7 @@ export default function IPTrackModal({
     processAudioFile,
     resetAudioUpload,
   } = useAudioUpload({
-    walletAddress: alphaWallet, // Use alpha verification wallet for audio processing
+    walletAddress: walletToUse, // Use combined auth wallet for audio processing
     contentType: formData.content_type,
     currentBPM: formData.bpm,
     onBPMDetected: (bpm) => {
@@ -100,7 +107,7 @@ export default function IPTrackModal({
     setSaveStatus,
   } = useIPTrackSubmit({
     walletAddress: formData.wallet_address || '',
-    alphaWallet: alphaWallet, // Pass alpha verification wallet
+    alphaWallet: walletToUse, // Pass combined auth wallet
     track,
     onSave,
     onSuccess: () => {
@@ -2033,7 +2040,7 @@ export default function IPTrackModal({
               lineHeight: '1.4'
             }}
           >
-            Verify your alpha access to start uploading
+            Connect wallet above or verify alpha access below
           </p>
         </div>
         
@@ -2171,8 +2178,8 @@ export default function IPTrackModal({
   };
 
   const renderStep = () => {
-    // Authentication step comes first
-    if (!isAuthenticated) {
+    // Authentication step - only show alpha verification if no global wallet connected
+    if (!globalWalletConnected && !alphaWallet) {
       return renderAuthentication();
     }
     

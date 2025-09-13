@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AppConfig, UserSession } from "@stacks/connect";
-import { openConnect } from "@stacks/connect";
+// Dynamic import to fix @stacks/connect v8.2.0 static import issues
 import { StorageService } from "@/lib/storage";
 import { STORAGE_KEYS } from "@/types";
 import { SupabaseAuthBridge } from "@/lib/auth/supabase-auth-bridge";
@@ -74,7 +74,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       console.log("Connecting to wallet...");
       
-      openConnect({
+      // Use dynamic import to fix @stacks/connect v8.2.0 static import issues
+      const connectModule = await import("@stacks/connect");
+      const connectFunction = connectModule.authenticate; // Use authenticate, not openConnect
+      
+      connectFunction({
         appDetails,
         redirectTo: '/',
         userSession,
