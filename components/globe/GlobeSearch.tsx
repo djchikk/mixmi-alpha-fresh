@@ -97,6 +97,21 @@ export default function GlobeSearch({
     
     if (lowerQuery.includes('starla')) {
       console.log('📊 All tracks after expansion:', allTracks.length);
+      
+      // Log all track data to see field structure
+      allTracks.forEach((track, index) => {
+        console.log(`🎵 Track ${index + 1}:`, {
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          artistName: track.artistName,
+          creator: (track as any).creator,
+          uploader: (track as any).uploaderAddress,
+          // Log all possible artist-related fields
+          allFields: Object.keys(track)
+        });
+      });
+      
       const starlaMatches = allTracks.filter(track => 
         track.artist?.toLowerCase().includes('starla') ||
         track.artistName?.toLowerCase().includes('starla') ||
