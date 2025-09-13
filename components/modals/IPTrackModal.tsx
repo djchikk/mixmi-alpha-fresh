@@ -6,7 +6,7 @@ import { Music } from "lucide-react";
 import Modal from "../ui/Modal";
 import TrackCoverUploader from "../shared/TrackCoverUploader";
 import { IPTrack, SAMPLE_TYPES, CONTENT_TYPES, LOOP_CATEGORIES, ContentType, LoopCategory } from "@/types";
-// Removed useAuth dependency - modal handles authentication independently
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import SplitPresetManagerUI from "./SplitPresetManager";
 import { parseLocationsAndGetCoordinates } from "@/lib/locationLookup";
@@ -39,6 +39,14 @@ export default function IPTrackModal({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inputWallet, setInputWallet] = useState(''); // For auth input
   const [useVerificationWallet, setUseVerificationWallet] = useState(true); // For wallet checkbox
+  
+  // 🔗 Wallet Connection States
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
+  const [connectedAccounts, setConnectedAccounts] = useState<string[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [showAccountSelection, setShowAccountSelection] = useState(false);
+  
+  const { connectWallet, isAuthenticated: walletAuthenticated, walletAddress } = useAuth();
   const { showToast } = useToast();
   
   // Use custom hooks
