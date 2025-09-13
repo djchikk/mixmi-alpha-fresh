@@ -57,6 +57,7 @@ export default function HomePage() {
   const [leftComparisonTrack, setLeftComparisonTrack] = useState<any | null>(null);
   const [rightComparisonTrack, setRightComparisonTrack] = useState<any | null>(null);
   const [comparisonOrder, setComparisonOrder] = useState<'left' | 'right'>('left'); // Track which was added first
+  const [carouselPage, setCarouselPage] = useState(0); // For Load More functionality
   const [hoveredNodeTags, setHoveredNodeTags] = useState<string[] | null>(null);
   const [selectedNodeTags, setSelectedNodeTags] = useState<string[] | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -145,6 +146,7 @@ export default function HomePage() {
     if (isClusterNode(node)) {
       // Show the cluster as selected node - the UI will handle showing multiple cards
       setSelectedNode(node);
+      setCarouselPage(0); // Reset pagination for new cluster
       
       // No cluster tags needed - let the modal content speak for itself
       setSelectedNodeTags(null);
@@ -578,7 +580,7 @@ export default function HomePage() {
                   <h3 className="text-white text-sm font-bold">{selectedNode.title}</h3>
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-2" style={{ maxWidth: '80vw' }}>
-                  {selectedNode.tracks.slice(0, 8).map((track, index) => (
+                  {selectedNode.tracks.slice(0, 8 + (carouselPage * 8)).map((track, index) => (
                     <div key={track.id} className="flex-shrink-0">
                       <GlobeTrackCard
                         track={{
@@ -603,9 +605,23 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-                {selectedNode.tracks.length > 8 && (
+                {selectedNode.tracks.length > 8 + (carouselPage * 8) && (
+                  <div className="text-center mt-3">
+                    <button
+                      onClick={() => setCarouselPage(prev => prev + 1)}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
+                      style={{
+                        background: 'linear-gradient(135deg, #81E4F2 0%, #5ac8d8 100%)',
+                        color: '#0a0e1a'
+                      }}
+                    >
+                      Load More ({selectedNode.tracks.length - (8 + (carouselPage * 8))} remaining)
+                    </button>
+                  </div>
+                )}
+                {selectedNode.tracks.length > 8 && selectedNode.tracks.length <= 8 + (carouselPage * 8) && (
                   <p className="text-gray-400 text-xs text-center mt-2">
-                    Showing first 8 of {selectedNode.tracks.length} tracks
+                    Showing all {selectedNode.tracks.length} tracks
                   </p>
                 )}
               </div>
