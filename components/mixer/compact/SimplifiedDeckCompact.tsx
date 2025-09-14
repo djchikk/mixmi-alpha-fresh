@@ -26,7 +26,7 @@ export default function SimplifiedDeckCompact({
 
   // Drop functionality for collection tracks
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: ['CRATE_TRACK', 'COLLECTION_TRACK'],
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD'],
     drop: (item: { track: Track; sourceDeck?: string; sourceIndex: number }) => {
       console.log(`🎯 Deck ${deck} received drop:`, item);
       
