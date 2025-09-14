@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, X, Play, Plus, Check } from 'lucide-react';
+import { Search, X, Play, Plus, Check, GripVertical } from 'lucide-react';
 import { TrackNode } from './types';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDrag } from 'react-dnd';
 
 interface GlobeSearchProps {
   nodes: TrackNode[];
@@ -25,6 +26,30 @@ const FILTER_TYPES = [
 ] as const;
 
 type FilterType = typeof FILTER_TYPES[number]['id'];
+
+// Draggable search result component
+interface DraggableSearchResultProps {
+  track: TrackNode;
+  children: React.ReactNode;
+}
+
+function DraggableSearchResult({ track, children }: DraggableSearchResultProps) {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'TRACK_CARD',
+    item: () => {
+      return { track };
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [track]);
+
+  return (
+    <div ref={drag} style={{ opacity: isDragging ? 0.5 : 1 }}>
+      {children}
+    </div>
+  );
+}
 
 export default function GlobeSearch({ 
   nodes, 
@@ -338,13 +363,13 @@ export default function GlobeSearch({
         {isExpanded && results.length > 0 && (
           <div className="border-t border-[#1E293B] max-h-[400px] overflow-y-auto">
             {results.map((track) => (
-              <div
-                key={track.id}
-                className="
-                  group px-2 py-1.5 hover:bg-[#1E293B] 
-                  transition-colors border-b border-[#151C2A] last:border-b-0
-                "
-              >
+              <DraggableSearchResult key={track.id} track={track}>
+                <div
+                  className="
+                    group px-2 py-1.5 hover:bg-[#1E293B] 
+                    transition-colors border-b border-[#151C2A] last:border-b-0
+                  "
+                >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-mono text-white truncate">
@@ -366,6 +391,17 @@ export default function GlobeSearch({
                   
                   {/* Action buttons */}
                   <div className="flex items-center gap-1 ml-2">
+                    {/* Drag Handle - appears on hover */}
+                    <div 
+                      className="
+                        p-1 opacity-0 group-hover:opacity-100
+                        hover:bg-[#252a3a] rounded transition-all cursor-grab
+                      "
+                      title="Drag to Crate, Cart, or Mixer Decks"
+                    >
+                      <GripVertical className="w-3 h-3 text-gray-400 hover:text-white" />
+                    </div>
+                    
                     <button
                       onClick={() => onPlayPreview(track.id, track.audioUrl)}
                       className="
@@ -411,7 +447,8 @@ export default function GlobeSearch({
                     </button>
                   </div>
                 </div>
-              </div>
+                </div>
+              </DraggableSearchResult>
             ))}
           </div>
         )}
