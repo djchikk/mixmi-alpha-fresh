@@ -360,8 +360,8 @@ export default function HomePage() {
           className="fixed z-10"
           style={{
             position: 'fixed',
-            top: 'calc(50vh - 290px)', // 20px higher (was -270px)
-            right: 'calc(25px + 160px)', // 20px more towards center (was +140px)
+            top: 'calc(50vh - 50px)', // Centered vertically (much more reliable)
+            right: '20px', // Close to edge to avoid globe overlap
             zIndex: 10
           }}
         >
