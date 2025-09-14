@@ -69,13 +69,13 @@ export default function Welcome() {
 
         {/* Hero Section - Desktop Claude specification */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl mb-4 bg-gradient-to-r from-[#e1e5f0] to-[#81E4F2] bg-clip-text text-transparent font-semibold"
+          <h1 className="text-5xl md:text-6xl mb-4 text-white font-semibold"
               style={{
                 fontSize: '3.5rem', // 56px
                 fontWeight: '600',  // semibold
                 lineHeight: '1.2'
               }}>
-            Welcome to Mixmi Alpha
+            welcome to mixmi alpha
           </h1>
           <p className="text-[#a8b2c3] text-lg max-w-2xl mx-auto">
             Hey friends! You're the first to populate a world of infinite remix, 
@@ -102,7 +102,7 @@ export default function Welcome() {
             </p>
             
             <Link href="/">
-              <button className="bg-gradient-to-r from-[#81E4F2] to-[#5ac8d8] text-[#0a0e1a] px-10 py-3 rounded-lg font-semibold hover:-translate-y-0.5 transition-transform">
+              <button className="bg-white text-[#0a0e1a] px-10 py-3 rounded-lg font-semibold hover:-translate-y-0.5 hover:bg-gray-100 transition-all">
                 Start Uploading
               </button>
             </Link>
@@ -119,20 +119,44 @@ export default function Welcome() {
           position: 'relative',
           zIndex: 1
         }}>
-          <h2 className="text-2xl font-semibold mb-3 text-center" style={{ fontSize: '2rem', fontWeight: '600' }}>How It Works</h2>
-          <p className="text-[#81E4F2] mb-6 text-center">
+          <h2 className="text-2xl font-semibold mb-3 text-center" style={{ fontSize: '2rem', fontWeight: '600' }}>Upload in Under a Minute</h2>
+          <p className="text-[#A1B0C4] mb-6 text-center">
             Alpha perk: Made a mistake? Everything can be changed or deleted - just message me!
           </p>
 
-          {/* Wallet Verification Step */}
-          <div className="mb-6 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl text-center">
-            <p className="text-[#a8b2c3] text-base">
-              First: Verify Your Access - Enter the wallet address from your alpha invite
-            </p>
+          {/* Authentication Options - Informational Only */}
+          <h3 className="text-center text-[#a8b2c3] mb-4 font-semibold">Connect to Upload</h3>
+          
+          <div className="mb-6 max-w-2xl mx-auto">
+            <div className="p-6 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
+              <div className="flex items-center justify-center gap-8">
+                
+                {/* LEFT SIDE - Alpha Invite */}
+                <div className="flex-1 text-center">
+                  <div className="text-2xl mb-2">🔑</div>
+                  <h4 className="text-[#a8b2c3] text-sm font-medium">Alpha Invite</h4>
+                  <p className="text-[#6b7489] text-xs mt-1">Enter wallet address from invite</p>
+                </div>
+
+                {/* CENTER - OR Divider */}
+                <div className="flex flex-col items-center justify-center px-4">
+                  <div className="text-[#6b7489] text-sm font-medium">OR</div>
+                  <div className="w-px h-8 bg-[rgba(255,255,255,0.1)] mt-2"></div>
+                </div>
+
+                {/* RIGHT SIDE - Stacks Wallet */}
+                <div className="flex-1 text-center">
+                  <div className="text-2xl mb-2">⭐</div>
+                  <h4 className="text-[#a8b2c3] text-sm font-medium">Stacks Wallet</h4>
+                  <p className="text-[#6b7489] text-xs mt-1">Connect via header button</p>
+                </div>
+
+              </div>
+            </div>
           </div>
 
           {/* Step 2: Mode Selection */}
-          <h3 className="text-center text-[#a8b2c3] mb-4">Second: Choose Your Upload Mode</h3>
+          <h3 className="text-center text-[#a8b2c3] mb-4 font-semibold">Choose Your Upload Mode</h3>
           <div className="flex gap-5 mb-6">
             <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
               <h3 className="text-[#a8b2c3] text-center text-base mb-3" style={{ fontSize: '15px' }}>
@@ -161,18 +185,11 @@ export default function Welcome() {
           </p>
           
           {/* Step 3: Content Type Selection */}
-          <h3 className="text-center text-[#a8b2c3] mb-4">Third: Select Content Type</h3>
-          <div className="max-w-2xl mx-auto">
+          <h3 className="text-center text-[#a8b2c3] mb-4 font-semibold">Select Content Type</h3>
+          <div className="max-w-2xl mx-auto mb-8">
             <div className="grid grid-cols-2 gap-4">
-              {/* Top left: 8-Bar Loop - Thin purple border */}
-              <div 
-                className="p-4 rounded-xl border backdrop-blur-sm"
-                style={{
-                  background: designVars.cardBg,
-                  borderColor: '#9772F4',
-                  boxShadow: `0 0 20px #9772F420`,
-                }}
-              >
+              {/* Top left: 8-Bar Loop - Simple uniform styling */}
+              <div className="p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
                 <div className="text-center">
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     8-Bar Loop
@@ -183,15 +200,8 @@ export default function Welcome() {
                 </div>
               </div>
               
-              {/* Top right: Loop Pack - Thick purple border */}
-              <div 
-                className="p-4 rounded-xl border-4 backdrop-blur-sm"
-                style={{
-                  background: designVars.cardBg,
-                  borderColor: '#9772F4',
-                  boxShadow: `0 0 20px #9772F420`,
-                }}
-              >
+              {/* Top right: Loop Pack - Simple uniform styling */}
+              <div className="p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
                 <div className="text-center">
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     Loop Pack
@@ -202,15 +212,8 @@ export default function Welcome() {
                 </div>
               </div>
               
-              {/* Bottom left: Song - Thin gold border */}
-              <div 
-                className="p-4 rounded-xl border backdrop-blur-sm"
-                style={{
-                  background: designVars.cardBg,
-                  borderColor: '#FFE4B5',
-                  boxShadow: `0 0 20px #FFE4B520`,
-                }}
-              >
+              {/* Bottom left: Song - Simple uniform styling */}
+              <div className="p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
                 <div className="text-center">
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     Song
@@ -221,15 +224,8 @@ export default function Welcome() {
                 </div>
               </div>
               
-              {/* Bottom right: EP - Thick gold border */}
-              <div 
-                className="p-4 rounded-xl border-4 backdrop-blur-sm"
-                style={{
-                  background: designVars.cardBg,
-                  borderColor: '#FFE4B5',
-                  boxShadow: `0 0 20px #FFE4B520`,
-                }}
-              >
+              {/* Bottom right: EP - Simple uniform styling */}
+              <div className="p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
                 <div className="text-center">
                   <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
                     EP
@@ -242,53 +238,15 @@ export default function Welcome() {
             </div>
           </div>
 
-          {/* Step 4: Form Details */}
-          <div className="bg-[rgba(10,14,26,0.4)] rounded-xl p-6 mb-6" style={{ marginTop: '20px' }}>
-            <h3 className="text-center text-[#a8b2c3] mb-4">Fourth: Fill In Your Details</h3>
-            <div className="text-center">
-              <div className="text-[#6b7489] text-sm space-y-1" style={{ lineHeight: '1.6' }}>
-              <div>• Artist Name & Title</div>
-              <div>• Description</div>
-              <div>• BPM (required for loops)</div>
-              <div>• Key (optional)</div>
-              <div>• Tags (important for discovery!)</div>
-              <div>• Location (your creative spot)</div>
-              <div>• Liner Notes / Credits</div>
-                <div>• Cover Art & Audio Files</div>
-              </div>
-            </div>
+          {/* Step 4: Form Details - Compact horizontal flow */}
+          <h3 className="text-center text-[#a8b2c3] mb-4 font-semibold">Fill In Your Details</h3>
+          <div className="text-center mb-6">
+            <p className="text-[#6b7489] text-sm max-w-4xl mx-auto" style={{ lineHeight: '1.6' }}>
+              • Artist Name & Title  • Description  • BPM & Key<br />
+              • Tags  • Location  • Cover Art & Audio
+            </p>
           </div>
 
-          {/* 4-Step Process Icons */}
-          <div className="flex justify-center">
-            <div className="w-30 text-center" style={{ width: '120px' }}>
-              <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
-                <span className="text-[#81E4F2]">✓</span>
-              </div>
-              <p className="text-[#a8b2c3] text-sm">Review</p>
-            </div>
-            
-            <div className="w-30 text-center" style={{ width: '120px' }}>
-              <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
-                <span className="text-[#81E4F2]">→</span>
-              </div>
-              <p className="text-[#a8b2c3] text-sm">Submit</p>
-            </div>
-            
-            <div className="w-30 text-center" style={{ width: '120px' }}>
-              <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
-                <span className="text-[#81E4F2]">🔄</span>
-              </div>
-              <p className="text-[#a8b2c3] text-sm">Refresh</p>
-            </div>
-            
-            <div className="w-30 text-center" style={{ width: '120px' }}>
-              <div className="w-10 h-10 bg-[rgba(129,228,242,0.2)] border border-[rgba(129,228,242,0.4)] rounded-full flex items-center justify-center mx-auto mb-2">
-                <span className="text-[#81E4F2]">🌍</span>
-              </div>
-              <p className="text-[#a8b2c3] text-sm">View</p>
-            </div>
-          </div>
         </div>
 
         {/* Coming Soon Section */}
