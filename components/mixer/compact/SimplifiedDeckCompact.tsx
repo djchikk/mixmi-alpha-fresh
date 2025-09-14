@@ -27,12 +27,25 @@ export default function SimplifiedDeckCompact({
   // Drop functionality for collection tracks
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD'],
-    drop: (item: { track: Track; sourceDeck?: string; sourceIndex: number }) => {
+    drop: (item: { track: any; sourceDeck?: string; sourceIndex: number }) => {
       console.log(`🎯 Deck ${deck} received drop:`, item);
       
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
-        onTrackDrop(item.track);
+        
+        // Convert IPTrack format to mixer Track format if needed
+        const mixerTrack = {
+          id: item.track.id,
+          title: item.track.title,
+          artist: item.track.artist || item.track.artist_name,
+          imageUrl: item.track.imageUrl || item.track.cover_image_url,
+          audioUrl: item.track.audioUrl || item.track.audio_url, // Fix the audio URL field
+          bpm: item.track.bpm || 120,
+          content_type: item.track.content_type
+        };
+        
+        console.log('🔄 Converted track for mixer:', mixerTrack);
+        onTrackDrop(mixerTrack);
       } else {
         console.warn(`❌ No onTrackDrop handler for Deck ${deck}`);
       }
