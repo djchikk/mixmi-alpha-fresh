@@ -38,6 +38,16 @@ const IPTrackModal = dynamic(() => import('@/components/modals/IPTrackModal'), {
   ssr: false
 });
 
+// Dynamically import SimplifiedMixerCompact - the tiny mixer!
+const SimplifiedMixerCompact = dynamic(() => import('@/components/mixer/compact/SimplifiedMixerCompact'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[120px] flex items-center justify-center">
+      <div className="text-gray-400">Loading tiny mixer...</div>
+    </div>
+  )
+});
+
 // Dynamically import GlobeSearch to avoid SSR issues
 const GlobeSearch = dynamic(() => import('@/components/globe/GlobeSearch'), {
   ssr: false
@@ -747,6 +757,11 @@ export default function HomePage() {
           }}
         />
       )}
+
+      {/* Tiny Mixer - Positioned above Crate */}
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
+        <SimplifiedMixerCompact />
+      </div>
 
       {/* Crate - Persistent across all pages */}
       <Crate />
