@@ -12,6 +12,7 @@ import { Music, Globe as GlobeIcon, Headphones, X } from "lucide-react";
 import { fetchGlobeTracksFromSupabase, fallbackGlobeNodes } from "@/lib/globeDataSupabase";
 import { supabase } from "@/lib/supabase";
 import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } from "@/lib/globe/simpleCluster";
+import Crate from "@/components/shared/Crate";
 
 
 // Dynamically import GlobeTrackCard to avoid SSR issues
@@ -746,6 +747,9 @@ export default function HomePage() {
           }}
         />
       )}
+
+      {/* Crate - Persistent across all pages */}
+      <Crate />
     </>
   );
 }

@@ -5,6 +5,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { MixerProvider } from "@/contexts/MixerContext";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   // 🎯 PERFORMANCE FIX: Always provide AuthProvider for upload modal compatibility
@@ -13,7 +14,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <DndProvider backend={HTML5Backend}>
       <ToastProvider>
         <AuthProvider>
-          {children}
+          <MixerProvider>
+            {children}
+          </MixerProvider>
         </AuthProvider>
       </ToastProvider>
     </DndProvider>
