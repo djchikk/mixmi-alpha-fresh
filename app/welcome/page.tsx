@@ -1,8 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import dynamic from 'next/dynamic';
 
@@ -10,6 +11,11 @@ import dynamic from 'next/dynamic';
 const Globe = dynamic(() => import('@/components/globe/Globe'), { 
   ssr: false,
   loading: () => null
+});
+
+// Dynamically import Upload Modal
+const IPTrackModal = dynamic(() => import('@/components/modals/IPTrackModal'), {
+  ssr: false
 });
 
 // Design variables from Desktop Claude specification
@@ -27,6 +33,9 @@ const designVars = {
 };
 
 export default function Welcome() {
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const router = useRouter();
+
   return (
     <div 
       className="min-h-screen relative"
@@ -101,11 +110,6 @@ export default function Welcome() {
               The globe uploader is ready. Pin your sounds anywhere on Earth.
             </p>
             
-            <Link href="/">
-              <button className="bg-white text-[#0a0e1a] px-10 py-3 rounded-lg font-semibold hover:-translate-y-0.5 hover:bg-gray-100 transition-all">
-                Start Uploading
-              </button>
-            </Link>
           </div>
         </div>
 
@@ -247,6 +251,16 @@ export default function Welcome() {
             </p>
           </div>
 
+          {/* Start Uploading Button - After reading all instructions */}
+          <div className="text-center">
+            <button 
+              onClick={() => setUploadModalOpen(true)}
+              className="bg-white text-[#0a0e1a] px-10 py-3 rounded-lg font-semibold hover:-translate-y-0.5 hover:bg-gray-100 transition-all"
+            >
+              Start Uploading
+            </button>
+          </div>
+
         </div>
 
         {/* Coming Soon Section */}
@@ -334,6 +348,20 @@ export default function Welcome() {
           Ready to light up the planet? 🚀✨
         </div>
       </div>
+
+      {/* Upload Modal */}
+      {uploadModalOpen && (
+        <IPTrackModal
+          isOpen={uploadModalOpen}
+          onClose={() => setUploadModalOpen(false)}
+          onSave={(track) => {
+            // After successful upload, close modal and redirect to globe
+            setUploadModalOpen(false);
+            // Navigate to globe so user sees their uploaded content
+            router.push('/');
+          }}
+        />
+      )}
     </div>
   );
 }
