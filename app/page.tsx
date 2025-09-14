@@ -355,8 +355,16 @@ export default function HomePage() {
           )}
         </div>
         
-        {/* Upload Button - positioned at bottom with proper margin */}
-        <div className="absolute bottom-8 left-0 right-0 px-8 py-4 flex justify-center">
+        {/* Upload Button - positioned as floating action button in upper right */}
+        <div 
+          className="fixed z-10"
+          style={{
+            position: 'fixed',
+            top: 'calc(50vh - 290px)', // 20px higher (was -270px)
+            right: 'calc(25px + 160px)', // 20px more towards center (was +140px)
+            zIndex: 10
+          }}
+        >
           <Button
             onClick={() => setUploadModalOpen(true)}
             style={{
