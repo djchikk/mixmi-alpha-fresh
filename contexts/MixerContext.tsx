@@ -60,7 +60,9 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     id: ipTrack.id,
     title: ipTrack.title,
     artist: ipTrack.artist_name || 'Unknown Artist',
-    imageUrl: ipTrack.cover_image_url || '/placeholder-track.png',
+    imageUrl: ipTrack.cover_image_url 
+      ? `${ipTrack.cover_image_url}?width=64&height=64&resize=cover&quality=80`
+      : '/placeholder-track.png',
     bpm: ipTrack.bpm || 120,
     audioUrl: ipTrack.audio_url,
     content_type: ipTrack.content_type === 'loop' ? 'loop' : 'full_song'

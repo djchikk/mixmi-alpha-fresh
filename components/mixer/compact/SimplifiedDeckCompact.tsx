@@ -38,7 +38,9 @@ export default function SimplifiedDeckCompact({
           id: item.track.id,
           title: item.track.title,
           artist: item.track.artist || item.track.artist_name,
-          imageUrl: item.track.imageUrl || item.track.cover_image_url,
+          imageUrl: item.track.imageUrl || (item.track.cover_image_url 
+            ? `${item.track.cover_image_url}?width=64&height=64&resize=cover&quality=80`
+            : '/placeholder-track.png'),
           audioUrl: item.track.audioUrl || item.track.audio_url, // Fix the audio URL field
           bpm: item.track.bpm || 120,
           content_type: item.track.content_type
