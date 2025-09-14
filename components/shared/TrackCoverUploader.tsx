@@ -220,7 +220,7 @@ export default function TrackCoverUploader({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="mt-3 px-4 py-2 bg-[#81E4F2] text-slate-900 rounded-md hover:bg-[#65d5e3] transition-colors font-medium"
+            className="mt-3 px-4 py-2 bg-gray-200 text-[#0a0e1a] rounded-md hover:bg-gray-300 transition-colors font-medium"
           >
             Choose File
           </button>

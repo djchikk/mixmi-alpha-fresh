@@ -2143,21 +2143,7 @@ export default function IPTrackModal({
             <button
               type="submit"
               disabled={isAuthenticating || !inputWallet.trim()}
-              style={{
-                width: '100%',
-                padding: '14px 20px',
-                background: isAuthenticating || !inputWallet.trim() 
-                  ? 'rgba(129, 228, 242, 0.5)' 
-                  : 'linear-gradient(135deg, #81E4F2 0%, #5ac8d8 100%)',
-                color: '#141927',
-                borderRadius: '8px',
-                fontSize: '15px',
-                fontWeight: '600',
-                border: 'none',
-                cursor: isAuthenticating || !inputWallet.trim() ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-                outline: 'none'
-              }}
+              className="w-full px-5 py-3.5 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gray-200 text-[#0a0e1a] hover:bg-gray-300"
               onMouseEnter={(e) => {
                 if (!isAuthenticating && inputWallet.trim()) {
                   e.target.style.transform = 'translateY(-1px)';
@@ -2391,12 +2377,7 @@ export default function IPTrackModal({
               <button
                 onClick={handleSubmit}
                 disabled={isSaving || !termsAccepted}
-                className="px-4 py-1.5 rounded-lg font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50"
-                style={{
-                  background: isSaving ? 'linear-gradient(135deg, #81E4F2 0%, #5ac8d8 100%)' : 'linear-gradient(135deg, #81E4F2 0%, #5ac8d8 100%)',
-                  color: '#0a0e1a',
-                  boxShadow: '0 4px 12px rgba(129, 228, 242, 0.3)'
-                }}
+                className="px-4 py-1.5 rounded-lg font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 bg-gray-200 text-[#0a0e1a] hover:bg-gray-300"
                 title={!termsAccepted ? 'Please accept the terms of service' : ''}
               >
                 {isSaving ? 'Saving...' : (track ? 'Update Track' : 
@@ -2405,12 +2386,7 @@ export default function IPTrackModal({
             ) : (
               <button
                 onClick={nextStep}
-                className="px-4 py-1.5 rounded-lg font-semibold transition-all"
-                style={{
-                  background: 'linear-gradient(135deg, #81E4F2 0%, #5ac8d8 100%)',
-                  color: '#0a0e1a',
-                  boxShadow: '0 4px 12px rgba(129, 228, 242, 0.3)'
-                }}
+                className="px-4 py-1.5 rounded-lg font-semibold transition-all bg-gray-200 text-[#0a0e1a] hover:bg-gray-300"
               >
                 Next
               </button>

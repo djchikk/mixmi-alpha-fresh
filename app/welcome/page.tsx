@@ -255,7 +255,7 @@ export default function Welcome() {
           <div className="text-center">
             <button 
               onClick={() => setUploadModalOpen(true)}
-              className="bg-white text-[#0a0e1a] px-10 py-3 rounded-lg font-semibold hover:-translate-y-0.5 hover:bg-gray-100 transition-all"
+              className="bg-gray-200 text-[#0a0e1a] px-10 py-3 rounded-lg font-semibold hover:-translate-y-0.5 hover:bg-gray-300 transition-all"
             >
               Start Uploading
             </button>
