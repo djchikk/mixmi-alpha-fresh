@@ -56,15 +56,20 @@ const MixerContext = createContext<MixerContextType | undefined>(undefined);
 
 // Helper function to convert IPTrack to mixer Track format
 const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
+  console.log('🔄 Converting IPTrack to mixer Track:', ipTrack);
+  console.log('📷 Image field check:', {
+    cover_image_url: ipTrack.cover_image_url,
+    image_url: (ipTrack as any).image_url,
+    imageUrl: (ipTrack as any).imageUrl
+  });
+  
   return {
     id: ipTrack.id,
     title: ipTrack.title,
     artist: ipTrack.artist_name || 'Unknown Artist',
-    imageUrl: ipTrack.cover_image_url 
-      ? `${ipTrack.cover_image_url}?width=64&height=64&resize=cover&quality=80`
-      : '/placeholder-track.png',
+    imageUrl: (ipTrack as any).imageUrl || ipTrack.cover_image_url || '', // Handle both imageUrl and cover_image_url
     bpm: ipTrack.bpm || 120,
-    audioUrl: ipTrack.audio_url,
+    audioUrl: (ipTrack as any).audioUrl || ipTrack.audio_url, // Handle both audioUrl and audio_url
     content_type: ipTrack.content_type === 'loop' ? 'loop' : 'full_song'
   };
 };

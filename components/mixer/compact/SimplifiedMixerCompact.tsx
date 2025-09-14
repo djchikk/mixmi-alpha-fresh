@@ -118,6 +118,7 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
       title: track.title,
       artist: track.artist,
       audioUrl: track.audioUrl,
+      audio_url: (track as any).audio_url,
       bpm: track.bpm
     });
     
@@ -126,11 +127,15 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
       return;
     }
     
-    // Ensure we have audioUrl
-    if (!track.audioUrl) {
-      console.error('❌ Track missing audioUrl:', track);
+    // Ensure we have audioUrl - handle both formats as final safety check
+    const audioUrl = track.audioUrl || (track as any).audio_url;
+    if (!audioUrl) {
+      console.error('❌ Track missing audioUrl AND audio_url:', track);
       return;
     }
+    
+    // Use the corrected audioUrl for the rest of the function
+    track = { ...track, audioUrl };
     
     // Check if sync is active before loading
     const syncWasActive = mixerState.syncActive;
@@ -206,11 +211,15 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
       return;
     }
     
-    // Ensure we have audioUrl
-    if (!track.audioUrl) {
-      console.error('❌ Track missing audioUrl:', track);
+    // Ensure we have audioUrl - handle both formats as final safety check
+    const audioUrl = track.audioUrl || (track as any).audio_url;
+    if (!audioUrl) {
+      console.error('❌ Track missing audioUrl AND audio_url:', track);
       return;
     }
+    
+    // Use the corrected audioUrl for the rest of the function
+    track = { ...track, audioUrl };
     
     // Check if sync is active before loading
     const syncWasActive = mixerState.syncActive;

@@ -33,14 +33,15 @@ function DraggableTrack({ track, index, children }: DraggableTrackProps) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'COLLECTION_TRACK',
     item: () => {
+      console.log('🎪 Crate track being dragged:', track);
       return { 
         track: {
           id: track.id,
           title: track.title,
           artist: track.artist,
           imageUrl: track.imageUrl,
-          bpm: track.bpm || 120,
-          audioUrl: track.audioUrl,
+          bmp: track.bpm || 120,
+          audioUrl: track.audioUrl || track.audio_url, // Handle both formats like deck conversion!
           content_type: track.content_type,
           price_stx: track.price_stx,
           license: track.license
