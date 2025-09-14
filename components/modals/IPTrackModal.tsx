@@ -631,9 +631,9 @@ export default function IPTrackModal({
             style={{
               padding: '14px',
               minHeight: '54px',
-              background: formData.content_type === 'loop' ? 'linear-gradient(135deg, rgba(129, 228, 242, 0.15) 0%, rgba(129, 228, 242, 0.08) 100%)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'loop' ? '#81E4F2' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'loop' ? '#81E4F2' : '#8b92a6',
+              background: formData.content_type === 'loop' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'loop' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+              color: formData.content_type === 'loop' ? '#e5e7eb' : '#8b92a6',
               borderRadius: '12px'
             }}
           >
@@ -648,9 +648,9 @@ export default function IPTrackModal({
             style={{
               padding: '14px',
               minHeight: '54px',
-              background: formData.content_type === 'loop_pack' ? 'linear-gradient(135deg, rgba(129, 228, 242, 0.15) 0%, rgba(129, 228, 242, 0.08) 100%)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'loop_pack' ? '#81E4F2' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'loop_pack' ? '#81E4F2' : '#8b92a6',
+              background: formData.content_type === 'loop_pack' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'loop_pack' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+              color: formData.content_type === 'loop_pack' ? '#e5e7eb' : '#8b92a6',
               borderRadius: '12px'
             }}
           >
@@ -665,9 +665,9 @@ export default function IPTrackModal({
             style={{
               padding: '14px',
               minHeight: '54px',
-              background: formData.content_type === 'full_song' ? 'linear-gradient(135deg, rgba(129, 228, 242, 0.15) 0%, rgba(129, 228, 242, 0.08) 100%)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'full_song' ? '#81E4F2' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'full_song' ? '#81E4F2' : '#8b92a6',
+              background: formData.content_type === 'full_song' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'full_song' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+              color: formData.content_type === 'full_song' ? '#e5e7eb' : '#8b92a6',
               borderRadius: '12px'
             }}
           >
@@ -682,9 +682,9 @@ export default function IPTrackModal({
             style={{
               padding: '14px',
               minHeight: '54px',
-              background: formData.content_type === 'ep' ? 'linear-gradient(135deg, rgba(129, 228, 242, 0.15) 0%, rgba(129, 228, 242, 0.08) 100%)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'ep' ? '#81E4F2' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'ep' ? '#81E4F2' : '#8b92a6',
+              background: formData.content_type === 'ep' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'ep' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+              color: formData.content_type === 'ep' ? '#e5e7eb' : '#8b92a6',
               borderRadius: '12px'
             }}
           >
