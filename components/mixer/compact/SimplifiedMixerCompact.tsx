@@ -110,6 +110,24 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
     return () => clearInterval(interval);
   }, [mixerState.deckA.playing, mixerState.deckB.playing]);
 
+  // Clear Deck A
+  const clearDeckA = () => {
+    console.log('🗑️ Clearing Deck A');
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, track: null, playing: false, loading: false }
+    }));
+  };
+
+  // Clear Deck B  
+  const clearDeckB = () => {
+    console.log('🗑️ Clearing Deck B');
+    setMixerState(prev => ({
+      ...prev,
+      deckB: { ...prev.deckB, track: null, playing: false, loading: false }
+    }));
+  };
+
   // Load track to Deck A
   const loadTrackToDeckA = async (track: Track) => {
     console.log('🎵 SimplifiedMixer: Loading track to Deck A:', track);
@@ -611,6 +629,7 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
                 isPlaying={mixerState.deckA.playing}
                 isLoading={mixerState.deckA.loading}
                 onTrackDrop={loadTrackToDeckA}
+                onTrackClear={clearDeckA}
                 deck="A"
               />
             </div>
@@ -661,6 +680,7 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
                 isPlaying={mixerState.deckB.playing}
                 isLoading={mixerState.deckB.loading}
                 onTrackDrop={loadTrackToDeckB}
+                onTrackClear={clearDeckB}
                 deck="B"
               />
             </div>

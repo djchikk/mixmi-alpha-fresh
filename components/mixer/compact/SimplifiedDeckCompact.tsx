@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useDrop } from 'react-dnd';
+import { useDrop, useDrag } from 'react-dnd';
 import { Track } from '../types';
 import { useToast } from '@/contexts/ToastContext';
+import { GripVertical } from 'lucide-react';
 
 interface SimplifiedDeckProps {
   currentTrack: Track | null;
   isPlaying: boolean;
   isLoading?: boolean;
   onTrackDrop?: (track: Track) => void;
+  onTrackClear?: () => void; // New prop for clearing deck
   deck: 'A' | 'B';
   className?: string;
 }
@@ -19,12 +21,30 @@ export default function SimplifiedDeckCompact({
   isPlaying,
   isLoading = false,
   onTrackDrop,
+  onTrackClear,
   deck,
   className = ''
 }: SimplifiedDeckProps) {
   const { showToast } = useToast();
   const [isNewTrackLoaded, setIsNewTrackLoaded] = useState(false);
   const [previousTrackId, setPreviousTrackId] = useState(currentTrack?.id);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Drag functionality for deck tracks back to Crate
+  const [{ isDragging }, dragRef] = useDrag(() => ({
+    type: 'TRACK_CARD', // Use TRACK_CARD to match Crate expectations
+    item: () => {
+      if (currentTrack) {
+        console.log(`🎛️ Deck ${deck} track being dragged back to Crate:`, currentTrack);
+        return { track: currentTrack, sourceIndex: -1 }; // -1 indicates from deck
+      }
+      return null;
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+    canDrag: () => !!currentTrack, // Only draggable if track exists
+  }), [currentTrack, deck]);
 
   // Drop functionality for collection tracks
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
@@ -98,9 +118,9 @@ export default function SimplifiedDeckCompact({
         className="relative"
       >
         <div 
-          className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop ? 'drop-target' : ''}`}
+          className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target' : ''}`}
           style={{
-            border: isOver && canDrop ? '3px solid #00FF88' : undefined
+            border: isOver && canDrop && !isDragging ? '3px solid #00FF88' : undefined
           }}
         >
           {isLoading ? (
@@ -109,9 +129,51 @@ export default function SimplifiedDeckCompact({
               <span className="deck-empty-text">Loading...</span>
             </div>
           ) : currentTrack ? (
-            <>
-              <img src={currentTrack.imageUrl} alt={currentTrack.title} />
-            </>
+            <div 
+              className="relative w-full h-full group"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            >
+              <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
+              
+              {/* Drag handle - left side */}
+              {isHovered && (
+                <div 
+                  ref={dragRef}
+                  className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded p-1 transition-all cursor-grab z-10"
+                  title={`Drag Deck ${deck} to Crate`}
+                >
+                  <GripVertical className="w-3 h-3 text-gray-300 hover:text-white" />
+                </div>
+              )}
+              
+              {/* Delete button - same style as Crate */}
+              {isHovered && onTrackClear && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTrackClear();
+                  }}
+                  className="absolute top-1 right-1 opacity-100 transition-opacity"
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: '#ff4757',
+                    border: '2px solid #0A0A0B',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    color: 'white',
+                    cursor: 'pointer'
+                  }}
+                  title={`Clear Deck ${deck}`}
+                >
+                  ×
+                </button>
+              )}
+            </div>
           ) : (
             <div className="deck-empty">
               <span className="deck-empty-icon">+</span>
@@ -119,7 +181,7 @@ export default function SimplifiedDeckCompact({
             </div>
           )}
 
-          {isOver && canDrop && (
+          {isOver && canDrop && !isDragging && (
             <div className="absolute inset-0 bg-cyan-400 opacity-10 rounded-lg flex items-center justify-center">
               <div className="text-white font-bold text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
                 Drop to Load
