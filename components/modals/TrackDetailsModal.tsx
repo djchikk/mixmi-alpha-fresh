@@ -4,11 +4,38 @@ import React, { useEffect, useState } from 'react';
 import { IPTrack } from '@/types';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
+import { useDrag } from 'react-dnd';
+import { GripVertical } from 'lucide-react';
 
 interface TrackDetailsModalProps {
   track: IPTrack;
   isOpen: boolean;
   onClose: () => void;
+}
+
+// Draggable individual track component for modal
+interface DraggableModalTrackProps {
+  track: any; // Individual loop or song
+  children: React.ReactNode;
+}
+
+function DraggableModalTrack({ track, children }: DraggableModalTrackProps) {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'TRACK_CARD',
+    item: () => {
+      console.log('🎵 Modal track being dragged:', track);
+      return { track };
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [track]);
+
+  return (
+    <div ref={drag} style={{ opacity: isDragging ? 0.5 : 1 }}>
+      {children}
+    </div>
+  );
 }
 
 export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetailsModalProps) {
@@ -292,10 +319,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               ) : packLoops.length > 0 ? (
                 <div className="space-y-2">
                   {packLoops.map((loop, index) => (
-                    <div 
-                      key={loop.id}
-                      className="flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors"
-                    >
+                    <DraggableModalTrack key={loop.id} track={loop}>
+                      <div 
+                        className="group flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors cursor-grab"
+                      >
                       {/* Loop Number */}
                       <div className="flex-shrink-0 w-6 h-6 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#9772F4'}}>
                         {index + 1}
@@ -311,6 +338,14 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                             {loop.bpm} BPM
                           </div>
                         )}
+                      </div>
+                      
+                      {/* Drag Handle - appears on hover */}
+                      <div 
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-600 rounded transition-all cursor-grab"
+                        title="Drag to Crate or Mixer"
+                      >
+                        <GripVertical className="w-3 h-3 text-gray-400 hover:text-white" />
                       </div>
                       
                       {/* Play/Pause Button */}
@@ -360,7 +395,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                           </svg>
                         )}
                       </button>
-                    </div>
+                      </div>
+                    </DraggableModalTrack>
                   ))}
                 </div>
               ) : (
