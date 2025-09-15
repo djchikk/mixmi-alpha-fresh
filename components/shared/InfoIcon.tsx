@@ -39,6 +39,8 @@ export default function InfoIcon({
         rounded 
         bg-black/70 
         hover:bg-black/90
+        border border-transparent
+        hover:border-[#81E4F2]
         flex 
         items-center 
         justify-center 

@@ -498,7 +498,7 @@ export default function Crate({ className = '' }: CrateProps) {
             fontSize: '14px',
             fontStyle: 'italic'
           }}>
-            Your crate is empty — Click the + button on loops to add them here
+            Your crate is empty — drag content from the cards on the globe, mixer, or search results to add them here
           </div>
         ) : (
           // Track list
@@ -739,7 +739,7 @@ export default function Crate({ className = '' }: CrateProps) {
             `}
             style={{ fontFamily: 'monospace', fontSize: '14px' }}
           >
-            <svg className="w-5 h-5 text-[#81E4F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             {cart.length > 0 && (
@@ -870,25 +870,16 @@ export default function Crate({ className = '' }: CrateProps) {
         {/* Navigation button - Back or Full Mixer */}
         <button
           onClick={handleNavigation}
+          className="px-4 py-1.5 rounded-lg font-semibold transition-all bg-gray-200 text-[#0a0e1a] hover:bg-gray-300"
           style={{
-            background: '#101726',
-            color: '#FAFAFA',
-            border: '2px solid #81E4F2',
-            borderRadius: '8px',
-            padding: '10px 20px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
             whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             flexDirection: context === 'mixer' ? 'row-reverse' : 'row'
           }}
-          className="hover:bg-[#1a2030] hover:scale-105"
         >
-          {context === 'mixer' ? 'Back' : 'Big Mixer'}
+          {context === 'mixer' ? 'Back' : 'Big Mixer Coming This Week'}
           <svg
             width="16"
             height="16"

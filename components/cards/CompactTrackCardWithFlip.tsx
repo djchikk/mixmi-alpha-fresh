@@ -229,14 +229,14 @@ export default function CompactTrackCardWithFlip({
                 
                 {/* Drag Handle - Left side, vertically centered */}
                 {isHovered && !isFlipped && (
-                  <div className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/70 backdrop-blur-sm rounded p-1 transition-all duration-200 hover:bg-black/90">
-                    <GripVertical className="w-4 h-4 text-gray-300 hover:text-white" />
+                  <div className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/70 backdrop-blur-sm rounded p-1 transition-all duration-200 hover:bg-black/90 z-10">
+                    <GripVertical className="w-4 h-4 text-gray-100 hover:text-white" />
                   </div>
                 )}
 
                 {/* Hover Overlay */}
                 {isHovered && !isFlipped && (
-                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-75 flex flex-col justify-between p-3 animate-fadeIn">
+                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-50 flex flex-col justify-between p-3 animate-fadeIn">
                     
                     {/* Top Section: Title, Artist, Info */}
                     <div>
@@ -252,7 +252,7 @@ export default function CompactTrackCardWithFlip({
                           <InfoIcon
                             size="md"
                             onClick={handleInfoClick}
-                            title="View details"
+                            title="See all info + drag individual tracks from Loop Packs/EPs"
                           />
                         </div>
                       </div>
