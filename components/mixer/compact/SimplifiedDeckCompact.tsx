@@ -128,7 +128,8 @@ export default function SimplifiedDeckCompact({
     <div className={`relative ${className}`}>
       <div 
         ref={drop as any}
-        className="relative"
+        className="relative p-2"
+        style={{ margin: '-8px' }}
       >
         <div 
           key={currentTrack?.id || 'empty'}
