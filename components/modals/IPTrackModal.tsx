@@ -572,6 +572,7 @@ export default function IPTrackModal({
           value={formData.wallet_address || ''}
           onChange={(e) => handleInputChange('wallet_address', e.target.value)}
           readOnly={useVerificationWallet && (globalWalletAddress || alphaWallet)}
+          title="Upload for different wallets: Useful for managers, labels, or multiple creative identities"
           className={`w-full px-3 py-3 rounded-md text-white placeholder-gray-500 border focus:outline-none transition-all duration-200 ${
             useVerificationWallet && (globalWalletAddress || alphaWallet)
               ? 'bg-gray-700/50 cursor-not-allowed text-gray-300' 
@@ -867,7 +868,7 @@ export default function IPTrackModal({
 
       {/* Tags */}
       <div>
-        <label className="block text-sm font-normal text-gray-300 mb-2">Tags <span className="text-gray-500">(optional)</span></label>
+        <label className="block text-sm font-normal text-gray-300 mb-2">Tags <span className="text-gray-500">(optional, but helps others find you)</span></label>
         <input
           type="text"
           value={tagInputValue}
@@ -889,7 +890,12 @@ export default function IPTrackModal({
       {/* Location Input with Autocomplete and Tags */}
       <div className="space-y-2">
         <label className="block text-sm font-normal text-gray-300 mb-2">
-          Location(s) 🌍 <span className="text-gray-500">(optional)</span>
+          Location(s) 🌍 <span 
+            className="text-gray-500 truncate inline-block max-w-[200px]" 
+            title="(optional, but needed for globe placement - your creative home)"
+          >
+            (optional, but needed for globe placement - your creative home)
+          </span>
         </label>
         
         {/* Selected locations as tags */}

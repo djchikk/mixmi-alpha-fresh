@@ -279,11 +279,11 @@ export default function GlobeSearch({
               onClick={handleExpand}
               className="p-1.5 hover:bg-[#1E293B] rounded transition-colors"
             >
-              <Search className="w-5 h-5 text-[#81E4F2]" />
+              <Search className="w-6 h-6 text-gray-200" strokeWidth={2.5} />
             </button>
           ) : (
             <>
-              <Search className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+              <Search className="w-5 h-5 text-gray-200 mr-2 flex-shrink-0" strokeWidth={2.5} />
               <input
                 ref={inputRef}
                 type="text"
