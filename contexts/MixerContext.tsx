@@ -62,6 +62,10 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     image_url: (ipTrack as any).image_url,
     imageUrl: (ipTrack as any).imageUrl
   });
+  console.log('🎨 Content type check:', {
+    original: ipTrack.content_type,
+    willBecome: ipTrack.content_type === 'loop' ? 'loop' : 'full_song'
+  });
   
   return {
     id: ipTrack.id,
@@ -70,7 +74,7 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     imageUrl: (ipTrack as any).imageUrl || ipTrack.cover_image_url || '', // Handle both imageUrl and cover_image_url
     bpm: ipTrack.bpm || 120,
     audioUrl: (ipTrack as any).audioUrl || ipTrack.audio_url, // Handle both audioUrl and audio_url
-    content_type: ipTrack.content_type === 'loop' ? 'loop' : 'full_song'
+    content_type: ipTrack.content_type || 'loop' // Preserve original content type!
   };
 };
 
