@@ -57,7 +57,7 @@ export default function SimplifiedDeckCompact({
             ? `${item.track.cover_image_url}?t=${Date.now()}&w=64&h=64`
             : ''), // Empty string = fallback to music icon
           audioUrl: item.track.audioUrl || item.track.audio_url, // Fix the audio URL field
-          bmp: item.track.bpm || 120,
+          bpm: item.track.bpm || 120,
           content_type: item.track.content_type
         };
         

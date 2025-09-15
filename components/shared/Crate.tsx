@@ -40,7 +40,7 @@ function DraggableTrack({ track, index, children }: DraggableTrackProps) {
           title: track.title,
           artist: track.artist,
           imageUrl: track.imageUrl,
-          bmp: track.bpm || 120,
+          bpm: track.bpm || 120,
           audioUrl: track.audioUrl || track.audio_url, // Handle both formats like deck conversion!
           content_type: track.content_type,
           price_stx: track.price_stx,
