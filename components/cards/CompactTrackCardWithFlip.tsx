@@ -132,10 +132,17 @@ export default function CompactTrackCardWithFlip({
     onPlayPreview(track.id, track.audio_url);
   };
 
-  // Handle purchase click
+  // Handle purchase click - add to cart
   const handlePurchaseClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onPurchase?.(track);
+    
+    // Use global cart function if available (for globe context)
+    if ((window as any).addToCart) {
+      (window as any).addToCart(track);
+    } else {
+      // Fallback to onPurchase prop (for other contexts like Creator Store)
+      onPurchase?.(track);
+    }
   };
 
   // Handle delete click with confirmation
@@ -229,7 +236,10 @@ export default function CompactTrackCardWithFlip({
                 
                 {/* Drag Handle - Left side, vertically centered */}
                 {isHovered && !isFlipped && (
-                  <div className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/70 backdrop-blur-sm rounded p-1 transition-all duration-200 hover:bg-black/90 z-10">
+                  <div 
+                    className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/70 backdrop-blur-sm rounded p-1 transition-all duration-200 hover:bg-black/90 border border-transparent hover:border-[#81E4F2] z-10"
+                    title="Drag to crate or mixer (loops only for mixer)"
+                  >
                     <GripVertical className="w-4 h-4 text-gray-100 hover:text-white" />
                   </div>
                 )}
@@ -302,7 +312,8 @@ export default function CompactTrackCardWithFlip({
                       {/* Buy Button (left) */}
                       <button
                         onClick={handlePurchaseClick}
-                        className="bg-accent hover:bg-accent/90 text-slate-900 font-bold py-1 px-3 rounded transition-all transform hover:scale-105 text-xs"
+                        className="bg-accent text-slate-900 font-bold py-1 px-3 rounded transition-all transform hover:scale-105 border border-transparent hover:border-slate-900 text-xs"
+                        title="Price in STX - click to add to cart"
                       >
                         {track.price_stx}
                       </button>
@@ -318,7 +329,10 @@ export default function CompactTrackCardWithFlip({
                       
                       {/* BPM Badge (right) - hide for EPs since they have multiple songs with different BPMs */}
                       {track.bpm && track.content_type !== 'ep' ? (
-                        <span className="bg-black/70 px-2 py-1 rounded text-sm text-white/90 font-mono font-semibold">
+                        <span 
+                          className="bg-black/70 px-2 py-1 rounded text-sm text-white/90 font-mono font-semibold"
+                          title="BPM"
+                        >
                           {track.bpm}
                         </span>
                       ) : (
