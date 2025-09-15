@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Track } from '../types';
+import { useToast } from '@/contexts/ToastContext';
 
 interface SimplifiedDeckProps {
   currentTrack: Track | null;
@@ -21,6 +22,7 @@ export default function SimplifiedDeckCompact({
   deck,
   className = ''
 }: SimplifiedDeckProps) {
+  const { showToast } = useToast();
   const [isNewTrackLoaded, setIsNewTrackLoaded] = useState(false);
   const [previousTrackId, setPreviousTrackId] = useState(currentTrack?.id);
 
@@ -33,6 +35,19 @@ export default function SimplifiedDeckCompact({
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
         
+        // 🎛️ SMART FILTERING: Only allow loops in mixer
+        if (item.track.content_type !== 'loop') {
+          const contentTypeName = item.track.content_type === 'loop_pack' ? 'Loop Pack' 
+            : item.track.content_type === 'ep' ? 'EP'
+            : item.track.content_type === 'full_song' ? 'Song' : 'content';
+          
+          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops allowed`);
+          
+          // Show user-friendly error message
+          showToast(`🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate instead.`, 'info');
+          return;
+        }
+        
         // Convert IPTrack format to mixer Track format if needed
         const mixerTrack = {
           id: item.track.id,
@@ -42,7 +57,7 @@ export default function SimplifiedDeckCompact({
             ? `${item.track.cover_image_url}?t=${Date.now()}&w=64&h=64`
             : ''), // Empty string = fallback to music icon
           audioUrl: item.track.audioUrl || item.track.audio_url, // Fix the audio URL field
-          bpm: item.track.bpm || 120,
+          bmp: item.track.bpm || 120,
           content_type: item.track.content_type
         };
         

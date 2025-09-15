@@ -311,11 +311,20 @@ export default function Crate({ className = '' }: CrateProps) {
     switch (track.content_type) {
       case 'full_song':
         return 'border-[#FFE4B5] shadow-[#FFE4B5]/50';
+      case 'ep':
+        return 'border-[#FFE4B5] shadow-[#FFE4B5]/50';
       case 'loop':
+        return 'border-[#9772F4] shadow-[#9772F4]/50';
+      case 'loop_pack':
         return 'border-[#9772F4] shadow-[#9772F4]/50';
       default:
         return 'border-[#9772F4] shadow-[#9772F4]/50';
     }
+  };
+
+  // Determine border thickness - thicker for multi-content (loop packs and EPs)
+  const getBorderThickness = (track: any) => {
+    return (track.content_type === 'loop_pack' || track.content_type === 'ep') ? 'border-4' : 'border-2';
   };
 
 
@@ -516,7 +525,7 @@ export default function Crate({ className = '' }: CrateProps) {
               onClick={() => handleTrackClick(track)}
               onMouseEnter={() => setHoveredTrackId(track.id)}
               onMouseLeave={() => setHoveredTrackId(null)}
-              className={`cursor-pointer transition-all ${getBorderColor(track)} border-2 ${isInCart(track.id) ? 'ring-2 ring-[#81E4F2] ring-offset-1 ring-offset-black' : ''}`}
+              className={`cursor-pointer transition-all ${getBorderColor(track)} ${getBorderThickness(track)} ${isInCart(track.id) ? 'ring-2 ring-[#81E4F2] ring-offset-1 ring-offset-black' : ''}`}
               style={{
                 width: '64px',
                 height: '64px',
