@@ -213,7 +213,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
             ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 hover:bg-cyan-300 active:bg-cyan-500 active:scale-95' 
             : 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white active:bg-slate-900 active:scale-95'
         }`}
-        title={syncActive ? 'Disable Sync' : 'Enable Sync'}
+        title={syncActive ? 'Disable BPM sync (Deck B will play at original tempo)' : 'Sync Deck B to Deck A\'s BPM for seamless mixing'}
       >
         SYNC
       </button>

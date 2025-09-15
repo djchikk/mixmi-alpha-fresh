@@ -131,9 +131,10 @@ export default function SimplifiedDeckCompact({
         className="relative"
       >
         <div 
+          key={currentTrack?.id || 'empty'}
           className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target' : ''}`}
           style={{
-            border: isOver && canDrop && !isDragging ? '3px solid #00FF88' : 'none'
+            border: isOver && canDrop && !isDragging ? '3px solid #00FF88' : undefined
           }}
         >
           {isLoading ? (
@@ -188,7 +189,10 @@ export default function SimplifiedDeckCompact({
               )}
             </div>
           ) : (
-            <div className="deck-empty">
+            <div 
+              className="deck-empty"
+              title="Drag loops from the globe, crate, or search"
+            >
               <span className="deck-empty-icon">+</span>
               <span className="deck-empty-text">Load Track</span>
             </div>
@@ -224,30 +228,20 @@ export default function SimplifiedDeckCompact({
         .carousel-track.current {
           position: relative;
           z-index: 2;
+        }
+        
+        .carousel-track.current:not(.has-track) {
           border: 2px solid transparent;
         }
         
         .carousel-track.current.has-track {
           border: 2px solid #81E4F2;
-          animation: softGlow 4s ease-in-out infinite;
         }
         
         .carousel-track.current.new-track-loaded {
           border-color: #81E4F2 !important;
         }
         
-        @keyframes softGlow {
-          0%, 100% { 
-            box-shadow: 0 0 6px rgba(129, 228, 242, 0.3);
-            border-color: #81E4F2;
-            opacity: 0.85;
-          }
-          50% { 
-            box-shadow: 0 0 16px rgba(129, 228, 242, 0.5);
-            border-color: #93E8F4;
-            opacity: 1;
-          }
-        }
         
         .carousel-track.current.playing {
           border-color: #81E4F2 !important;

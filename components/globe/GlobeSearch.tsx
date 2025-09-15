@@ -399,7 +399,7 @@ export default function GlobeSearch({
                       "
                       title="Drag to Crate, Cart, or Mixer Decks"
                     >
-                      <GripVertical className="w-3 h-3 text-gray-400 hover:text-white" />
+                      <GripVertical className="w-3 h-3 text-gray-200 hover:text-white" />
                     </div>
                     
                     <button
@@ -411,9 +411,9 @@ export default function GlobeSearch({
                       title="Preview"
                     >
                       {playingTrackId === track.id ? (
-                        <div className="w-3 h-3 border-2 border-[#81E4F2] border-t-transparent rounded-full animate-spin" />
+                        <div className="w-3 h-3 border-2 border-gray-200 border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <Play className="w-3 h-3 text-[#81E4F2]" fill="currentColor" />
+                        <Play className="w-3 h-3 text-gray-200" fill="currentColor" />
                       )}
                     </button>
                     <button
@@ -423,10 +423,10 @@ export default function GlobeSearch({
                           (window as any).addToCart(track);
                         }
                       }}
-                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-[#252a3a] rounded transition-all hidden"
+                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-[#252a3a] rounded transition-all"
                       title="Add to Cart"
                     >
-                      <svg className="w-3 h-3 text-[#81E4F2]" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-3 h-3 text-gray-200" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </button>

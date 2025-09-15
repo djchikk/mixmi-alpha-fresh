@@ -870,8 +870,9 @@ export default function Crate({ className = '' }: CrateProps) {
         {/* Navigation button - Back or Full Mixer */}
         <button
           onClick={handleNavigation}
-          className="px-4 py-1.5 rounded-lg font-semibold transition-all bg-gray-200 text-[#0a0e1a] hover:bg-gray-300"
+          className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all"
           style={{
+            backgroundColor: '#061F3C',
             whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
