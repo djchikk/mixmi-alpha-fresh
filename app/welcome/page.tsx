@@ -106,9 +106,44 @@ export default function Welcome() {
             <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '12px', color: '#e1e5f0' }}>
               What's Live
             </h2>
-            <p className="text-[#a8b2c3] mb-8">
-              The globe uploader is ready. Pin your sounds anywhere on Earth.
-            </p>
+            <div className="text-[#a8b2c3] mb-8">
+              <p className="mb-4">The globe uploader is ready. Pin your sounds anywhere on Earth.</p>
+              
+              <div className="text-left max-w-md mx-auto">
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#81E4F2]">•</span>
+                    Compact mixer functioning
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#81E4F2]">•</span>
+                    Drag/drop content to mixer and crate
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#81E4F2]">•</span>
+                    Search enabled
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#81E4F2]">•</span>
+                    Crate and shopping cart working
+                  </li>
+                </ul>
+                
+                <hr className="border-white/10 my-4" />
+                
+                <p className="text-xs text-[#6b7489] mb-2 font-semibold">Next Up:</p>
+                <ul className="space-y-1 text-sm">
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#FFE4B5]">•</span>
+                    Purchasing enabled
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#FFE4B5]">•</span>
+                    Pro mixer live
+                  </li>
+                </ul>
+              </div>
+            </div>
             
           </div>
         </div>
