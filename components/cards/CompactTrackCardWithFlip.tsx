@@ -262,7 +262,7 @@ export default function CompactTrackCardWithFlip({
                           <InfoIcon
                             size="md"
                             onClick={handleInfoClick}
-                            title="See all info + drag individual tracks from Loop Packs/EPs"
+                            title="Click to see all info + drag individual tracks from Loop Packs/EPs"
                           />
                         </div>
                       </div>
