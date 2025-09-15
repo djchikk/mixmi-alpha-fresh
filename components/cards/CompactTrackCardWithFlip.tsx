@@ -42,7 +42,22 @@ export default function CompactTrackCardWithFlip({
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
-      return { track };
+      // Optimize image for small displays when dragging
+      const originalImageUrl = track.cover_image_url || (track as any).imageUrl;
+      const optimizedTrack = {
+        ...track,
+        imageUrl: originalImageUrl 
+          ? `${originalImageUrl}?t=${Date.now()}&w=64&h=64`
+          : originalImageUrl,
+        cover_image_url: originalImageUrl
+          ? `${originalImageUrl}?t=${Date.now()}&w=64&h=64`
+          : originalImageUrl,
+        // Ensure we have audioUrl for mixer compatibility  
+        audioUrl: track.audio_url
+      };
+      
+      console.log('🌍 Globe card being dragged with optimization:', optimizedTrack);
+      return { track: optimizedTrack };
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),

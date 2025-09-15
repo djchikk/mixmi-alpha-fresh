@@ -29,6 +29,7 @@ export default function SimplifiedDeckCompact({
   const [isNewTrackLoaded, setIsNewTrackLoaded] = useState(false);
   const [previousTrackId, setPreviousTrackId] = useState(currentTrack?.id);
   const [isHovered, setIsHovered] = useState(false);
+  const [dropZoneActive, setDropZoneActive] = useState(false);
 
   // Drag functionality for deck tracks back to Crate
   const [{ isDragging }, dragRef] = useDrag(() => ({
@@ -46,7 +47,7 @@ export default function SimplifiedDeckCompact({
     canDrag: () => !!currentTrack, // Only draggable if track exists
   }), [currentTrack, deck]);
 
-  // Drop functionality for collection tracks
+  // Drop functionality for collection tracks  
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD'],
     drop: (item: { track: any; sourceDeck?: string; sourceIndex: number }) => {
@@ -120,7 +121,7 @@ export default function SimplifiedDeckCompact({
         <div 
           className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target' : ''}`}
           style={{
-            border: isOver && canDrop && !isDragging ? '3px solid #00FF88' : undefined
+            border: isOver && canDrop && !isDragging ? '3px solid #00FF88' : 'none'
           }}
         >
           {isLoading ? (
