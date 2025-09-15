@@ -69,14 +69,26 @@ export default function SimplifiedDeckCompact({
           return;
         }
         
+        // PERFORMANCE FIX: Don't re-optimize already optimized images
+        const existingImageUrl = item.track.imageUrl || item.track.cover_image_url;
+        const isAlreadyOptimized = existingImageUrl && existingImageUrl.includes('&w=64&h=64');
+        
+        console.log('🎛️ DECK DROP DEBUG:', {
+          existingImageUrl: existingImageUrl,
+          isAlreadyOptimized: isAlreadyOptimized,
+          trackId: item.track.id
+        });
+        
         // Convert IPTrack format to mixer Track format if needed
         const mixerTrack = {
           id: item.track.id,
           title: item.track.title,
           artist: item.track.artist || item.track.artist_name,
-          imageUrl: item.track.imageUrl || (item.track.cover_image_url 
-            ? `${item.track.cover_image_url}?t=${Date.now()}&w=64&h=64`
-            : ''), // Empty string = fallback to music icon
+          imageUrl: isAlreadyOptimized 
+            ? existingImageUrl  // Use already optimized URL
+            : (existingImageUrl 
+              ? `${existingImageUrl}?t=${Date.now()}&w=64&h=64}`
+              : ''), // Empty string = fallback to music icon
           audioUrl: item.track.audioUrl || item.track.audio_url, // Fix the audio URL field
           bpm: item.track.bpm || 120,
           content_type: item.track.content_type

@@ -44,19 +44,48 @@ export default function CompactTrackCardWithFlip({
     item: () => {
       // Optimize image for small displays when dragging
       const originalImageUrl = track.cover_image_url || (track as any).imageUrl;
+      
+      // DETAILED DEBUGGING for carousel performance issue
+      console.log('🔍 DRAG DEBUG - Track being dragged:', {
+        id: track.id,
+        title: track.title,
+        cover_image_url: track.cover_image_url,
+        imageUrl: (track as any).imageUrl,
+        originalImageUrl: originalImageUrl,
+        isFromCluster: !!(track.id && track.id.includes('cluster'))
+      });
+      
+      // CRITICAL DEBUG: Check optimization logic
+      const timestamp = Date.now();
+      const shouldOptimize = !!originalImageUrl;
+      const optimizedUrl = shouldOptimize ? `${originalImageUrl}?t=${timestamp}&w=64&h=64` : originalImageUrl;
+      
+      console.log('🔧 OPTIMIZATION DEBUG:', {
+        originalImageUrl,
+        shouldOptimize,
+        optimizedUrl,
+        timestamp
+      });
+      
       const optimizedTrack = {
         ...track,
-        imageUrl: originalImageUrl 
-          ? `${originalImageUrl}?t=${Date.now()}&w=64&h=64`
-          : originalImageUrl,
-        cover_image_url: originalImageUrl
-          ? `${originalImageUrl}?t=${Date.now()}&w=64&h=64`
-          : originalImageUrl,
+        imageUrl: optimizedUrl,
+        cover_image_url: optimizedUrl,
         // Ensure we have audioUrl for mixer compatibility  
         audioUrl: track.audio_url
       };
       
       console.log('🌍 Globe card being dragged with optimization:', optimizedTrack);
+      // Extra debug for carousel tracks
+      if (track.id && track.id.includes('cluster')) {
+        console.log('🎠 Carousel track drag detected - optimization applied:', !!originalImageUrl);
+      }
+      
+      // Network performance debug
+      if (originalImageUrl && originalImageUrl.length > 100) {
+        console.warn('⚠️ Large image URL detected:', originalImageUrl.substring(0, 100) + '...');
+      }
+      
       return { track: optimizedTrack };
     },
     collect: (monitor) => ({

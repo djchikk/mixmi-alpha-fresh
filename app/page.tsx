@@ -606,7 +606,9 @@ export default function HomePage() {
                           id: track.id,
                           title: track.title,
                           artist: track.artist,
-                          cover_image_url: track.imageUrl || '',
+                          // OPTIMIZATION FIX: Ensure both fields exist for CC13's drag optimization
+                          cover_image_url: track.imageUrl || track.cover_image_url || '',
+                          imageUrl: track.imageUrl || track.cover_image_url || '', // Ensure fallback exists
                           audio_url: track.audioUrl,
                           content_type: track.content_type,
                           tags: track.tags || [],
