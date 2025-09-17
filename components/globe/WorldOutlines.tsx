@@ -26,9 +26,7 @@ export function WorldOutlines() {
     const fetchWorldData = async () => {
       try {
         // Using a simplified world map GeoJSON
-        const response = await fetch(
-          'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson'
-        );
+        const response = await fetch('/world.geojson');
         const data = await response.json();
         setGeoData(data);
         setLoading(false);
