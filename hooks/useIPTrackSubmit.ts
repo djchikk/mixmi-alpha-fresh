@@ -3,6 +3,7 @@ import { IPTrack } from '@/types';
 import { SupabaseAuthBridge } from '@/lib/auth/supabase-auth-bridge';
 import AlphaAuth from '@/lib/auth/alpha-auth';
 import { CertificateService } from '@/lib/certificate-service';
+import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
 
 interface SubmitFormData {
   id: string;
@@ -390,9 +391,16 @@ export function useIPTrackSubmit({
     setSaveStatus('saving');
     
     try {
-      // Determine which wallet address to use (MOVED TO TOP TO FIX INITIALIZATION)
-      const effectiveWalletAddress = formData.wallet_address || walletAddress;
-      console.log(`👤 Using wallet: ${effectiveWalletAddress} ${formData.wallet_address ? '(FORM WALLET)' : '(AUTH WALLET)'}`);
+      // CRITICAL: Convert alpha codes to actual wallet addresses for blockchain operations
+      const authIdentity = formData.wallet_address || walletAddress;
+      const effectiveWalletAddress = await getWalletFromAuthIdentity(authIdentity);
+      
+      if (!effectiveWalletAddress) {
+        setSaveStatus('error');
+        throw new Error('Could not resolve wallet address from authentication. Please check your account.');
+      }
+      
+      console.log(`👤 Auth identity: ${authIdentity} → Wallet: ${effectiveWalletAddress}`);
       
       // Map our form data to the current database schema
       const { isrc, ...formDataWithoutIsrc } = formData;

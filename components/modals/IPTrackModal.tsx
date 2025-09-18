@@ -20,6 +20,7 @@ import { useLocationAutocomplete } from "@/hooks/useLocationAutocomplete";
 import ArtistAutosuggest from "../shared/ArtistAutosuggest";
 import SimplifiedLicensingStep from "./steps/SimplifiedLicensingStep";
 import { useAuth } from "@/contexts/AuthContext";
+import { isValidStacksAddress, isAlphaCode } from "@/lib/auth/wallet-mapping";
 
 interface IPTrackModalProps {
   isOpen: boolean;
@@ -614,7 +615,7 @@ export default function IPTrackModal({
               }}
             />
             <span className="text-white text-sm">
-              Use authenticated wallet ({(globalWalletAddress || alphaWallet).substring(0, 8)}...)
+              Use authenticated account for creative ownership ({(globalWalletAddress || alphaWallet).substring(0, 8)}...)
             </span>
           </label>
         )}
@@ -1268,9 +1269,17 @@ export default function IPTrackModal({
               <input
                 type="text"
                 value={formData[`composition_split_${num}_wallet` as keyof typeof formData] as string}
-                onChange={(e) => handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
+                  
+                  // Validate wallet address format (reject alpha codes)
+                  if (value.trim() && !isValidStacksAddress(value) && isAlphaCode(value)) {
+                    showToast('❌ Please enter a valid Stacks address (SP... or SM...), not an alpha code', 'error');
+                  }
+                }}
                 className="input-field"
-                placeholder={`Creator ${num} wallet address`}
+                placeholder={`Creator ${num} Stacks address (SP...)`}
               />
             </div>
             <div className="w-32">
@@ -1318,9 +1327,17 @@ export default function IPTrackModal({
               <input
                 type="text"
                 value={formData[`production_split_${num}_wallet` as keyof typeof formData] as string}
-                onChange={(e) => handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);
+                  
+                  // Validate wallet address format (reject alpha codes)
+                  if (value.trim() && !isValidStacksAddress(value) && isAlphaCode(value)) {
+                    showToast('❌ Please enter a valid Stacks address (SP... or SM...), not an alpha code', 'error');
+                  }
+                }}
                 className="input-field"
-                placeholder={`Creator ${num} wallet address`}
+                placeholder={`Creator ${num} Stacks address (SP...)`}
               />
             </div>
             <div className="w-32">
