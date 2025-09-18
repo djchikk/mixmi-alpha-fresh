@@ -20,7 +20,7 @@ import { useLocationAutocomplete } from "@/hooks/useLocationAutocomplete";
 import ArtistAutosuggest from "../shared/ArtistAutosuggest";
 import SimplifiedLicensingStep from "./steps/SimplifiedLicensingStep";
 import { useAuth } from "@/contexts/AuthContext";
-import { isValidStacksAddress, isAlphaCode } from "@/lib/auth/wallet-mapping";
+import { isValidStacksAddress, isAlphaCode, getWalletFromAuthIdentity } from "@/lib/auth/wallet-mapping";
 
 interface IPTrackModalProps {
   isOpen: boolean;
@@ -187,12 +187,35 @@ export default function IPTrackModal({
     // Remove dependencies that might cause re-renders
   }, [isOpen, track?.id]); // Only depend on track.id, not the whole track object
   
-  // Smart default behavior for wallet checkbox
+  // Smart default behavior for wallet checkbox - convert alpha codes to wallet addresses
   useEffect(() => {
     const authWallet = globalWalletAddress || alphaWallet;
     if (authWallet && useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
-      // Auto-fill with authenticated wallet when checkbox is checked and field is empty
-      handleInputChange('wallet_address', authWallet);
+      // Convert alpha code to actual wallet address for blockchain operations
+      const convertAndFill = async () => {
+        try {
+          const response = await fetch('/api/auth/resolve-wallet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ authIdentity: authWallet })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success && result.walletAddress) {
+            console.log(`🔄 Converting auth identity: ${authWallet} → ${result.walletAddress}`);
+            handleInputChange('wallet_address', result.walletAddress);
+          } else {
+            console.error('Could not resolve wallet address for auth identity:', authWallet);
+            showToast('❌ Could not resolve wallet address for your account', 'error');
+          }
+        } catch (error) {
+          console.error('Error converting auth identity to wallet:', error);
+          showToast('❌ Authentication service temporarily unavailable', 'error');
+        }
+      };
+      
+      convertAndFill();
     }
   }, [globalWalletAddress, alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
   
