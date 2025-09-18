@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import ShippedStamp from '@/components/shared/ShippedStamp';
 import dynamic from 'next/dynamic';
 
 // Dynamically import Globe for breathing background effect
@@ -324,31 +325,12 @@ export default function Welcome() {
               <div className="aspect-video bg-gray-800 relative">
                 <Image src="/welcome-images/globe-tiny-mixer.png" alt="Globe with Tiny Mixer" fill className="object-cover" />
                 
-                {/* DONE! Stamp */}
-                <div 
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                  style={{
-                    transform: 'rotate(-15deg)',
-                    fontSize: '24px',
-                    fontWeight: '900',
-                    fontFamily: 'Impact, Arial Black, sans-serif',
-                    color: '#81E4F2',
-                    textShadow: '2px 2px 0px rgba(0,0,0,0.8)',
-                    letterSpacing: '2px'
-                  }}
-                >
-                  <span 
-                    style={{
-                      border: '4px double #81E4F2',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgba(10, 14, 26, 0.9)',
-                      opacity: '0.9'
-                    }}
-                  >
-                    DONE!
-                  </span>
-                </div>
+                {/* DONE! Stamp - Globe + Mixer shipped! */}
+                <ShippedStamp 
+                  timestamp="17-SEP-2025 • 00:36 UTC"
+                  rotation={-15}
+                  scale={1.2}
+                />
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2 text-[#e1e5f0]">Globe + Mixer</h3>
