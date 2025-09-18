@@ -208,16 +208,39 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
       setFormData(prev => ({
         ...prev,
         sample_type: 'FULL SONGS',
-        loop_category: ''
+        loop_category: '',
+        // CRITICAL FIX: Songs should have download licensing, not remix-only
+        license_selection: 'platform_download',
+        license_type: 'remix_external'
       }));
     } else if (formData.content_type === 'loop') {
       setFormData(prev => ({
         ...prev,
         sample_type: 'instrumentals',
-        loop_category: prev.loop_category || 'instrumental'
+        loop_category: prev.loop_category || 'instrumental',
+        // Loops keep remix-only licensing
+        license_selection: 'platform_remix',
+        license_type: 'remix_only'
       }));
     }
   }, [formData.content_type]);
+
+  // Update splits when wallet_address field changes (after alpha code conversion)
+  useEffect(() => {
+    if (formData.wallet_address && 
+        (formData.composition_split_1_wallet !== formData.wallet_address ||
+         formData.production_split_1_wallet !== formData.wallet_address) &&
+        formData.composition_split_1_percentage === 100 &&
+        formData.production_split_1_percentage === 100) {
+      // Update both composition and production splits to use converted wallet address
+      setFormData(prev => ({
+        ...prev,
+        composition_split_1_wallet: formData.wallet_address,
+        production_split_1_wallet: formData.wallet_address
+      }));
+      console.log('🔄 Updated splits to use converted wallet (Quick Upload):', formData.wallet_address);
+    }
+  }, [formData.wallet_address]);
 
   const handleModeToggle = (quickMode: boolean) => {
     setIsQuickUpload(quickMode);

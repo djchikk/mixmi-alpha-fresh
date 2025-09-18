@@ -423,7 +423,7 @@ export default function HomePage() {
                     audio_url: leftComparisonTrack.audioUrl || leftComparisonTrack.audio_url || '',
                     price_stx: leftComparisonTrack.price_stx || '5 STX',
                     content_type: leftComparisonTrack.content_type || leftComparisonTrack.genre || 'loop',
-                    bpm: leftComparisonTrack.bpm || 128,
+                    bpm: leftComparisonTrack.bpm, // Don't default to 128 for songs
                     tags: leftComparisonTrack.tags || [],
                     description: leftComparisonTrack.description || '',
                     license: leftComparisonTrack.license || '',
@@ -478,7 +478,7 @@ export default function HomePage() {
                     audio_url: rightComparisonTrack.audioUrl || rightComparisonTrack.audio_url || '',
                     price_stx: rightComparisonTrack.price_stx || '5 STX',
                     content_type: rightComparisonTrack.content_type || rightComparisonTrack.genre || 'loop',
-                    bpm: rightComparisonTrack.bpm || 128,
+                    bpm: rightComparisonTrack.bpm, // Don't default to 128 for songs
                     tags: rightComparisonTrack.tags || [],
                     description: rightComparisonTrack.description || '',
                     license: rightComparisonTrack.license || '',
@@ -663,7 +663,7 @@ export default function HomePage() {
                       audio_url: displayTrack.audioUrl || '',
                       price_stx: displayTrack.price_stx || '5 STX',
                       content_type: displayTrack.content_type || displayTrack.genre || 'loop',
-                      bpm: displayTrack.bpm || 128,
+                      bpm: displayTrack.bpm, // Don't default to 128 - preserve NULL for songs
                       tags: displayTrack.tags || [],
                       description: displayTrack.description || '',
                       license: displayTrack.license || '',

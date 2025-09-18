@@ -530,11 +530,11 @@ export function useIPTrackSubmit({
       // Wallet address already determined above
       
       // Create authenticated Supabase session
-      // Use alpha verification wallet for authentication, content wallet for attribution
-      const authWallet = alphaWallet || effectiveWalletAddress;
+      // CRITICAL: Use converted wallet address for authentication (not alpha code)
+      const authWallet = effectiveWalletAddress; // Already converted from alpha code above
       
       if (!authWallet) {
-        throw new Error('Alpha wallet address is required for authentication');
+        throw new Error('Wallet address is required for authentication');
       }
 
       console.log('🔐 Authenticating alpha user via API...');

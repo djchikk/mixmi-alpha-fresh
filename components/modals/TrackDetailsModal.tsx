@@ -495,11 +495,13 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               <div className="flex">
                 <span className="text-gray-500 w-24">License:</span>
                 <span className="text-gray-300">
-                  {ipRights?.license_type === 'remix_only' 
-                    ? 'Platform Remix Only' 
-                    : ipRights?.license_selection === 'platform_download'
-                      ? 'Remix + Download'
-                      : 'Platform Remix Only'}
+                  {ipRights?.license_selection === 'platform_download'
+                    ? 'Download Only'
+                    : ipRights?.license_selection === 'platform_remix'
+                      ? 'Platform Remix Only'  
+                      : ipRights?.license_type === 'remix_external'
+                        ? 'Remix + Download'
+                        : 'Platform Remix Only'}
                 </span>
               </div>
               {track.content_type === 'loop_pack' ? (
