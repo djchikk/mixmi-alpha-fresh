@@ -327,7 +327,7 @@ export default function Welcome() {
                 
                 {/* DONE! Stamp - Globe + Mixer shipped! */}
                 <ShippedStamp 
-                  timestamp="17-SEP-2025 • 00:36 UTC"
+                  timestamp="17-SEP-2025 • 23:45 UTC"
                   rotation={-15}
                   scale={1.2}
                 />
