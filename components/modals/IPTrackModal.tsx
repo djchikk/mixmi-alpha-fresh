@@ -2046,7 +2046,7 @@ export default function IPTrackModal({
               lineHeight: '1.4'
             }}
           >
-            Connect wallet above or verify alpha access below
+            🎫 Enter your alpha invite code
           </p>
         </div>
         
@@ -2063,18 +2063,6 @@ export default function IPTrackModal({
         {/* Streamlined Body */}
         <form onSubmit={handleAuthSubmit} className="space-y-4">
           <div>
-            <h4 
-              className="mb-5" 
-              style={{
-                fontSize: '15px',
-                fontWeight: '500',
-                color: '#a8b2c3',
-                lineHeight: '1.3',
-                marginBottom: '20px'
-              }}
-            >
-              🎵 Enter your wallet address
-            </h4>
             
             {/* Dark Container Box */}
             <div
@@ -2096,13 +2084,13 @@ export default function IPTrackModal({
                   letterSpacing: '0.5px'
                 }}
               >
-                WALLET ADDRESS
+                ALPHA ACCESS CODE
               </label>
               <input
                 type="text"
                 value={inputWallet}
                 onChange={(e) => setInputWallet(e.target.value)}
-                placeholder="SP1N01Q5K7GCH0SHTW925CEG14TYTZV78T48AT85T"
+                placeholder="Example: MIXMI-ABC123 or SP1N0105..."
                 disabled={isAuthenticating}
                 required
                 style={{
@@ -2132,16 +2120,6 @@ export default function IPTrackModal({
                   opacity: 1;
                 }
               `}</style>
-              <p 
-                className="mt-2" 
-                style={{
-                  fontSize: '11px',
-                  color: '#4a5264',
-                  fontFamily: 'Monaco, Courier New, monospace'
-                }}
-              >
-                Example: SP1N0105...
-              </p>
             </div>
           </div>
           

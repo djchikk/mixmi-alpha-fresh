@@ -47,11 +47,17 @@ export class AlphaAuth {
     });
   }
   
-  // Validate wallet address format
-  private static isValidWalletAddress(address: string): boolean {
-    // Stacks mainnet addresses start with SP and range from 39-42 characters total
+  // Validate wallet address OR invite code format
+  private static isValidInput(input: string): boolean {
+    // Check for invite code format: MIXMI-ABC123
+    const inviteCodePattern = /^MIXMI-[A-Z0-9]{6}$/;
+    if (inviteCodePattern.test(input.toUpperCase())) {
+      return true;
+    }
+    
+    // Check for wallet address format: Stacks mainnet addresses start with SP
     const stacksMainnetPattern = /^SP[0-9A-Z]{37,40}$/;
-    return stacksMainnetPattern.test(address.toUpperCase());
+    return stacksMainnetPattern.test(input.toUpperCase());
   }
   
   // Check if wallet is in approved alpha users list
@@ -59,22 +65,19 @@ export class AlphaAuth {
     try {
       console.log('Checking alpha user status for:', walletAddress);
       
-      // Validate wallet format first
-      if (!this.isValidWalletAddress(walletAddress)) {
+      // Validate input format first (invite code or wallet address)
+      if (!this.isValidInput(walletAddress)) {
         return {
           success: false,
-          error: 'Invalid wallet address format. Please use a valid STX mainnet address (SP...)'
+          error: 'Invalid format. Please use an invite code (MIXMI-ABC123) or STX wallet address (SP...)'
         };
       }
       
-      // Query alpha_users table
+      // Query alpha_users table - supports both invite codes and wallet addresses
       const supabase = this.getServiceClient();
-      const { data: user, error } = await supabase
-        .from('alpha_users')
-        .select('*')
-        .eq('wallet_address', walletAddress)
-        .eq('approved', true)
-        .single();
+      const { data: user, error } = await supabase.rpc('validate_alpha_invite', {
+        input_code: walletAddress
+      }).single();
       
       if (error && error.code !== 'PGRST116') {
         console.error('Database error checking alpha user:', error);
@@ -84,11 +87,11 @@ export class AlphaAuth {
         };
       }
       
-      if (!user) {
-        console.log('Wallet not found in alpha users list:', walletAddress);
+      if (!user || !user.approved) {
+        console.log('Input not found in alpha users list or not approved:', walletAddress);
         return {
           success: false,
-          error: 'This wallet address is not approved for alpha access. Please contact support.'
+          error: 'This invite code or wallet address is not approved for alpha access. Please contact support.'
         };
       }
       

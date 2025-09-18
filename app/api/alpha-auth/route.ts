@@ -65,13 +65,10 @@ export async function POST(request: NextRequest) {
       }
     });
     
-    // Query alpha_users table
-    const { data: user, error } = await supabase
-      .from('alpha_users')
-      .select('*')
-      .eq('wallet_address', walletAddress)
-      .eq('approved', true)
-      .single();
+    // Query alpha_users table - supports both invite codes and wallet addresses
+    const { data: user, error } = await supabase.rpc('validate_alpha_invite', {
+      input_code: walletAddress
+    }).single();
     
     if (error && error.code !== 'PGRST116') {
       console.error('❌ Database error:', error);

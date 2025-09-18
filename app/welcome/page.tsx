@@ -174,7 +174,7 @@ export default function Welcome() {
                 <div className="flex-1 text-center">
                   <div className="text-2xl mb-2">🔑</div>
                   <h4 className="text-[#a8b2c3] text-sm font-medium">Alpha Invite</h4>
-                  <p className="text-[#6b7489] text-xs mt-1">Enter wallet address from invite</p>
+                  <p className="text-[#6b7489] text-xs mt-1">Enter your access code</p>
                 </div>
 
                 {/* CENTER - OR Divider */}
@@ -186,7 +186,7 @@ export default function Welcome() {
                 {/* RIGHT SIDE - Stacks Wallet */}
                 <div className="flex-1 text-center">
                   <div className="text-2xl mb-2">⭐</div>
-                  <h4 className="text-[#a8b2c3] text-sm font-medium">Stacks Wallet</h4>
+                  <h4 className="text-[#a8b2c3] text-sm font-medium">Stacks Connect</h4>
                   <p className="text-[#6b7489] text-xs mt-1">Connect via header button</p>
                 </div>
 
@@ -318,11 +318,37 @@ export default function Welcome() {
           {/* Coming Soon - 2-column layout for wider aspect ratio */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             
-            {/* Globe + Tiny Mixer */}
-            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+            {/* Globe + Tiny Mixer - COMPLETED! */}
+            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm relative"
                  style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
               <div className="aspect-video bg-gray-800 relative">
                 <Image src="/welcome-images/globe-tiny-mixer.png" alt="Globe with Tiny Mixer" fill className="object-cover" />
+                
+                {/* DONE! Stamp */}
+                <div 
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  style={{
+                    transform: 'rotate(-15deg)',
+                    fontSize: '24px',
+                    fontWeight: '900',
+                    fontFamily: 'Impact, Arial Black, sans-serif',
+                    color: '#81E4F2',
+                    textShadow: '2px 2px 0px rgba(0,0,0,0.8)',
+                    letterSpacing: '2px'
+                  }}
+                >
+                  <span 
+                    style={{
+                      border: '4px double #81E4F2',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(10, 14, 26, 0.9)',
+                      opacity: '0.9'
+                    }}
+                  >
+                    DONE!
+                  </span>
+                </div>
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2 text-[#e1e5f0]">Globe + Mixer</h3>
