@@ -406,6 +406,29 @@ NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
 
 **Platform Status: PRODUCTION-READY PROFESSIONAL MUSIC ECOSYSTEM** 🎵✨
 
+## 🔄 **Reference Code Integration Strategy**
+
+### **Full App Code Repository**
+The `reference/full-app/` directory contains complete main Mixmi application code that serves as the source for feature integration. This approach allows:
+- **Selective integration** of mature features without destabilizing alpha environment
+- **Component-by-component migration** ensuring each feature works perfectly
+- **Logged-in vs read-only state management** for different user contexts
+- **Production-ready components** that have been tested in the main application
+
+### **Next Integration Phases** (Post-Big Mixer)
+1. **🏪 Creator Store** - Individual artist marketplaces with content vaults
+2. **🏆 Vault System** - Digital certificates, user libraries, purchased content management  
+3. **👤 User Profiles** - Social features, content management, artist showcase pages
+4. **🔐 State Management** - Complex logged-in vs read-only contexts across all features
+
+### **Integration Challenge: Context Awareness**
+- **Read-only contexts:** Globe exploration, content discovery, public browsing
+- **Authenticated contexts:** Personal vaults, content management, purchase history
+- **Creator contexts:** Store management, content uploads, analytics
+- **Admin contexts:** Content moderation, user management, system monitoring
+
+**The reference code provides the blueprint for scaling from alpha uploader to complete music ecosystem!**
+
 ## Next Priority Tasks (Updated Sept 17, 2025)
 1. **✅ System Performance** - Globe loading optimized to 17ms
 2. **✅ Image Architecture** - TrackCoverUploader and clean URL system working
