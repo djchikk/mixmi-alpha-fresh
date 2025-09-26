@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Track } from './types';
 import { useMixerAudio } from '@/hooks/useMixerAudio';
-import { applyCrossfader, SimpleLoopSync } from '@/lib/mixerAudio';
+import { applyCrossfader, SimpleLoopSync, getAudioContext } from '@/lib/mixerAudio';
 import SimplifiedDeck from './SimplifiedDeck';
 import WaveformDisplay from './WaveformDisplay';
 import CrossfaderControl from './CrossfaderControl';
 import MasterTransportControls from './MasterTransportControls';
 import LoopControls from './LoopControls';
+import FXComponent from './FXComponent';
 
 interface SimplifiedMixerProps {
   className?: string;
@@ -65,6 +66,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Sync engine reference
   const syncEngineRef = React.useRef<SimpleLoopSync | null>(null);
+
+  // FX Component refs
+  const deckAFXRef = React.useRef<HTMLDivElement>(null);
+  const deckBFXRef = React.useRef<HTMLDivElement>(null);
 
   // Use the mixer audio hook
   const {
@@ -154,8 +159,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         setMixerState(prev => ({
           ...prev,
           masterBPM: trackBPM,
-          deckA: { 
-            ...prev.deckA, 
+          deckA: {
+            ...prev.deckA,
             track,
             playing: false,
             audioState,
@@ -163,6 +168,67 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             loading: false
           }
         }));
+
+        // Connect FX if available (with retry for timing issues)
+        const connectFX = (retryCount = 0) => {
+          console.log(`🎛️ Attempting to connect Deck A FX (attempt ${retryCount + 1})`);
+
+          if (deckAFXRef.current) {
+            const hasAudioInput = !!(deckAFXRef.current as any).audioInput;
+            const hasAudioOutput = !!(deckAFXRef.current as any).audioOutput;
+
+            if (hasAudioInput && hasAudioOutput) {
+              const fxInput = (deckAFXRef.current as any).audioInput as GainNode;
+              const fxOutput = (deckAFXRef.current as any).audioOutput as GainNode;
+
+              try {
+                // Disconnect existing connections
+                audioState.filterNode.disconnect();
+                audioState.gainNode.disconnect();
+
+                // Reconnect audio routing through FX: filter → FX → gain → analyzer
+                audioState.filterNode.connect(fxInput);
+                fxOutput.connect(audioState.gainNode);
+                audioState.gainNode.connect(audioState.analyzerNode);
+
+                console.log('🎛️ Deck A FX connected to audio chain successfully');
+
+                // Reset FX to defaults for new track
+                if ((deckAFXRef.current as any).resetToDefaults) {
+                  (deckAFXRef.current as any).resetToDefaults();
+                }
+
+                return true;
+              } catch (error) {
+                console.error('🎛️ Failed to connect Deck A FX:', error);
+                // Fall back to direct connection
+                audioState.filterNode.connect(audioState.gainNode);
+                audioState.gainNode.connect(audioState.analyzerNode);
+                return false;
+              }
+            }
+          }
+
+          // FX not ready, use direct connection and retry
+          try {
+            audioState.filterNode.disconnect();
+            audioState.filterNode.connect(audioState.gainNode);
+            audioState.gainNode.connect(audioState.analyzerNode);
+          } catch (e) {
+            // Ignore if already connected
+          }
+
+          // Retry up to 10 times with exponential backoff
+          if (retryCount < 10) {
+            setTimeout(() => {
+              connectFX(retryCount + 1);
+            }, 100 * Math.pow(1.5, retryCount));
+          }
+          return false;
+        };
+
+        // Start connection attempts
+        connectFX();
       } else {
         console.error('❌ No audio result returned');
       }
@@ -222,8 +288,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         
         setMixerState(prev => ({
           ...prev,
-          deckB: { 
-            ...prev.deckB, 
+          deckB: {
+            ...prev.deckB,
             track,
             playing: false,
             audioState,
@@ -231,6 +297,67 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             loading: false
           }
         }));
+
+        // Connect FX if available (with retry for timing issues)
+        const connectFX = (retryCount = 0) => {
+          console.log(`🎛️ Attempting to connect Deck B FX (attempt ${retryCount + 1})`);
+
+          if (deckBFXRef.current) {
+            const hasAudioInput = !!(deckBFXRef.current as any).audioInput;
+            const hasAudioOutput = !!(deckBFXRef.current as any).audioOutput;
+
+            if (hasAudioInput && hasAudioOutput) {
+              const fxInput = (deckBFXRef.current as any).audioInput as GainNode;
+              const fxOutput = (deckBFXRef.current as any).audioOutput as GainNode;
+
+              try {
+                // Disconnect existing connections
+                audioState.filterNode.disconnect();
+                audioState.gainNode.disconnect();
+
+                // Reconnect audio routing through FX: filter → FX → gain → analyzer
+                audioState.filterNode.connect(fxInput);
+                fxOutput.connect(audioState.gainNode);
+                audioState.gainNode.connect(audioState.analyzerNode);
+
+                console.log('🎛️ Deck B FX connected to audio chain successfully');
+
+                // Reset FX to defaults for new track
+                if ((deckBFXRef.current as any).resetToDefaults) {
+                  (deckBFXRef.current as any).resetToDefaults();
+                }
+
+                return true;
+              } catch (error) {
+                console.error('🎛️ Failed to connect Deck B FX:', error);
+                // Fall back to direct connection
+                audioState.filterNode.connect(audioState.gainNode);
+                audioState.gainNode.connect(audioState.analyzerNode);
+                return false;
+              }
+            }
+          }
+
+          // FX not ready, use direct connection and retry
+          try {
+            audioState.filterNode.disconnect();
+            audioState.filterNode.connect(audioState.gainNode);
+            audioState.gainNode.connect(audioState.analyzerNode);
+          } catch (e) {
+            // Ignore if already connected
+          }
+
+          // Retry up to 10 times with exponential backoff
+          if (retryCount < 10) {
+            setTimeout(() => {
+              connectFX(retryCount + 1);
+            }, 100 * Math.pow(1.5, retryCount));
+          }
+          return false;
+        };
+
+        // Start connection attempts
+        connectFX();
       } else {
         console.error('❌ No audio result returned');
       }
@@ -553,42 +680,75 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         </div>
       </div>
 
-      {/* Waveforms - Stacked Vertically */}
-      <div className="space-y-2 mb-8">
-        {/* Deck A Waveform */}
-        <div className="flex justify-center">
-          <WaveformDisplay 
-            audioBuffer={mixerState.deckA.audioState?.audioBuffer}
-            currentTime={mixerState.deckA.audioState?.currentTime || 0}
-            isPlaying={mixerState.deckA.playing}
-            trackBPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
-            loopEnabled={mixerState.deckA.loopEnabled}
-            loopLength={mixerState.deckA.loopLength}
-            loopPosition={mixerState.deckA.loopPosition}
-            onLoopPositionChange={(position) => handleLoopPositionChange('A', position)}
-            width={600}
-            height={60}
-            waveformColor="#FF6B6B"
-            className="border border-emerald-500/30"
-          />
+      {/* FX Panels and Waveforms - 3 Column Grid */}
+      <div className="grid gap-5 mb-8" style={{ gridTemplateColumns: '200px 1fr 200px' }}>
+        {/* Deck A FX - Left Side */}
+        <div className="w-full h-full">
+          {audioInitialized ? (
+            <FXComponent
+              ref={deckAFXRef}
+              audioContext={getAudioContext()}
+              deckId="deckA"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-slate-500">
+              <span>Initializing FX...</span>
+            </div>
+          )}
         </div>
-        
-        {/* Deck B Waveform */}
-        <div className="flex justify-center">
-          <WaveformDisplay 
-            audioBuffer={mixerState.deckB.audioState?.audioBuffer}
-            currentTime={mixerState.deckB.audioState?.currentTime || 0}
-            isPlaying={mixerState.deckB.playing}
-            trackBPM={mixerState.deckB.track?.bpm || mixerState.masterBPM}
-            loopEnabled={mixerState.deckB.loopEnabled}
-            loopLength={mixerState.deckB.loopLength}
-            loopPosition={mixerState.deckB.loopPosition}
-            onLoopPositionChange={(position) => handleLoopPositionChange('B', position)}
-            width={600}
-            height={60}
-            waveformColor="#FF6B6B"
-            className="border border-blue-500/30"
-          />
+
+        {/* Waveforms - Center Column */}
+        <div className="space-y-2">
+          {/* Deck A Waveform */}
+          <div className="flex justify-center">
+            <WaveformDisplay
+              audioBuffer={mixerState.deckA.audioState?.audioBuffer}
+              currentTime={mixerState.deckA.audioState?.currentTime || 0}
+              isPlaying={mixerState.deckA.playing}
+              trackBPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
+              loopEnabled={mixerState.deckA.loopEnabled}
+              loopLength={mixerState.deckA.loopLength}
+              loopPosition={mixerState.deckA.loopPosition}
+              onLoopPositionChange={(position) => handleLoopPositionChange('A', position)}
+              width={600}
+              height={60}
+              waveformColor="#FF6B6B"
+              className="border border-emerald-500/30"
+            />
+          </div>
+
+          {/* Deck B Waveform */}
+          <div className="flex justify-center">
+            <WaveformDisplay
+              audioBuffer={mixerState.deckB.audioState?.audioBuffer}
+              currentTime={mixerState.deckB.audioState?.currentTime || 0}
+              isPlaying={mixerState.deckB.playing}
+              trackBPM={mixerState.deckB.track?.bpm || mixerState.masterBPM}
+              loopEnabled={mixerState.deckB.loopEnabled}
+              loopLength={mixerState.deckB.loopLength}
+              loopPosition={mixerState.deckB.loopPosition}
+              onLoopPositionChange={(position) => handleLoopPositionChange('B', position)}
+              width={600}
+              height={60}
+              waveformColor="#FF6B6B"
+              className="border border-blue-500/30"
+            />
+          </div>
+        </div>
+
+        {/* Deck B FX - Right Side */}
+        <div className="w-full h-full">
+          {audioInitialized ? (
+            <FXComponent
+              ref={deckBFXRef}
+              audioContext={getAudioContext()}
+              deckId="deckB"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-slate-500">
+              <span>Initializing FX...</span>
+            </div>
+          )}
         </div>
       </div>
 
