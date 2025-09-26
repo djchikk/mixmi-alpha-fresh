@@ -1,27 +1,50 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import dynamic from 'next/dynamic';
+import Header from "@/components/layout/Header";
+import Crate from "@/components/shared/Crate";
 
-export default function MixerTest() {
+const MixerPage = dynamic(
+  () => import('@/components/mixer/MixerPage'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p>Loading Big Mixer...</p>
+        </div>
+      </div>
+    )
+  }
+);
+
+export default function MixerRoute() {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    console.log('✅ Mixer route mounted successfully');
-    return () => console.log('✅ Mixer route unmounting cleanly');
+    setIsClient(true);
   }, []);
 
+  if (!isClient) {
+    return (
+      <div className="w-full h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p>Initializing Mixer...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-8">
-      <h1 className="text-3xl font-bold mb-4">🎛️ Mixer Route Test</h1>
-      <p className="mb-4 text-lg">If you see this, routing works! 🎉</p>
-      <p className="mb-6 text-gray-400">Next step: Add Big Mixer components</p>
-      <button
-        onClick={() => router.push('/')}
-        className="px-6 py-3 bg-cyan-500 rounded-lg hover:bg-cyan-600 transition-colors font-semibold"
-      >
-        ← Back to Globe
-      </button>
-    </div>
+    <>
+      <Header />
+      <MixerPage onExit={() => router.push("/")} />
+      <Crate />
+    </>
   );
 }
