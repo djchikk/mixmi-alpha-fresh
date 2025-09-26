@@ -593,18 +593,16 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               onTrackDrop={loadTrackToDeckA}
               deck="A"
             />
-            {mixerState.deckA.track && (
-              <div className="mt-2">
-                {/* Loop controls for Deck A */}
-                <LoopControls
-                  loopLength={mixerState.deckA.loopLength}
-                  loopEnabled={mixerState.deckA.loopEnabled}
-                  onLoopChange={(length) => handleLoopLengthChange('A', length)}
-                  onLoopToggle={() => handleLoopToggle('A')}
-                  color="cyan"
-                />
-              </div>
-            )}
+            <div className="mt-2">
+              {/* Loop controls for Deck A - Always visible */}
+              <LoopControls
+                loopLength={mixerState.deckA.loopLength}
+                loopEnabled={mixerState.deckA.loopEnabled}
+                onLoopChange={(length) => handleLoopLengthChange('A', length)}
+                onLoopToggle={() => handleLoopToggle('A')}
+                color="cyan"
+              />
+            </div>
           </div>
           {/* Deck A Crate */}
           <DeckCrate
@@ -681,18 +679,16 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               onTrackDrop={loadTrackToDeckB}
               deck="B"
             />
-            {mixerState.deckB.track && (
-              <div className="mt-2">
-                {/* Loop controls for Deck B */}
-                <LoopControls
-                  loopLength={mixerState.deckB.loopLength}
-                  loopEnabled={mixerState.deckB.loopEnabled}
-                  onLoopChange={(length) => handleLoopLengthChange('B', length)}
-                  onLoopToggle={() => handleLoopToggle('B')}
-                  color="blue"
-                />
-              </div>
-            )}
+            <div className="mt-2">
+              {/* Loop controls for Deck B - Always visible */}
+              <LoopControls
+                loopLength={mixerState.deckB.loopLength}
+                loopEnabled={mixerState.deckB.loopEnabled}
+                onLoopChange={(length) => handleLoopLengthChange('B', length)}
+                onLoopToggle={() => handleLoopToggle('B')}
+                color="blue"
+              />
+            </div>
           </div>
         </div>
       </div>
