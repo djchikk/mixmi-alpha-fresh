@@ -115,11 +115,30 @@ export default function Crate({ className = '' }: CrateProps) {
   const [selectedTrack, setSelectedTrack] = useState<any>(null);
   const [trackCount, setTrackCount] = useState(0);
   
-  // Cart state
+  // Cart state with localStorage persistence
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCartPopover, setShowCartPopover] = useState(false);
   const [cartPinned, setCartPinned] = useState(false);
   const [cartPulse, setCartPulse] = useState(false);
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('mixmi-cart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Failed to load cart from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (cart.length > 0 || localStorage.getItem('mixmi-cart')) {
+      localStorage.setItem('mixmi-cart', JSON.stringify(cart));
+    }
+  }, [cart]);
 
   // Payment state
   const [purchaseStatus, setPurchaseStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -252,6 +271,7 @@ export default function Crate({ className = '' }: CrateProps) {
 
   const clearCart = () => {
     setCart([]);
+    localStorage.removeItem('mixmi-cart');
     setShowCartPopover(false);
   };
 
