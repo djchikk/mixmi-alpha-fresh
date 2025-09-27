@@ -202,7 +202,7 @@ export default function CompactTrackCardWithFlip({
                 
                 {/* Drag Handle - Left side, vertically centered */}
                 {isHovered && !isFlipped && (
-                  <div 
+                  <div
                     className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/70 backdrop-blur-sm rounded p-1 transition-all duration-200 hover:bg-black/90 border border-transparent hover:border-[#81E4F2] z-10"
                     title="Drag to crate or mixer (loops only for mixer)"
                   >
@@ -210,27 +210,29 @@ export default function CompactTrackCardWithFlip({
                   </div>
                 )}
 
+                {/* Info Icon - Right side, vertically centered (mirrors drag handle) */}
+                {isHovered && !isFlipped && (
+                  <div
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 z-10"
+                  >
+                    <InfoIcon
+                      size="md"
+                      onClick={handleInfoClick}
+                      title="Click to see all info + drag individual tracks from Loop Packs/EPs"
+                    />
+                  </div>
+                )}
+
                 {/* Hover Overlay */}
                 {isHovered && !isFlipped && (
                   <div className="hover-overlay absolute inset-0 bg-black bg-opacity-50 flex flex-col justify-between p-3 animate-fadeIn">
                     
-                    {/* Top Section: Title, Artist, Info */}
-                    <div>
-                      {/* Top row: Title/Artist and Info icon */}
-                      <div className="flex justify-between items-start mb-2 gap-1">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-white text-sm truncate pr-1">{track.title}</h3>
-                          <p className="text-gray-300 text-xs truncate">{track.artist}</p>
-                        </div>
-                        
-                        {/* Info Icon - slightly larger */}
-                        <div className="flex-shrink-0">
-                          <InfoIcon
-                            size="md"
-                            onClick={handleInfoClick}
-                            title="Click to see all info + drag individual tracks from Loop Packs/EPs"
-                          />
-                        </div>
+                    {/* Top Section: Title, Artist (expanded) */}
+                    <div className="px-2">
+                      {/* Title and Artist - more space now that info icon is moved */}
+                      <div className="flex flex-col gap-1">
+                        <h3 className="font-bold text-white text-sm leading-tight">{track.title}</h3>
+                        <p className="text-gray-300 text-xs">{track.artist}</p>
                       </div>
                     </div>
 

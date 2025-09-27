@@ -621,7 +621,7 @@ export default function Crate({ className = '' }: CrateProps) {
               onClick={() => handleTrackClick(track)}
               onMouseEnter={() => setHoveredTrackId(track.id)}
               onMouseLeave={() => setHoveredTrackId(null)}
-              className={`cursor-pointer transition-all ${getBorderColor(track)} ${getBorderThickness(track)} ${isInCart(track.id) ? 'ring-2 ring-[#81E4F2] ring-offset-1 ring-offset-black' : ''}`}
+              className={`cursor-pointer transition-all ${getBorderColor(track)} ${getBorderThickness(track)}`}
               style={{
                 width: '64px',
                 height: '64px',
