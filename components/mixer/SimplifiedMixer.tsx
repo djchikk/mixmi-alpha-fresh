@@ -68,6 +68,28 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Sync engine reference
   const syncEngineRef = React.useRef<SimpleLoopSync | null>(null);
 
+  // Responsive waveform width based on breakpoints
+  const [waveformWidth, setWaveformWidth] = useState(700);
+
+  useEffect(() => {
+    const updateWaveformWidth = () => {
+      const width = window.innerWidth;
+      if (width >= 1280) {
+        setWaveformWidth(700); // Desktop: xl breakpoint
+      } else if (width >= 1024) {
+        setWaveformWidth(600); // Laptop: lg breakpoint
+      } else if (width >= 768) {
+        setWaveformWidth(500); // Tablet: md breakpoint
+      } else {
+        setWaveformWidth(400); // Mobile: sm breakpoint
+      }
+    };
+
+    updateWaveformWidth();
+    window.addEventListener('resize', updateWaveformWidth);
+    return () => window.removeEventListener('resize', updateWaveformWidth);
+  }, []);
+
   // FX Component refs
   const deckAFXRef = React.useRef<HTMLDivElement>(null);
   const deckBFXRef = React.useRef<HTMLDivElement>(null);
@@ -585,10 +607,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   };
 
   return (
-    <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 max-w-6xl mx-auto ${className}`}>
+    <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 mx-auto ${className}`} style={{ maxWidth: '1168px' }}>
 
       {/* Top Section - Decks, Crates, and BPM */}
-      <div className="flex justify-center items-end mb-8 gap-12">
+      <div className="flex justify-center items-end mb-8" style={{ gap: waveformWidth >= 700 ? '48px' : waveformWidth >= 600 ? '32px' : waveformWidth >= 500 ? '16px' : '8px' }}>
         {/* Left: Deck A + Loop Controls + Track Info */}
         <div className="flex gap-4 items-center">
           <SimplifiedDeck
@@ -706,9 +728,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       </div>
 
       {/* FX Panels and Waveforms - 3 Column Grid */}
-      <div className="grid gap-5 mb-5" style={{ gridTemplateColumns: '200px 1fr 200px' }}>
+      <div className="grid gap-5 mb-5" style={{ gridTemplateColumns: waveformWidth >= 600 ? '200px 1fr 200px' : '1fr' }}>
         {/* Deck A FX - Left Side */}
-        <div className="w-full h-full">
+        <div className={`w-full h-full ${waveformWidth < 600 ? 'hidden' : ''}`}>
           {audioInitialized ? (
             <FXComponent
               ref={deckAFXRef}
@@ -725,7 +747,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         {/* Waveforms - Center Column */}
         <div className="flex flex-col">
           {/* Spacer to push waveforms down */}
-          <div className="h-4"></div>
+          <div className="h-6"></div>
 
           <div className="space-y-2">
             {/* Deck A Waveform */}
@@ -739,7 +761,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 loopLength={mixerState.deckA.loopLength}
                 loopPosition={mixerState.deckA.loopPosition}
                 onLoopPositionChange={(position) => handleLoopPositionChange('A', position)}
-                width={700}
+                width={waveformWidth}
                 height={80}
                 waveformColor="#FF6B6B"
                 className="border border-emerald-500/30"
@@ -757,7 +779,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 loopLength={mixerState.deckB.loopLength}
                 loopPosition={mixerState.deckB.loopPosition}
                 onLoopPositionChange={(position) => handleLoopPositionChange('B', position)}
-                width={700}
+                width={waveformWidth}
                 height={80}
                 waveformColor="#FF6B6B"
                 className="border border-blue-500/30"
@@ -766,7 +788,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           </div>
 
           {/* Crossfader with Deck Controls */}
-          <div className="flex justify-center items-center gap-6 mt-8">
+          <div className="flex justify-center items-center gap-6" style={{ marginTop: '52px' }}>
             {/* Deck A Play/Pause */}
             <button
               onClick={handleDeckAPlayPause}
@@ -825,7 +847,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         </div>
 
         {/* Deck B FX - Right Side */}
-        <div className="w-full h-full">
+        <div className={`w-full h-full ${waveformWidth < 600 ? 'hidden' : ''}`}>
           {audioInitialized ? (
             <FXComponent
               ref={deckBFXRef}
