@@ -10,7 +10,7 @@ interface SimplifiedDeckProps {
   onTrackDrop?: (track: Track) => void;
   deck: 'A' | 'B';
   className?: string;
-  trackInfoPosition?: 'left' | 'right' | 'bottom';
+  trackInfoPosition?: 'left' | 'right' | 'bottom' | 'none';
 }
 
 export default function SimplifiedDeck({
@@ -113,7 +113,7 @@ export default function SimplifiedDeck({
       </div>
 
       {/* Track Info Display */}
-      {currentTrack && (
+      {currentTrack && trackInfoPosition !== 'none' && (
         <div className={`max-w-[140px] ${trackInfoPosition === 'bottom' ? 'mt-2 text-center' : ''} ${trackInfoPosition === 'left' ? 'text-left' : trackInfoPosition === 'right' ? 'text-left' : 'text-center'}`}>
           <div className="text-white text-sm font-bold truncate">
             {currentTrack.title} - {currentTrack.bpm}
