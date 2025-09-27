@@ -585,30 +585,23 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   };
 
   return (
-    <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 ${className}`}>
+    <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 max-w-6xl mx-auto ${className}`}>
 
       {/* Top Section - Decks, Crates, and BPM */}
-      <div className="flex justify-center items-start mb-8 gap-12">
-        {/* Deck A + Crate A */}
+      <div className="flex justify-center items-start mb-8 gap-8">
+        {/* Left: Deck A */}
         <div className="flex gap-6 items-start">
           <SimplifiedDeck
             currentTrack={mixerState.deckA.track}
             isPlaying={mixerState.deckA.playing}
             onTrackDrop={loadTrackToDeckA}
             deck="A"
+            trackInfoPosition="right"
           />
-          {/* Deck A Crate */}
-          {/* <div className="mt-2">
-            <DeckCrate
-              deck="A"
-              currentTrack={mixerState.deckA.track}
-              loading={mixerState.deckA.loading}
-            />
-          </div> */}
         </div>
 
-        {/* Center Column - Master BPM and Transport */}
-        <div className="text-center flex flex-col items-center gap-4">
+        {/* Center Column - BPM and Transport */}
+        <div className="text-center flex flex-col items-center gap-6">
           {/* Master BPM Control */}
           <div className="flex flex-col items-center gap-2">
             {/* BPM Controls */}
@@ -679,21 +672,14 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           </div>
         </div>
 
-        {/* Crate B + Deck B */}
+        {/* Right: Deck B */}
         <div className="flex gap-6 items-start">
-          {/* Deck B Crate */}
-          {/* <div className="mt-2">
-            <DeckCrate
-              deck="B"
-              currentTrack={mixerState.deckB.track}
-              loading={mixerState.deckB.loading}
-            />
-          </div> */}
           <SimplifiedDeck
             currentTrack={mixerState.deckB.track}
             isPlaying={mixerState.deckB.playing}
             onTrackDrop={loadTrackToDeckB}
             deck="B"
+            trackInfoPosition="left"
           />
         </div>
       </div>

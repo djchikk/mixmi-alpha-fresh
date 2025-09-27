@@ -10,6 +10,7 @@ interface SimplifiedDeckProps {
   onTrackDrop?: (track: Track) => void;
   deck: 'A' | 'B';
   className?: string;
+  trackInfoPosition?: 'left' | 'right' | 'bottom';
 }
 
 export default function SimplifiedDeck({
@@ -17,7 +18,8 @@ export default function SimplifiedDeck({
   isPlaying,
   onTrackDrop,
   deck,
-  className = ''
+  className = '',
+  trackInfoPosition = 'bottom'
 }: SimplifiedDeckProps) {
   const [isNewTrackLoaded, setIsNewTrackLoaded] = useState(false);
   const [previousTrackId, setPreviousTrackId] = useState(currentTrack?.id);
@@ -61,10 +63,10 @@ export default function SimplifiedDeck({
   }, [currentTrack?.id, previousTrackId]);
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`flex ${trackInfoPosition === 'left' ? 'flex-row-reverse' : trackInfoPosition === 'right' ? 'flex-row' : 'flex-col'} ${trackInfoPosition === 'bottom' ? '' : 'items-center'} ${trackInfoPosition === 'bottom' ? '' : 'gap-4'} ${className}`}>
       <div
         ref={drop as any}
-        className="relative"
+        className="relative flex-shrink-0"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -112,7 +114,7 @@ export default function SimplifiedDeck({
 
       {/* Track Info Display */}
       {currentTrack && (
-        <div className="mt-2 text-center max-w-[140px]">
+        <div className={`max-w-[140px] ${trackInfoPosition === 'bottom' ? 'mt-2 text-center' : ''} ${trackInfoPosition === 'left' ? 'text-left' : trackInfoPosition === 'right' ? 'text-left' : 'text-center'}`}>
           <div className="text-white text-sm font-bold truncate">
             {currentTrack.title} - {currentTrack.bpm}
           </div>
