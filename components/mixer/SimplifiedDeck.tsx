@@ -80,6 +80,9 @@ export default function SimplifiedDeck({
             <>
               <img src={currentTrack.imageUrl} alt={currentTrack.title} />
 
+              {/* Subtle dark overlay */}
+              <div className="absolute inset-0 bg-black opacity-20 pointer-events-none"></div>
+
               {/* Hover overlay with track info */}
               {isHovered && (
                 <div className="absolute inset-0 bg-black bg-opacity-75 flex flex-col justify-center items-center p-2 rounded-lg transition-opacity duration-200">

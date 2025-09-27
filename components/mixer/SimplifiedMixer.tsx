@@ -603,7 +603,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           <div className="flex flex-col gap-8 items-start max-w-[140px]">
             {mixerState.deckA.track && (
               <div className="text-left w-full">
-                <div className="text-white text-sm font-bold truncate">
+                <div className="text-slate-300 text-sm font-bold truncate">
                   {mixerState.deckA.track.title} - {mixerState.deckA.track.bpm}
                 </div>
                 <div className="text-slate-400 text-xs truncate">
@@ -626,10 +626,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           {/* Master BPM Control */}
           <div className="flex flex-col items-center gap-2">
             {/* BPM Controls */}
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-1">
               <button
                 onClick={() => handleBPMChange(-1)}
-                className="w-10 h-10 rounded-full border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-300 text-xl flex items-center justify-center transition-all"
+                className="w-8 h-8 rounded-full border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-300 text-lg flex items-center justify-center transition-all"
                 aria-label="Decrease BPM"
               >
                 −
@@ -639,7 +639,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               </div>
               <button
                 onClick={() => handleBPMChange(1)}
-                className="w-10 h-10 rounded-full border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-300 text-xl flex items-center justify-center transition-all"
+                className="w-8 h-8 rounded-full border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-300 text-lg flex items-center justify-center transition-all"
                 aria-label="Increase BPM"
               >
                 +
@@ -678,7 +678,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           <div className="flex flex-col gap-8 items-start max-w-[140px]">
             {mixerState.deckB.track && (
               <div className="text-left w-full">
-                <div className="text-white text-sm font-bold truncate">
+                <div className="text-slate-300 text-sm font-bold truncate">
                   {mixerState.deckB.track.title} - {mixerState.deckB.track.bpm}
                 </div>
                 <div className="text-slate-400 text-xs truncate">
@@ -771,7 +771,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             <button
               onClick={handleDeckAPlayPause}
               disabled={!mixerState.deckA.track}
-              className={`w-14 h-14 rounded-full flex items-center justify-center text-lg transition-all ${
+              className={`w-12 h-12 rounded-full flex items-center justify-center text-lg transition-all ${
                 mixerState.deckA.playing
                   ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
                   : mixerState.deckA.track
@@ -801,7 +801,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             <button
               onClick={handleDeckBPlayPause}
               disabled={!mixerState.deckB.track}
-              className={`w-14 h-14 rounded-full flex items-center justify-center text-lg transition-all ${
+              className={`w-12 h-12 rounded-full flex items-center justify-center text-lg transition-all ${
                 mixerState.deckB.playing
                   ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
                   : mixerState.deckB.track
