@@ -92,9 +92,9 @@ const CrossfaderControl = memo(function CrossfaderControl({
       <style jsx global>{`
         .crossfader-container {
           width: 300px;
-          height: 60px;
+          height: 50px;
           background: rgba(30, 41, 59, 0.5);
-          border-radius: 30px;
+          border-radius: 25px;
           position: relative;
           cursor: pointer;
           border: 1px solid #475569;
@@ -143,11 +143,11 @@ const CrossfaderControl = memo(function CrossfaderControl({
         .crossfader-handle {
           position: absolute;
           top: 50%;
-          width: 20px;
-          height: 45px;
+          width: 18px;
+          height: 38px;
           background: #475569;
           border: 2px solid #64748B;
-          border-radius: 10px;
+          border-radius: 9px;
           cursor: grab;
           z-index: 10;
           transform: translateY(-50%);

@@ -585,7 +585,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   };
 
   return (
-    <div className={`simplified-mixer bg-slate-900 rounded-lg p-6 ${className}`}>
+    <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 ${className}`}>
 
       {/* Top Section - Decks, Crates, and BPM */}
       <div className="flex justify-between items-start mb-8">
@@ -699,7 +699,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       </div>
 
       {/* FX Panels and Waveforms - 3 Column Grid */}
-      <div className="grid gap-5 mb-8" style={{ gridTemplateColumns: '200px 1fr 200px' }}>
+      <div className="grid gap-5 mb-5" style={{ gridTemplateColumns: '200px 1fr 200px' }}>
         {/* Deck A FX - Left Side */}
         <div className="w-full h-full">
           {audioInitialized ? (
@@ -716,41 +716,101 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         </div>
 
         {/* Waveforms - Center Column */}
-        <div className="space-y-2">
-          {/* Deck A Waveform */}
-          <div className="flex justify-center">
-            <WaveformDisplay
-              audioBuffer={mixerState.deckA.audioState?.audioBuffer}
-              currentTime={mixerState.deckA.audioState?.currentTime || 0}
-              isPlaying={mixerState.deckA.playing}
-              trackBPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
-              loopEnabled={mixerState.deckA.loopEnabled}
-              loopLength={mixerState.deckA.loopLength}
-              loopPosition={mixerState.deckA.loopPosition}
-              onLoopPositionChange={(position) => handleLoopPositionChange('A', position)}
-              width={700}
-              height={80}
-              waveformColor="#FF6B6B"
-              className="border border-emerald-500/30"
-            />
+        <div className="flex flex-col">
+          <div className="space-y-2">
+            {/* Deck A Waveform */}
+            <div className="flex justify-center">
+              <WaveformDisplay
+                audioBuffer={mixerState.deckA.audioState?.audioBuffer}
+                currentTime={mixerState.deckA.audioState?.currentTime || 0}
+                isPlaying={mixerState.deckA.playing}
+                trackBPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
+                loopEnabled={mixerState.deckA.loopEnabled}
+                loopLength={mixerState.deckA.loopLength}
+                loopPosition={mixerState.deckA.loopPosition}
+                onLoopPositionChange={(position) => handleLoopPositionChange('A', position)}
+                width={700}
+                height={80}
+                waveformColor="#FF6B6B"
+                className="border border-emerald-500/30"
+              />
+            </div>
+
+            {/* Deck B Waveform */}
+            <div className="flex justify-center">
+              <WaveformDisplay
+                audioBuffer={mixerState.deckB.audioState?.audioBuffer}
+                currentTime={mixerState.deckB.audioState?.currentTime || 0}
+                isPlaying={mixerState.deckB.playing}
+                trackBPM={mixerState.deckB.track?.bpm || mixerState.masterBPM}
+                loopEnabled={mixerState.deckB.loopEnabled}
+                loopLength={mixerState.deckB.loopLength}
+                loopPosition={mixerState.deckB.loopPosition}
+                onLoopPositionChange={(position) => handleLoopPositionChange('B', position)}
+                width={700}
+                height={80}
+                waveformColor="#FF6B6B"
+                className="border border-blue-500/30"
+              />
+            </div>
           </div>
 
-          {/* Deck B Waveform */}
-          <div className="flex justify-center">
-            <WaveformDisplay
-              audioBuffer={mixerState.deckB.audioState?.audioBuffer}
-              currentTime={mixerState.deckB.audioState?.currentTime || 0}
-              isPlaying={mixerState.deckB.playing}
-              trackBPM={mixerState.deckB.track?.bpm || mixerState.masterBPM}
-              loopEnabled={mixerState.deckB.loopEnabled}
-              loopLength={mixerState.deckB.loopLength}
-              loopPosition={mixerState.deckB.loopPosition}
-              onLoopPositionChange={(position) => handleLoopPositionChange('B', position)}
-              width={700}
-              height={80}
-              waveformColor="#FF6B6B"
-              className="border border-blue-500/30"
+          {/* Crossfader with Deck Controls */}
+          <div className="flex justify-center items-center gap-6 mt-auto">
+            {/* Deck A Play/Pause */}
+            <button
+              onClick={handleDeckAPlayPause}
+              disabled={!mixerState.deckA.track}
+              className={`w-14 h-14 rounded-full flex items-center justify-center text-lg transition-all ${
+                mixerState.deckA.playing
+                  ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
+                  : mixerState.deckA.track
+                  ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
+                  : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+              }`}
+              title={mixerState.deckA.playing ? 'Pause Deck A' : 'Play Deck A'}
+            >
+              {mixerState.deckA.playing ? (
+                <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+                  <rect x="10" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+                </svg>
+              ) : (
+                <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
+                </svg>
+              )}
+            </button>
+
+            <CrossfaderControl
+              position={mixerState.crossfaderPosition}
+              onPositionChange={handleCrossfaderChange}
             />
+
+            {/* Deck B Play/Pause */}
+            <button
+              onClick={handleDeckBPlayPause}
+              disabled={!mixerState.deckB.track}
+              className={`w-14 h-14 rounded-full flex items-center justify-center text-lg transition-all ${
+                mixerState.deckB.playing
+                  ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
+                  : mixerState.deckB.track
+                  ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
+                  : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+              }`}
+              title={mixerState.deckB.playing ? 'Pause Deck B' : 'Play Deck B'}
+            >
+              {mixerState.deckB.playing ? (
+                <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+                  <rect x="10" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+                </svg>
+              ) : (
+                <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
+                </svg>
+              )}
+            </button>
           </div>
         </div>
 
@@ -768,64 +828,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             </div>
           )}
         </div>
-      </div>
-
-      {/* Crossfader with Deck Controls */}
-      <div className="flex justify-center items-center gap-6">
-        {/* Deck A Play/Pause */}
-        <button
-          onClick={handleDeckAPlayPause}
-          disabled={!mixerState.deckA.track}
-          className={`w-14 h-14 rounded-full flex items-center justify-center text-lg transition-all ${
-            mixerState.deckA.playing
-              ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
-              : mixerState.deckA.track
-              ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
-              : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
-          }`}
-          title={mixerState.deckA.playing ? 'Pause Deck A' : 'Play Deck A'}
-        >
-          {mixerState.deckA.playing ? (
-            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="0" width="4" height="18" rx="1" fill="currentColor"/>
-              <rect x="10" y="0" width="4" height="18" rx="1" fill="currentColor"/>
-            </svg>
-          ) : (
-            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
-            </svg>
-          )}
-        </button>
-
-        <CrossfaderControl
-          position={mixerState.crossfaderPosition}
-          onPositionChange={handleCrossfaderChange}
-        />
-
-        {/* Deck B Play/Pause */}
-        <button
-          onClick={handleDeckBPlayPause}
-          disabled={!mixerState.deckB.track}
-          className={`w-14 h-14 rounded-full flex items-center justify-center text-lg transition-all ${
-            mixerState.deckB.playing
-              ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
-              : mixerState.deckB.track
-              ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
-              : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
-          }`}
-          title={mixerState.deckB.playing ? 'Pause Deck B' : 'Play Deck B'}
-        >
-          {mixerState.deckB.playing ? (
-            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="0" width="4" height="18" rx="1" fill="currentColor"/>
-              <rect x="10" y="0" width="4" height="18" rx="1" fill="currentColor"/>
-            </svg>
-          ) : (
-            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
-            </svg>
-          )}
-        </button>
       </div>
     </div>
   );
