@@ -496,12 +496,17 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Crossfader handler
   const handleCrossfaderChange = useCallback((position: number) => {
+    console.log('🎚️ Crossfader position:', position);
     const { deckA, deckB } = crossfaderGainRef.current;
+    console.log('🎚️ Gain nodes:', { deckA: !!deckA, deckB: !!deckB });
+
     if (deckA && deckB) {
       const normalizedPosition = position / 100;
       applyCrossfader(deckA, deckB, normalizedPosition);
+    } else {
+      console.warn('⚠️ Crossfader: One or both gain nodes are missing!');
     }
-    
+
     setMixerState(prev => ({ ...prev, crossfaderPosition: position }));
   }, []);
 
@@ -768,12 +773,62 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         </div>
       </div>
 
-      {/* Crossfader */}
-      <div className="flex justify-center">
-        <CrossfaderControl 
+      {/* Crossfader with Deck Controls */}
+      <div className="flex justify-center items-center gap-6">
+        {/* Deck A Play/Pause */}
+        <button
+          onClick={handleDeckAPlayPause}
+          disabled={!mixerState.deckA.track}
+          className={`w-14 h-14 rounded-full flex items-center justify-center text-lg transition-all ${
+            mixerState.deckA.playing
+              ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
+              : mixerState.deckA.track
+              ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
+              : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+          }`}
+          title={mixerState.deckA.playing ? 'Pause Deck A' : 'Play Deck A'}
+        >
+          {mixerState.deckA.playing ? (
+            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+              <rect x="10" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+            </svg>
+          ) : (
+            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
+            </svg>
+          )}
+        </button>
+
+        <CrossfaderControl
           position={mixerState.crossfaderPosition}
           onPositionChange={handleCrossfaderChange}
         />
+
+        {/* Deck B Play/Pause */}
+        <button
+          onClick={handleDeckBPlayPause}
+          disabled={!mixerState.deckB.track}
+          className={`w-14 h-14 rounded-full flex items-center justify-center text-lg transition-all ${
+            mixerState.deckB.playing
+              ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
+              : mixerState.deckB.track
+              ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
+              : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+          }`}
+          title={mixerState.deckB.playing ? 'Pause Deck B' : 'Play Deck B'}
+        >
+          {mixerState.deckB.playing ? (
+            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+              <rect x="10" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+            </svg>
+          ) : (
+            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
+            </svg>
+          )}
+        </button>
       </div>
     </div>
   );
