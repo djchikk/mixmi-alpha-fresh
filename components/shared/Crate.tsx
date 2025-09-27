@@ -117,27 +117,39 @@ export default function Crate({ className = '' }: CrateProps) {
   
   // Cart state with localStorage persistence
   const [cart, setCart] = useState<CartItem[]>([]);
+  const isInitialMount = useRef(true);
   const [showCartPopover, setShowCartPopover] = useState(false);
   const [cartPinned, setCartPinned] = useState(false);
   const [cartPulse, setCartPulse] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
+    console.log('🛒 [CART LOAD] Component mounted, loading from localStorage...');
     const savedCart = localStorage.getItem('mixmi-cart');
+    console.log('🛒 [CART LOAD] Raw localStorage data:', savedCart);
     if (savedCart) {
       try {
-        setCart(JSON.parse(savedCart));
+        const parsed = JSON.parse(savedCart);
+        console.log('🛒 [CART LOAD] Parsed cart items:', parsed);
+        setCart(parsed);
       } catch (error) {
-        console.error('Failed to load cart from localStorage:', error);
+        console.error('🛒 [CART LOAD] Failed to load cart from localStorage:', error);
       }
+    } else {
+      console.log('🛒 [CART LOAD] No saved cart found in localStorage');
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes (but skip first render)
   useEffect(() => {
-    if (cart.length > 0 || localStorage.getItem('mixmi-cart')) {
-      localStorage.setItem('mixmi-cart', JSON.stringify(cart));
+    if (isInitialMount.current) {
+      console.log('🛒 [CART SAVE] Skipping save - initial mount');
+      isInitialMount.current = false;
+      return;
     }
+    console.log('🛒 [CART SAVE] Cart changed, current items:', cart.length, cart);
+    localStorage.setItem('mixmi-cart', JSON.stringify(cart));
+    console.log('🛒 [CART SAVE] Saved to localStorage');
   }, [cart]);
 
   // Payment state
