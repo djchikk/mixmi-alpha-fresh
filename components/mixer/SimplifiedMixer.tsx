@@ -724,6 +724,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
         {/* Waveforms - Center Column */}
         <div className="flex flex-col">
+          {/* Spacer to push waveforms down */}
+          <div className="h-4"></div>
+
           <div className="space-y-2">
             {/* Deck A Waveform */}
             <div className="flex justify-center">
@@ -763,7 +766,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           </div>
 
           {/* Crossfader with Deck Controls */}
-          <div className="flex justify-center items-center gap-6 mt-auto">
+          <div className="flex justify-center items-center gap-6 mt-8">
             {/* Deck A Play/Pause */}
             <button
               onClick={handleDeckAPlayPause}
