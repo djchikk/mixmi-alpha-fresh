@@ -62,9 +62,7 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
         onClick={onLoopToggle}
         className={`w-5 h-5 rounded-full flex items-center justify-center transition-all hover:scale-105 ${
           loopEnabled
-            ? color === 'cyan'
-              ? 'bg-cyan-400 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50'
-              : 'bg-blue-400 border-blue-400 text-slate-900 shadow-lg shadow-blue-400/50'
+            ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50'
             : 'border border-slate-600 text-slate-500 hover:border-slate-500 hover:text-slate-400'
         }`}
         title={loopEnabled ? 'Disable Loop' : 'Enable Loop'}
@@ -122,12 +120,8 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
                   }}
                   className={`px-1.5 py-0.5 rounded text-xs transition-all min-w-[20px] hover:scale-105 ${
                     loopLength === option
-                      ? color === 'cyan'
-                        ? 'bg-cyan-400 text-slate-900 shadow-sm shadow-cyan-400/50'
-                        : 'bg-blue-400 text-slate-900 shadow-sm shadow-blue-400/50'
-                      : color === 'cyan'
-                        ? 'border border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-300 hover:bg-slate-700'
-                        : 'border border-slate-600 text-slate-400 hover:border-blue-400 hover:text-blue-300 hover:bg-slate-700'
+                      ? 'bg-[#81E4F2] text-slate-900 shadow-sm shadow-[#81E4F2]/50'
+                      : 'border border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:bg-slate-700'
                   }`}
                 >
                   {option === 0.125 ? '1/8' : option < 1 ? `${option * 4}/4` : option}

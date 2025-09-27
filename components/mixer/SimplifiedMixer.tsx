@@ -795,9 +795,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               disabled={!mixerState.deckA.track}
               className={`w-12 h-12 rounded-full flex items-center justify-center text-lg transition-all ${
                 mixerState.deckA.playing
-                  ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
+                  ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50 hover:bg-[#81E4F2]/80'
                   : mixerState.deckA.track
-                  ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
+                  ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2]'
                   : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
               }`}
               title={mixerState.deckA.playing ? 'Pause Deck A' : 'Play Deck A'}
@@ -825,9 +825,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               disabled={!mixerState.deckB.track}
               className={`w-12 h-12 rounded-full flex items-center justify-center text-lg transition-all ${
                 mixerState.deckB.playing
-                  ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
+                  ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50 hover:bg-[#81E4F2]/80'
                   : mixerState.deckB.track
-                  ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
+                  ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2]'
                   : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
               }`}
               title={mixerState.deckB.playing ? 'Pause Deck B' : 'Play Deck B'}

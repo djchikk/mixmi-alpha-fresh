@@ -119,7 +119,7 @@ const MasterTransportControls = memo(function MasterTransportControls({
       {/* Count-In Display - positioned above controls, not overlapping */}
       {countingIn && (
         <div className="count-in-display absolute -top-12 left-1/2 transform -translate-x-1/2">
-          <div className="text-2xl font-bold text-cyan-400 animate-pulse text-center">
+          <div className="text-2xl font-bold text-[#81E4F2] animate-pulse text-center">
             {countBeat}
           </div>
         </div>
@@ -131,11 +131,11 @@ const MasterTransportControls = memo(function MasterTransportControls({
         disabled={!deckALoaded && !deckBLoaded}
         className={`master-play-btn w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all ${
           anyPlaying
-            ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50 hover:bg-cyan-300'
+            ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50 hover:bg-[#81E4F2]/80'
             : countingIn
-            ? 'bg-cyan-400/50 border-2 border-cyan-400 text-slate-900 animate-pulse cursor-wait'
+            ? 'bg-[#81E4F2]/50 border-2 border-[#81E4F2] text-slate-900 animate-pulse cursor-wait'
             : deckALoaded || deckBLoaded
-            ? 'border-2 border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-400 hover:shadow-cyan-400/20'
+            ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:shadow-[#81E4F2]/20'
             : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
         }`}
         title={
@@ -210,8 +210,8 @@ const MasterTransportControls = memo(function MasterTransportControls({
       <button 
         onClick={onSyncToggle}
         className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all uppercase tracking-wider ${
-          syncActive 
-            ? 'bg-cyan-400 border-2 border-cyan-400 text-slate-900 hover:bg-cyan-300 active:bg-cyan-500 active:scale-95' 
+          syncActive
+            ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 active:bg-[#81E4F2]/90 active:scale-95'
             : 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white active:bg-slate-900 active:scale-95'
         }`}
         title={syncActive ? 'Disable Sync' : 'Enable Sync'}

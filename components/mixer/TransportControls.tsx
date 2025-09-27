@@ -70,7 +70,7 @@ const TransportControls = memo(function TransportControls({
         onClick={onLoopToggle}
         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 ${
           loopEnabled
-            ? 'bg-cyan-400 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50'
+            ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50'
             : 'border border-slate-600 text-slate-500 hover:border-slate-500 hover:text-slate-400'
         }`}
         title={loopEnabled ? 'Disable Loop' : 'Enable Loop'}
@@ -128,8 +128,8 @@ const TransportControls = memo(function TransportControls({
                   }}
                   className={`px-2 py-1 rounded text-xs transition-all min-w-[24px] hover:scale-105 ${
                     loopLength === option
-                      ? 'bg-cyan-400 text-slate-900 shadow-sm shadow-cyan-400/50'
-                      : 'border border-slate-600 text-slate-400 hover:border-cyan-400 hover:text-cyan-300 hover:bg-slate-700'
+                      ? 'bg-[#81E4F2] text-slate-900 shadow-sm shadow-[#81E4F2]/50'
+                      : 'border border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:bg-slate-700'
                   }`}
                 >
                   {option === 0.125 ? '1/8' : option < 1 ? `${option * 4}/4` : option}
@@ -164,8 +164,8 @@ const TransportControls = memo(function TransportControls({
     <button 
       onClick={onPlayPause}
       className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-all ${
-        isPlaying 
-          ? 'bg-cyan-400 border-cyan-400 text-slate-900 shadow-lg shadow-cyan-400/50' 
+        isPlaying
+          ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50'
           : 'border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300'
       }`}
     >
