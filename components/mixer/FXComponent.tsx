@@ -869,7 +869,7 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
       <style jsx>{`
         /* Main FX Panel */
         .fx-panel {
-          width: 220px;
+          width: 200px;
           background: rgba(129, 228, 242, 0.03);
           border-radius: 12px;
           border: 1px solid rgba(129, 228, 242, 0.1);
@@ -968,8 +968,8 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
 
         /* XY Pad */
         .xy-pad {
-          width: 188px;
-          height: 188px;
+          width: 168px;
+          height: 168px;
           background: #0a0b0f;
           border-radius: 8px;
           position: relative;
@@ -994,10 +994,10 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
           left: 0;
           right: 0;
           bottom: 0;
-          background-image: 
+          background-image:
             linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-          background-size: 47px 47px;
+          background-size: 42px 42px;
           pointer-events: none;
         }
 

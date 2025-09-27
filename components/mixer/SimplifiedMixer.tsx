@@ -585,7 +585,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   };
 
   return (
-    <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 ${className}`}>
+    <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 ${className}`}>
 
       {/* Top Section - Decks, Crates, and BPM */}
       <div className="flex justify-center items-start mb-8 gap-12">
