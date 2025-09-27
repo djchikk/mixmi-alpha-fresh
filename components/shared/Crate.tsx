@@ -12,6 +12,7 @@ import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
 import { createPortal } from 'react-dom';
 import { openSTXTransfer } from '@stacks/connect';
+import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 
 // Extend window interface for global handlers
 declare global {
@@ -600,8 +601,8 @@ export default function Crate({ className = '' }: CrateProps) {
               title="Click to preview"
             >
               {track.imageUrl ? (
-                <img 
-                  src={track.imageUrl} 
+                <img
+                  src={getOptimizedTrackImage(track, 64)}
                   alt={track.title}
                   style={{
                     width: '100%',
@@ -624,113 +625,44 @@ export default function Crate({ className = '' }: CrateProps) {
                 </div>
               )}
               
-              {/* Context-aware hover overlay */}
+              {/* Unified hover overlay - same for all contexts */}
               {hoveredTrackId === track.id && (
                 <>
-                  {/* Store context: Drag handle, cart button, and info icon */}
-                  {context === 'store' && (
-                    <>
-                      <div 
-                        className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1 py-0.5 text-white/90" 
-                        title="Drag to cart"
-                      >
-                        <GripVertical className="w-4 h-4" />
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(track);
-                        }}
-                        className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-sm rounded p-0.5 text-white/90 hover:bg-black/80 transition-colors"
-                        title="Add to cart"
-                      >
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                      </button>
-                      <InfoIcon
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedTrack(track);
-                          setShowInfoModal(true);
-                        }}
-                        className="absolute top-1 right-1"
-                      />
-                    </>
+                  {/* Drag handle (all contexts, except full songs in mixer) */}
+                  {!(context === 'mixer' && track.content_type === 'full_song') && (
+                    <div
+                      className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1 py-0.5 text-white/90"
+                      title="Drag to mixer or cart"
+                    >
+                      <GripVertical className="w-4 h-4" />
+                    </div>
                   )}
 
-                  {/* Globe context: Drag indicator, cart button, and info icon */}
-                  {context === 'globe' && (
-                    <>
-                      <div 
-                        className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1 py-0.5 text-white/90" 
-                        title="Drag to mixer or cart"
-                      >
-                        <GripVertical className="w-4 h-4" />
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(track);
-                        }}
-                        className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-sm rounded p-0.5 text-white/90 hover:bg-black/80 transition-colors"
-                        title="Add to cart"
-                      >
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                      </button>
-                      <InfoIcon
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Globe-specific behavior: trigger comparison
-                          if (window.handleGlobeComparisonTrack) {
-                            window.handleGlobeComparisonTrack(track);
-                          }
-                        }}
-                        className="absolute top-1 right-1"
-                        title="Click for details"
-                      />
-                    </>
-                  )}
+                  {/* Cart button (all contexts) */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart(track);
+                    }}
+                    className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-sm rounded p-0.5 text-white/90 hover:bg-black/80 transition-colors"
+                    title="Add to cart"
+                  >
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </button>
 
-                  {/* Mixer context: Drag indicator, cart button, and info icon */}
-                  {context === 'mixer' && (
-                    <>
-                      {track.content_type !== 'full_song' && (
-                        <div 
-                          className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1 py-0.5 text-white/90" 
-                          title="Drag to deck or cart"
-                        >
-                          <GripVertical className="w-4 h-4" />
-                        </div>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(track);
-                        }}
-                        className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-sm rounded p-0.5 text-white/90 hover:bg-black/80 transition-colors"
-                        title="Add to cart"
-                      >
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                      </button>
-                      <InfoIcon
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedTrack(track);
-                          setShowInfoModal(true);
-                        }}
-                        className="absolute top-1 right-1"
-                        title="View track details"
-                      />
-                    </>
-                  )}
+                  {/* Info icon - opens TrackDetailsModal (all contexts) */}
+                  <InfoIcon
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTrack(track);
+                      setShowInfoModal(true);
+                    }}
+                    className="absolute top-1 right-1"
+                    title="View track details"
+                  />
                 </>
               )}
 
@@ -1020,29 +952,8 @@ export default function Crate({ className = '' }: CrateProps) {
         </div>
       )}
 
-      {/* Info Modal for Store Context */}
-      {showInfoModal && selectedTrack && context === 'store' && (
-        <TrackDetailsModal
-          track={{
-            ...selectedTrack,
-            cover_image_url: selectedTrack.imageUrl,
-            audio_url: selectedTrack.audioUrl,
-            // Add any other missing fields that TrackDetailsModal expects
-            tags: selectedTrack.tags || [],
-            description: selectedTrack.description || '',
-            tell_us_more: selectedTrack.tell_us_more || '',
-            notes: selectedTrack.notes || ''
-          }}
-          isOpen={showInfoModal}
-          onClose={() => {
-            setShowInfoModal(false);
-            setSelectedTrack(null);
-          }}
-        />
-      )}
-
-      {/* Info Modal for Mixer Context */}
-      {showInfoModal && selectedTrack && context === 'mixer' && (
+      {/* Track Details Modal - Unified for all contexts */}
+      {showInfoModal && selectedTrack && (
         <TrackDetailsModal
           track={{
             ...selectedTrack,

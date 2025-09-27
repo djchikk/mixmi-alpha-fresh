@@ -9,6 +9,7 @@ import { useDrag } from 'react-dnd';
 import InfoIcon from '../shared/InfoIcon';
 import SafeImage from '../shared/SafeImage';
 import { GripVertical } from 'lucide-react';
+import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 
 interface CompactTrackCardWithFlipProps {
   track: IPTrack;
@@ -42,50 +43,15 @@ export default function CompactTrackCardWithFlip({
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
-      // Optimize image for small displays when dragging
-      const originalImageUrl = track.cover_image_url || (track as any).imageUrl;
-      
-      // DETAILED DEBUGGING for carousel performance issue
-      console.log('🔍 DRAG DEBUG - Track being dragged:', {
-        id: track.id,
-        title: track.title,
-        cover_image_url: track.cover_image_url,
-        imageUrl: (track as any).imageUrl,
-        originalImageUrl: originalImageUrl,
-        isFromCluster: !!(track.id && track.id.includes('cluster'))
-      });
-      
-      // CRITICAL DEBUG: Check optimization logic
-      const timestamp = Date.now();
-      const shouldOptimize = !!originalImageUrl;
-      const optimizedUrl = shouldOptimize ? `${originalImageUrl}?t=${timestamp}&w=64&h=64` : originalImageUrl;
-      
-      console.log('🔧 OPTIMIZATION DEBUG:', {
-        originalImageUrl,
-        shouldOptimize,
-        optimizedUrl,
-        timestamp
-      });
-      
+      // Optimize image for crate (64px) when dragging
       const optimizedTrack = {
         ...track,
-        imageUrl: optimizedUrl,
-        cover_image_url: optimizedUrl,
-        // Ensure we have audioUrl for mixer compatibility  
+        imageUrl: getOptimizedTrackImage(track, 64),
+        cover_image_url: getOptimizedTrackImage(track, 64),
+        // Ensure we have audioUrl for mixer compatibility
         audioUrl: track.audio_url
       };
-      
-      console.log('🌍 Globe card being dragged with optimization:', optimizedTrack);
-      // Extra debug for carousel tracks
-      if (track.id && track.id.includes('cluster')) {
-        console.log('🎠 Carousel track drag detected - optimization applied:', !!originalImageUrl);
-      }
-      
-      // Network performance debug
-      if (originalImageUrl && originalImageUrl.length > 100) {
-        console.warn('⚠️ Large image URL detected:', originalImageUrl.substring(0, 100) + '...');
-      }
-      
+
       return { track: optimizedTrack };
     },
     collect: (monitor) => ({
@@ -220,8 +186,8 @@ export default function CompactTrackCardWithFlip({
               {/* Cover Image - Full Card */}
               <div className="relative w-full h-full">
                 {track.cover_image_url ? (
-                  <SafeImage 
-                    src={track.cover_image_url} 
+                  <SafeImage
+                    src={getOptimizedTrackImage(track, 160)}
                     alt={track.title}
                     className="w-full h-full object-cover"
                     fill
