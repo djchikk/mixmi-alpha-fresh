@@ -46,6 +46,7 @@ const WaveformDisplay = memo(function WaveformDisplay({
 }: WaveformDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
+  const [frequencyColors, setFrequencyColors] = useState<string[] | null>(null);
   
   // 🎯 NEW: Drag state for loop position brackets
   const [isDragging, setIsDragging] = useState(false);
@@ -146,10 +147,104 @@ const WaveformDisplay = memo(function WaveformDisplay({
     setIsDragging(false);
   };
 
+  // 🎨 Frequency-based color analysis
+  const analyzeFrequencyColors = (audioBuffer: AudioBuffer, numPixels: number): string[] => {
+    const channelData = audioBuffer.getChannelData(0);
+    const sampleRate = audioBuffer.sampleRate;
+    const samplesPerPixel = Math.ceil(channelData.length / numPixels);
+
+    const colors: string[] = [];
+
+    // For each pixel, analyze dominant frequency
+    for (let i = 0; i < numPixels; i++) {
+      const startSample = i * samplesPerPixel;
+      const endSample = Math.min(startSample + samplesPerPixel, channelData.length);
+
+      // Calculate frequency distribution for this chunk
+      const chunkData = channelData.slice(startSample, endSample);
+      const color = analyzeChunkFrequency(chunkData, sampleRate);
+      colors.push(color);
+    }
+
+    return colors;
+  };
+
+  // Analyze frequency content of a chunk and return appropriate color
+  const analyzeChunkFrequency = (chunk: Float32Array, sampleRate: number): string => {
+    // Perform FFT analysis on the chunk
+    // For performance, we'll use a simplified spectral analysis
+
+    // Calculate energy in different frequency bands
+    let bassEnergy = 0;
+    let midEnergy = 0;
+    let highEnergy = 0;
+
+    // Use a simple frequency estimation based on zero-crossing rate and spectral centroid
+    let zeroCrossings = 0;
+    let spectralSum = 0;
+    let totalEnergy = 0;
+
+    for (let i = 1; i < chunk.length; i++) {
+      // Zero crossing rate (indicates high frequency content)
+      if ((chunk[i - 1] >= 0 && chunk[i] < 0) || (chunk[i - 1] < 0 && chunk[i] >= 0)) {
+        zeroCrossings++;
+      }
+
+      // Energy calculation
+      const energy = chunk[i] * chunk[i];
+      totalEnergy += energy;
+
+      // Spectral centroid approximation
+      spectralSum += energy * i;
+    }
+
+    if (totalEnergy === 0) {
+      // Silence - use bass color
+      return '#FF6B6B';
+    }
+
+    // Estimate dominant frequency based on zero-crossing rate
+    const zcr = zeroCrossings / chunk.length;
+    const estimatedFreq = (zcr * sampleRate) / 2;
+
+    // Classify into frequency bands
+    if (estimatedFreq < 250) {
+      // Bass frequencies (20-250Hz): Red/Orange
+      const ratio = Math.min(estimatedFreq / 250, 1);
+      return interpolateColor('#FF6B6B', '#FF8866', ratio);
+    } else if (estimatedFreq < 4000) {
+      // Mid frequencies (250-4kHz): Amber/Gold
+      const ratio = (estimatedFreq - 250) / (4000 - 250);
+      return interpolateColor('#FFB366', '#FFD966', ratio);
+    } else {
+      // High frequencies (4kHz+): Blue/Cyan
+      const ratio = Math.min((estimatedFreq - 4000) / 12000, 1);
+      return interpolateColor('#66B3FF', '#81E4F2', ratio);
+    }
+  };
+
+  // Interpolate between two hex colors
+  const interpolateColor = (color1: string, color2: string, ratio: number): string => {
+    const r1 = parseInt(color1.substring(1, 3), 16);
+    const g1 = parseInt(color1.substring(3, 5), 16);
+    const b1 = parseInt(color1.substring(5, 7), 16);
+
+    const r2 = parseInt(color2.substring(1, 3), 16);
+    const g2 = parseInt(color2.substring(3, 5), 16);
+    const b2 = parseInt(color2.substring(5, 7), 16);
+
+    const r = Math.round(r1 + (r2 - r1) * ratio);
+    const g = Math.round(g1 + (g2 - g1) * ratio);
+    const b = Math.round(b1 + (b2 - b1) * ratio);
+
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+
   // Extract and downsample waveform data for performance
   useEffect(() => {
     if (!audioBuffer) {
       setWaveformData(null);
+      setFrequencyColors(null);
       return;
     }
 
@@ -180,6 +275,12 @@ const WaveformDisplay = memo(function WaveformDisplay({
       
       setWaveformData(waveform);
       console.log(`🎨 Waveform extracted: ${width} samples, duration: ${duration.toFixed(2)}s`);
+
+      // 🎨 Analyze frequency colors
+      console.log('🎨 Starting frequency analysis...');
+      const colors = analyzeFrequencyColors(audioBuffer, width);
+      setFrequencyColors(colors);
+      console.log(`🎨 Frequency colors analyzed: ${colors.length} colors`);
     };
 
     extractWaveformData();
@@ -256,33 +357,57 @@ const WaveformDisplay = memo(function WaveformDisplay({
       ctx.stroke();
     }
 
-    // 🎵 Draw waveform
-    ctx.fillStyle = waveformColor + '80'; // Add alpha for semi-transparent fill
-    ctx.strokeStyle = waveformColor;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
+    // 🎵 Draw waveform with frequency-based colors
+    if (frequencyColors && frequencyColors.length === waveformData.length) {
+      // Draw with frequency-based colors (per-bar coloring for smooth effect)
+      for (let i = 0; i < waveformData.length; i++) {
+        const x = (i / waveformData.length) * width;
+        const nextX = ((i + 1) / waveformData.length) * width;
+        const amplitude = waveformData[i] * amplitudeScale;
+        const color = frequencyColors[i];
 
-    for (let i = 0; i < waveformData.length; i++) {
-      const x = (i / waveformData.length) * width;
-      const amplitude = waveformData[i] * amplitudeScale;
+        // Draw filled bar with frequency color
+        ctx.fillStyle = color + '80'; // Add alpha for semi-transparent fill
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
 
-      if (i === 0) {
+        ctx.beginPath();
         ctx.moveTo(x, centerY - amplitude);
-      } else {
-        ctx.lineTo(x, centerY - amplitude);
+        ctx.lineTo(nextX, centerY - amplitude);
+        ctx.lineTo(nextX, centerY + amplitude);
+        ctx.lineTo(x, centerY + amplitude);
+        ctx.closePath();
+        ctx.fill();
       }
-    }
+    } else {
+      // Fallback to solid color if frequency analysis not available
+      ctx.fillStyle = waveformColor + '80'; // Add alpha for semi-transparent fill
+      ctx.strokeStyle = waveformColor;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
 
-    // Draw bottom half (mirrored)
-    for (let i = waveformData.length - 1; i >= 0; i--) {
-      const x = (i / waveformData.length) * width;
-      const amplitude = waveformData[i] * amplitudeScale;
-      ctx.lineTo(x, centerY + amplitude);
-    }
+      for (let i = 0; i < waveformData.length; i++) {
+        const x = (i / waveformData.length) * width;
+        const amplitude = waveformData[i] * amplitudeScale;
 
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+        if (i === 0) {
+          ctx.moveTo(x, centerY - amplitude);
+        } else {
+          ctx.lineTo(x, centerY - amplitude);
+        }
+      }
+
+      // Draw bottom half (mirrored)
+      for (let i = waveformData.length - 1; i >= 0; i--) {
+        const x = (i / waveformData.length) * width;
+        const amplitude = waveformData[i] * amplitudeScale;
+        ctx.lineTo(x, centerY + amplitude);
+      }
+
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
 
     // 🎯 NEW: Draw clearly visible timing grid (8 bars per track)
     if (audioBuffer) {
@@ -396,7 +521,7 @@ const WaveformDisplay = memo(function WaveformDisplay({
       ctx.fillText(labelText, labelX, height - 15);
     }
 
-  }, [waveformData, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging]);
+  }, [waveformData, frequencyColors, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging, waveformColor]);
 
   // Get human-readable strategy description
   const getStrategyText = (boundaries: LoopBoundaries): string => {
