@@ -159,42 +159,41 @@ const MasterTransportControls = memo(function MasterTransportControls({
         </div>
       )}
 
-      {/* Master Reset Button - only show for full variant */}
-      {variant === 'full' && (
-        <button
-          onClick={onMasterSyncReset}
-          disabled={!deckALoaded && !deckBLoaded}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105 ${
-            deckALoaded || deckBLoaded
-              ? 'border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300'
-              : 'border border-slate-700 text-slate-600 cursor-not-allowed'
-          }`}
-          title={
-            deckALoaded || deckBLoaded 
-              ? 'Stop transport and reset both tracks to start' 
-              : 'Load tracks to enable reset'
-          }
-        >
-          ⏮
-        </button>
-      )}
+      {/* Master Reset Button */}
+      <button
+        onClick={onMasterSyncReset}
+        disabled={!deckALoaded && !deckBLoaded}
+        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105 ${
+          deckALoaded || deckBLoaded
+            ? 'border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300'
+            : 'border border-slate-700 text-slate-600 cursor-not-allowed'
+        }`}
+        title={
+          deckALoaded || deckBLoaded
+            ? 'Stop transport and reset both tracks to start'
+            : 'Load tracks to enable reset'
+        }
+      >
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11 4 L6 9 L11 14 Z" fill="currentColor"/>
+          <path d="M6 4 L1 9 L6 14 Z" fill="currentColor"/>
+        </svg>
+      </button>
 
-      {/* Record Button - only show for full variant */}
-      {variant === 'full' && (
-        <button
-          onClick={onRecordToggle}
-          className={`record-btn w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm transition-all ${
-            recordingRemix
-              ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
-              : 'border-slate-600 text-slate-400 hover:border-red-500 hover:text-red-500'
-          }`}
-          title={recordingRemix ? 'Stop Recording' : 'Start Recording'}
-        >
-          <div className={`w-3 h-3 rounded-full ${
-            recordingRemix ? 'bg-white' : 'bg-current'
-          }`} />
-        </button>
-      )}
+      {/* Record Button */}
+      <button
+        onClick={onRecordToggle}
+        className={`record-btn w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm transition-all ${
+          recordingRemix
+            ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
+            : 'border-slate-600 text-slate-400 hover:border-red-500 hover:text-red-500'
+        }`}
+        title={recordingRemix ? 'Stop Recording' : 'Start Recording'}
+      >
+        <div className={`w-3 h-3 rounded-full ${
+          recordingRemix ? 'bg-white' : 'bg-current'
+        }`} />
+      </button>
 
       {/* SYNC Button - moved into transport controls */}
       <button 

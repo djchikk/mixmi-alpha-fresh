@@ -620,17 +620,17 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={() => handleBPMChange(-1)}
-                className="w-12 h-12 rounded-full border-2 border-cyan-400 hover:bg-cyan-400/20 text-cyan-400 text-2xl font-bold flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                className="w-10 h-10 rounded-full border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-300 text-xl flex items-center justify-center transition-all"
                 aria-label="Decrease BPM"
               >
                 −
               </button>
-              <div className="text-6xl font-bold text-white min-w-[140px] text-center">
+              <div className="text-6xl font-bold text-slate-300 min-w-[140px] text-center">
                 {mixerState.masterBPM}
               </div>
               <button
                 onClick={() => handleBPMChange(1)}
-                className="w-12 h-12 rounded-full border-2 border-cyan-400 hover:bg-cyan-400/20 text-cyan-400 text-2xl font-bold flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                className="w-10 h-10 rounded-full border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-300 text-xl flex items-center justify-center transition-all"
                 aria-label="Increase BPM"
               >
                 +
@@ -638,16 +638,15 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             </div>
             {/* BPM Label */}
             <div className="text-xs uppercase tracking-wider text-slate-400">
-              {mixerState.deckA.playing && mixerState.deckA.track?.bpm
-                ? `Deck A BPM (Master)`
-                : 'Master BPM'}
+              {mixerState.syncActive
+                ? 'Deck A BPM (Master)'
+                : 'Manual BPM Control'}
             </div>
           </div>
 
           {/* Master Transport Controls */}
           <MasterTransportControls
             variant="simplified"
-            masterBPM={mixerState.masterBPM}
             deckALoaded={!!mixerState.deckA.track}
             deckBLoaded={!!mixerState.deckB.track}
             deckAPlaying={mixerState.deckA.playing}
