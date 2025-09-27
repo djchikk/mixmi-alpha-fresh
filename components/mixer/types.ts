@@ -8,6 +8,7 @@ export interface Track {
   bpm: number;
   audioUrl?: string;
   content_type?: 'loop' | 'full_song'; // Added to maintain content type for UI
+  price_stx?: number; // Price in STX for purchase
 }
 
 export interface FXState {

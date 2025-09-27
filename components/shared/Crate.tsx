@@ -228,13 +228,15 @@ export default function Crate({ className = '' }: CrateProps) {
     // Check if already in cart
     const exists = cart.some(item => item.id === track.id);
     if (!exists) {
+      console.log('🛒 Adding to cart:', { id: track.id, title: track.title, price_stx: track.price_stx });
       const cartItem: CartItem = {
         id: track.id,
         title: track.title || track.name,
         artist: track.artist || 'Unknown Artist',
-        price_stx: track.price_stx || '5',
+        price_stx: track.price_stx?.toString() || '2.5',
         license: track.license || 'Standard'
       };
+      console.log('🛒 Cart item created:', cartItem);
       setCart([...cart, cartItem]);
       
       // Pulse animation
@@ -1062,7 +1064,17 @@ export default function Crate({ className = '' }: CrateProps) {
 
       {/* Purchase Status Modal */}
       {showPurchaseModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={(e) => {
+            // Allow closing by clicking backdrop for error/success states
+            if (e.target === e.currentTarget && (purchaseStatus === 'error' || purchaseStatus === 'success')) {
+              setShowPurchaseModal(false);
+              setPurchaseStatus('idle');
+              setPurchaseError(null);
+            }
+          }}
+        >
           <div className="bg-[#101726] border border-[#1E293B] rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
             {purchaseStatus === 'pending' && (
               <div className="text-center">
