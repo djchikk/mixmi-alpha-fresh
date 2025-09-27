@@ -14,6 +14,7 @@ export default function Header() {
   const pathname = usePathname();
   const isGlobePage = pathname === '/';
   const isWelcomePage = pathname === '/welcome';
+  const isMixerPage = pathname === '/mixer';
   
   // Use auth on all pages for wallet functionality
   const { isAuthenticated, connectWallet, disconnectWallet, walletAddress } = useAuth();
@@ -38,25 +39,35 @@ export default function Header() {
 
       {/* Center: Navigation */}
       <nav className="hidden md:flex items-center gap-8 font-mono">
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className={`transition-all duration-300 tracking-wide ${
-            isGlobePage 
-              ? 'text-white font-bold transform scale-105' 
+            isGlobePage
+              ? 'text-white font-bold transform scale-105'
               : 'text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95'
           }`}
         >
           upload
         </Link>
-        <Link 
-          href="/welcome" 
+        <Link
+          href="/welcome"
           className={`transition-all duration-300 tracking-wide ${
-            isWelcomePage 
-              ? 'text-white font-bold transform scale-105' 
+            isWelcomePage
+              ? 'text-white font-bold transform scale-105'
               : 'text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95'
           }`}
         >
           welcome
+        </Link>
+        <Link
+          href="/mixer"
+          className={`transition-all duration-300 tracking-wide ${
+            isMixerPage
+              ? 'text-white font-bold transform scale-105'
+              : 'text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95'
+          }`}
+        >
+          mixer
         </Link>
       </nav>
 
@@ -99,28 +110,40 @@ export default function Header() {
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg z-50">
           <nav className="flex flex-col py-4 px-6 space-y-4">
-            <Link 
-              href="/welcome" 
+            <Link
+              href="/welcome"
               className={`transition-all duration-300 ${
-                isWelcomePage 
-                  ? 'text-white font-bold' 
+                isWelcomePage
+                  ? 'text-white font-bold'
                   : 'text-gray-300 hover:text-white font-medium active:scale-95'
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Welcome
             </Link>
-            
-            <Link 
-              href="/" 
+
+            <Link
+              href="/"
               className={`transition-all duration-300 ${
-                isGlobePage 
-                  ? 'text-white font-bold' 
+                isGlobePage
+                  ? 'text-white font-bold'
                   : 'text-gray-300 hover:text-white font-medium active:scale-95'
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Globe
+            </Link>
+
+            <Link
+              href="/mixer"
+              className={`transition-all duration-300 ${
+                isMixerPage
+                  ? 'text-white font-bold'
+                  : 'text-gray-300 hover:text-white font-medium active:scale-95'
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Mixer
             </Link>
             
             {/* Mobile Wallet Authentication */}
