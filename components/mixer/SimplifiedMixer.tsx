@@ -588,7 +588,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 max-w-6xl mx-auto ${className}`}>
 
       {/* Top Section - Decks, Crates, and BPM */}
-      <div className="flex justify-center items-end mb-8 gap-8">
+      <div className="flex justify-center items-end mb-8 gap-12">
         {/* Left: Deck A + Loop Controls + Track Info */}
         <div className="flex gap-4 items-center">
           <SimplifiedDeck
@@ -600,7 +600,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           />
 
           {/* Deck A Info Container: Track Info + Loop Controls stacked */}
-          <div className="flex flex-col gap-4 items-start max-w-[140px]">
+          <div className="flex flex-col gap-8 items-start max-w-[140px]">
             {mixerState.deckA.track && (
               <div className="text-left w-full">
                 <div className="text-white text-sm font-bold truncate">
@@ -675,7 +675,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         {/* Right: Loop Controls + Track Info + Deck B */}
         <div className="flex gap-4 items-center">
           {/* Deck B Info Container: Track Info + Loop Controls stacked */}
-          <div className="flex flex-col gap-4 items-start max-w-[140px]">
+          <div className="flex flex-col gap-8 items-start max-w-[140px]">
             {mixerState.deckB.track && (
               <div className="text-left w-full">
                 <div className="text-white text-sm font-bold truncate">
