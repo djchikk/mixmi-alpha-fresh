@@ -93,11 +93,11 @@ const CrossfaderControl = memo(function CrossfaderControl({
         .crossfader-container {
           width: 300px;
           height: 50px;
-          background: rgba(30, 41, 59, 0.5);
+          background: transparent;
           border-radius: 25px;
           position: relative;
           cursor: pointer;
-          border: 1px solid #475569;
+          border: none;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -143,11 +143,11 @@ const CrossfaderControl = memo(function CrossfaderControl({
         .crossfader-handle {
           position: absolute;
           top: 50%;
-          width: 18px;
-          height: 38px;
+          width: 20px;
+          height: 46px;
           background: #475569;
           border: 2px solid #64748B;
-          border-radius: 9px;
+          border-radius: 4px;
           cursor: grab;
           z-index: 10;
           transform: translateY(-50%);
