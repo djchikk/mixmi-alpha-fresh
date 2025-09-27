@@ -890,22 +890,31 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
           display: flex;
           gap: 4px;
           flex: 1;
+          padding: 4px;
+          border-radius: 8px;
+          background: transparent;
+          transition: background 0.3s ease;
+        }
+
+        /* Visual connection - subtle highlight when effect is selected */
+        .fx-control-group:has(.fx-select-btn.active) {
+          background: rgba(255, 255, 255, 0.05);
         }
 
         /* Effect selector button - flat design */
         .fx-select-btn {
           flex: 1;
-          padding: 8px 10px;
+          padding: 4px 4px;
           background: rgba(255, 255, 255, 0.08);
           border: none;
           border-radius: 6px;
           cursor: pointer;
           transition: all 0.2s;
           text-align: center;
-          font-size: 13px;
+          font-size: 11px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
           color: rgba(255, 255, 255, 0.6);
         }
 
@@ -915,14 +924,15 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
         }
 
         .fx-select-btn.active {
-          background: rgba(255, 255, 255, 0.18);
+          background: rgba(129, 228, 242, 0.15);
           color: #fff;
+          border: 1px solid rgba(129, 228, 242, 0.3);
         }
 
         /* Power button */
         .fx-power-btn {
-          width: 36px;
-          height: 36px;
+          width: 28px;
+          height: 28px;
           padding: 0;
           background: rgba(0, 0, 0, 0.4);
           border: 2px solid #4a4a4a;
