@@ -423,11 +423,12 @@ export default function Crate({ className = '' }: CrateProps) {
       }}
     >
       {/* Left side: Crate label and collapse button */}
-      <div style={{ 
+      <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        minWidth: 'fit-content'
+        width: '200px',
+        flexShrink: 0
       }}>
         <div style={{ 
           color: '#E8E5FF',
@@ -468,14 +469,16 @@ export default function Crate({ className = '' }: CrateProps) {
             />
           </svg>
         </button>
+
       </div>
 
       {/* Center: Scrollable track list or empty state */}
-      <div 
+      <div
         ref={scrollRef}
         style={{
           flex: 1,
           display: 'flex',
+          justifyContent: 'center',
           gap: '12px',
           overflowX: 'auto',
           overflowY: 'hidden',
@@ -726,121 +729,123 @@ export default function Crate({ className = '' }: CrateProps) {
         )}
       </div>
 
-      {/* Cart Icon and Popover */}
-      <div style={{ position: 'relative' }}>
-        {/* Cart Drop Zone */}
-        <CartDropZone onDrop={addToCart}>
-          <button
-            onClick={() => setShowCartPopover(!showCartPopover)}
-            className={`
-              cart-icon flex items-center gap-1 p-1.5
-              hover:bg-[#1E293B] rounded transition-all
-              ${cartPulse ? 'animate-pulse' : ''}
-            `}
-            style={{ fontFamily: 'monospace', fontSize: '14px' }}
-          >
-            <svg className="w-5 h-5 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            {cart.length > 0 && (
-              <span className="text-gray-400 text-xs">({cart.length})</span>
-            )}
-          </button>
-        </CartDropZone>
-
-        {/* Cart Popover */}
-        {showCartPopover && (
-          <div
-            ref={cartPopoverRef}
-            className="absolute bottom-full mb-2 right-0 w-80 bg-[#101726]/95 backdrop-blur-sm border border-[#1E293B] rounded-lg shadow-xl z-50"
-            style={{ fontFamily: 'monospace' }}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-[#1E293B]">
-              <span className="text-sm text-white">Cart ({cart.length} items)</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCartPinned(!cartPinned)}
-                  className="p-1 hover:bg-[#1E293B] rounded transition-colors"
-                  title={cartPinned ? "Unpin cart" : "Pin cart"}
-                >
-                  {cartPinned ? '📌' : '📍'}
-                </button>
-                <button
-                  onClick={() => setShowCartPopover(false)}
-                  className="p-1 hover:bg-[#1E293B] rounded transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Cart Items */}
-            {cart.length > 0 ? (
-              <>
-                <div className="max-h-60 overflow-y-auto">
-                  {cart.map((item) => (
-                    <div key={item.id} className="group flex justify-between items-center p-3 hover:bg-[#1E293B]/50 border-b border-[#151C2A] last:border-b-0">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs text-white truncate">{item.title}</div>
-                        <div className="text-xs text-gray-500 truncate">{item.artist}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-[#81E4F2]">{item.price_stx} STX</span>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#252a3a] rounded transition-all"
-                          title="Remove from cart"
-                        >
-                          <svg className="w-3 h-3 text-gray-400 hover:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Total */}
-                <div className="p-3 border-t border-[#1E293B]">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm text-gray-400">Total:</span>
-                    <span className="text-sm text-white font-bold">{cartTotal.toFixed(1)} STX</span>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={clearCart}
-                      className="flex-1 px-3 py-2 bg-[#1E293B] hover:bg-[#252a3a] text-gray-400 hover:text-white rounded text-xs transition-colors"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      onClick={purchaseAll}
-                      className="flex-1 px-3 py-2 bg-[#81E4F2] hover:bg-[#6BC8D6] text-black font-medium rounded text-xs transition-colors"
-                    >
-                      Purchase All →
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="p-6 text-center text-gray-500 text-xs">
-                Cart is empty
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Right side: Navigation and Launch button */}
+      {/* Right side: Cart, navigation and launch button */}
       <div style={{
         display: 'flex',
         gap: '12px',
         alignItems: 'center',
-        minWidth: 'fit-content'
+        justifyContent: 'flex-end',
+        width: '200px',
+        flexShrink: 0
       }}>
+        {/* Cart Icon and Popover */}
+        <div style={{ position: 'relative' }}>
+          {/* Cart Drop Zone */}
+          <CartDropZone onDrop={addToCart}>
+            <button
+              onClick={() => setShowCartPopover(!showCartPopover)}
+              className={`
+                cart-icon flex items-center gap-1 p-1.5
+                hover:bg-[#1E293B] rounded transition-all
+                ${cartPulse ? 'animate-pulse' : ''}
+              `}
+              style={{ fontFamily: 'monospace', fontSize: '14px' }}
+            >
+              <svg className="w-5 h-5 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {cart.length > 0 && (
+                <span className="text-gray-400 text-xs">({cart.length})</span>
+              )}
+            </button>
+          </CartDropZone>
+
+          {/* Cart Popover */}
+          {showCartPopover && (
+            <div
+              ref={cartPopoverRef}
+              className="absolute bottom-full mb-2 right-0 w-80 bg-[#101726]/95 backdrop-blur-sm border border-[#1E293B] rounded-lg shadow-xl z-50"
+              style={{ fontFamily: 'monospace' }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-3 border-b border-[#1E293B]">
+                <span className="text-sm text-white">Cart ({cart.length} items)</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCartPinned(!cartPinned)}
+                    className="p-1 hover:bg-[#1E293B] rounded transition-colors"
+                    title={cartPinned ? "Unpin cart" : "Pin cart"}
+                  >
+                    {cartPinned ? '📌' : '📍'}
+                  </button>
+                  <button
+                    onClick={() => setShowCartPopover(false)}
+                    className="p-1 hover:bg-[#1E293B] rounded transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Cart Items */}
+              {cart.length > 0 ? (
+                <>
+                  <div className="max-h-60 overflow-y-auto">
+                    {cart.map((item) => (
+                      <div key={item.id} className="group flex justify-between items-center p-3 hover:bg-[#1E293B]/50 border-b border-[#151C2A] last:border-b-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-white truncate">{item.title}</div>
+                          <div className="text-xs text-gray-500 truncate">{item.artist}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-[#81E4F2]">{item.price_stx} STX</span>
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#252a3a] rounded transition-all"
+                            title="Remove from cart"
+                          >
+                            <svg className="w-3 h-3 text-gray-400 hover:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Total */}
+                  <div className="p-3 border-t border-[#1E293B]">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm text-gray-400">Total:</span>
+                      <span className="text-sm text-white font-bold">{cartTotal.toFixed(1)} STX</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={clearCart}
+                        className="flex-1 px-3 py-2 bg-[#1E293B] hover:bg-[#252a3a] text-gray-400 hover:text-white rounded text-xs transition-colors"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        onClick={purchaseAll}
+                        className="flex-1 px-3 py-2 bg-[#81E4F2] hover:bg-[#6BC8D6] text-black font-medium rounded text-xs transition-colors"
+                      >
+                        Purchase All →
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="p-6 text-center text-gray-500 text-xs">
+                  Cart is empty
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Scroll indicator if needed */}
         {collection.length > 8 && (
           <button
@@ -880,7 +885,7 @@ export default function Crate({ className = '' }: CrateProps) {
             flexDirection: context === 'mixer' ? 'row-reverse' : 'row'
           }}
         >
-          {context === 'mixer' ? 'Back' : 'Big Mixer Coming This Week'}
+          {context === 'mixer' ? 'Back' : 'Big Mixer'}
           <svg
             width="16"
             height="16"

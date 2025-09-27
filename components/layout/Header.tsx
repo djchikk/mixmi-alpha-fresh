@@ -47,7 +47,7 @@ export default function Header() {
               : 'text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95'
           }`}
         >
-          upload
+          globe
         </Link>
         <Link
           href="/welcome"
