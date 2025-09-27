@@ -139,14 +139,25 @@ const MasterTransportControls = memo(function MasterTransportControls({
             : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
         }`}
         title={
-          countingIn 
-            ? `Counting in... ${countBeat}/4` 
-            : anyPlaying 
-            ? 'Pause & Reset to Beginning' 
+          countingIn
+            ? `Counting in... ${countBeat}/4`
+            : anyPlaying
+            ? 'Pause & Reset to Beginning'
             : 'Play All (with count-in)'
         }
       >
-        {countingIn ? countBeat : anyPlaying ? '⏸' : '▶'}
+        {countingIn ? (
+          countBeat
+        ) : anyPlaying ? (
+          <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+            <rect x="10" y="0" width="4" height="18" rx="1" fill="currentColor"/>
+          </svg>
+        ) : (
+          <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
+          </svg>
+        )}
       </button>
 
       {/* BPM Display for simplified variant */}

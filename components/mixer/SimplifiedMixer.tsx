@@ -585,7 +585,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       {/* Top Section - Decks, Crates, and BPM */}
       <div className="flex justify-between items-start mb-8">
         {/* Deck A + Crate A */}
-        <div className="flex gap-3 items-start">
+        <div className="flex gap-6 items-start">
           <div>
             <SimplifiedDeck
               currentTrack={mixerState.deckA.track}
@@ -605,11 +605,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             </div>
           </div>
           {/* Deck A Crate */}
-          <DeckCrate
-            deck="A"
-            currentTrack={mixerState.deckA.track}
-            loading={mixerState.deckA.loading}
-          />
+          <div className="mt-2">
+            <DeckCrate
+              deck="A"
+              currentTrack={mixerState.deckA.track}
+              loading={mixerState.deckA.loading}
+            />
+          </div>
         </div>
 
         {/* Center Column - Master BPM and Transport */}
@@ -664,13 +666,15 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         </div>
 
         {/* Crate B + Deck B */}
-        <div className="flex gap-3 items-start">
+        <div className="flex gap-6 items-start">
           {/* Deck B Crate */}
-          <DeckCrate
-            deck="B"
-            currentTrack={mixerState.deckB.track}
-            loading={mixerState.deckB.loading}
-          />
+          <div className="mt-2">
+            <DeckCrate
+              deck="B"
+              currentTrack={mixerState.deckB.track}
+              loading={mixerState.deckB.loading}
+            />
+          </div>
           <div>
             <SimplifiedDeck
               currentTrack={mixerState.deckB.track}
@@ -722,8 +726,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               loopLength={mixerState.deckA.loopLength}
               loopPosition={mixerState.deckA.loopPosition}
               onLoopPositionChange={(position) => handleLoopPositionChange('A', position)}
-              width={600}
-              height={60}
+              width={700}
+              height={80}
               waveformColor="#FF6B6B"
               className="border border-emerald-500/30"
             />
@@ -740,8 +744,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               loopLength={mixerState.deckB.loopLength}
               loopPosition={mixerState.deckB.loopPosition}
               onLoopPositionChange={(position) => handleLoopPositionChange('B', position)}
-              width={600}
-              height={60}
+              width={700}
+              height={80}
               waveformColor="#FF6B6B"
               className="border border-blue-500/30"
             />

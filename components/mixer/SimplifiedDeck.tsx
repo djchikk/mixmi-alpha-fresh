@@ -62,13 +62,13 @@ export default function SimplifiedDeck({
 
   return (
     <div className={`relative ${className}`}>
-      <div 
+      <div
         ref={drop as any}
         className="relative"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div 
+        <div
           className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop ? 'drop-target' : ''}`}
           style={{
             border: isOver && canDrop ? '3px solid #00FF88' : undefined
@@ -77,7 +77,7 @@ export default function SimplifiedDeck({
           {currentTrack ? (
             <>
               <img src={currentTrack.imageUrl} alt={currentTrack.title} />
-              
+
               {/* Hover overlay with track info */}
               {isHovered && (
                 <div className="absolute inset-0 bg-black bg-opacity-75 flex flex-col justify-center items-center p-2 rounded-lg transition-opacity duration-200">
@@ -109,6 +109,18 @@ export default function SimplifiedDeck({
           )}
         </div>
       </div>
+
+      {/* Track Info Display */}
+      {currentTrack && (
+        <div className="mt-2 text-center max-w-[140px]">
+          <div className="text-white text-sm font-bold truncate">
+            {currentTrack.title} - {currentTrack.bpm}
+          </div>
+          <div className="text-slate-400 text-xs truncate">
+            by {currentTrack.artist} →
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         .carousel-track {

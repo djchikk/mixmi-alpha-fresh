@@ -257,28 +257,29 @@ const WaveformDisplay = memo(function WaveformDisplay({
     }
 
     // 🎵 Draw waveform
+    ctx.fillStyle = waveformColor + '80'; // Add alpha for semi-transparent fill
     ctx.strokeStyle = waveformColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    
+
     for (let i = 0; i < waveformData.length; i++) {
       const x = (i / waveformData.length) * width;
       const amplitude = waveformData[i] * amplitudeScale;
-      
+
       if (i === 0) {
         ctx.moveTo(x, centerY - amplitude);
       } else {
         ctx.lineTo(x, centerY - amplitude);
       }
     }
-    
+
     // Draw bottom half (mirrored)
     for (let i = waveformData.length - 1; i >= 0; i--) {
       const x = (i / waveformData.length) * width;
       const amplitude = waveformData[i] * amplitudeScale;
       ctx.lineTo(x, centerY + amplitude);
     }
-    
+
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
