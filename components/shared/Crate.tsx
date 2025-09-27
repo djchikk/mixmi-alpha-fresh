@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useMixer } from '@/contexts/MixerContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDrop, useDrag } from 'react-dnd';
 import { IPTrack } from '@/types';
 import { Play, Pause, Info, GripVertical } from 'lucide-react';
@@ -10,6 +11,7 @@ import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
 import { createPortal } from 'react-dom';
+import { openSTXTransfer } from '@stacks/connect';
 
 // Extend window interface for global handlers
 declare global {
@@ -117,6 +119,14 @@ export default function Crate({ className = '' }: CrateProps) {
   const [showCartPopover, setShowCartPopover] = useState(false);
   const [cartPinned, setCartPinned] = useState(false);
   const [cartPulse, setCartPulse] = useState(false);
+
+  // Payment state
+  const [purchaseStatus, setPurchaseStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+
+  // Get wallet address from auth context
+  const { walletAddress, isAuthenticated } = useAuth();
   
   // Determine current context based on pathname
   const getContext = (): 'store' | 'globe' | 'mixer' => {
@@ -218,13 +228,15 @@ export default function Crate({ className = '' }: CrateProps) {
     // Check if already in cart
     const exists = cart.some(item => item.id === track.id);
     if (!exists) {
+      console.log('🛒 Adding to cart:', { id: track.id, title: track.title, price_stx: track.price_stx });
       const cartItem: CartItem = {
         id: track.id,
         title: track.title || track.name,
         artist: track.artist || 'Unknown Artist',
-        price_stx: track.price_stx || '5',
+        price_stx: track.price_stx?.toString() || '2.5',
         license: track.license || 'Standard'
       };
+      console.log('🛒 Cart item created:', cartItem);
       setCart([...cart, cartItem]);
       
       // Pulse animation
@@ -242,11 +254,59 @@ export default function Crate({ className = '' }: CrateProps) {
     setShowCartPopover(false);
   };
 
-  const purchaseAll = () => {
-    console.log('🛒 Purchasing cart:', cart);
-    console.log('Total STX:', cartTotal);
-    // TODO: Integrate with Stacks wallet
-    clearCart();
+  const purchaseAll = async () => {
+    console.log('🛒 Purchase All clicked!', { isAuthenticated, walletAddress, cartLength: cart.length });
+
+    if (!isAuthenticated || !walletAddress) {
+      console.log('❌ Wallet not connected');
+      setPurchaseError('Please connect your wallet first');
+      setPurchaseStatus('error');
+      setShowPurchaseModal(true);
+      return;
+    }
+
+    if (cart.length === 0) {
+      console.log('❌ Cart is empty');
+      return;
+    }
+
+    console.log('✅ Starting purchase flow...');
+    try {
+      setPurchaseStatus('pending');
+      setShowPurchaseModal(true);
+
+      // For now, send to the first track's artist wallet
+      // In production, you'd batch payments or split to multiple artists
+      const recipientAddress = 'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9'; // Placeholder - replace with actual artist wallet
+
+      // Convert STX to microSTX (1 STX = 1,000,000 microSTX)
+      const amountInMicroSTX = Math.floor(cartTotal * 1000000);
+
+      await openSTXTransfer({
+        recipient: recipientAddress,
+        amount: amountInMicroSTX.toString(),
+        memo: `Purchase: ${cart.map(item => item.title).join(', ').slice(0, 32)}`,
+        onFinish: (data) => {
+          console.log('✅ Transaction submitted:', data);
+          setPurchaseStatus('success');
+          // Clear cart after successful transaction
+          setTimeout(() => {
+            clearCart();
+            setShowPurchaseModal(false);
+            setPurchaseStatus('idle');
+          }, 3000);
+        },
+        onCancel: () => {
+          console.log('❌ Transaction cancelled');
+          setPurchaseStatus('idle');
+          setShowPurchaseModal(false);
+        }
+      });
+    } catch (error) {
+      console.error('💥 Purchase error:', error);
+      setPurchaseError(error instanceof Error ? error.message : 'Transaction failed');
+      setPurchaseStatus('error');
+    }
   };
 
   const cartTotal = cart.reduce((sum, item) => {
@@ -1000,6 +1060,78 @@ export default function Crate({ className = '' }: CrateProps) {
             setSelectedTrack(null);
           }}
         />
+      )}
+
+      {/* Purchase Status Modal */}
+      {showPurchaseModal && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={(e) => {
+            // Allow closing by clicking backdrop for error/success states
+            if (e.target === e.currentTarget && (purchaseStatus === 'error' || purchaseStatus === 'success')) {
+              setShowPurchaseModal(false);
+              setPurchaseStatus('idle');
+              setPurchaseError(null);
+            }
+          }}
+        >
+          <div className="bg-[#101726] border border-[#1E293B] rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+            {purchaseStatus === 'pending' && (
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#81E4F2] mx-auto mb-4"></div>
+                <h3 className="text-lg font-bold text-white mb-2">Processing Payment</h3>
+                <p className="text-sm text-gray-400">
+                  Please confirm the transaction in your Stacks wallet...
+                </p>
+                <div className="mt-4 p-3 bg-[#1E293B] rounded">
+                  <p className="text-xs text-gray-300">Amount: {cartTotal.toFixed(2)} STX</p>
+                  <p className="text-xs text-gray-300 mt-1">Items: {cart.length}</p>
+                </div>
+              </div>
+            )}
+
+            {purchaseStatus === 'success' && (
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Payment Successful!</h3>
+                <p className="text-sm text-gray-400">
+                  Your transaction has been submitted to the blockchain.
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  You'll receive download access once confirmed.
+                </p>
+              </div>
+            )}
+
+            {purchaseStatus === 'error' && (
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Payment Failed</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  {purchaseError || 'Something went wrong with your transaction.'}
+                </p>
+                <button
+                  onClick={() => {
+                    setShowPurchaseModal(false);
+                    setPurchaseStatus('idle');
+                    setPurchaseError(null);
+                  }}
+                  className="px-4 py-2 bg-[#81E4F2] hover:bg-[#6BC8D6] text-black font-medium rounded text-sm transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

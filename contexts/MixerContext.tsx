@@ -74,7 +74,8 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     imageUrl: (ipTrack as any).imageUrl || ipTrack.cover_image_url || '', // Handle both imageUrl and cover_image_url
     bpm: ipTrack.bpm || 120,
     audioUrl: (ipTrack as any).audioUrl || ipTrack.audio_url, // Handle both audioUrl and audio_url
-    content_type: ipTrack.content_type || 'loop' // Preserve original content type!
+    content_type: ipTrack.content_type || 'loop', // Preserve original content type!
+    price_stx: ipTrack.price_stx // Preserve price for cart functionality
   };
 };
 
