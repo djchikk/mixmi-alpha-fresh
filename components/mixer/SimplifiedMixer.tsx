@@ -591,24 +591,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       <div className="flex justify-between items-start mb-8">
         {/* Deck A + Crate A */}
         <div className="flex gap-6 items-start">
-          <div>
-            <SimplifiedDeck
-              currentTrack={mixerState.deckA.track}
-              isPlaying={mixerState.deckA.playing}
-              onTrackDrop={loadTrackToDeckA}
-              deck="A"
-            />
-            <div className="mt-2">
-              {/* Loop controls for Deck A - Always visible */}
-              <LoopControls
-                loopLength={mixerState.deckA.loopLength}
-                loopEnabled={mixerState.deckA.loopEnabled}
-                onLoopChange={(length) => handleLoopLengthChange('A', length)}
-                onLoopToggle={() => handleLoopToggle('A')}
-                color="cyan"
-              />
-            </div>
-          </div>
+          <SimplifiedDeck
+            currentTrack={mixerState.deckA.track}
+            isPlaying={mixerState.deckA.playing}
+            onTrackDrop={loadTrackToDeckA}
+            deck="A"
+          />
           {/* Deck A Crate */}
           <div className="mt-2">
             <DeckCrate
@@ -651,23 +639,44 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             </div>
           </div>
 
-          {/* Master Transport Controls */}
-          <MasterTransportControls
-            variant="simplified"
-            deckALoaded={!!mixerState.deckA.track}
-            deckBLoaded={!!mixerState.deckB.track}
-            deckAPlaying={mixerState.deckA.playing}
-            deckBPlaying={mixerState.deckB.playing}
-            deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
-            syncActive={mixerState.syncActive}
-            recordingRemix={false}
-            onMasterPlay={handleMasterPlay}
-            onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
-            onMasterStop={handleMasterStop}
-            onRecordToggle={() => {}}
-            onSyncToggle={handleSync}
-            onMasterSyncReset={handleMasterSyncReset}
-          />
+          {/* Transport Controls with Loop Controls */}
+          <div className="flex items-center gap-4">
+            {/* Deck A Loop Controls */}
+            <LoopControls
+              loopLength={mixerState.deckA.loopLength}
+              loopEnabled={mixerState.deckA.loopEnabled}
+              onLoopChange={(length) => handleLoopLengthChange('A', length)}
+              onLoopToggle={() => handleLoopToggle('A')}
+              color="cyan"
+            />
+
+            {/* Master Transport Controls */}
+            <MasterTransportControls
+              variant="simplified"
+              deckALoaded={!!mixerState.deckA.track}
+              deckBLoaded={!!mixerState.deckB.track}
+              deckAPlaying={mixerState.deckA.playing}
+              deckBPlaying={mixerState.deckB.playing}
+              deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
+              syncActive={mixerState.syncActive}
+              recordingRemix={false}
+              onMasterPlay={handleMasterPlay}
+              onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
+              onMasterStop={handleMasterStop}
+              onRecordToggle={() => {}}
+              onSyncToggle={handleSync}
+              onMasterSyncReset={handleMasterSyncReset}
+            />
+
+            {/* Deck B Loop Controls */}
+            <LoopControls
+              loopLength={mixerState.deckB.loopLength}
+              loopEnabled={mixerState.deckB.loopEnabled}
+              onLoopChange={(length) => handleLoopLengthChange('B', length)}
+              onLoopToggle={() => handleLoopToggle('B')}
+              color="blue"
+            />
+          </div>
         </div>
 
         {/* Crate B + Deck B */}
@@ -680,24 +689,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               loading={mixerState.deckB.loading}
             />
           </div>
-          <div>
-            <SimplifiedDeck
-              currentTrack={mixerState.deckB.track}
-              isPlaying={mixerState.deckB.playing}
-              onTrackDrop={loadTrackToDeckB}
-              deck="B"
-            />
-            <div className="mt-2">
-              {/* Loop controls for Deck B - Always visible */}
-              <LoopControls
-                loopLength={mixerState.deckB.loopLength}
-                loopEnabled={mixerState.deckB.loopEnabled}
-                onLoopChange={(length) => handleLoopLengthChange('B', length)}
-                onLoopToggle={() => handleLoopToggle('B')}
-                color="blue"
-              />
-            </div>
-          </div>
+          <SimplifiedDeck
+            currentTrack={mixerState.deckB.track}
+            isPlaying={mixerState.deckB.playing}
+            onTrackDrop={loadTrackToDeckB}
+            deck="B"
+          />
         </div>
       </div>
 
