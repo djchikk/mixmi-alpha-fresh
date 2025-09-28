@@ -185,7 +185,7 @@ export default function CompactTrackCardWithFlip({
             >
               {/* Cover Image - Full Card */}
               <div className="relative w-full h-full">
-                {track.cover_image_url ? (
+                {(track.cover_image_url || track.imageUrl) ? (
                   <SafeImage
                     src={getOptimizedTrackImage(track, 160)}
                     alt={track.title}

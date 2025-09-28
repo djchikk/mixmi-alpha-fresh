@@ -383,6 +383,7 @@ export default function CreatorStorePage() {
                   isPlaying={playingTrack === track.id}
                   onPlayPreview={handlePlayPreview}
                   onStopPreview={handleStopPreview}
+                  showEditControls={false}
                 />
               </div>
             ))}
