@@ -113,18 +113,46 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
   // Clear Deck A
   const clearDeckA = () => {
     console.log('🗑️ Clearing Deck A');
+
+    // Stop audio if playing
+    if (mixerState.deckA.audioState?.audio) {
+      mixerState.deckA.audioState.audio.pause();
+      mixerState.deckA.audioState.audio.currentTime = 0;
+    }
+
     setMixerState(prev => ({
       ...prev,
-      deckA: { ...prev.deckA, track: null, playing: false, loading: false }
+      deckA: {
+        ...prev.deckA,
+        track: null,
+        playing: false,
+        loading: false,
+        audioState: undefined,
+        audioControls: undefined
+      }
     }));
   };
 
-  // Clear Deck B  
+  // Clear Deck B
   const clearDeckB = () => {
     console.log('🗑️ Clearing Deck B');
+
+    // Stop audio if playing
+    if (mixerState.deckB.audioState?.audio) {
+      mixerState.deckB.audioState.audio.pause();
+      mixerState.deckB.audioState.audio.currentTime = 0;
+    }
+
     setMixerState(prev => ({
       ...prev,
-      deckB: { ...prev.deckB, track: null, playing: false, loading: false }
+      deckB: {
+        ...prev.deckB,
+        track: null,
+        playing: false,
+        loading: false,
+        audioState: undefined,
+        audioControls: undefined
+      }
     }));
   };
 
