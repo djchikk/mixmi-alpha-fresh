@@ -577,16 +577,15 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
           {/* Transport and Loop Controls Row */}
           <div className="flex justify-center items-center gap-16 mb-5">
             {/* Deck A Loop Controls */}
-            {mixerState.deckA.track && (
-              <LoopControlsCompact
-                loopLength={mixerState.deckA.loopLength}
-                loopEnabled={mixerState.deckA.loopEnabled}
-                onLoopChange={(length) => handleLoopLengthChange('A', length)}
-                onLoopToggle={() => handleLoopToggle('A')}
-                color="cyan"
-              />
-            )}
-            
+            <LoopControlsCompact
+              loopLength={mixerState.deckA.loopLength}
+              loopEnabled={mixerState.deckA.loopEnabled}
+              onLoopChange={(length) => handleLoopLengthChange('A', length)}
+              onLoopToggle={() => handleLoopToggle('A')}
+              color="cyan"
+              disabled={!mixerState.deckA.track}
+            />
+
             {/* Master Transport */}
             <MasterTransportControlsCompact
               variant="simplified"
@@ -605,17 +604,15 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
               onSyncToggle={handleSync}
               onMasterSyncReset={handleMasterSyncReset}
             />
-            
             {/* Deck B Loop Controls */}
-            {mixerState.deckB.track && (
-              <LoopControlsCompact
-                loopLength={mixerState.deckB.loopLength}
-                loopEnabled={mixerState.deckB.loopEnabled}
-                onLoopChange={(length) => handleLoopLengthChange('B', length)}
-                onLoopToggle={() => handleLoopToggle('B')}
-                color="cyan"
-              />
-            )}
+            <LoopControlsCompact
+              loopLength={mixerState.deckB.loopLength}
+              loopEnabled={mixerState.deckB.loopEnabled}
+              onLoopChange={(length) => handleLoopLengthChange('B', length)}
+              onLoopToggle={() => handleLoopToggle('B')}
+              color="cyan"
+              disabled={!mixerState.deckB.track}
+            />
           </div>
 
           {/* Decks, Waveforms, and Crossfader Section */}

@@ -10,6 +10,7 @@ interface LoopControlsProps {
   onLoopToggle: () => void;
   className?: string;
   color?: 'cyan' | 'blue'; // For deck-specific styling
+  disabled?: boolean; // Fully disabled when no track loaded
 }
 
 const LoopControlsCompact = memo(function LoopControlsCompact({
@@ -18,7 +19,8 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
   onLoopChange,
   onLoopToggle,
   className = "",
-  color = 'cyan'
+  color = 'cyan',
+  disabled = false
 }: LoopControlsProps) {
   const loopOptions = [0.125, 0.25, 0.5, 1, 2, 4, 8];
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -56,19 +58,22 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
   };
 
   return (
-    <div className={`loop-controls-container flex items-center gap-2 ${className}`}>
+    <div className={`loop-controls-container flex items-center gap-2 ${disabled ? 'opacity-30 pointer-events-none' : ''} ${className}`}>
       {/* Loop Toggle Button */}
       <button
-        onClick={onLoopToggle}
-        className={`w-5 h-5 rounded-full flex items-center justify-center transition-all hover:scale-105 ${
-          loopEnabled
-            ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50'
-            : 'border border-slate-600 text-slate-500 hover:border-slate-500 hover:text-slate-400'
+        onClick={disabled ? undefined : onLoopToggle}
+        disabled={disabled}
+        className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+          disabled
+            ? 'border border-slate-700 text-slate-600 cursor-not-allowed'
+            : loopEnabled
+            ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50 hover:scale-105'
+            : 'border border-slate-600 text-slate-500 hover:border-slate-500 hover:text-slate-400 hover:scale-105'
         }`}
-        title={loopEnabled ? 'Disable Loop' : 'Enable Loop'}
+        title={disabled ? 'Load a track to enable loop controls' : loopEnabled ? 'Disable Loop' : 'Enable Loop'}
       >
         <Repeat size={12} className={`transition-colors ${
-          loopEnabled ? 'text-slate-900' : 'text-slate-500'
+          disabled ? 'text-slate-600' : loopEnabled ? 'text-slate-900' : 'text-slate-500'
         }`} />
       </button>
 
