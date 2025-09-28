@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Track } from './types';
+import { useToast } from '@/contexts/ToastContext';
 
 interface SimplifiedDeckProps {
   currentTrack: Track | null;
@@ -21,31 +22,45 @@ export default function SimplifiedDeck({
   className = '',
   trackInfoPosition = 'bottom'
 }: SimplifiedDeckProps) {
+  const { showToast } = useToast();
   const [isNewTrackLoaded, setIsNewTrackLoaded] = useState(false);
   const [previousTrackId, setPreviousTrackId] = useState(currentTrack?.id);
   const [isHovered, setIsHovered] = useState(false);
 
   // Drop functionality for collection tracks
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: ['CRATE_TRACK', 'COLLECTION_TRACK'],
-    drop: (item: { track: Track; sourceDeck?: string; sourceIndex: number }) => {
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD'],
+    drop: (item: { track: any; sourceDeck?: string; sourceIndex: number }) => {
       console.log(`🎯 Deck ${deck} received drop:`, item);
-      
+
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
+
+        // 🎛️ SMART FILTERING: Only allow loops in mixer
+        if (item.track.content_type !== 'loop') {
+          const contentTypeName = item.track.content_type === 'loop_pack' ? 'Loop Pack'
+            : item.track.content_type === 'ep' ? 'EP'
+            : item.track.content_type === 'full_song' ? 'Song' : 'content';
+
+          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops allowed`);
+
+          showToast(`🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate instead.`, 'info');
+          return;
+        }
+
         onTrackDrop(item.track);
       } else {
         console.warn(`❌ No onTrackDrop handler for Deck ${deck}`);
       }
     },
     canDrop: (item) => {
-      return true; // Allow all drops for now
+      return true;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
-  }));
+  }), [onTrackDrop, deck, showToast]);
 
   // Detect when a new track is loaded
   useEffect(() => {
