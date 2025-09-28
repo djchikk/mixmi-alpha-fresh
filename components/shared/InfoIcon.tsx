@@ -16,16 +16,16 @@ export default function InfoIcon({
   // Size configurations for different card sizes
   const sizeConfig = {
     sm: { // For 64px collection bar cards
-      container: 'w-5 h-5',
-      text: 'text-xs'
+      text: 'text-sm',
+      container: 'w-4 h-4'
     },
-    md: { // For 160px store cards  
-      container: 'w-7 h-7',
-      text: 'text-sm'
+    md: { // For 160px store cards
+      text: 'text-base',
+      container: 'w-5 h-5'
     },
     lg: { // For 280px modal cards
-      container: 'w-8 h-8',
-      text: 'text-base'
+      text: 'text-xl',
+      container: 'w-8 h-8'
     }
   };
 
@@ -36,24 +36,20 @@ export default function InfoIcon({
       onClick={onClick}
       className={`
         ${config.container}
-        rounded 
-        bg-black/70 
-        hover:bg-black/90
-        border border-transparent
-        hover:border-[#81E4F2]
-        flex 
-        items-center 
-        justify-center 
+        flex
+        items-center
+        justify-center
         transition-all
+        hover:scale-110
         ${className}
       `}
       title={title}
-      style={{ 
+      style={{
         pointerEvents: onClick ? 'all' : 'none',
         cursor: onClick ? 'pointer' : 'default'
       }}
     >
-      <span className={`${config.text} text-white font-bold select-none`}>
+      <span className={`${config.text} text-white font-bold select-none leading-none`}>
         i
       </span>
     </button>

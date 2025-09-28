@@ -30,14 +30,15 @@ interface DraggableTrackProps {
   track: any;
   index: number;
   children: React.ReactNode;
+  onRemove: () => void;
 }
 
-function DraggableTrack({ track, index, children }: DraggableTrackProps) {
+function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProps) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'COLLECTION_TRACK',
     item: () => {
       console.log('🎪 Crate track being dragged:', track);
-      return { 
+      return {
         track: {
           id: track.id,
           title: track.title,
@@ -52,10 +53,16 @@ function DraggableTrack({ track, index, children }: DraggableTrackProps) {
         sourceIndex: index
       };
     },
+    end: (item, monitor) => {
+      const didDrop = monitor.didDrop();
+      if (!didDrop) {
+        onRemove();
+      }
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-  }), [track, index]);
+  }), [track, index, onRemove]);
 
   return (
     <div ref={drag} style={{ opacity: isDragging ? 0.5 : 1 }}>
@@ -657,16 +664,21 @@ export default function Crate({ className = '' }: CrateProps) {
                 </div>
               )}
               
+              {/* Dark overlay on hover */}
+              {hoveredTrackId === track.id && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 pointer-events-none" />
+              )}
+
               {/* Unified hover overlay - same for all contexts */}
               {hoveredTrackId === track.id && (
                 <>
                   {/* Drag handle (all contexts, except full songs in mixer) */}
                   {!(context === 'mixer' && track.content_type === 'full_song') && (
                     <div
-                      className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1 py-0.5 text-white/90"
+                      className="absolute top-1 left-1"
                       title="Drag to mixer or cart"
                     >
-                      <GripVertical className="w-4 h-4" />
+                      <GripVertical className="w-4 h-4 text-white" />
                     </div>
                   )}
 
@@ -676,25 +688,35 @@ export default function Crate({ className = '' }: CrateProps) {
                       e.stopPropagation();
                       addToCart(track);
                     }}
-                    className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-sm rounded p-0.5 text-white/90 hover:bg-black/80 transition-colors"
+                    className="absolute bottom-1 left-1 transition-all hover:scale-110"
                     title="Add to cart"
                   >
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </button>
 
-                  {/* Info icon - opens TrackDetailsModal (all contexts) */}
-                  <InfoIcon
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTrack(track);
-                      setShowInfoModal(true);
-                    }}
-                    className="absolute top-1 right-1"
-                    title="View track details"
-                  />
+                  {/* Play icon - centered */}
+                  {track.audioUrl && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  )}
+
+                  {/* Info icon - opens TrackDetailsModal (all contexts) - top right to balance drag handle */}
+                  <div className="absolute top-0.5 right-1">
+                    <InfoIcon
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTrack(track);
+                        setShowInfoModal(true);
+                      }}
+                      title="View track details"
+                    />
+                  </div>
                 </>
               )}
 
@@ -711,41 +733,22 @@ export default function Crate({ className = '' }: CrateProps) {
 
               {/* BPM overlay for mixer (always) and store/globe (on hover) contexts */}
               {(context === 'mixer' || ((context === 'store' || context === 'globe') && hoveredTrackId === track.id)) && (
-                <div className="absolute bottom-1 right-1 bg-black/70 px-1 py-0.5 rounded text-[10px] text-white/90 font-mono">
+                <div className="absolute bottom-1 right-1 text-[11px] text-white font-mono font-bold">
                   {track.bpm || 120}
                 </div>
               )}
             </div>
-
-            {/* Remove button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRemoveTrack(index);
-              }}
-              className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                background: '#ff4757',
-                border: '2px solid #0A0A0B',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                color: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              ×
-            </button>
               </div>
             );
             
             // Wrap in DraggableTrack if in mixer context and not a song
             return isDraggable ? (
-              <DraggableTrack key={`${track.id}-${index}`} track={track} index={index}>
+              <DraggableTrack
+                key={`${track.id}-${index}`}
+                track={track}
+                index={index}
+                onRemove={() => handleRemoveTrack(index)}
+              >
                 {trackElement}
               </DraggableTrack>
             ) : trackElement;

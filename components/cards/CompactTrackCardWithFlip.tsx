@@ -203,10 +203,10 @@ export default function CompactTrackCardWithFlip({
                 {/* Drag Handle - Left side, vertically centered */}
                 {isHovered && !isFlipped && (
                   <div
-                    className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/70 backdrop-blur-sm rounded p-1 transition-all duration-200 hover:bg-black/90 border border-transparent hover:border-[#81E4F2] z-10"
+                    className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10"
                     title="Drag to crate or mixer (loops only for mixer)"
                   >
-                    <GripVertical className="w-4 h-4 text-gray-100 hover:text-white" />
+                    <GripVertical className="w-5 h-5 text-white" />
                   </div>
                 )}
 
@@ -216,7 +216,7 @@ export default function CompactTrackCardWithFlip({
                     className="absolute right-1 top-1/2 transform -translate-y-1/2 z-10"
                   >
                     <InfoIcon
-                      size="md"
+                      size="lg"
                       onClick={handleInfoClick}
                       title="Click to see all info + drag individual tracks from Loop Packs/EPs"
                     />
@@ -225,14 +225,14 @@ export default function CompactTrackCardWithFlip({
 
                 {/* Hover Overlay */}
                 {isHovered && !isFlipped && (
-                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-50 flex flex-col justify-between p-3 animate-fadeIn">
+                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 flex flex-col justify-between p-2 animate-fadeIn">
                     
-                    {/* Top Section: Title, Artist (expanded) */}
-                    <div className="px-2">
-                      {/* Title and Artist - more space now that info icon is moved */}
-                      <div className="flex flex-col gap-1">
-                        <h3 className="font-bold text-white text-sm leading-tight">{track.title}</h3>
-                        <p className="text-gray-300 text-xs">{track.artist}</p>
+                    {/* Top Section: Title, Artist (full width) */}
+                    <div>
+                      {/* Title and Artist - full width with truncation */}
+                      <div className="flex flex-col">
+                        <h3 className="font-medium text-white text-sm leading-tight truncate">{track.title}</h3>
+                        <p className="text-white/80 text-xs truncate">{track.artist}</p>
                       </div>
                     </div>
 
@@ -260,14 +260,14 @@ export default function CompactTrackCardWithFlip({
                               onStopPreview();
                             }
                           }}
-                          className="w-12 h-12 bg-[#101726] hover:bg-[#1a1f3a] rounded-full flex items-center justify-center transition-colors border border-gray-600 hover:border-[#81E4F2]"
+                          className="transition-all hover:scale-110"
                         >
                           {isPlaying ? (
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                             </svg>
                           ) : (
-                            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
                             </svg>
                           )}
@@ -277,17 +277,17 @@ export default function CompactTrackCardWithFlip({
 
                     {/* Bottom Section: Price, Content Type Badge, BPM */}
                     <div className="flex items-center justify-between gap-1">
-                      {/* Buy Button (left) */}
+                      {/* Buy Button (left) - compact */}
                       <button
                         onClick={handlePurchaseClick}
-                        className="bg-accent text-slate-900 font-bold py-1 px-3 rounded transition-all transform hover:scale-105 border border-transparent hover:border-slate-900 text-xs"
+                        className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
                         title="Price in STX - click to add to cart"
                       >
                         {track.price_stx}
                       </button>
 
                       {/* Content Type Badge (center) */}
-                      <span className="text-[10px] px-1.5 py-0.5 font-mono font-medium text-white/90">
+                      <span className="text-xs font-mono font-medium text-white">
                         {track.content_type === 'ep' && 'EP'}
                         {track.content_type === 'loop_pack' && 'PACK'}
                         {track.content_type === 'loop' && 'LOOP'}
@@ -297,8 +297,8 @@ export default function CompactTrackCardWithFlip({
                       
                       {/* BPM Badge (right) - hide for EPs since they have multiple songs with different BPMs */}
                       {track.bpm && track.content_type !== 'ep' ? (
-                        <span 
-                          className="bg-black/70 px-2 py-1 rounded text-sm text-white/90 font-mono font-semibold"
+                        <span
+                          className="text-sm font-mono font-bold text-white"
                           title="BPM"
                         >
                           {track.bpm}
