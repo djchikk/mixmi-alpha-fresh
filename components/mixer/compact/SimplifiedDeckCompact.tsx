@@ -150,22 +150,43 @@ export default function SimplifiedDeckCompact({
               <span className="deck-empty-text">Loading...</span>
             </div>
           ) : currentTrack ? (
-            <div 
+            <div
               className="relative w-full h-full group"
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
             >
               <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
-              
+
+              {/* Dark overlay on hover */}
+              {isHovered && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 pointer-events-none" />
+              )}
+
               {/* Drag handle - left side */}
               {isHovered && (
                 <div
                   ref={dragRef}
-                  className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded p-1 transition-all cursor-grab z-10"
+                  className="absolute top-1 left-1"
                   title={`Drag Deck ${deck} to Crate`}
                 >
-                  <GripVertical className="w-3 h-3 text-gray-300 hover:text-white" />
+                  <GripVertical className="w-4 h-4 text-white" />
                 </div>
+              )}
+
+              {/* Remove button - right side */}
+              {isHovered && onTrackClear && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTrackClear();
+                  }}
+                  className="absolute top-1 right-1 transition-all hover:scale-110 z-10"
+                  title={`Clear Deck ${deck}`}
+                >
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               )}
             </div>
           ) : (
