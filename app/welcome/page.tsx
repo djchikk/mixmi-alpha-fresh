@@ -352,10 +352,17 @@ export default function Welcome() {
             </div>
             
             {/* Creator Store */}
-            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm relative"
                  style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
               <div className="aspect-video bg-gray-800 relative">
                 <Image src="/welcome-images/creator-store.png" alt="Creator Store Interface" fill className="object-cover" />
+
+                {/* DONE! Stamp - Creator Stores shipped! */}
+                <ShippedStamp
+                  timestamp="27-SEP-2025 • 23:00 UTC"
+                  rotation={15}
+                  scale={1.2}
+                />
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2 text-[#e1e5f0]">Creator Stores</h3>
