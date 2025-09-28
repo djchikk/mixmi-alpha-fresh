@@ -115,18 +115,22 @@ export default function SimplifiedDeckCompact({
     }),
   }));
 
-  // Detect when a new track is loaded
+  // Detect when a new track is loaded or cleared
   useEffect(() => {
     if (currentTrack && currentTrack.id !== previousTrackId) {
       setIsNewTrackLoaded(true);
       setPreviousTrackId(currentTrack.id);
-      
+
       // Reset the animation after a short duration
       const timeout = setTimeout(() => {
         setIsNewTrackLoaded(false);
       }, 1000);
-      
+
       return () => clearTimeout(timeout);
+    } else if (!currentTrack && previousTrackId) {
+      // Track was cleared, reset previous track ID
+      setPreviousTrackId(null);
+      setIsNewTrackLoaded(false);
     }
   }, [currentTrack?.id, previousTrackId]);
 
