@@ -379,12 +379,21 @@ export default function Welcome() {
         </div>
 
         {/* Real Money Moment - Standalone */}
-        <div className="bg-[rgba(255,228,181,0.1)] border border-[rgba(255,228,181,0.3)] rounded-xl p-6 text-center mb-16">
+        <div className="bg-[rgba(255,228,181,0.1)] border border-[rgba(255,228,181,0.3)] rounded-xl p-6 text-center mb-16 relative overflow-hidden">
           <h3 className="text-xl text-[#FFE4B5] mb-3">💰 Real Money Moment</h3>
           <p className="text-[#a8b2c3]">
-            Your content uploaded today will be ready to sell when payments launch. 
-            Build your catalog now, earn from day one when we go live.
+            Payments are LIVE! Your content is now ready to sell.
+            Start earning with every track you upload.
           </p>
+
+          {/* DONE! Stamp - Payments shipped! */}
+          <div className="absolute top-6 right-28">
+            <ShippedStamp
+              timestamp="27-SEP-2025 • 14:15 UTC"
+              rotation={-8}
+              scale={0.9}
+            />
+          </div>
         </div>
 
         {/* Simple Closing */}
