@@ -1,0 +1,155 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Modal from "../ui/Modal";
+import { useProfile } from "@/contexts/ProfileContext";
+import ImageUploader from "../shared/ImageUploader";
+
+interface ProfileImageModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentImage?: string;
+}
+
+export default function ProfileImageModal({ isOpen, onClose, currentImage }: ProfileImageModalProps) {
+  const { updateProfile } = useProfile();
+  const [currentImageData, setCurrentImageData] = useState<string>(currentImage || "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
+  const [isGifUpload, setIsGifUpload] = useState(false);
+  
+  // Initialize state when modal opens (no cleanup needed since component unmounts on close)
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentImageData(currentImage || "");
+      setIsSaving(false);
+      setSaveStatus('idle');
+      setIsGifUpload(false);
+    }
+  }, [isOpen]); // Removed currentImage dependency to prevent resetting during save
+  
+  const handleImageChange = (imageData: string) => {
+    console.log('🔧 ProfileImageModal.handleImageChange called:', {
+      hasImageData: !!imageData,
+      imageType: imageData?.startsWith('data:image/') ? imageData.substring(0, 20) + '...' : 'not base64',
+      imageSize: imageData?.length ? `${Math.round(imageData.length/1024)}KB` : 'no size'
+    });
+    
+    // Store the image data but don't save yet - wait for explicit save
+    setCurrentImageData(imageData);
+  };
+  
+  const handleSave = async () => {
+    if (!currentImageData) return;
+    
+    try {
+      setIsSaving(true);
+      setSaveStatus('saving');
+      
+      console.log('🔧 About to call updateProfile with image data...');
+      
+      // Call the save function with minimum delay like gallery sections do
+      await updateProfile({
+        image: currentImageData
+      });
+      
+      // Ensure "Saving..." is visible for at least 500ms (like gallery sections)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Detect if it's a GIF for longer delay
+      const isGif = currentImageData?.startsWith('data:image/gif') || 
+                   currentImageData?.includes('.gif') ||
+                   currentImageData?.toLowerCase().includes('gif');
+      
+      console.log('🎯 Profile save completed, showing success message...', { isGif });
+      
+      // Store GIF detection result in state for consistent UI
+      setIsGifUpload(isGif);
+      
+      // Show success state
+      setSaveStatus('complete');
+      
+      // GIFs need more time to load and render
+      const delay = isGif ? 3500 : 1500;
+      
+      console.log(`✨ Showing success message for ${delay}ms:`, isGif ? 'Profile GIF will appear momentarily!' : 'Profile image will appear momentarily!');
+      
+      // Brief delay to show success message, then close
+      setTimeout(() => {
+        console.log('✅ updateProfile completed successfully');
+        // Set isSaving to false RIGHT before closing to prevent jitter
+        setIsSaving(false);
+        onClose();
+      }, delay);
+      
+    } catch (error) {
+      console.error('❌ updateProfile failed:', error);
+      setIsSaving(false);
+      setSaveStatus('idle');
+      alert('Failed to save profile image. Please try again.');
+    }
+  };
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile Image">
+      <div className="space-y-6">
+        <p className="text-sm text-gray-400">
+          You can upload an image file or provide a URL.
+        </p>
+        
+        <ImageUploader
+          initialImage=""
+          onImageChange={handleImageChange}
+          aspectRatio="square"
+          section="profile"
+        />
+        
+        {/* Save Status Indicator */}
+        {isSaving && (
+          <div className="bg-slate-800 rounded-lg p-4 border border-slate-600">
+            <div className="flex items-center space-x-2">
+              {saveStatus === 'complete' ? (
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="w-5 h-5 border-2 border-[#81E4F2] border-t-transparent rounded-full animate-spin"></div>
+              )}
+              <span className={`font-medium text-gray-300 ${
+                saveStatus === 'saving' ? 'text-sm' : 
+                isGifUpload ? 'text-base' : 'text-sm'
+              }`}>
+                {saveStatus === 'saving' ? 'Saving...' : 
+                 isGifUpload ? 'Profile GIF will appear momentarily! ✨' : 'Profile image will appear momentarily! ✨'}
+              </span>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex justify-end space-x-3 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            className="px-4 py-1.5 bg-slate-800 text-gray-400 border border-slate-600 rounded-lg font-medium hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving || !currentImageData}
+            className="px-4 py-1.5 bg-[#101726] text-white border-2 border-white rounded-lg font-semibold hover:bg-[#1a2030] hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving && saveStatus === 'saving' && (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+            )}
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+} 
