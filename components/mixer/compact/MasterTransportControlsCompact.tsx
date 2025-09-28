@@ -115,7 +115,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   }, []);
 
   return (
-    <div className={`master-transport-controls flex items-center justify-center gap-2 ${className}`}>
+    <div className={`master-transport-controls flex items-center justify-center gap-2 bg-[#81E4F2]/10 rounded-lg px-3 py-2 ${className}`}>
       {/* Count-In Display - positioned above controls, not overlapping */}
       {countingIn && (
         <div className="count-in-display absolute -top-12 left-1/2 transform -translate-x-1/2">

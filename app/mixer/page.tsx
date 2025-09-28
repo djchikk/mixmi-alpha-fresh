@@ -115,7 +115,7 @@ export default function MixerRoute() {
         onPlayPreview={handlePlayPreview}
         playingTrackId={playingTrackId}
       />
-      <div className="container mx-auto p-8">
+      <div className="flex items-center justify-center mt-10" style={{ minHeight: 'calc(100vh - 64px - 200px)' }}>
         <SimplifiedMixer className="mx-auto" />
       </div>
       <Crate />
