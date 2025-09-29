@@ -180,6 +180,7 @@ export default function UserProfilePage() {
         <ProfileSticker
           stickerId={profile.sticker_id}
           stickerVisible={profile.sticker_visible}
+          customSticker={profile.custom_sticker}
           isOwnProfile={isOwnProfile}
           targetWallet={targetWallet}
           onUpdate={refreshProfile}

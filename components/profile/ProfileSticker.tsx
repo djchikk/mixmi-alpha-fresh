@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { getStickerById } from '@/lib/stickerData';
-// TODO: StickerModal needs to be adapted to use props
-// import StickerModal from '@/components/modals/StickerModal';
+import StickerSelectionModal from './StickerSelectionModal';
 
 interface ProfileStickerProps {
   stickerId?: string | null;
   stickerVisible?: boolean;
+  customSticker?: string | null;
   isOwnProfile: boolean;
   targetWallet: string;
   onUpdate: () => Promise<void>;
@@ -15,6 +15,7 @@ interface ProfileStickerProps {
 export default function ProfileSticker({
   stickerId,
   stickerVisible,
+  customSticker,
   isOwnProfile,
   targetWallet,
   onUpdate
@@ -23,12 +24,15 @@ export default function ProfileSticker({
 
   // Don't show if sticker is not visible
   if (!stickerVisible) return null;
-  
-  // Get sticker image from preset stickers
+
+  // Get sticker image from preset stickers or custom
   let stickerImage: string | null = null;
   let stickerAlt = 'Profile sticker';
 
-  if (stickerId) {
+  if (stickerId === 'custom' && customSticker) {
+    stickerImage = customSticker;
+    stickerAlt = 'Custom sticker';
+  } else if (stickerId) {
     const preset = getStickerById(stickerId as any);
     if (preset) {
       stickerImage = preset.imageUrl;
@@ -78,14 +82,15 @@ export default function ProfileSticker({
         </div>
       </section>
 
-      {/* TODO: Re-enable once StickerModal is adapted
-      <StickerModal
+      <StickerSelectionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        currentStickerId={stickerId}
+        currentCustomImage={customSticker}
+        stickerVisible={stickerVisible}
         targetWallet={targetWallet}
         onUpdate={onUpdate}
       />
-      */}
     </>
   );
 }
