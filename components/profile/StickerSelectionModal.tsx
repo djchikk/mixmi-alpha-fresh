@@ -67,11 +67,20 @@ export default function StickerSelectionModal({
       setIsSaving(true);
 
       // Update the profile with the selected sticker
-      await UserProfileService.updateProfile(targetWallet, {
+      const updates: any = {
         sticker_id: selectedStickerId,
-        custom_sticker: selectedStickerId === 'custom' ? customImage : null,
         sticker_visible: stickerVisible
-      });
+      };
+
+      // Only add custom_sticker field if the column exists
+      // For now we'll add it but it may fail if column doesn't exist
+      if (selectedStickerId === 'custom') {
+        updates.custom_sticker = customImage;
+      } else {
+        updates.custom_sticker = null;
+      }
+
+      await UserProfileService.updateProfile(targetWallet, updates);
 
       // Refresh the parent component
       await onUpdate();

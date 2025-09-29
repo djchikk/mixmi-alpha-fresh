@@ -14,8 +14,8 @@ import ProfileInfoModal from "./ProfileInfoModal";
 
 interface ProfileInfoProps {
   profile: {
-    name?: string | null;
-    title?: string | null;
+    display_name?: string | null;
+    tagline?: string | null;
     bio?: string | null;
     show_wallet_address?: boolean;
     show_btc_address?: boolean;
@@ -82,8 +82,8 @@ export default function ProfileInfo({
     : [];
 
   // Truncate fields with character limits - ensure consistent processing
-  const nameText = profile.name ? profile.name.slice(0, 40) : (isOwnProfile ? "Add Your Name" : "");
-  const titleText = profile.title ? profile.title.slice(0, 40) : (isOwnProfile ? "Add Your Title" : "");
+  const nameText = profile.display_name ? profile.display_name.slice(0, 40) : (isOwnProfile ? "Add Your Name" : "");
+  const taglineText = profile.tagline ? profile.tagline.slice(0, 40) : (isOwnProfile ? "Add Your Tagline" : "");
   const bioText = profile.bio ? profile.bio.slice(0, 350) : (isOwnProfile ? "Tell us about yourself..." : "");
   
   return (
@@ -100,14 +100,14 @@ export default function ProfileInfo({
           </button>
         )}
 
-        <h1 className="text-3xl font-medium text-accent mb-3" title={profile.name}>
+        <h1 className="text-3xl font-medium text-accent mb-3" title={profile.display_name}>
           {nameText}
-          {profile.name && profile.name.length > 40 ? "..." : ""}
+          {profile.display_name && profile.display_name.length > 40 ? "..." : ""}
         </h1>
-      
-      <p className="text-xl text-white/90 mb-4" title={profile.title}>
-        {titleText}
-        {profile.title && profile.title.length > 40 ? "..." : ""}
+
+      <p className="text-xl text-white/90 mb-4" title={profile.tagline}>
+        {taglineText}
+        {profile.tagline && profile.tagline.length > 40 ? "..." : ""}
       </p>
       
       <p 

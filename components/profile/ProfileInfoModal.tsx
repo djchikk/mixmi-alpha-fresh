@@ -10,8 +10,8 @@ interface ProfileInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: {
-    name?: string | null;
-    title?: string | null;
+    display_name?: string | null;
+    tagline?: string | null;
     bio?: string | null;
     show_wallet_address?: boolean;
     show_btc_address?: boolean;
@@ -45,8 +45,8 @@ export default function ProfileInfoModal({
   onUpdate
 }: ProfileInfoModalProps) {
   const [formData, setFormData] = useState({
-    name: '',
-    title: '',
+    display_name: '',
+    tagline: '',
     bio: '',
     show_wallet_address: false,
     show_btc_address: false
@@ -60,8 +60,8 @@ export default function ProfileInfoModal({
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        name: profile.name || '',
-        title: profile.title || '',
+        display_name: profile.display_name || '',
+        tagline: profile.tagline || '',
         bio: profile.bio || '',
         show_wallet_address: profile.show_wallet_address || false,
         show_btc_address: profile.show_btc_address || false
@@ -97,11 +97,11 @@ export default function ProfileInfoModal({
     const newErrors: Record<string, string> = {};
 
     // Character limits
-    if (formData.name.length > 40) {
-      newErrors.name = 'Name must be 40 characters or less';
+    if (formData.display_name.length > 40) {
+      newErrors.display_name = 'Name must be 40 characters or less';
     }
-    if (formData.title.length > 40) {
-      newErrors.title = 'Title must be 40 characters or less';
+    if (formData.tagline.length > 40) {
+      newErrors.tagline = 'Tagline must be 40 characters or less';
     }
     if (formData.bio.length > 350) {
       newErrors.bio = 'Bio must be 350 characters or less';
@@ -126,8 +126,8 @@ export default function ProfileInfoModal({
 
       // Update profile info
       await UserProfileService.updateProfile(targetWallet, {
-        name: formData.name || null,
-        title: formData.title || null,
+        display_name: formData.display_name || null,
+        tagline: formData.tagline || null,
         bio: formData.bio || null,
         show_wallet_address: formData.show_wallet_address,
         show_btc_address: formData.show_btc_address
@@ -166,41 +166,41 @@ export default function ProfileInfoModal({
           </label>
           <input
             type="text"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
+            value={formData.display_name}
+            onChange={(e) => handleInputChange('display_name', e.target.value)}
             placeholder="Your name"
             maxLength={40}
             className="w-full px-3 py-2 bg-slate-800 text-white rounded-lg border border-slate-600 focus:border-[#81E4F2] focus:outline-none transition-colors"
           />
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs text-gray-500">
-              {formData.name.length}/40 characters
+              {formData.display_name.length}/40 characters
             </span>
-            {errors.name && (
-              <span className="text-xs text-red-400">{errors.name}</span>
+            {errors.display_name && (
+              <span className="text-xs text-red-400">{errors.display_name}</span>
             )}
           </div>
         </div>
 
-        {/* Title Field */}
+        {/* Tagline Field */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Title
+            Tagline
           </label>
           <input
             type="text"
-            value={formData.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
-            placeholder="Your title or role"
+            value={formData.tagline}
+            onChange={(e) => handleInputChange('tagline', e.target.value)}
+            placeholder="Your tagline"
             maxLength={40}
             className="w-full px-3 py-2 bg-slate-800 text-white rounded-lg border border-slate-600 focus:border-[#81E4F2] focus:outline-none transition-colors"
           />
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs text-gray-500">
-              {formData.title.length}/40 characters
+              {formData.tagline.length}/40 characters
             </span>
-            {errors.title && (
-              <span className="text-xs text-red-400">{errors.title}</span>
+            {errors.tagline && (
+              <span className="text-xs text-red-400">{errors.tagline}</span>
             )}
           </div>
         </div>
