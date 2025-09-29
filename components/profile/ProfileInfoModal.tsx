@@ -85,11 +85,11 @@ export default function ProfileInfoModal({
   // Initialize form data when modal opens
   useEffect(() => {
     if (isOpen) {
-      const hasBns = !!profile.bns_name;
+      // BNS is temporarily disabled - always use username
       setFormData({
-        username: profile.username || '',
+        username: profile.username || profile.bns_name || '', // Use BNS as username if that's all we have
         bns_name: profile.bns_name || '',
-        use_bns: hasBns,
+        use_bns: false, // Always false while BNS is disabled
         display_name: profile.display_name || '',
         tagline: profile.tagline || '',
         bio: profile.bio || '',
@@ -459,34 +459,37 @@ export default function ProfileInfoModal({
             Profile URL Identifier
           </label>
 
-          {/* Toggle between Username and BNS */}
-          <div className="flex gap-2 mb-3">
-            <button
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, use_bns: false }))}
-              className={`flex-1 py-2 px-3 rounded-lg border transition-colors ${
-                !formData.use_bns
-                  ? 'bg-slate-700 border-[#81E4F2] text-white'
-                  : 'bg-slate-800 border-slate-600 text-gray-400 hover:border-slate-500'
-              }`}
-            >
-              Custom Username
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, use_bns: true }))}
-              className={`flex-1 py-2 px-3 rounded-lg border transition-colors ${
-                formData.use_bns
-                  ? 'bg-slate-700 border-[#81E4F2] text-white'
-                  : 'bg-slate-800 border-slate-600 text-gray-400 hover:border-slate-500'
-              }`}
-            >
-              BNS Name (.btc)
-            </button>
-          </div>
+          {/* BNS Toggle temporarily hidden - Sept 2025 API compatibility issues
+              TODO: Re-enable when BNS/BNSx API endpoints are clarified */}
+          {false && (
+            <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, use_bns: false }))}
+                className={`flex-1 py-2 px-3 rounded-lg border transition-colors ${
+                  !formData.use_bns
+                    ? 'bg-slate-700 border-[#81E4F2] text-white'
+                    : 'bg-slate-800 border-slate-600 text-gray-400 hover:border-slate-500'
+                }`}
+              >
+                Custom Username
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, use_bns: true }))}
+                className={`flex-1 py-2 px-3 rounded-lg border transition-colors ${
+                  formData.use_bns
+                    ? 'bg-slate-700 border-[#81E4F2] text-white'
+                    : 'bg-slate-800 border-slate-600 text-gray-400 hover:border-slate-500'
+                }`}
+              >
+                BNS Name (.btc)
+              </button>
+            </div>
+          )}
 
-          {/* Username Field (shown when not using BNS) */}
-          {!formData.use_bns && (
+          {/* Username Field (always shown for now while BNS is disabled) */}
+          {true && (
             <div className="relative">
               <input
                 type="text"
@@ -514,8 +517,8 @@ export default function ProfileInfoModal({
             </div>
           )}
 
-          {/* BNS Field (shown when using BNS) */}
-          {formData.use_bns && (
+          {/* BNS Field (hidden while BNS is disabled) */}
+          {false && formData.use_bns && (
             <div className="relative">
               <input
                 type="text"
