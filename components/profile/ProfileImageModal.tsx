@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "../ui/Modal";
 import ImageUploader from "../shared/ImageUploader";
 import { UserProfileService } from "@/lib/userProfileService";
+import { processAndUploadProfileImage } from "@/lib/profileImageUpload";
 
 interface ProfileImageModalProps {
   isOpen: boolean;
@@ -55,9 +56,14 @@ export default function ProfileImageModal({
 
       console.log('🔧 About to update profile image...');
 
-      // Update the profile image using UserProfileService
+      // Upload image to Supabase Storage and get URL
+      const imageUrl = await processAndUploadProfileImage(currentImageData, targetWallet);
+
+      console.log('📸 Image uploaded, updating profile with URL:', imageUrl);
+
+      // Update the profile with the image URL (not base64)
       await UserProfileService.updateProfile(targetWallet, {
-        image: currentImageData
+        avatar_url: imageUrl  // Changed from 'image' to 'avatar_url' to match DB schema
       });
 
       // Call the onUpdate callback to refresh the parent component

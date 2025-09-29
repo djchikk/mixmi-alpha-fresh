@@ -7,7 +7,7 @@ import EditButton from "../ui/EditButton";
 
 interface ProfileImageProps {
   profile: {
-    image?: string | null;
+    avatar_url?: string | null;  // Changed from 'image' to 'avatar_url' to match DB
     name?: string | null;
   };
   isOwnProfile: boolean;
@@ -34,16 +34,16 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, onUp
           onClick={isOwnProfile ? handleEditClick : undefined}
         >
           <div className="relative w-full h-full">
-            {profile.image ? (
+            {profile.avatar_url ? (
               <div className="relative w-full h-full">
-                <SafeImage 
-                  src={profile.image} 
-                  alt={profile.name || "Profile"} 
+                <SafeImage
+                  src={profile.avatar_url}
+                  alt={profile.name || "Profile"}
                   fill
                   className="object-cover rounded-[6px] transition-opacity duration-200"
                   sizes="400px"
                   priority
-                  onError={() => console.warn('Failed to load profile image:', profile.image)}
+                  onError={() => console.warn('Failed to load profile image:', profile.avatar_url)}
                 />
               </div>
             ) : (
@@ -82,7 +82,7 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, onUp
       <ProfileImageModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        currentImage={profile.image || undefined}
+        currentImage={profile.avatar_url || undefined}
         targetWallet={targetWallet}
         onUpdate={onUpdate}
       />
