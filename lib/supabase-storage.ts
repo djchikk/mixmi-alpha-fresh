@@ -19,8 +19,9 @@ export class SupabaseStorageService {
    * Get bucket name - using single bucket with folder organization
    */
   static getBucketName(): string {
-    // Use 'images' bucket which likely has simpler RLS policies
-    return 'images';
+    // Use 'track-covers' bucket which we know works
+    // TODO: Create dedicated 'profile-images' bucket later
+    return 'track-covers';
   }
 
   /**
