@@ -51,12 +51,12 @@ export default function ConfirmDialog({
       />
 
       {/* Dialog */}
-      <div className="relative bg-slate-900 border border-slate-700 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+      <div className="relative bg-slate-900 border border-slate-700 rounded-lg p-6 max-w-lg w-full mx-4 shadow-2xl">
         <div className="flex items-start gap-4">
           {getIcon()}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-            <p className="text-gray-300 whitespace-pre-line">{message}</p>
+            <p className="text-gray-300 whitespace-pre-line break-words">{message}</p>
           </div>
         </div>
 
