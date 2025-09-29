@@ -1,65 +1,59 @@
 import { useState } from 'react';
 import Image from 'next/image';
-import { useProfile } from '@/contexts/ProfileContext';
 import { getStickerById } from '@/lib/stickerData';
-import StickerModal from '@/components/modals/StickerModal';
+// TODO: StickerModal needs to be adapted to use props
+// import StickerModal from '@/components/modals/StickerModal';
 
 interface ProfileStickerProps {
-  editable?: boolean;
+  stickerId?: string | null;
+  stickerVisible?: boolean;
+  isOwnProfile: boolean;
+  targetWallet: string;
+  onUpdate: () => Promise<void>;
 }
 
-export default function ProfileSticker({ editable = false }: ProfileStickerProps) {
-  const { profile } = useProfile();
+export default function ProfileSticker({
+  stickerId,
+  stickerVisible,
+  isOwnProfile,
+  targetWallet,
+  onUpdate
+}: ProfileStickerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Don't show if sticker is not visible
+  if (!stickerVisible) return null;
   
-  if (!profile.sectionVisibility.sticker || !profile.sticker.visible) return null;
-  
-  // Get sticker image - either preset or custom
+  // Get sticker image from preset stickers
   let stickerImage: string | null = null;
   let stickerAlt = 'Profile sticker';
-  
-  if (profile.sticker.id === 'custom' && profile.sticker.customImage) {
-    stickerImage = profile.sticker.customImage;
-    stickerAlt = 'Custom sticker';
-  } else if (profile.sticker.id && profile.sticker.id !== 'custom') {
-    const preset = getStickerById(profile.sticker.id as any);
+
+  if (stickerId) {
+    const preset = getStickerById(stickerId as any);
     if (preset) {
       stickerImage = preset.imageUrl;
       stickerAlt = preset.alt;
     }
   }
-  
-  if (!stickerImage && !editable) return null;
+
+  // Don't show if no sticker image and not the owner
+  if (!stickerImage && !isOwnProfile) return null;
   
   return (
     <>
       <section className="mb-16 py-8 flex justify-center">
         <div className="relative">
           {stickerImage && (
-            <>
-              {profile.sticker.id === 'custom' ? (
-                // Custom image - use regular img tag for data URLs
-                <img
-                  src={stickerImage}
-                  alt={stickerAlt}
-                  width={130}
-                  height={130}
-                  className="animate-slow-spin object-contain"
-                />
-              ) : (
-                // Preset image - use Next.js Image component
-                <Image
-                  src={stickerImage}
-                  alt={stickerAlt}
-                  width={130}
-                  height={130}
-                  className="animate-slow-spin"
-                />
-              )}
-            </>
+            <Image
+              src={stickerImage}
+              alt={stickerAlt}
+              width={130}
+              height={130}
+              className="animate-slow-spin"
+            />
           )}
-          
-          {editable && (
+
+          {isOwnProfile && (
             <button 
               onClick={() => setIsModalOpen(true)}
               className="absolute -top-2 -right-2 bg-slate-800 hover:bg-slate-700 text-accent px-3 py-1 rounded-md flex items-center space-x-2 transition-colors text-sm"
@@ -83,11 +77,15 @@ export default function ProfileSticker({ editable = false }: ProfileStickerProps
           )}
         </div>
       </section>
-      
-      <StickerModal 
+
+      {/* TODO: Re-enable once StickerModal is adapted
+      <StickerModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        targetWallet={targetWallet}
+        onUpdate={onUpdate}
       />
+      */}
     </>
   );
 }

@@ -1,20 +1,41 @@
 "use client";
 
-import React, { useState } from "react";
-import { useProfile } from "@/contexts/ProfileContext";
+import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Instagram, Youtube, Music, Github, Twitch, Plus, Clipboard } from "lucide-react";
-import { 
-  FaSoundcloud, 
+import { Instagram, Youtube, Music, Github, Twitch, Clipboard } from "lucide-react";
+import {
+  FaSoundcloud,
   FaMixcloud,
   FaTiktok,
   FaXTwitter
 } from "react-icons/fa6";
 
-export default function ProfileInfo() {
-  const { profile } = useProfile();
-  const { isAuthenticated, walletAddress, btcAddress } = useAuth();
+interface ProfileInfoProps {
+  profile: {
+    name?: string | null;
+    title?: string | null;
+    bio?: string | null;
+    show_wallet_address?: boolean;
+    show_btc_address?: boolean;
+  };
+  links: Array<{
+    platform: string;
+    url: string;
+  }>;
+  targetWallet: string;
+  isOwnProfile: boolean;
+  onUpdate: () => Promise<void>;
+}
+
+export default function ProfileInfo({
+  profile,
+  links,
+  targetWallet,
+  isOwnProfile,
+  onUpdate
+}: ProfileInfoProps) {
+  const { walletAddress, btcAddress } = useAuth();
   const { showToast } = useToast();
   
   // Map social links to their icons
@@ -50,18 +71,18 @@ export default function ProfileInfo() {
   };
   
   // Filter and prepare social links
-  const socialLinks = profile.socialLinks
-    ? profile.socialLinks.map(link => ({
+  const socialLinks = links
+    ? links.map(link => ({
         icon: getSocialIcon(link.platform),
         url: link.url,
         platform: link.platform
       }))
     : [];
-  
+
   // Truncate fields with character limits - ensure consistent processing
-  const nameText = profile.name ? profile.name.slice(0, 40) : "Add Your Name";
-  const titleText = profile.title ? profile.title.slice(0, 40) : "Add Your Title";
-  const bioText = profile.bio ? profile.bio.slice(0, 350) : "Tell us about yourself...";
+  const nameText = profile.name ? profile.name.slice(0, 40) : (isOwnProfile ? "Add Your Name" : "");
+  const titleText = profile.title ? profile.title.slice(0, 40) : (isOwnProfile ? "Add Your Title" : "");
+  const bioText = profile.bio ? profile.bio.slice(0, 350) : (isOwnProfile ? "Tell us about yourself..." : "");
   
   return (
     <div className="flex flex-col items-center text-center">
@@ -84,11 +105,11 @@ export default function ProfileInfo() {
       </p>
       
       {/* Social links */}
-      {(socialLinks.length > 0 || isAuthenticated) && (
+      {(socialLinks.length > 0 || isOwnProfile) && (
         <div className="flex flex-wrap justify-center gap-4 mb-6">
           {socialLinks.length > 0 ? (
             socialLinks.map((link, index) => (
-              <a 
+              <a
                 key={index}
                 href={link.url}
                 target="_blank"
@@ -99,16 +120,16 @@ export default function ProfileInfo() {
                 {link.icon}
               </a>
             ))
-          ) : isAuthenticated ? (
+          ) : isOwnProfile ? (
             <span className="text-gray-500 text-sm italic">No social links added</span>
           ) : null}
         </div>
       )}
-      
+
       {/* Wallet addresses */}
-      {((profile.showWalletAddress && walletAddress) || (profile.showBtcAddress && btcAddress)) && (
+      {((profile.show_wallet_address && walletAddress) || (profile.show_btc_address && btcAddress)) && (
         <div className="flex flex-col items-center gap-2 mb-8 max-w-[350px]">
-          {profile.showWalletAddress && walletAddress && (
+          {profile.show_wallet_address && walletAddress && (
             <div className="bg-[#0f172a] py-2 px-4 rounded-md w-full border border-[#1e293b] flex items-center">
               <span className="text-xs text-gray-500 shrink-0 font-medium">STX:</span>
               <span className="text-xs text-gray-400 ml-2 truncate flex-1">{`${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`}</span>
@@ -122,7 +143,7 @@ export default function ProfileInfo() {
             </div>
           )}
           
-          {profile.showBtcAddress && btcAddress && (
+          {profile.show_btc_address && btcAddress && (
             <div className="bg-[#0f172a] py-2 px-4 rounded-md w-full border border-[#1e293b] flex items-center">
               <span className="text-xs text-gray-500 shrink-0 font-medium">BTC:</span>
               <span className="text-xs text-gray-400 ml-2 truncate flex-1">{`${btcAddress.slice(0, 8)}...${btcAddress.slice(-8)}`}</span>

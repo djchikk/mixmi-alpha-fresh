@@ -1,31 +1,37 @@
 "use client";
 
 import React, { useState } from "react";
-import { useProfile } from "@/contexts/ProfileContext";
-import { useAuth } from "@/contexts/AuthContext";
 import SafeImage from "../shared/SafeImage";
-import ProfileImageModal from "./ProfileImageModal";
+// TODO: ProfileImageModal needs to be adapted to use props
+// import ProfileImageModal from "./ProfileImageModal";
 import EditButton from "../ui/EditButton";
 
-export default function ProfileImage() {
-  const { profile } = useProfile();
-  const { isAuthenticated } = useAuth();
+interface ProfileImageProps {
+  profile: {
+    image?: string | null;
+    name?: string | null;
+  };
+  isOwnProfile: boolean;
+  onUpdate: () => Promise<void>;
+}
+
+export default function ProfileImage({ profile, isOwnProfile, onUpdate }: ProfileImageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Handle clicks on the profile image or edit button
   const handleEditClick = () => {
-    if (!isAuthenticated) return;
+    if (!isOwnProfile) return;
     setIsModalOpen(true);
   };
   
   return (
     <>
       <div className="relative w-[400px] h-[400px] mx-auto">
-        <div 
+        <div
           className={`w-full h-full rounded-lg border-4 border-accent overflow-hidden group bg-[#151C2A] ${
-            isAuthenticated ? "cursor-pointer" : ""
+            isOwnProfile ? "cursor-pointer" : ""
           }`}
-          onClick={isAuthenticated ? handleEditClick : undefined}
+          onClick={isOwnProfile ? handleEditClick : undefined}
         >
           <div className="relative w-full h-full">
             {profile.image ? (
@@ -42,7 +48,7 @@ export default function ProfileImage() {
               </div>
             ) : (
               <div className="w-full h-full bg-[#151C2A] flex items-center justify-center">
-                {isAuthenticated && (
+                {isOwnProfile && (
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
                     viewBox="0 0 24 24" 
@@ -62,22 +68,25 @@ export default function ProfileImage() {
           </div>
         </div>
         
-        {isAuthenticated && (
+        {isOwnProfile && (
           <div className="absolute bottom-4 right-4">
-            <EditButton 
-              size="md" 
-              label="Edit Profile Image" 
+            <EditButton
+              size="md"
+              label="Edit Profile Image"
               onClick={handleEditClick}
             />
           </div>
         )}
       </div>
-      
+
+      {/* TODO: Re-enable once ProfileImageModal is adapted
       <ProfileImageModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         currentImage={profile.image}
+        onUpdate={onUpdate}
       />
+      */}
     </>
   );
 } 

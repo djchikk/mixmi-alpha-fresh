@@ -2,19 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/contexts/ProfileContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import SafeImage from '../shared/SafeImage';
 
 interface StoreCardProps {
+  storeCard?: {
+    title?: string;
+    description?: string;
+    image?: string;
+  };
+  targetWallet?: string;
+  isOwnProfile?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
 }
 
-export default function StoreCard({ onEdit, onDelete }: StoreCardProps) {
+export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdit, onDelete }: StoreCardProps) {
   const { isAuthenticated, walletAddress } = useAuth();
-  const { storeCard } = useProfile();
   const [trackCount, setTrackCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
@@ -23,7 +28,8 @@ export default function StoreCard({ onEdit, onDelete }: StoreCardProps) {
   // Fetch track count from Supabase
   useEffect(() => {
     const fetchTrackCount = async () => {
-      if (!walletAddress) {
+      const wallet = targetWallet || walletAddress;
+      if (!wallet) {
         setIsLoading(false);
         return;
       }
@@ -32,7 +38,7 @@ export default function StoreCard({ onEdit, onDelete }: StoreCardProps) {
         const { count, error } = await supabase
           .from('ip_tracks')
           .select('*', { count: 'exact', head: true })
-          .eq('created_by', walletAddress)
+          .eq('created_by', wallet)
           .is('deleted_at', null); // Exclude soft-deleted tracks
 
         if (error) {
@@ -50,13 +56,14 @@ export default function StoreCard({ onEdit, onDelete }: StoreCardProps) {
     };
 
     fetchTrackCount();
-  }, [walletAddress]);
+  }, [targetWallet, walletAddress]);
 
   const handleCardClick = () => {
-    if (!isAuthenticated || !walletAddress) return;
-    
-    // Always navigate to user's store
-    router.push(`/store/${walletAddress}`);
+    const wallet = targetWallet || walletAddress;
+    if (!wallet) return;
+
+    // Navigate to the appropriate store
+    router.push(`/store/${wallet}`);
   };
   
   // Use store card data from context or fallback to defaults

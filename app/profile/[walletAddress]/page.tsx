@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserProfileService, ProfileData } from '@/lib/userProfileService';
 import Header from '@/components/layout/Header';
-import ProfileHeader from '@/components/profile/ProfileHeader';
+// ProfileHeader not currently used
 import ProfileInfo from '@/components/profile/ProfileInfo';
 import ProfileImage from '@/components/profile/ProfileImage';
 import SectionManager from '@/components/profile/SectionManager';
