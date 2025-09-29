@@ -5,6 +5,8 @@ import Modal from "../ui/Modal";
 import { UserProfileService } from "@/lib/userProfileService";
 import { Instagram, Youtube, Music, Github, Twitch, Plus, X, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { FaSoundcloud, FaMixcloud, FaTiktok, FaXTwitter } from "react-icons/fa6";
+import ConfirmDialog from "../ui/ConfirmDialog";
+import ToastNotification from "../ui/ToastNotification";
 
 interface ProfileInfoModalProps {
   isOpen: boolean;
@@ -65,6 +67,20 @@ export default function ProfileInfoModal({
   const [socialLinks, setSocialLinks] = useState<Array<{ platform: string; url: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Dialog and Toast states
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  const [toast, setToast] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({ isOpen: false, message: '', type: 'info' });
 
   // Initialize form data when modal opens
   useEffect(() => {
@@ -291,18 +307,36 @@ export default function ProfileInfoModal({
 
     if (isChangingIdentifier) {
       const confirmMessage =
-        `⚠️ Changing your URL identifier will make your old profile link stop working!\n\n` +
+        `Changing your URL identifier will make your old profile link stop working!\n\n` +
         `Old URL: mixmi.com/profile/${currentIdentifier}\n` +
         `New URL: mixmi.com/profile/${newIdentifier}\n\n` +
         `Your wallet address URL will always work as a backup:\n` +
-        `mixmi.com/profile/${targetWallet}\n\n` +
-        `Are you sure you want to change it?`;
+        `mixmi.com/profile/${targetWallet}`;
 
-      if (!confirm(confirmMessage)) {
-        setIsSaving(false);
-        return;
-      }
+      setConfirmDialog({
+        isOpen: true,
+        title: '⚠️ URL Change Warning',
+        message: confirmMessage,
+        onConfirm: () => {
+          setConfirmDialog({ ...confirmDialog, isOpen: false });
+          proceedWithSave();
+        }
+      });
+      setIsSaving(false);
+      return;
     }
+
+    proceedWithSave();
+  };
+
+  const proceedWithSave = async () => {
+    const currentIdentifier = profile.bns_name || profile.username;
+    const newIdentifier = formData.use_bns
+      ? (formData.bns_name || formData.username)
+      : formData.username;
+
+    const isChangingIdentifier = currentIdentifier && newIdentifier &&
+                                currentIdentifier !== newIdentifier;
 
     try {
       setIsSaving(true);
@@ -325,7 +359,11 @@ export default function ProfileInfoModal({
         const isOwner = await BNSResolver.verifyBNSOwnership(bnsToVerify, targetWallet);
 
         if (!isOwner) {
-          alert(`You don't own the BNS name "${bnsToVerify}". Only the owner of this BNS name can use it.`);
+          setToast({
+            isOpen: true,
+            message: `You don't own the BNS name "${bnsToVerify}". Only the owner of this BNS name can use it.`,
+            type: 'error'
+          });
           setIsSaving(false);
           return;
         }
@@ -358,13 +396,17 @@ export default function ProfileInfoModal({
 
       // Show success message with new URL if identifier changed
       if (isChangingIdentifier) {
-        alert(
-          `✅ Profile updated successfully!\n\n` +
-          `Your new profile URL is:\n` +
-          `mixmi.com/profile/${newIdentifier}\n\n` +
-          `Remember: Your wallet URL always works too:\n` +
-          `mixmi.com/profile/${targetWallet}`
-        );
+        setToast({
+          isOpen: true,
+          message: `Profile updated successfully!\n\nYour new profile URL is:\nmixmi.com/profile/${newIdentifier}\n\nRemember: Your wallet URL always works too:\nmixmi.com/profile/${targetWallet}`,
+          type: 'success'
+        });
+      } else {
+        setToast({
+          isOpen: true,
+          message: 'Profile updated successfully!',
+          type: 'success'
+        });
       }
 
       // Close modal after successful save
@@ -376,7 +418,11 @@ export default function ProfileInfoModal({
         message: error instanceof Error ? error.message : 'Unknown error',
         error
       });
-      alert('Failed to save profile information. Please check the console for details.');
+      setToast({
+        isOpen: true,
+        message: `Failed to save profile: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        type: 'error'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -388,6 +434,7 @@ export default function ProfileInfoModal({
   };
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile Information">
       <div className="space-y-6 max-h-[70vh] overflow-y-auto">
         {/* BNS Detection Alert */}
@@ -702,5 +749,28 @@ export default function ProfileInfoModal({
         </div>
       </div>
     </Modal>
+
+    {/* Confirmation Dialog */}
+    <ConfirmDialog
+      isOpen={confirmDialog.isOpen}
+      title={confirmDialog.title}
+      message={confirmDialog.message}
+      confirmText="Yes, Change It"
+      cancelText="Cancel"
+      onConfirm={confirmDialog.onConfirm}
+      onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      type="warning"
+    />
+
+    {/* Toast Notification */}
+    {toast.isOpen && (
+      <ToastNotification
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        duration={toast.type === 'success' && toast.message.includes('new profile URL') ? 10000 : 5000}
+      />
+    )}
+  </>
   );
 }
