@@ -204,21 +204,35 @@ export class UserProfileService {
     config: any[]
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      console.log('Updating section config:', {
+        walletAddress,
+        sectionType,
+        configLength: config.length,
+        config: JSON.stringify(config, null, 2)
+      });
+
+      const { data, error } = await supabase
         .from('user_profile_sections')
         .update({ config })
         .eq('wallet_address', walletAddress)
-        .eq('section_type', sectionType);
+        .eq('section_type', sectionType)
+        .select();
 
       if (error) {
-        console.error('Error updating section config:', error);
-        return false;
+        console.error('Error updating section config:', {
+          error,
+          message: error.message,
+          details: error.details,
+          code: error.code
+        });
+        throw new Error(`Failed to update section config: ${error.message}`);
       }
 
+      console.log('Section config updated successfully:', data);
       return true;
     } catch (error) {
-      console.error('Error updating section config:', error);
-      return false;
+      console.error('Exception in updateSectionConfig:', error);
+      throw error; // Re-throw to let caller see the error
     }
   }
 }
