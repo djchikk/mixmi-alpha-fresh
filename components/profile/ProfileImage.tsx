@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import SafeImage from "../shared/SafeImage";
-// TODO: ProfileImageModal needs to be adapted to use props
-// import ProfileImageModal from "./ProfileImageModal";
+import ProfileImageModal from "./ProfileImageModal";
 import EditButton from "../ui/EditButton";
 
 interface ProfileImageProps {
@@ -12,10 +11,11 @@ interface ProfileImageProps {
     name?: string | null;
   };
   isOwnProfile: boolean;
+  targetWallet: string;
   onUpdate: () => Promise<void>;
 }
 
-export default function ProfileImage({ profile, isOwnProfile, onUpdate }: ProfileImageProps) {
+export default function ProfileImage({ profile, isOwnProfile, targetWallet, onUpdate }: ProfileImageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Handle clicks on the profile image or edit button
@@ -79,14 +79,13 @@ export default function ProfileImage({ profile, isOwnProfile, onUpdate }: Profil
         )}
       </div>
 
-      {/* TODO: Re-enable once ProfileImageModal is adapted
       <ProfileImageModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        currentImage={profile.image}
+        currentImage={profile.image || undefined}
+        targetWallet={targetWallet}
         onUpdate={onUpdate}
       />
-      */}
     </>
   );
 } 

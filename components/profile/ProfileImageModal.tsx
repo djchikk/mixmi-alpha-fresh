@@ -2,17 +2,24 @@
 
 import React, { useState, useEffect } from "react";
 import Modal from "../ui/Modal";
-import { useProfile } from "@/contexts/ProfileContext";
 import ImageUploader from "../shared/ImageUploader";
+import { UserProfileService } from "@/lib/userProfileService";
 
 interface ProfileImageModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentImage?: string;
+  targetWallet: string;
+  onUpdate: () => Promise<void>;
 }
 
-export default function ProfileImageModal({ isOpen, onClose, currentImage }: ProfileImageModalProps) {
-  const { updateProfile } = useProfile();
+export default function ProfileImageModal({
+  isOpen,
+  onClose,
+  currentImage,
+  targetWallet,
+  onUpdate
+}: ProfileImageModalProps) {
   const [currentImageData, setCurrentImageData] = useState<string>(currentImage || "");
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
@@ -41,17 +48,20 @@ export default function ProfileImageModal({ isOpen, onClose, currentImage }: Pro
   
   const handleSave = async () => {
     if (!currentImageData) return;
-    
+
     try {
       setIsSaving(true);
       setSaveStatus('saving');
-      
-      console.log('🔧 About to call updateProfile with image data...');
-      
-      // Call the save function with minimum delay like gallery sections do
-      await updateProfile({
+
+      console.log('🔧 About to update profile image...');
+
+      // Update the profile image using UserProfileService
+      await UserProfileService.updateProfile(targetWallet, {
         image: currentImageData
       });
+
+      // Call the onUpdate callback to refresh the parent component
+      await onUpdate();
       
       // Ensure "Saving..." is visible for at least 500ms (like gallery sections)
       await new Promise(resolve => setTimeout(resolve, 500));

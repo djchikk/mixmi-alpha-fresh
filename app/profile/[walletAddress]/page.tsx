@@ -115,6 +115,7 @@ export default function UserProfilePage() {
               <ProfileImage
                 profile={profile}
                 isOwnProfile={isOwnProfile}
+                targetWallet={targetWallet}
                 onUpdate={refreshProfile}
               />
             </div>
