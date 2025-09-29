@@ -18,11 +18,12 @@ import ProfileSticker from '@/components/profile/ProfileSticker';
 export default function UserProfilePage() {
   const params = useParams();
   const { walletAddress: currentUserWallet } = useAuth();
-  const targetWallet = params.walletAddress as string;
+  const identifier = params.walletAddress as string; // Can be username or wallet
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [targetWallet, setTargetWallet] = useState<string>('');
 
   const isOwnProfile = currentUserWallet === targetWallet;
 
@@ -30,15 +31,22 @@ export default function UserProfilePage() {
     const loadProfile = async () => {
       setIsLoading(true);
       try {
-        const data = await UserProfileService.getProfile(targetWallet);
+        // Use the new method that handles both username and wallet
+        const data = await UserProfileService.getProfileByIdentifier(identifier);
 
-        if (!data.profile && isOwnProfile) {
+        if (data.profile) {
+          // Set the actual wallet address for comparison
+          setTargetWallet(data.profile.wallet_address);
+          setProfileData(data);
+        } else if (isOwnProfile) {
+          // Only initialize if it's the current user's profile
           setIsInitializing(true);
-          const initialized = await UserProfileService.initializeProfile(targetWallet);
+          const initialized = await UserProfileService.initializeProfile(currentUserWallet);
 
           if (initialized) {
-            const refreshedData = await UserProfileService.getProfile(targetWallet);
+            const refreshedData = await UserProfileService.getProfile(currentUserWallet);
             setProfileData(refreshedData);
+            setTargetWallet(currentUserWallet);
           }
           setIsInitializing(false);
         } else {
@@ -51,13 +59,16 @@ export default function UserProfilePage() {
       }
     };
 
-    if (targetWallet) {
+    if (identifier) {
       loadProfile();
     }
-  }, [targetWallet, isOwnProfile]);
+  }, [identifier, currentUserWallet]);
 
   const refreshProfile = async () => {
-    const data = await UserProfileService.getProfile(targetWallet);
+    const data = await UserProfileService.getProfileByIdentifier(identifier);
+    if (data.profile) {
+      setTargetWallet(data.profile.wallet_address);
+    }
     setProfileData(data);
   };
 

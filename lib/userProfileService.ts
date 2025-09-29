@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 
 export interface UserProfile {
   wallet_address: string;
+  username?: string;
   display_name: string;
   tagline: string;
   bio: string;
@@ -74,6 +75,80 @@ export class UserProfileService {
         links: [],
         sections: []
       };
+    }
+  }
+
+  static async getProfileByIdentifier(identifier: string): Promise<ProfileData> {
+    try {
+      // Use the database function to handle both username and wallet lookups
+      const { data: profileData, error } = await supabase
+        .rpc('get_profile_by_identifier', { p_identifier: identifier });
+
+      if (error || !profileData || profileData.length === 0) {
+        return {
+          profile: null,
+          links: [],
+          sections: []
+        };
+      }
+
+      const profile = profileData[0];
+
+      // Fetch links and sections using the wallet address
+      const [linksResult, sectionsResult] = await Promise.all([
+        supabase
+          .from('user_profile_links')
+          .select('*')
+          .eq('wallet_address', profile.wallet_address)
+          .eq('is_active', true)
+          .order('display_order'),
+        supabase
+          .from('user_profile_sections')
+          .select('*')
+          .eq('wallet_address', profile.wallet_address)
+          .order('display_order')
+      ]);
+
+      return {
+        profile: {
+          ...profile,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        links: linksResult.data || [],
+        sections: sectionsResult.data || []
+      };
+    } catch (error) {
+      console.error('Error fetching profile by identifier:', error);
+      return {
+        profile: null,
+        links: [],
+        sections: []
+      };
+    }
+  }
+
+  static async checkUsernameAvailability(username: string, currentWallet?: string): Promise<{
+    available: boolean;
+    error?: string;
+    message?: string;
+  }> {
+    try {
+      const { data, error } = await supabase
+        .rpc('check_username_availability', {
+          p_username: username,
+          p_current_wallet: currentWallet
+        });
+
+      if (error) {
+        console.error('Error checking username:', error);
+        return { available: false, error: 'Failed to check username availability' };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error checking username availability:', error);
+      return { available: false, error: 'Failed to check username availability' };
     }
   }
 
@@ -239,6 +314,8 @@ export class UserProfileService {
 
 export const {
   getProfile,
+  getProfileByIdentifier,
+  checkUsernameAvailability,
   initializeProfile,
   updateProfile,
   updateLinks,

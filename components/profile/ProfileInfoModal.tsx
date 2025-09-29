@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Modal from "../ui/Modal";
 import { UserProfileService } from "@/lib/userProfileService";
-import { Instagram, Youtube, Music, Github, Twitch, Plus, X } from "lucide-react";
+import { Instagram, Youtube, Music, Github, Twitch, Plus, X, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { FaSoundcloud, FaMixcloud, FaTiktok, FaXTwitter } from "react-icons/fa6";
 
 interface ProfileInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: {
+    username?: string | null;
     display_name?: string | null;
     tagline?: string | null;
     bio?: string | null;
@@ -45,12 +46,15 @@ export default function ProfileInfoModal({
   onUpdate
 }: ProfileInfoModalProps) {
   const [formData, setFormData] = useState({
+    username: '',
     display_name: '',
     tagline: '',
     bio: '',
     show_wallet_address: false,
     show_btc_address: false
   });
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
+  const [usernameError, setUsernameError] = useState<string>('');
 
   const [socialLinks, setSocialLinks] = useState<Array<{ platform: string; url: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -60,6 +64,7 @@ export default function ProfileInfoModal({
   useEffect(() => {
     if (isOpen) {
       setFormData({
+        username: profile.username || '',
         display_name: profile.display_name || '',
         tagline: profile.tagline || '',
         bio: profile.bio || '',
@@ -68,8 +73,64 @@ export default function ProfileInfoModal({
       });
       setSocialLinks(links || []);
       setErrors({});
+      setUsernameStatus('idle');
+      setUsernameError('');
     }
   }, [isOpen, profile, links]);
+
+  // Debounced username check
+  const checkUsernameAvailability = useCallback(async (username: string) => {
+    if (!username || username.length < 3) {
+      setUsernameStatus('idle');
+      return;
+    }
+
+    // Basic format validation first
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_]*$/.test(username)) {
+      setUsernameStatus('invalid');
+      setUsernameError('Username can only contain letters, numbers, and underscores (cannot start with underscore)');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    setUsernameError('');
+
+    try {
+      const response = await fetch('/api/profile/check-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, currentWallet: targetWallet })
+      });
+
+      const result = await response.json();
+
+      if (result.available) {
+        setUsernameStatus('available');
+        setUsernameError('');
+      } else {
+        setUsernameStatus('taken');
+        setUsernameError(result.error || 'Username is already taken');
+      }
+    } catch (error) {
+      console.error('Error checking username:', error);
+      setUsernameStatus('invalid');
+      setUsernameError('Failed to check username availability');
+    }
+  }, [targetWallet]);
+
+  // Debounce timer for username check
+  useEffect(() => {
+    if (formData.username === profile.username) {
+      setUsernameStatus('idle'); // Don't check if it's the same as current
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      checkUsernameAvailability(formData.username);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [formData.username, profile.username, checkUsernameAvailability]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -95,6 +156,17 @@ export default function ProfileInfoModal({
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+
+    // Username validation
+    if (formData.username && (usernameStatus === 'taken' || usernameStatus === 'invalid')) {
+      newErrors.username = usernameError;
+    }
+    if (formData.username && formData.username.length > 0 && formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
+    }
+    if (formData.username && formData.username.length > 30) {
+      newErrors.username = 'Username must be 30 characters or less';
+    }
 
     // Character limits
     if (formData.display_name.length > 40) {
@@ -132,6 +204,7 @@ export default function ProfileInfoModal({
 
       // Update profile info
       const updateResult = await UserProfileService.updateProfile(targetWallet, {
+        username: formData.username || null,
         display_name: formData.display_name || null,
         tagline: formData.tagline || null,
         bio: formData.bio || null,
@@ -172,16 +245,59 @@ export default function ProfileInfoModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile Information">
       <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+        {/* Username Field with Real-time Validation */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Username <span className="text-xs text-gray-500">(for your profile URL)</span>
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={formData.username}
+              onChange={(e) => handleInputChange('username', e.target.value.toLowerCase())}
+              placeholder="username (letters, numbers, underscore)"
+              maxLength={30}
+              className={`w-full px-3 py-2 pr-10 bg-slate-800 text-white rounded-lg border ${
+                usernameStatus === 'available' ? 'border-green-500' :
+                usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-500' :
+                'border-slate-600'
+              } focus:outline-none transition-colors`}
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              {usernameStatus === 'checking' && (
+                <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+              )}
+              {usernameStatus === 'available' && (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              )}
+              {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                <XCircle className="w-5 h-5 text-red-500" />
+              )}
+            </div>
+          </div>
+          <div className="flex justify-between items-center mt-1">
+            <span className="text-xs text-gray-500">
+              {formData.username ? `mixmi.com/profile/${formData.username}` : 'Choose a unique username'}
+            </span>
+            {usernameError && (
+              <span className="text-xs text-red-400">{usernameError}</span>
+            )}
+            {usernameStatus === 'available' && (
+              <span className="text-xs text-green-400">Available!</span>
+            )}
+          </div>
+        </div>
+
         {/* Name Field */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Name
+            Display Name
           </label>
           <input
             type="text"
             value={formData.display_name}
             onChange={(e) => handleInputChange('display_name', e.target.value)}
-            placeholder="Your name"
+            placeholder="Your display name"
             maxLength={40}
             className="w-full px-3 py-2 bg-slate-800 text-white rounded-lg border border-slate-600 focus:border-[#81E4F2] focus:outline-none transition-colors"
           />
