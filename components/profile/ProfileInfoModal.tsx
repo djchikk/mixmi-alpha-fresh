@@ -280,6 +280,30 @@ export default function ProfileInfoModal({
   const handleSave = async () => {
     if (!validateForm()) return;
 
+    // Check if URL identifier is changing
+    const currentIdentifier = profile.bns_name || profile.username;
+    const newIdentifier = formData.use_bns
+      ? (formData.bns_name || formData.username)
+      : formData.username;
+
+    const isChangingIdentifier = currentIdentifier && newIdentifier &&
+                                currentIdentifier !== newIdentifier;
+
+    if (isChangingIdentifier) {
+      const confirmMessage =
+        `⚠️ Changing your URL identifier will make your old profile link stop working!\n\n` +
+        `Old URL: mixmi.com/profile/${currentIdentifier}\n` +
+        `New URL: mixmi.com/profile/${newIdentifier}\n\n` +
+        `Your wallet address URL will always work as a backup:\n` +
+        `mixmi.com/profile/${targetWallet}\n\n` +
+        `Are you sure you want to change it?`;
+
+      if (!confirm(confirmMessage)) {
+        setIsSaving(false);
+        return;
+      }
+    }
+
     try {
       setIsSaving(true);
 
@@ -331,6 +355,17 @@ export default function ProfileInfoModal({
 
       // Refresh the parent component
       await onUpdate();
+
+      // Show success message with new URL if identifier changed
+      if (isChangingIdentifier) {
+        alert(
+          `✅ Profile updated successfully!\n\n` +
+          `Your new profile URL is:\n` +
+          `mixmi.com/profile/${newIdentifier}\n\n` +
+          `Remember: Your wallet URL always works too:\n` +
+          `mixmi.com/profile/${targetWallet}`
+        );
+      }
 
       // Close modal after successful save
       onClose();
