@@ -11,6 +11,7 @@ interface ProfileInfoModalProps {
   onClose: () => void;
   profile: {
     username?: string | null;
+    bns_name?: string | null;
     display_name?: string | null;
     tagline?: string | null;
     bio?: string | null;
@@ -47,6 +48,8 @@ export default function ProfileInfoModal({
 }: ProfileInfoModalProps) {
   const [formData, setFormData] = useState({
     username: '',
+    bns_name: '',
+    use_bns: false,
     display_name: '',
     tagline: '',
     bio: '',
@@ -55,6 +58,8 @@ export default function ProfileInfoModal({
   });
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const [usernameError, setUsernameError] = useState<string>('');
+  const [bnsDetected, setBnsDetected] = useState<string | null>(null);
+  const [checkingBns, setCheckingBns] = useState(false);
 
   const [socialLinks, setSocialLinks] = useState<Array<{ platform: string; url: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -63,8 +68,11 @@ export default function ProfileInfoModal({
   // Initialize form data when modal opens
   useEffect(() => {
     if (isOpen) {
+      const hasBns = !!profile.bns_name;
       setFormData({
         username: profile.username || '',
+        bns_name: profile.bns_name || '',
+        use_bns: hasBns,
         display_name: profile.display_name || '',
         tagline: profile.tagline || '',
         bio: profile.bio || '',
@@ -75,8 +83,44 @@ export default function ProfileInfoModal({
       setErrors({});
       setUsernameStatus('idle');
       setUsernameError('');
+      setBnsDetected(null);
+
+      // Auto-detect BNS name if user doesn't have one set
+      if (!profile.bns_name && !profile.username) {
+        checkForBnsName();
+      }
     }
   }, [isOpen, profile, links]);
+
+  // Check if wallet has a BNS name
+  const checkForBnsName = async () => {
+    setCheckingBns(true);
+    try {
+      const response = await fetch('/api/profile/check-bns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: targetWallet })
+      });
+
+      const result = await response.json();
+      if (result.found && result.bnsName) {
+        setBnsDetected(result.bnsName);
+        // Auto-fill the username field with BNS name if nothing is set
+        if (!formData.username && !formData.bns_name) {
+          setFormData(prev => ({
+            ...prev,
+            username: result.bnsName,
+            bns_name: result.bnsName,
+            use_bns: true
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking BNS:', error);
+    } finally {
+      setCheckingBns(false);
+    }
+  };
 
   // Debounced username check
   const checkUsernameAvailability = useCallback(async (username: string) => {
@@ -204,7 +248,8 @@ export default function ProfileInfoModal({
 
       // Update profile info
       const updateResult = await UserProfileService.updateProfile(targetWallet, {
-        username: formData.username || null,
+        username: formData.use_bns ? null : (formData.username || null),
+        bns_name: formData.use_bns ? (formData.bns_name || formData.username || null) : null,
         display_name: formData.display_name || null,
         tagline: formData.tagline || null,
         bio: formData.bio || null,
@@ -245,45 +290,119 @@ export default function ProfileInfoModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile Information">
       <div className="space-y-6 max-h-[70vh] overflow-y-auto">
-        {/* Username Field with Real-time Validation */}
+        {/* BNS Detection Alert */}
+        {bnsDetected && !profile.bns_name && !profile.username && (
+          <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-3">
+            <p className="text-sm text-blue-300">
+              🎉 BNS name detected: <strong>{bnsDetected}</strong>
+            </p>
+            <p className="text-xs text-blue-400 mt-1">
+              We've auto-filled this as your username. You can change it if you prefer.
+            </p>
+          </div>
+        )}
+
+        {/* Username/BNS Toggle */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Username <span className="text-xs text-gray-500">(for your profile URL)</span>
+            Profile URL Identifier
           </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={formData.username}
-              onChange={(e) => handleInputChange('username', e.target.value.toLowerCase())}
-              placeholder="username (letters, numbers, underscore)"
-              maxLength={30}
-              className={`w-full px-3 py-2 pr-10 bg-slate-800 text-white rounded-lg border ${
-                usernameStatus === 'available' ? 'border-green-500' :
-                usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-500' :
-                'border-slate-600'
-              } focus:outline-none transition-colors`}
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-              {usernameStatus === 'checking' && (
-                <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-              )}
-              {usernameStatus === 'available' && (
-                <CheckCircle className="w-5 h-5 text-green-500" />
-              )}
-              {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
-                <XCircle className="w-5 h-5 text-red-500" />
+
+          {/* Toggle between Username and BNS */}
+          <div className="flex gap-2 mb-3">
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, use_bns: false }))}
+              className={`flex-1 py-2 px-3 rounded-lg border transition-colors ${
+                !formData.use_bns
+                  ? 'bg-slate-700 border-[#81E4F2] text-white'
+                  : 'bg-slate-800 border-slate-600 text-gray-400 hover:border-slate-500'
+              }`}
+            >
+              Custom Username
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, use_bns: true }))}
+              className={`flex-1 py-2 px-3 rounded-lg border transition-colors ${
+                formData.use_bns
+                  ? 'bg-slate-700 border-[#81E4F2] text-white'
+                  : 'bg-slate-800 border-slate-600 text-gray-400 hover:border-slate-500'
+              }`}
+            >
+              BNS Name (.btc)
+            </button>
+          </div>
+
+          {/* Username Field (shown when not using BNS) */}
+          {!formData.use_bns && (
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => handleInputChange('username', e.target.value.toLowerCase())}
+                placeholder="username (letters, numbers, underscore)"
+                maxLength={30}
+                className={`w-full px-3 py-2 pr-10 bg-slate-800 text-white rounded-lg border ${
+                  usernameStatus === 'available' ? 'border-green-500' :
+                  usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-500' :
+                  'border-slate-600'
+                } focus:outline-none transition-colors`}
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                {usernameStatus === 'checking' && (
+                  <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                )}
+                {usernameStatus === 'available' && (
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                )}
+                {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                  <XCircle className="w-5 h-5 text-red-500" />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* BNS Field (shown when using BNS) */}
+          {formData.use_bns && (
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.bns_name || formData.username}
+                onChange={(e) => {
+                  const value = e.target.value.toLowerCase();
+                  setFormData(prev => ({ ...prev, bns_name: value, username: value }));
+                }}
+                placeholder="yourname.btc"
+                className="w-full px-3 py-2 pr-10 bg-slate-800 text-white rounded-lg border border-slate-600 focus:border-[#81E4F2] focus:outline-none transition-colors"
+              />
+              {checkingBns && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                </div>
               )}
             </div>
-          </div>
+          )}
+
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs text-gray-500">
-              {formData.username ? `mixmi.com/profile/${formData.username}` : 'Choose a unique username'}
+              {formData.use_bns
+                ? (formData.bns_name || formData.username
+                  ? `mixmi.com/profile/${formData.bns_name || formData.username}`
+                  : 'Enter your BNS name')
+                : (formData.username
+                  ? `mixmi.com/profile/${formData.username}`
+                  : 'Choose a unique username')
+              }
             </span>
-            {usernameError && (
+            {!formData.use_bns && usernameError && (
               <span className="text-xs text-red-400">{usernameError}</span>
             )}
-            {usernameStatus === 'available' && (
+            {!formData.use_bns && usernameStatus === 'available' && (
               <span className="text-xs text-green-400">Available!</span>
+            )}
+            {formData.use_bns && formData.bns_name && (
+              <span className="text-xs text-gray-400">BNS names are verified on-chain</span>
             )}
           </div>
         </div>

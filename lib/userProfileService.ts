@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 export interface UserProfile {
   wallet_address: string;
   username?: string;
+  bns_name?: string;
   display_name: string;
   tagline: string;
   bio: string;
