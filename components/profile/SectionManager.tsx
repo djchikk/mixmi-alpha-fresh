@@ -11,10 +11,11 @@ interface SectionManagerProps {
     config: any;
   }>;
   targetWallet: string;
+  stickerVisible?: boolean;
   onUpdate: () => Promise<void>;
 }
 
-export default function SectionManager({ sections, targetWallet, onUpdate }: SectionManagerProps) {
+export default function SectionManager({ sections, targetWallet, stickerVisible = true, onUpdate }: SectionManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -54,18 +55,40 @@ export default function SectionManager({ sections, targetWallet, onUpdate }: Sec
   }, []);
 
   const toggleSection = async (sectionType: string) => {
+    // Handle sticker visibility separately
+    if (sectionType === 'sticker') {
+      try {
+        const result = await UserProfileService.updateProfile(targetWallet, {
+          sticker_visible: !stickerVisible
+        });
+
+        if (result) {
+          await onUpdate();
+        } else {
+          console.error('Failed to update sticker visibility');
+        }
+      } catch (error) {
+        console.error('Failed to toggle sticker:', error);
+      }
+      return;
+    }
+
+    // Handle regular sections
     const section = sections.find(s => s.section_type === sectionType);
     if (!section) return;
 
     try {
-      await UserProfileService.updateSection(
+      const result = await UserProfileService.updateSectionVisibility(
         targetWallet,
-        sectionType as any,
-        {
-          is_visible: !section.is_visible
-        }
+        sectionType,
+        !section.is_visible
       );
-      await onUpdate();
+
+      if (result) {
+        await onUpdate();
+      } else {
+        console.error('Failed to update section visibility');
+      }
     } catch (error) {
       console.error('Failed to toggle section:', error);
     }
@@ -77,6 +100,7 @@ export default function SectionManager({ sections, targetWallet, onUpdate }: Sec
       case 'media': return 'Media';
       case 'shop': return 'Shop';
       case 'gallery': return 'Gallery';
+      case 'sticker': return 'Profile Sticker';
       default: return type;
     }
   };
@@ -126,6 +150,7 @@ export default function SectionManager({ sections, targetWallet, onUpdate }: Sec
           style={{ width: `${buttonWidth}px` }}
         >
           <div className="p-1">
+            {/* Regular sections */}
             {sections.map((section) => (
               <button
                 key={section.section_type}
@@ -148,6 +173,27 @@ export default function SectionManager({ sections, targetWallet, onUpdate }: Sec
                 </div>
               </button>
             ))}
+
+            {/* Sticker toggle */}
+            <button
+              onClick={() => toggleSection('sticker')}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-800/50 rounded transition-colors"
+            >
+              <span className="text-white font-medium">
+                {getSectionName('sticker')}
+              </span>
+              <div
+                className={`w-12 h-6 rounded-full transition-all duration-200 relative ${
+                  stickerVisible ? 'bg-[#81E4F2]' : 'bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
+                    stickerVisible ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </div>
+            </button>
           </div>
         </div>
       )}

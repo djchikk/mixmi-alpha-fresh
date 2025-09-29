@@ -137,6 +137,7 @@ export default function UserProfilePage() {
           <SectionManager
             sections={sections}
             targetWallet={targetWallet}
+            stickerVisible={profile.sticker_visible}
             onUpdate={refreshProfile}
           />
         )}
