@@ -100,20 +100,29 @@ export class UserProfileService {
     updates: Partial<Omit<UserProfile, 'wallet_address' | 'created_at' | 'updated_at'>>
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      console.log('Updating profile for wallet:', walletAddress, 'with updates:', updates);
+
+      const { data, error } = await supabase
         .from('user_profiles')
         .update(updates)
-        .eq('wallet_address', walletAddress);
+        .eq('wallet_address', walletAddress)
+        .select();
 
       if (error) {
-        console.error('Error updating profile:', error);
-        return false;
+        console.error('Supabase error updating profile:', {
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details
+        });
+        throw new Error(`Failed to update profile: ${error.message}`);
       }
 
+      console.log('Profile update successful:', data);
       return true;
     } catch (error) {
-      console.error('Error updating profile:', error);
-      return false;
+      console.error('Exception updating profile:', error);
+      throw error; // Re-throw to let caller handle it
     }
   }
 
@@ -122,11 +131,20 @@ export class UserProfileService {
     links: Array<{ platform: string; url: string }>
   ): Promise<boolean> {
     try {
-      await supabase
+      console.log('Updating links for wallet:', walletAddress, 'with links:', links);
+
+      // First delete existing links
+      const { error: deleteError } = await supabase
         .from('user_profile_links')
         .delete()
         .eq('wallet_address', walletAddress);
 
+      if (deleteError) {
+        console.error('Error deleting existing links:', deleteError);
+        throw new Error(`Failed to delete existing links: ${deleteError.message}`);
+      }
+
+      // Then insert new links if any
       if (links.length > 0) {
         const linksData = links.map((link, index) => ({
           wallet_address: walletAddress,
@@ -136,20 +154,23 @@ export class UserProfileService {
           is_active: true
         }));
 
-        const { error } = await supabase
+        const { data, error: insertError } = await supabase
           .from('user_profile_links')
-          .insert(linksData);
+          .insert(linksData)
+          .select();
 
-        if (error) {
-          console.error('Error updating links:', error);
-          return false;
+        if (insertError) {
+          console.error('Error inserting links:', insertError);
+          throw new Error(`Failed to insert links: ${insertError.message}`);
         }
+
+        console.log('Links inserted successfully:', data);
       }
 
       return true;
     } catch (error) {
-      console.error('Error updating links:', error);
-      return false;
+      console.error('Exception updating links:', error);
+      throw error; // Re-throw to let caller handle it
     }
   }
 

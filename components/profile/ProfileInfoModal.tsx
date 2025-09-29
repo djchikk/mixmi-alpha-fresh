@@ -124,8 +124,14 @@ export default function ProfileInfoModal({
     try {
       setIsSaving(true);
 
+      console.log('Saving profile with data:', {
+        targetWallet,
+        formData,
+        socialLinks
+      });
+
       // Update profile info
-      await UserProfileService.updateProfile(targetWallet, {
+      const updateResult = await UserProfileService.updateProfile(targetWallet, {
         display_name: formData.display_name || null,
         tagline: formData.tagline || null,
         bio: formData.bio || null,
@@ -133,9 +139,12 @@ export default function ProfileInfoModal({
         show_btc_address: formData.show_btc_address
       });
 
+      console.log('Profile update result:', updateResult);
+
       // Update social links
       const validLinks = socialLinks.filter(link => link.url);
-      await UserProfileService.updateProfileLinks(targetWallet, validLinks);
+      const linksResult = await UserProfileService.updateLinks(targetWallet, validLinks);
+      console.log('Links update result:', linksResult);
 
       // Refresh the parent component
       await onUpdate();
@@ -144,8 +153,12 @@ export default function ProfileInfoModal({
       onClose();
 
     } catch (error) {
-      console.error('Failed to save profile info:', error);
-      alert('Failed to save profile information. Please try again.');
+      console.error('Failed to save profile info - Full error:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error
+      });
+      alert('Failed to save profile information. Please check the console for details.');
     } finally {
       setIsSaving(false);
     }

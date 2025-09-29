@@ -105,22 +105,22 @@ export default function ProfileInfo({
           {profile.display_name && profile.display_name.length > 40 ? "..." : ""}
         </h1>
 
-      <p className="text-xl text-white/90 mb-4" title={profile.tagline}>
-        {taglineText}
-        {profile.tagline && profile.tagline.length > 40 ? "..." : ""}
-      </p>
-      
-      <p 
-        className="text-gray-400 w-full mb-6 line-clamp-3 hover:line-clamp-none transition-all duration-200 cursor-default" 
-        title={profile.bio && profile.bio.length > 350 ? profile.bio : undefined}
-      >
-        {bioText}
-        {profile.bio && profile.bio.length > 350 ? "..." : ""}
-      </p>
-      
-      {/* Social links */}
-      {(socialLinks.length > 0 || isOwnProfile) && (
-        <div className="flex flex-wrap justify-center gap-4 mb-6">
+        <p className="text-xl text-white/90 mb-4" title={profile.tagline}>
+          {taglineText}
+          {profile.tagline && profile.tagline.length > 40 ? "..." : ""}
+        </p>
+
+        <p
+          className="text-gray-400 w-full mb-6 line-clamp-3 hover:line-clamp-none transition-all duration-200 cursor-default"
+          title={profile.bio && profile.bio.length > 350 ? profile.bio : undefined}
+        >
+          {bioText}
+          {profile.bio && profile.bio.length > 350 ? "..." : ""}
+        </p>
+
+        {/* Social links */}
+        {(socialLinks.length > 0 || isOwnProfile) && (
+          <div className="flex flex-wrap justify-center gap-4 mb-6">
           {socialLinks.length > 0 ? (
             socialLinks.map((link, index) => (
               <a
