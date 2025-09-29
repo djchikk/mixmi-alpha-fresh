@@ -39,11 +39,12 @@ export default function ProfileImageModal({
   const handleImageChange = (imageData: string) => {
     console.log('🔧 ProfileImageModal.handleImageChange called:', {
       hasImageData: !!imageData,
-      imageType: imageData?.startsWith('data:image/') ? imageData.substring(0, 20) + '...' : 'not base64',
+      imageType: imageData?.startsWith('data:image/') ? 'base64' : (imageData?.startsWith('http') ? 'URL' : 'unknown'),
       imageSize: imageData?.length ? `${Math.round(imageData.length/1024)}KB` : 'no size'
     });
-    
-    // Store the image data but don't save yet - wait for explicit save
+
+    // ImageUploader already handles the upload and returns a URL
+    // Store the URL directly - no need for further processing
     setCurrentImageData(imageData);
   };
   
@@ -56,14 +57,17 @@ export default function ProfileImageModal({
 
       console.log('🔧 About to update profile image...');
 
-      // Upload image to Supabase Storage and get URL
-      const imageUrl = await processAndUploadProfileImage(currentImageData, targetWallet);
+      // ImageUploader already uploaded the image and gave us a URL
+      // Just save the URL directly to the database
+      const imageUrl = currentImageData.startsWith('http')
+        ? currentImageData
+        : await processAndUploadProfileImage(currentImageData, targetWallet); // Fallback for base64
 
-      console.log('📸 Image uploaded, updating profile with URL:', imageUrl);
+      console.log('📸 Saving image URL to profile:', imageUrl);
 
-      // Update the profile with the image URL (not base64)
+      // Update the profile with the image URL
       await UserProfileService.updateProfile(targetWallet, {
-        avatar_url: imageUrl  // Changed from 'image' to 'avatar_url' to match DB schema
+        avatar_url: imageUrl
       });
 
       // Call the onUpdate callback to refresh the parent component
@@ -118,6 +122,7 @@ export default function ProfileImageModal({
           onImageChange={handleImageChange}
           aspectRatio="square"
           section="profile"
+          walletAddress={targetWallet}  // Pass wallet for storage upload
         />
         
         {/* Save Status Indicator */}
