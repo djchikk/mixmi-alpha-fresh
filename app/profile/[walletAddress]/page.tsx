@@ -31,26 +31,41 @@ export default function UserProfilePage() {
     const loadProfile = async () => {
       setIsLoading(true);
       try {
+        console.log('Loading profile for identifier:', identifier);
+
         // Use the new method that handles both username and wallet
         const data = await UserProfileService.getProfileByIdentifier(identifier);
+        console.log('Profile data received:', data);
 
         if (data.profile) {
           // Set the actual wallet address for comparison
           setTargetWallet(data.profile.wallet_address);
           setProfileData(data);
-        } else if (isOwnProfile) {
-          // Only initialize if it's the current user's profile
-          setIsInitializing(true);
-          const initialized = await UserProfileService.initializeProfile(currentUserWallet);
-
-          if (initialized) {
-            const refreshedData = await UserProfileService.getProfile(currentUserWallet);
-            setProfileData(refreshedData);
-            setTargetWallet(currentUserWallet);
-          }
-          setIsInitializing(false);
         } else {
-          setProfileData(data);
+          // If not found by identifier, try by wallet if it looks like a wallet
+          if (identifier.startsWith('SP') || identifier.startsWith('ST')) {
+            console.log('Trying direct wallet lookup for:', identifier);
+            const walletData = await UserProfileService.getProfile(identifier);
+            if (walletData.profile) {
+              setTargetWallet(identifier);
+              setProfileData(walletData);
+            } else if (currentUserWallet === identifier) {
+              // Initialize if it's the current user's profile
+              setIsInitializing(true);
+              const initialized = await UserProfileService.initializeProfile(currentUserWallet);
+
+              if (initialized) {
+                const refreshedData = await UserProfileService.getProfile(currentUserWallet);
+                setProfileData(refreshedData);
+                setTargetWallet(currentUserWallet);
+              }
+              setIsInitializing(false);
+            } else {
+              setProfileData(walletData);
+            }
+          } else {
+            setProfileData(data);
+          }
         }
       } catch (error) {
         console.error('Error loading profile:', error);

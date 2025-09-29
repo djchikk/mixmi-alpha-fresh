@@ -17,9 +17,9 @@ export class BNSResolver {
    */
   static async getNamesForAddress(walletAddress: string): Promise<BNSName[]> {
     try {
-      // Using Hiro API to fetch BNS names
+      // Using Hiro API v2 endpoint for BNS names
       const response = await fetch(
-        `${this.BNS_API_BASE}/names/v1/address/${walletAddress}`,
+        `${this.BNS_API_BASE}/v2/addresses/stacks/${walletAddress}`,
         {
           headers: {
             'Accept': 'application/json',

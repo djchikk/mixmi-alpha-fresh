@@ -60,6 +60,7 @@ export default function ProfileInfoModal({
   const [usernameError, setUsernameError] = useState<string>('');
   const [bnsDetected, setBnsDetected] = useState<string | null>(null);
   const [checkingBns, setCheckingBns] = useState(false);
+  const [bnsOwnershipStatus, setBnsOwnershipStatus] = useState<'idle' | 'checking' | 'owned' | 'not-owned'>('idle');
 
   const [socialLinks, setSocialLinks] = useState<Array<{ platform: string; url: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -85,10 +86,8 @@ export default function ProfileInfoModal({
       setUsernameError('');
       setBnsDetected(null);
 
-      // Auto-detect BNS name if user doesn't have one set
-      if (!profile.bns_name && !profile.username) {
-        checkForBnsName();
-      }
+      // Always check for BNS name to show it as an option
+      checkForBnsName();
     }
   }, [isOpen, profile, links]);
 
@@ -105,15 +104,22 @@ export default function ProfileInfoModal({
       const result = await response.json();
       if (result.found && result.bnsName) {
         setBnsDetected(result.bnsName);
-        // Auto-fill the username field with BNS name if nothing is set
-        if (!formData.username && !formData.bns_name) {
+        // Only auto-fill if user has neither username nor BNS set yet
+        if (!profile.username && !profile.bns_name) {
           setFormData(prev => ({
             ...prev,
             username: result.bnsName,
             bns_name: result.bnsName,
             use_bns: true
           }));
+        } else if (profile.bns_name) {
+          // If they already have a BNS name saved, keep it populated
+          setFormData(prev => ({
+            ...prev,
+            bns_name: result.bnsName
+          }));
         }
+        // Otherwise, just show it as an available option without changing anything
       }
     } catch (error) {
       console.error('Error checking BNS:', error);
@@ -164,6 +170,13 @@ export default function ProfileInfoModal({
 
   // Debounce timer for username check
   useEffect(() => {
+    // Skip validation if using BNS
+    if (formData.use_bns) {
+      setUsernameStatus('idle');
+      setUsernameError('');
+      return;
+    }
+
     if (formData.username === profile.username) {
       setUsernameStatus('idle'); // Don't check if it's the same as current
       return;
@@ -174,7 +187,35 @@ export default function ProfileInfoModal({
     }, 500); // Wait 500ms after user stops typing
 
     return () => clearTimeout(timer);
-  }, [formData.username, profile.username, checkUsernameAvailability]);
+  }, [formData.username, formData.use_bns, profile.username, checkUsernameAvailability]);
+
+  // Check BNS ownership when typing
+  useEffect(() => {
+    if (!formData.use_bns) {
+      setBnsOwnershipStatus('idle');
+      return;
+    }
+
+    const bnsName = formData.bns_name || formData.username;
+    if (!bnsName || bnsName === profile.bns_name) {
+      setBnsOwnershipStatus('idle');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setBnsOwnershipStatus('checking');
+      try {
+        const BNSResolver = (await import('@/lib/bnsResolver')).default;
+        const isOwner = await BNSResolver.verifyBNSOwnership(bnsName, targetWallet);
+        setBnsOwnershipStatus(isOwner ? 'owned' : 'not-owned');
+      } catch (error) {
+        console.error('Error checking BNS ownership:', error);
+        setBnsOwnershipStatus('idle');
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.bns_name, formData.username, formData.use_bns, profile.bns_name, targetWallet]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -201,15 +242,17 @@ export default function ProfileInfoModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Username validation
-    if (formData.username && (usernameStatus === 'taken' || usernameStatus === 'invalid')) {
-      newErrors.username = usernameError;
-    }
-    if (formData.username && formData.username.length > 0 && formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
-    }
-    if (formData.username && formData.username.length > 30) {
-      newErrors.username = 'Username must be 30 characters or less';
+    // Username validation (only if not using BNS)
+    if (!formData.use_bns) {
+      if (formData.username && (usernameStatus === 'taken' || usernameStatus === 'invalid')) {
+        newErrors.username = usernameError;
+      }
+      if (formData.username && formData.username.length > 0 && formData.username.length < 3) {
+        newErrors.username = 'Username must be at least 3 characters';
+      }
+      if (formData.username && formData.username.length > 30) {
+        newErrors.username = 'Username must be 30 characters or less';
+      }
     }
 
     // Character limits
@@ -243,11 +286,30 @@ export default function ProfileInfoModal({
       console.log('Saving profile with data:', {
         targetWallet,
         formData,
-        socialLinks
+        socialLinks,
+        use_bns: formData.use_bns,
+        bns_value: formData.bns_name || formData.username
       });
 
+      // If using BNS, verify ownership first
+      if (formData.use_bns && (formData.bns_name || formData.username)) {
+        const bnsToVerify = formData.bns_name || formData.username;
+        console.log('Verifying BNS ownership for:', bnsToVerify);
+
+        // Import BNSResolver dynamically to use it
+        const BNSResolver = (await import('@/lib/bnsResolver')).default;
+        const isOwner = await BNSResolver.verifyBNSOwnership(bnsToVerify, targetWallet);
+
+        if (!isOwner) {
+          alert(`You don't own the BNS name "${bnsToVerify}". Only the owner of this BNS name can use it.`);
+          setIsSaving(false);
+          return;
+        }
+        console.log('BNS ownership verified!');
+      }
+
       // Update profile info
-      const updateResult = await UserProfileService.updateProfile(targetWallet, {
+      const profileUpdate = {
         username: formData.use_bns ? null : (formData.username || null),
         bns_name: formData.use_bns ? (formData.bns_name || formData.username || null) : null,
         display_name: formData.display_name || null,
@@ -255,7 +317,10 @@ export default function ProfileInfoModal({
         bio: formData.bio || null,
         show_wallet_address: formData.show_wallet_address,
         show_btc_address: formData.show_btc_address
-      });
+      };
+
+      console.log('Profile update payload:', profileUpdate);
+      const updateResult = await UserProfileService.updateProfile(targetWallet, profileUpdate);
 
       console.log('Profile update result:', updateResult);
 
@@ -291,13 +356,17 @@ export default function ProfileInfoModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile Information">
       <div className="space-y-6 max-h-[70vh] overflow-y-auto">
         {/* BNS Detection Alert */}
-        {bnsDetected && !profile.bns_name && !profile.username && (
+        {bnsDetected && (
           <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-3">
             <p className="text-sm text-blue-300">
               🎉 BNS name detected: <strong>{bnsDetected}</strong>
             </p>
             <p className="text-xs text-blue-400 mt-1">
-              We've auto-filled this as your username. You can change it if you prefer.
+              {!profile.username && !profile.bns_name
+                ? "We've auto-selected BNS for your profile URL. You can switch to a custom username if you prefer."
+                : profile.bns_name
+                ? "Your BNS name is currently active."
+                : "You're using a custom username. Toggle to 'BNS Name' to use your .btc domain instead."}
             </p>
           </div>
         )}
@@ -374,13 +443,23 @@ export default function ProfileInfoModal({
                   setFormData(prev => ({ ...prev, bns_name: value, username: value }));
                 }}
                 placeholder="yourname.btc"
-                className="w-full px-3 py-2 pr-10 bg-slate-800 text-white rounded-lg border border-slate-600 focus:border-[#81E4F2] focus:outline-none transition-colors"
+                className={`w-full px-3 py-2 pr-10 bg-slate-800 text-white rounded-lg border ${
+                  bnsOwnershipStatus === 'owned' ? 'border-green-500' :
+                  bnsOwnershipStatus === 'not-owned' ? 'border-red-500' :
+                  'border-slate-600'
+                } focus:outline-none transition-colors`}
               />
-              {checkingBns && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                {bnsOwnershipStatus === 'checking' && (
                   <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-                </div>
-              )}
+                )}
+                {bnsOwnershipStatus === 'owned' && (
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                )}
+                {bnsOwnershipStatus === 'not-owned' && (
+                  <XCircle className="w-5 h-5 text-red-500" />
+                )}
+              </div>
             </div>
           )}
 
@@ -401,8 +480,11 @@ export default function ProfileInfoModal({
             {!formData.use_bns && usernameStatus === 'available' && (
               <span className="text-xs text-green-400">Available!</span>
             )}
-            {formData.use_bns && formData.bns_name && (
-              <span className="text-xs text-gray-400">BNS names are verified on-chain</span>
+            {formData.use_bns && bnsOwnershipStatus === 'owned' && (
+              <span className="text-xs text-green-400">✓ You own this BNS name</span>
+            )}
+            {formData.use_bns && bnsOwnershipStatus === 'not-owned' && (
+              <span className="text-xs text-red-400">✗ You don't own this BNS name</span>
             )}
           </div>
         </div>

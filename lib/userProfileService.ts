@@ -81,11 +81,25 @@ export class UserProfileService {
 
   static async getProfileByIdentifier(identifier: string): Promise<ProfileData> {
     try {
+      console.log('Looking up profile by identifier:', identifier);
+
       // Use the database function to handle both username and wallet lookups
       const { data: profileData, error } = await supabase
         .rpc('get_profile_by_identifier', { p_identifier: identifier });
 
-      if (error || !profileData || profileData.length === 0) {
+      console.log('Database response:', { profileData, error });
+
+      if (error) {
+        console.error('Database error:', error);
+        return {
+          profile: null,
+          links: [],
+          sections: []
+        };
+      }
+
+      if (!profileData || profileData.length === 0) {
+        console.log('No profile found for identifier:', identifier);
         return {
           profile: null,
           links: [],
@@ -94,6 +108,7 @@ export class UserProfileService {
       }
 
       const profile = profileData[0];
+      console.log('Found profile:', profile);
 
       // Fetch links and sections using the wallet address
       const [linksResult, sectionsResult] = await Promise.all([
