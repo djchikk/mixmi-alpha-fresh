@@ -1,15 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { Instagram, Youtube, Music, Github, Twitch, Clipboard } from "lucide-react";
+import { Instagram, Youtube, Music, Github, Twitch, Clipboard, Edit2 } from "lucide-react";
 import {
   FaSoundcloud,
   FaMixcloud,
   FaTiktok,
   FaXTwitter
 } from "react-icons/fa6";
+import ProfileInfoModal from "./ProfileInfoModal";
 
 interface ProfileInfoProps {
   profile: {
@@ -37,6 +38,7 @@ export default function ProfileInfo({
 }: ProfileInfoProps) {
   const { walletAddress, btcAddress } = useAuth();
   const { showToast } = useToast();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   // Map social links to their icons
   const getSocialIcon = (platform: string) => {
@@ -85,11 +87,23 @@ export default function ProfileInfo({
   const bioText = profile.bio ? profile.bio.slice(0, 350) : (isOwnProfile ? "Tell us about yourself..." : "");
   
   return (
-    <div className="flex flex-col items-center text-center">
-      <h1 className="text-3xl font-medium text-accent mb-3" title={profile.name}>
-        {nameText}
-        {profile.name && profile.name.length > 40 ? "..." : ""}
-      </h1>
+    <>
+      <div className="flex flex-col items-center text-center relative">
+        {/* Edit button positioned at top right of info section */}
+        {isOwnProfile && (
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="absolute -top-2 -right-2 p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors border border-slate-600 hover:border-[#81E4F2]"
+            title="Edit profile info"
+          >
+            <Edit2 size={16} className="text-[#81E4F2]" />
+          </button>
+        )}
+
+        <h1 className="text-3xl font-medium text-accent mb-3" title={profile.name}>
+          {nameText}
+          {profile.name && profile.name.length > 40 ? "..." : ""}
+        </h1>
       
       <p className="text-xl text-white/90 mb-4" title={profile.title}>
         {titleText}
@@ -158,6 +172,17 @@ export default function ProfileInfo({
           )}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Profile Info Edit Modal */}
+      <ProfileInfoModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        profile={profile}
+        links={links}
+        targetWallet={targetWallet}
+        onUpdate={onUpdate}
+      />
+    </>
   );
 } 
