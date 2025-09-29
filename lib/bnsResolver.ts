@@ -1,6 +1,7 @@
 /**
  * BNS (Bitcoin Name Service) Resolver
  * Fetches BNS names associated with Stacks wallet addresses
+ * Updated for 2025 API endpoints
  */
 
 interface BNSName {
@@ -9,17 +10,33 @@ interface BNSName {
   fullName: string; // e.g., "sandy.btc"
 }
 
+interface BNSNameDetails {
+  address?: string;
+  decoded?: string;
+  isBnsx?: boolean;
+  wrapper?: string;
+  zonefileRecords?: any;
+}
+
+interface BNSAddressResponse {
+  names?: string[];
+}
+
 export class BNSResolver {
-  private static readonly BNS_API_BASE = 'https://api.hiro.so';
+  // Primary BNS Hub API (2025)
+  private static readonly BNS_HUB_API = 'https://api.bns.xyz';
+  // Fallback to Hiro API for blockchain data
+  private static readonly HIRO_API = 'https://api.hiro.so';
 
   /**
    * Get all BNS names owned by a wallet address
    */
   static async getNamesForAddress(walletAddress: string): Promise<BNSName[]> {
     try {
-      // Try the extended API endpoint for BNS names
+      // Use the BNS Hub API (2025)
+      console.log('Fetching BNS names for:', walletAddress);
       const response = await fetch(
-        `${this.BNS_API_BASE}/extended/v1/address/${walletAddress}/names`,
+        `${this.BNS_HUB_API}/api/addresses/stacks/${walletAddress}`,
         {
           headers: {
             'Accept': 'application/json',
@@ -28,10 +45,10 @@ export class BNSResolver {
       );
 
       if (!response.ok) {
-        console.log('Trying alternative endpoint for address:', walletAddress);
-        // Try alternative endpoint
-        const altResponse = await fetch(
-          `https://stacks-node-api.mainnet.stacks.co/v1/addresses/stacks/${walletAddress}/names`,
+        console.log('BNS Hub API failed, trying fallback...');
+        // Try the v1 compatibility endpoint
+        const fallbackResponse = await fetch(
+          `${this.BNS_HUB_API}/v1/addresses/stacks/${walletAddress}`,
           {
             headers: {
               'Accept': 'application/json',
@@ -39,17 +56,17 @@ export class BNSResolver {
           }
         );
 
-        if (!altResponse.ok) {
+        if (!fallbackResponse.ok) {
           console.log('No BNS names found for address:', walletAddress);
           return [];
         }
 
-        const altData = await altResponse.json();
-        console.log('Alternative API response:', altData);
+        const fallbackData = await fallbackResponse.json();
+        console.log('Fallback API response:', fallbackData);
 
-        // Parse the alternative response format
-        if (altData.names && Array.isArray(altData.names)) {
-          return altData.names.map((nameStr: string) => {
+        // The v1 endpoint returns a single name
+        if (fallbackData.names && Array.isArray(fallbackData.names)) {
+          return fallbackData.names.map((nameStr: string) => {
             const parts = nameStr.split('.');
             return {
               name: parts[0],
@@ -57,12 +74,19 @@ export class BNSResolver {
               fullName: nameStr
             };
           });
+        } else if (typeof fallbackData === 'string') {
+          const parts = fallbackData.split('.');
+          return [{
+            name: parts[0],
+            namespace: parts[1] || 'btc',
+            fullName: fallbackData
+          }];
         }
         return [];
       }
 
-      const data = await response.json();
-      console.log('BNS API response:', data);
+      const data: BNSAddressResponse = await response.json();
+      console.log('BNS Hub API response:', data);
 
       // Transform the response to our BNSName format
       const names: BNSName[] = [];
@@ -121,11 +145,7 @@ export class BNSResolver {
     try {
       console.log('Verifying BNS ownership:', { bnsName, walletAddress });
 
-      // Since the API endpoints are not working (404), we'll temporarily allow
-      // BNS names that match the expected format and add a warning
-      // This should be replaced with proper API verification once we have the correct endpoints
-
-      // Basic format validation
+      // Basic format validation first
       if (!bnsName.includes('.')) {
         console.log('Invalid BNS format - missing dot');
         return false;
@@ -151,12 +171,58 @@ export class BNSResolver {
         return false;
       }
 
-      console.warn('⚠️ BNS API endpoints are returning 404. Allowing BNS name provisionally.');
-      console.warn('In production, this should verify ownership on-chain!');
+      // Method 1: Check via name details using BNS Hub API
+      try {
+        const nameResponse = await fetch(
+          `${this.BNS_HUB_API}/api/names/${bnsName}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+            }
+          }
+        );
 
-      // For now, return true if format is valid
-      // This is temporary until we get the correct 2025 API endpoints
-      return true;
+        if (nameResponse.ok) {
+          const nameData: BNSNameDetails = await nameResponse.json();
+          console.log('BNS name details:', nameData);
+
+          // Check if the address matches
+          if (nameData.address === walletAddress) {
+            console.log('✅ BNS ownership verified via name lookup');
+            return true;
+          }
+        }
+      } catch (nameError) {
+        console.log('Name lookup failed, trying address lookup...');
+      }
+
+      // Method 2: Check via address ownership
+      try {
+        const addressResponse = await fetch(
+          `${this.BNS_HUB_API}/api/addresses/stacks/${walletAddress}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+            }
+          }
+        );
+
+        if (addressResponse.ok) {
+          const addressData: BNSAddressResponse = await addressResponse.json();
+          console.log('Address BNS names:', addressData);
+
+          // Check if the BNS name is in the list of names owned by this address
+          if (addressData.names?.includes(bnsName)) {
+            console.log('✅ BNS ownership verified via address lookup');
+            return true;
+          }
+        }
+      } catch (addressError) {
+        console.log('Address lookup also failed');
+      }
+
+      console.log('❌ BNS ownership could not be verified');
+      return false;
     } catch (error) {
       console.error('Error verifying BNS ownership:', error);
       return false;
@@ -168,15 +234,15 @@ export class BNSResolver {
    */
   static async resolveToAddress(bnsName: string): Promise<string | null> {
     try {
+      // Validate format
       const parts = bnsName.split('.');
       if (parts.length !== 2) {
         return null;
       }
 
-      const [name, namespace] = parts;
-
+      // Use BNS Hub API to resolve name to address
       const response = await fetch(
-        `${this.BNS_API_BASE}/v1/names/${namespace}/${name}`,
+        `${this.BNS_HUB_API}/api/names/${bnsName}`,
         {
           headers: {
             'Accept': 'application/json',
@@ -185,10 +251,14 @@ export class BNSResolver {
       );
 
       if (!response.ok) {
+        console.log('Failed to resolve BNS name:', bnsName);
         return null;
       }
 
-      const data = await response.json();
+      const data: BNSNameDetails = await response.json();
+      console.log('Resolved BNS name:', data);
+
+      // Return the owner's address
       return data.address || null;
     } catch (error) {
       console.error('Error resolving BNS name:', error);
