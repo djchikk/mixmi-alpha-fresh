@@ -106,11 +106,13 @@ export function useImageUpload({
       const userId = walletAddress || 'anonymous';
       
       // Upload to Supabase Storage - this returns a clean URL
+      // Map section to imageType for storage service
+      const imageType = section === 'profile' ? 'profile' : 'gallery';
       const uploadResult = await SupabaseStorageService.uploadImage(
         userId,
         file,
-        'gallery', // Use 'gallery' as default image type for IP tracks
-        `cover-${Date.now()}` // Unique item ID for covers
+        imageType as any,
+        `${section}-${Date.now()}` // Unique item ID
       );
       
       if (!uploadResult.success) {
