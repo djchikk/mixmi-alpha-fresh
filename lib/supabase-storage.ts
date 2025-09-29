@@ -19,7 +19,8 @@ export class SupabaseStorageService {
    * Get bucket name - using single bucket with folder organization
    */
   static getBucketName(): string {
-    return 'user-content';
+    // Use 'images' bucket which likely has simpler RLS policies
+    return 'images';
   }
 
   /**
