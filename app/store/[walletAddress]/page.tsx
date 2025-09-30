@@ -67,16 +67,16 @@ export default function CreatorStorePage() {
           // Fetch profile image from sections table
           const { data: sectionsData, error: sectionsError } = await supabase
             .from('user_profile_sections')
-            .select('section_type, section_config')
+            .select('section_type, config')
             .eq('wallet_address', walletOrUsername)
             .eq('section_type', 'profile')
             .single();
 
-          if (!sectionsError && sectionsData?.section_config?.image) {
-            setProfileImage(sectionsData.section_config.image);
-            console.log('Profile image found in sections:', sectionsData.section_config.image.slice(0, 100));
+          if (!sectionsError && sectionsData?.config?.image) {
+            setProfileImage(sectionsData.config.image);
+            console.log('Profile image found in sections:', sectionsData.config.image.slice(0, 100));
           } else {
-            console.log('No profile section or image found');
+            console.log('No profile section or image found for wallet:', sectionsError);
           }
         } catch (error) {
           console.error('Error fetching profile data:', error);
@@ -102,16 +102,16 @@ export default function CreatorStorePage() {
             // Now fetch profile image from sections table using the wallet address
             const { data: sectionsData, error: sectionsError } = await supabase
               .from('user_profile_sections')
-              .select('section_type, section_config')
+              .select('section_type, config')
               .eq('wallet_address', profileData.wallet_address)
               .eq('section_type', 'profile')
               .single();
 
-            if (!sectionsError && sectionsData?.section_config?.image) {
-              setProfileImage(sectionsData.section_config.image);
-              console.log('Profile image found for username:', sectionsData.section_config.image.slice(0, 100));
+            if (!sectionsError && sectionsData?.config?.image) {
+              setProfileImage(sectionsData.config.image);
+              console.log('Profile image found for username:', sectionsData.config.image.slice(0, 100));
             } else {
-              console.log('No profile section or image found for username');
+              console.log('No profile section or image found for username:', sectionsError);
             }
           } else {
             console.error('Error fetching profile by username:', profileError);
