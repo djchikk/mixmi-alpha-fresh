@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Eye, EyeOff } from 'lucide-react';
 import ShopCard from '../cards/ShopCard';
+import StoreCard from '../cards/StoreCard';
 import ShopItemModal from '../modals/ShopItemModal';
 import { UserProfileService } from '@/lib/userProfileService';
 
@@ -31,11 +32,52 @@ export default function ShopSection({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ShopItem | undefined>(undefined);
   const [items, setItems] = useState<ShopItem[]>(config);
+  const [storeCardVisible, setStoreCardVisible] = useState(true);
+  const [storeCard, setStoreCard] = useState<ShopItem>({
+    id: 'store-card',
+    title: 'Creator Store',
+    description: 'View all tracks and content from this creator',
+    image: '/placeholders/shop/product-1.jpeg'
+  });
+
+  // Load store card visibility state from localStorage
+  useEffect(() => {
+    const storedVisibility = localStorage.getItem(`storeCardVisible_${targetWallet}`);
+    if (storedVisibility !== null) {
+      setStoreCardVisible(JSON.parse(storedVisibility));
+    }
+  }, [targetWallet]);
+
+  // Save store card visibility state to localStorage
+  const toggleStoreCardVisibility = () => {
+    const newVisibility = !storeCardVisible;
+    setStoreCardVisible(newVisibility);
+    localStorage.setItem(`storeCardVisible_${targetWallet}`, JSON.stringify(newVisibility));
+  };
+
+  // Calculate display items including store card
+  const displayItems = useMemo(() => {
+    const allItems: (ShopItem & { isStoreCard?: boolean })[] = [];
+    const maxItems = 3; // Maximum 3 items total including store card
+
+    // Add store card if visible
+    if (storeCardVisible) {
+      allItems.push({ ...storeCard, isStoreCard: true });
+    }
+
+    // Add regular shop items up to the limit
+    const remainingSlots = maxItems - (storeCardVisible ? 1 : 0);
+    const regularItems = items.slice(0, remainingSlots);
+    allItems.push(...regularItems);
+
+    return allItems;
+  }, [items, storeCard, storeCardVisible]);
 
   const handleAddItem = () => {
-    // Check if we've reached the limit of 3 items
-    if (items.length >= 3) {
-      alert('Maximum 3 items allowed in Shop section');
+    // Check if we've reached the limit accounting for store card
+    const maxRegularItems = storeCardVisible ? 2 : 3;
+    if (items.length >= maxRegularItems) {
+      alert(`Maximum ${maxRegularItems} product${maxRegularItems > 1 ? 's' : ''} allowed${storeCardVisible ? ' (plus store card)' : ''}`);
       return;
     }
     setEditingItem(undefined);
@@ -47,13 +89,27 @@ export default function ShopSection({
     setIsModalOpen(true);
   };
 
+  const handleStoreCardEdit = () => {
+    setEditingItem(storeCard);
+    setIsModalOpen(true);
+  };
+
   const handleSaveItem = async (item: ShopItem) => {
     try {
       console.log('Saving shop item:', item);
 
+      // Check if we're saving the store card
+      if (item.id === 'store-card') {
+        setStoreCard(item);
+        // Store cards don't get saved to the database, just update local state
+        setIsModalOpen(false);
+        setEditingItem(undefined);
+        return;
+      }
+
       let updatedItems: ShopItem[];
 
-      if (editingItem) {
+      if (editingItem && editingItem.id !== 'store-card') {
         // Update existing item
         updatedItems = items.map(i => i.id === item.id ? item : i);
       } else {
@@ -110,8 +166,8 @@ export default function ShopSection({
     }
   };
 
-  // Don't render section if no items and not owner
-  if (!isOwnProfile && items.length === 0) {
+  // Don't render section if no items and no store card and not owner
+  if (!isOwnProfile && items.length === 0 && !storeCardVisible) {
     return null;
   }
 
@@ -120,17 +176,27 @@ export default function ShopSection({
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">Shop</h2>
         {isOwnProfile && (
-          <button
-            onClick={handleAddItem}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
-          >
-            <Plus size={18} />
-            <span>Add Product</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleStoreCardVisibility}
+              className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 hover:bg-slate-700 text-gray-300 rounded-lg transition-colors border border-slate-600"
+              title={storeCardVisible ? "Hide store card" : "Show store card"}
+            >
+              {storeCardVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+              <span className="text-sm">{storeCardVisible ? 'Hide' : 'Show'} Store</span>
+            </button>
+            <button
+              onClick={handleAddItem}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
+            >
+              <Plus size={18} />
+              <span>Add Product</span>
+            </button>
+          </div>
         )}
       </div>
 
-      {items.length === 0 ? (
+      {displayItems.length === 0 ? (
         <div className="bg-gray-800/30 rounded-lg p-8 text-center">
           <p className="text-gray-400">
             {isOwnProfile
@@ -140,14 +206,29 @@ export default function ShopSection({
         </div>
       ) : (
         <div className="flex flex-wrap gap-4 justify-center">
-          {items.map(item => (
-            <ShopCard
-              key={item.id}
-              item={item}
-              onEdit={isOwnProfile ? () => handleEditItem(item) : undefined}
-              onDelete={isOwnProfile ? () => handleDeleteItem(item.id) : undefined}
-            />
-          ))}
+          {displayItems.map(item => {
+            if ((item as any).isStoreCard) {
+              return (
+                <StoreCard
+                  key={item.id}
+                  storeCard={storeCard}
+                  targetWallet={targetWallet}
+                  isOwnProfile={isOwnProfile}
+                  onEdit={isOwnProfile ? handleStoreCardEdit : undefined}
+                  onDelete={isOwnProfile ? toggleStoreCardVisibility : undefined}
+                />
+              );
+            } else {
+              return (
+                <ShopCard
+                  key={item.id}
+                  item={item}
+                  onEdit={isOwnProfile ? () => handleEditItem(item) : undefined}
+                  onDelete={isOwnProfile ? () => handleDeleteItem(item.id) : undefined}
+                />
+              );
+            }
+          })}
         </div>
       )}
 
