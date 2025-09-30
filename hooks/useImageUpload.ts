@@ -107,7 +107,8 @@ export function useImageUpload({
       
       // Upload to Supabase Storage - this returns a clean URL
       // Map section to imageType for storage service
-      const imageType = section === 'profile' ? 'profile' : 'gallery';
+      const imageType = section === 'profile' ? 'profile' :
+                       section === 'sticker' ? 'sticker' : 'gallery';
       const uploadResult = await SupabaseStorageService.uploadImage(
         userId,
         file,

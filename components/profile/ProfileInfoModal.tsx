@@ -717,15 +717,18 @@ export default function ProfileInfoModal({
             <span className="text-sm text-gray-400">Show STX wallet address</span>
           </label>
 
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.show_btc_address}
-              onChange={(e) => handleInputChange('show_btc_address', e.target.checked)}
-              className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-[#81E4F2] focus:ring-[#81E4F2] focus:ring-offset-0"
-            />
-            <span className="text-sm text-gray-400">Show BTC wallet address</span>
-          </label>
+          {/* BTC wallet address option hidden for now */}
+          {false && (
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.show_btc_address}
+                onChange={(e) => handleInputChange('show_btc_address', e.target.checked)}
+                className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-[#81E4F2] focus:ring-[#81E4F2] focus:ring-offset-0"
+              />
+              <span className="text-sm text-gray-400">Show BTC wallet address</span>
+            </label>
+          )}
         </div>
 
         {/* Action Buttons */}

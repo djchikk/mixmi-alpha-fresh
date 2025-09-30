@@ -1,6 +1,6 @@
 import { supabase, getSupabaseAdmin, isSupabaseAvailable } from './supabase';
 
-export type ImageType = 'profile' | 'spotlight' | 'shop' | 'gallery';
+export type ImageType = 'profile' | 'spotlight' | 'shop' | 'gallery' | 'sticker';
 
 export interface UploadResult {
   success: boolean;
@@ -57,6 +57,9 @@ export class SupabaseStorageService {
           break;
         case 'gallery':
           fileName = `${userId}/gallery/${itemId || Date.now()}-${Date.now()}.${fileExt}`;
+          break;
+        case 'sticker':
+          fileName = `${userId}/sticker/custom-${Date.now()}.${fileExt}`;
           break;
       }
       
