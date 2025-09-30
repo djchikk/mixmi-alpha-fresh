@@ -17,7 +17,7 @@ interface ContentFilter {
 export default function CreatorStorePage() {
   const params = useParams();
   const { showToast } = useToast();
-  const walletAddress = params.walletAddress as string;
+  const walletOrUsername = params.walletAddress as string; // This will be either wallet address or username
 
   const [tracks, setTracks] = useState<IPTrack[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<IPTrack[]>([]);
@@ -25,6 +25,7 @@ export default function CreatorStorePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState<string>('');
+  const [actualWalletAddress, setActualWalletAddress] = useState<string>('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -37,9 +38,43 @@ export default function CreatorStorePage() {
   const [visibleCards, setVisibleCards] = useState(0);
   const [waveLoadingActive, setWaveLoadingActive] = useState(false);
 
+  // First, resolve username to wallet address if needed
+  useEffect(() => {
+    const resolveWalletAddress = async () => {
+      if (!walletOrUsername) return;
+
+      // Check if it's a wallet address (starts with SP or ST)
+      if (walletOrUsername.startsWith('SP') || walletOrUsername.startsWith('ST')) {
+        setActualWalletAddress(walletOrUsername);
+      } else {
+        // It's a username, resolve to wallet address
+        try {
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('wallet_address, display_name')
+            .eq('username', walletOrUsername)
+            .single();
+
+          if (!error && data) {
+            setActualWalletAddress(data.wallet_address);
+            setCreatorName(data.display_name || walletOrUsername);
+          } else {
+            // Username not found, treat as wallet address
+            setActualWalletAddress(walletOrUsername);
+          }
+        } catch (error) {
+          console.error('Error resolving username:', error);
+          setActualWalletAddress(walletOrUsername);
+        }
+      }
+    };
+
+    resolveWalletAddress();
+  }, [walletOrUsername]);
+
   useEffect(() => {
     const fetchTracks = async () => {
-      if (!walletAddress) return;
+      if (!actualWalletAddress) return;
 
       setIsLoading(true);
       try {
@@ -47,12 +82,12 @@ export default function CreatorStorePage() {
           supabase
             .from('ip_tracks')
             .select('*', { count: 'exact', head: true })
-            .eq('primary_uploader_wallet', walletAddress)
+            .eq('primary_uploader_wallet', actualWalletAddress)
             .is('deleted_at', null),
           supabase
             .from('ip_tracks')
             .select('*')
-            .eq('primary_uploader_wallet', walletAddress)
+            .eq('primary_uploader_wallet', actualWalletAddress)
             .is('deleted_at', null)
             .order('created_at', { ascending: false })
             .range(0, ITEMS_PER_PAGE - 1)
@@ -81,7 +116,7 @@ export default function CreatorStorePage() {
 
     fetchTracks();
     setCurrentPage(1);
-  }, [walletAddress]);
+  }, [actualWalletAddress]);
 
   useEffect(() => {
     const loopTracks = tracks.filter(track => track.content_type === 'loop');

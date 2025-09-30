@@ -23,11 +23,12 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
   const [trackCount, setTrackCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const router = useRouter();
 
-  // Fetch track count from Supabase
+  // Fetch track count and username from Supabase
   useEffect(() => {
-    const fetchTrackCount = async () => {
+    const fetchStoreData = async () => {
       const wallet = targetWallet || walletAddress;
       if (!wallet) {
         setIsLoading(false);
@@ -35,17 +36,29 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
       }
 
       try {
-        const { count, error } = await supabase
+        // Fetch track count
+        const { count, error: countError } = await supabase
           .from('ip_tracks')
           .select('*', { count: 'exact', head: true })
           .eq('created_by', wallet)
           .is('deleted_at', null); // Exclude soft-deleted tracks
 
-        if (error) {
-          console.error('Error fetching track count:', error);
+        if (countError) {
+          console.error('Error fetching track count:', countError);
           setTrackCount(0);
         } else {
           setTrackCount(count || 0);
+        }
+
+        // Fetch username from user_profiles
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('username')
+          .eq('wallet_address', wallet)
+          .single();
+
+        if (!profileError && profileData?.username) {
+          setUsername(profileData.username);
         }
       } catch (error) {
         console.error('Failed to fetch track count:', error);
@@ -55,15 +68,16 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
       }
     };
 
-    fetchTrackCount();
+    fetchStoreData();
   }, [targetWallet, walletAddress]);
 
   const handleCardClick = () => {
     const wallet = targetWallet || walletAddress;
     if (!wallet) return;
 
-    // Navigate to the appropriate store
-    router.push(`/store/${wallet}`);
+    // Navigate to store using username if available, otherwise wallet address
+    const storeUrl = username ? `/store/${username}` : `/store/${wallet}`;
+    router.push(storeUrl);
   };
   
   // Use store card data from context or fallback to defaults
