@@ -47,20 +47,24 @@ export default function CreatorStorePage() {
       // Check if it's a wallet address (starts with SP or ST)
       if (walletOrUsername.startsWith('SP') || walletOrUsername.startsWith('ST')) {
         setActualWalletAddress(walletOrUsername);
+        // Set a default creator name from wallet (will be overridden if profile found)
+        setCreatorName(walletOrUsername.slice(0, 8) + '...');
 
         // Also fetch profile data for wallet addresses
         try {
           const { data, error } = await supabase
             .from('user_profiles')
-            .select('display_name, profile_config')
+            .select('display_name, username, profile_config')
             .eq('wallet_address', walletOrUsername)
             .single();
 
           if (!error && data) {
-            setCreatorName(data.display_name || walletOrUsername);
+            // Use display_name first, then username, then wallet
+            setCreatorName(data.display_name || data.username || walletOrUsername);
             // Extract profile image from profile_config
             if (data.profile_config?.profile?.image) {
               setProfileImage(data.profile_config.profile.image);
+              console.log('Profile image found:', data.profile_config.profile.image.slice(0, 50));
             }
           }
         } catch (error) {
@@ -68,19 +72,24 @@ export default function CreatorStorePage() {
         }
       } else {
         // It's a username, resolve to wallet address
+        // Set the username as creator name initially
+        setCreatorName(walletOrUsername);
+
         try {
           const { data, error } = await supabase
             .from('user_profiles')
-            .select('wallet_address, display_name, profile_config')
+            .select('wallet_address, display_name, username, profile_config')
             .eq('username', walletOrUsername)
             .single();
 
           if (!error && data) {
             setActualWalletAddress(data.wallet_address);
-            setCreatorName(data.display_name || walletOrUsername);
+            // Use display_name first, then username
+            setCreatorName(data.display_name || data.username || walletOrUsername);
             // Extract profile image from profile_config
             if (data.profile_config?.profile?.image) {
               setProfileImage(data.profile_config.profile.image);
+              console.log('Profile image found:', data.profile_config.profile.image.slice(0, 50));
             }
           } else {
             // Username not found, treat as wallet address
@@ -306,12 +315,17 @@ export default function CreatorStorePage() {
               {profileImage ? (
                 <img
                   src={profileImage}
-                  alt={creatorName}
+                  alt={creatorName || 'Creator'}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Failed to load profile image');
+                    // Hide the broken image and show fallback
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl">
-                  {creatorName ? creatorName.charAt(0).toUpperCase() : '?'}
+                <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
+                  {creatorName ? creatorName.charAt(0).toUpperCase() : 'M'}
                 </div>
               )}
             </div>
@@ -319,7 +333,7 @@ export default function CreatorStorePage() {
             <div>
               <h1 className="text-4xl font-bold">
                 <span className="bg-gradient-to-r from-[#9772F4] to-[#FFE4B5] bg-clip-text text-transparent">
-                  {creatorName}'s Store
+                  {creatorName ? `${creatorName}'s Store` : 'Creator Store'}
                 </span>
               </h1>
               <p className="text-gray-400 mt-1">
