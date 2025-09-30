@@ -52,20 +52,31 @@ export default function CreatorStorePage() {
 
         // Also fetch profile data for wallet addresses
         try {
-          const { data, error } = await supabase
+          // First fetch basic profile data
+          const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('display_name, username, profile_config')
+            .select('display_name, username')
             .eq('wallet_address', walletOrUsername)
             .single();
 
-          if (!error && data) {
+          if (!profileError && profileData) {
             // Use display_name first, then username, then wallet
-            setCreatorName(data.display_name || data.username || walletOrUsername);
-            // Extract profile image from profile_config
-            if (data.profile_config?.profile?.image) {
-              setProfileImage(data.profile_config.profile.image);
-              console.log('Profile image found:', data.profile_config.profile.image.slice(0, 50));
-            }
+            setCreatorName(profileData.display_name || profileData.username || walletOrUsername);
+          }
+
+          // Fetch profile image from sections table
+          const { data: sectionsData, error: sectionsError } = await supabase
+            .from('user_profile_sections')
+            .select('section_type, section_config')
+            .eq('wallet_address', walletOrUsername)
+            .eq('section_type', 'profile')
+            .single();
+
+          if (!sectionsError && sectionsData?.section_config?.image) {
+            setProfileImage(sectionsData.section_config.image);
+            console.log('Profile image found in sections:', sectionsData.section_config.image.slice(0, 100));
+          } else {
+            console.log('No profile section or image found');
           }
         } catch (error) {
           console.error('Error fetching profile data:', error);
@@ -76,22 +87,34 @@ export default function CreatorStorePage() {
         setCreatorName(walletOrUsername);
 
         try {
-          const { data, error } = await supabase
+          // First fetch basic profile data by username
+          const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('wallet_address, display_name, username, profile_config')
+            .select('wallet_address, display_name, username')
             .eq('username', walletOrUsername)
             .single();
 
-          if (!error && data) {
-            setActualWalletAddress(data.wallet_address);
+          if (!profileError && profileData) {
+            setActualWalletAddress(profileData.wallet_address);
             // Use display_name first, then username
-            setCreatorName(data.display_name || data.username || walletOrUsername);
-            // Extract profile image from profile_config
-            if (data.profile_config?.profile?.image) {
-              setProfileImage(data.profile_config.profile.image);
-              console.log('Profile image found:', data.profile_config.profile.image.slice(0, 50));
+            setCreatorName(profileData.display_name || profileData.username || walletOrUsername);
+
+            // Now fetch profile image from sections table using the wallet address
+            const { data: sectionsData, error: sectionsError } = await supabase
+              .from('user_profile_sections')
+              .select('section_type, section_config')
+              .eq('wallet_address', profileData.wallet_address)
+              .eq('section_type', 'profile')
+              .single();
+
+            if (!sectionsError && sectionsData?.section_config?.image) {
+              setProfileImage(sectionsData.section_config.image);
+              console.log('Profile image found for username:', sectionsData.section_config.image.slice(0, 100));
+            } else {
+              console.log('No profile section or image found for username');
             }
           } else {
+            console.error('Error fetching profile by username:', profileError);
             // Username not found, treat as wallet address
             setActualWalletAddress(walletOrUsername);
           }
