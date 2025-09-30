@@ -10,6 +10,7 @@ export interface UserProfile {
   avatar_url?: string;
   sticker_id: string;
   sticker_visible: boolean;
+  custom_sticker?: string;
   show_wallet_address: boolean;
   show_btc_address: boolean;
   created_at: string;
