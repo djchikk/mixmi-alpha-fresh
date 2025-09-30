@@ -18,8 +18,8 @@ export interface GifQuotaStatus {
 export class GifQuotaManager {
   private static readonly SECTION_GIF_LIMITS = {
     gallery: 3,    // MVP: 3 GIFs @ 600KB each (but allow larger for power users)
-    spotlight: 1,  // MVP: 1 GIF @ 800KB + 2 static
-    shop: 1,       // MVP: 1 GIF @ 800KB + 2 static  
+    spotlight: 3,  // Allow up to 3 GIFs for creative spotlight content
+    shop: 0,       // No GIFs - static images only for products
     profile: 1     // MVP: 1 GIF @ 400KB
   };
   private static readonly MAX_TOTAL_GIFS = 6; // Total across all sections

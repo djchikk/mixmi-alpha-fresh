@@ -207,10 +207,10 @@ export default function ImageUploader({
   
   // Generate help text based on section and compression level
   const getHelpText = () => {
-    const baseText = areGifsAllowed 
-      ? "PNG, JPG or GIF (max 10MB)" 
-      : `PNG, JPG or WebP (max 10MB) - GIFs not allowed in ${section === 'spotlight' ? 'Spotlight' : 'Shop'}`;
-    
+    const baseText = areGifsAllowed
+      ? "PNG, JPG or GIF (max 10MB)"
+      : `PNG, JPG or WebP (max 10MB) - GIFs not allowed in Shop`;
+
     if (showCompressionOptions) {
       return getCompressionHelpText(baseText);
     }

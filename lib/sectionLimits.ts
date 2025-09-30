@@ -21,9 +21,9 @@ export const MVP_SECTION_LIMITS = {
   },
   spotlight: {
     maxItems: 3,
-    maxGifs: 0, // No GIFs allowed - static images only
-    maxStaticImages: 3, // All items must be static images
-    maxGifSizeKB: 0, // No GIFs
+    maxGifs: 3, // Allow GIFs for creative spotlight content
+    maxStaticImages: 3, // Can be all static, all GIFs, or mixed
+    maxGifSizeKB: 500, // Moderate size for spotlight GIFs
     maxImageSizeKB: 250
   },
   shop: {
