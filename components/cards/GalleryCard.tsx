@@ -15,7 +15,7 @@ export default function GalleryCard({ item, onEdit, onDelete }: GalleryCardProps
   
   return (
     <div 
-      className="relative w-80 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all group bg-slate-800"
+      className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all group bg-slate-800"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

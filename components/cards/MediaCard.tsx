@@ -19,7 +19,7 @@ export default function MediaCard({ item, onEdit, onDelete }: MediaCardProps) {
   // Base container class for all media types - matches YouTube dimensions
   const getContainerClass = () => {
     // Base styles with fixed width and YouTube aspect ratio
-    const baseStyle = 'w-80 border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all rounded-lg overflow-hidden';
+    const baseStyle = 'w-72 border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all rounded-lg overflow-hidden';
     
     // For expandable media that's expanded, use taller height
     if (canExpand && isExpanded) {

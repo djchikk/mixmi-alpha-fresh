@@ -31,6 +31,11 @@ export default function GallerySection({
   const [items, setItems] = useState<GalleryItem[]>(config);
 
   const handleAddItem = () => {
+    // Check if we've reached the limit of 3 items
+    if (items.length >= 3) {
+      alert('Maximum 3 items allowed in Gallery section');
+      return;
+    }
     setEditingItem(undefined);
     setIsModalOpen(true);
   };

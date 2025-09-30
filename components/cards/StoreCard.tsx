@@ -73,7 +73,7 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
 
   if (!isAuthenticated) {
     return (
-      <div className="relative w-80 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 bg-slate-800">
+      <div className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 bg-slate-800">
         <div className="w-full h-full flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 mx-auto bg-slate-700 rounded-full flex items-center justify-center mb-4">
@@ -91,7 +91,7 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
 
   return (
     <div 
-      className={`relative w-80 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all group cursor-pointer bg-slate-800`}
+      className={`relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all group cursor-pointer bg-slate-800`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}

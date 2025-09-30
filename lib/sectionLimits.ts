@@ -41,7 +41,7 @@ export const MVP_SECTION_LIMITS = {
     maxImageSizeKB: 200
   },
   media: {
-    maxItems: 6, // URLs only, no storage impact
+    maxItems: 3, // URLs only, no storage impact (limited to 3 for consistency)
     maxGifs: 0,
     maxStaticImages: 0,
     maxGifSizeKB: 0,
@@ -122,7 +122,7 @@ export function getSectionLimitDescription(sectionType: SectionType): string {
   const limits = MVP_SECTION_LIMITS[sectionType];
   
   if (sectionType === 'media') {
-    return `Up to ${limits.maxItems} media links (YouTube, Spotify, etc.)`;
+    return `Up to ${limits.maxItems} media embeds (YouTube, Spotify, SoundCloud, etc.)`;
   }
   
   if (sectionType === 'profile') {

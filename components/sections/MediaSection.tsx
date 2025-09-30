@@ -33,6 +33,11 @@ export default function MediaSection({
   const [items, setItems] = useState<MediaItem[]>(config);
 
   const handleAddItem = () => {
+    // Check if we've reached the limit of 3 items
+    if (items.length >= 3) {
+      alert('Maximum 3 items allowed in Media section');
+      return;
+    }
     setEditingItem(undefined);
     setIsModalOpen(true);
   };

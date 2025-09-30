@@ -32,6 +32,11 @@ export default function SpotlightSection({
   const [items, setItems] = useState<SpotlightItem[]>(config);
 
   const handleAddItem = () => {
+    // Check if we've reached the limit of 3 items
+    if (items.length >= 3) {
+      alert('Maximum 3 items allowed in Spotlight section');
+      return;
+    }
     setEditingItem(undefined);
     setIsModalOpen(true);
   };
