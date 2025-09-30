@@ -26,6 +26,7 @@ export default function CreatorStorePage() {
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState<string>('');
   const [actualWalletAddress, setActualWalletAddress] = useState<string>('');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -46,18 +47,41 @@ export default function CreatorStorePage() {
       // Check if it's a wallet address (starts with SP or ST)
       if (walletOrUsername.startsWith('SP') || walletOrUsername.startsWith('ST')) {
         setActualWalletAddress(walletOrUsername);
+
+        // Also fetch profile data for wallet addresses
+        try {
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('display_name, profile_config')
+            .eq('wallet_address', walletOrUsername)
+            .single();
+
+          if (!error && data) {
+            setCreatorName(data.display_name || walletOrUsername);
+            // Extract profile image from profile_config
+            if (data.profile_config?.profile?.image) {
+              setProfileImage(data.profile_config.profile.image);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching profile data:', error);
+        }
       } else {
         // It's a username, resolve to wallet address
         try {
           const { data, error } = await supabase
             .from('user_profiles')
-            .select('wallet_address, display_name')
+            .select('wallet_address, display_name, profile_config')
             .eq('username', walletOrUsername)
             .single();
 
           if (!error && data) {
             setActualWalletAddress(data.wallet_address);
             setCreatorName(data.display_name || walletOrUsername);
+            // Extract profile image from profile_config
+            if (data.profile_config?.profile?.image) {
+              setProfileImage(data.profile_config.profile.image);
+            }
           } else {
             // Username not found, treat as wallet address
             setActualWalletAddress(walletOrUsername);
@@ -279,9 +303,17 @@ export default function CreatorStorePage() {
 
           <div className="flex items-center gap-4 mb-6 pt-6">
             <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800">
-              <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl">
-                {creatorName.charAt(0).toUpperCase()}
-              </div>
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt={creatorName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl">
+                  {creatorName ? creatorName.charAt(0).toUpperCase() : '?'}
+                </div>
+              )}
             </div>
 
             <div>
