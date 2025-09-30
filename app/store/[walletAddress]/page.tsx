@@ -52,31 +52,26 @@ export default function CreatorStorePage() {
 
         // Also fetch profile data for wallet addresses
         try {
-          // First fetch basic profile data
+          // Fetch profile data including avatar_url
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('display_name, username')
+            .select('display_name, username, avatar_url')
             .eq('wallet_address', walletOrUsername)
             .single();
 
           if (!profileError && profileData) {
             // Use display_name first, then username, then wallet
             setCreatorName(profileData.display_name || profileData.username || walletOrUsername);
-          }
 
-          // Fetch profile image from sections table
-          const { data: sectionsData, error: sectionsError } = await supabase
-            .from('user_profile_sections')
-            .select('section_type, config')
-            .eq('wallet_address', walletOrUsername)
-            .eq('section_type', 'profile')
-            .single();
-
-          if (!sectionsError && sectionsData?.config?.image) {
-            setProfileImage(sectionsData.config.image);
-            console.log('Profile image found in sections:', sectionsData.config.image.slice(0, 100));
+            // Set profile image from avatar_url
+            if (profileData.avatar_url) {
+              setProfileImage(profileData.avatar_url);
+              console.log('Profile image found:', profileData.avatar_url);
+            } else {
+              console.log('No avatar_url in profile');
+            }
           } else {
-            console.log('No profile section or image found for wallet:', sectionsError);
+            console.log('No profile found for wallet:', walletOrUsername);
           }
         } catch (error) {
           console.error('Error fetching profile data:', error);
@@ -87,10 +82,10 @@ export default function CreatorStorePage() {
         setCreatorName(walletOrUsername);
 
         try {
-          // First fetch basic profile data by username
+          // Fetch profile data by username including avatar_url
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('wallet_address, display_name, username')
+            .select('wallet_address, display_name, username, avatar_url')
             .eq('username', walletOrUsername)
             .single();
 
@@ -99,19 +94,12 @@ export default function CreatorStorePage() {
             // Use display_name first, then username
             setCreatorName(profileData.display_name || profileData.username || walletOrUsername);
 
-            // Now fetch profile image from sections table using the wallet address
-            const { data: sectionsData, error: sectionsError } = await supabase
-              .from('user_profile_sections')
-              .select('section_type, config')
-              .eq('wallet_address', profileData.wallet_address)
-              .eq('section_type', 'profile')
-              .single();
-
-            if (!sectionsError && sectionsData?.config?.image) {
-              setProfileImage(sectionsData.config.image);
-              console.log('Profile image found for username:', sectionsData.config.image.slice(0, 100));
+            // Set profile image from avatar_url
+            if (profileData.avatar_url) {
+              setProfileImage(profileData.avatar_url);
+              console.log('Profile image found for username:', profileData.avatar_url);
             } else {
-              console.log('No profile section or image found for username:', sectionsError);
+              console.log('No avatar_url in profile for username');
             }
           } else {
             console.error('Error fetching profile by username:', profileError);
