@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserProfileService, ProfileData } from '@/lib/userProfileService';
+import { supabase } from '@/lib/supabase';
 import Header from '@/components/layout/Header';
 // ProfileHeader not currently used
 import ProfileInfo from '@/components/profile/ProfileInfo';
@@ -24,6 +25,7 @@ export default function UserProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitializing, setIsInitializing] = useState(false);
   const [targetWallet, setTargetWallet] = useState<string>('');
+  const [artistName, setArtistName] = useState<string>('New User');
 
   const isOwnProfile = currentUserWallet === targetWallet;
 
@@ -67,6 +69,20 @@ export default function UserProfilePage() {
             setProfileData(data);
           }
         }
+
+        // Fetch artist name from first track if no profile exists
+        if (!data.profile && (identifier.startsWith('SP') || identifier.startsWith('ST'))) {
+          const { data: tracks } = await supabase
+            .from('ip_tracks')
+            .select('artist')
+            .eq('primary_uploader_wallet', identifier)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+          if (tracks && tracks.length > 0 && tracks[0].artist) {
+            setArtistName(tracks[0].artist);
+          }
+        }
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -106,7 +122,7 @@ export default function UserProfilePage() {
   // Instead of showing error, create a graceful default experience
   const profile = profileData?.profile || {
     wallet_address: identifier.startsWith('SP') || identifier.startsWith('ST') ? identifier : '',
-    display_name: 'New User',
+    display_name: artistName, // Use fetched artist name instead of 'New User'
     tagline: '',
     bio: '',
     avatar_url: undefined,
