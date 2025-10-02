@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 // Removed profile dependency for alpha version
 import Link from "next/link";
@@ -9,18 +9,45 @@ import { Button } from "../ui/Button";
 // SyncStatus not needed for alpha version
 import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function Header() {
   const pathname = usePathname();
   const isGlobePage = pathname === '/';
   const isWelcomePage = pathname === '/welcome';
   const isMixerPage = pathname === '/mixer';
+  const isProfilePage = pathname?.startsWith('/profile');
+  const isStorePage = pathname?.startsWith('/store');
   
   // Use auth on all pages for wallet functionality
   const { isAuthenticated, connectWallet, disconnectWallet, walletAddress } = useAuth();
-  
+
   // Alpha version - no profile sync status needed
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Fetch username and avatar when wallet connects
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!walletAddress) {
+        setUsername(null);
+        setAvatarUrl(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('username, avatar_url')
+        .eq('wallet_address', walletAddress)
+        .single();
+
+      setUsername(data?.username || null);
+      setAvatarUrl(data?.avatar_url || null);
+    };
+
+    fetchUserData();
+  }, [walletAddress]);
 
   return (
     <header className="bg-background py-4 px-6 flex items-center fixed top-0 left-0 right-0 z-50 border-b border-border">
@@ -76,20 +103,55 @@ export default function Header() {
         <div className="hidden md:block">
           {isAuthenticated && walletAddress ? (
             <div className="flex items-center gap-3">
+              {/* My Profile | My Store links */}
+              <div className="flex items-center gap-2 text-sm">
+                {/* Avatar */}
+                {avatarUrl && (
+                  <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-accent/50">
+                    <img
+                      src={avatarUrl}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <Link
+                  href={username ? `/profile/${username}` : `/profile/${walletAddress}`}
+                  className={`transition-colors ${
+                    isProfilePage
+                      ? 'text-[#81E4F2] font-semibold'
+                      : 'text-[#81E4F2]/70 hover:text-[#81E4F2] font-medium'
+                  }`}
+                >
+                  My Profile
+                </Link>
+                <span className="text-gray-600">|</span>
+                <Link
+                  href={username ? `/store/${username}` : `/store/${walletAddress}`}
+                  className={`transition-colors ${
+                    isStorePage
+                      ? 'text-[#81E4F2] font-semibold'
+                      : 'text-[#81E4F2]/70 hover:text-[#81E4F2] font-medium'
+                  }`}
+                >
+                  My Store
+                </Link>
+              </div>
+
               <div className="text-sm text-gray-300 font-mono">
                 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
               </div>
-              <button 
-                onClick={disconnectWallet} 
+              <button
+                onClick={disconnectWallet}
                 className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
               >
                 Disconnect
               </button>
             </div>
           ) : (
-            <button 
-              onClick={connectWallet} 
-              className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all" 
+            <button
+              onClick={connectWallet}
+              className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all"
               style={{ backgroundColor: '#061F3C' }}
             >
               Connect Wallet
@@ -150,26 +212,63 @@ export default function Header() {
             <div className="pt-2 border-t border-border">
               {isAuthenticated && walletAddress ? (
                 <div className="flex flex-col gap-2">
+                  {/* My Profile | My Store links */}
+                  <div className="flex items-center gap-2 text-sm">
+                    {/* Avatar */}
+                    {avatarUrl && (
+                      <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-accent/50">
+                        <img
+                          src={avatarUrl}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <Link
+                      href={username ? `/profile/${username}` : `/profile/${walletAddress}`}
+                      className={`transition-colors ${
+                        isProfilePage
+                          ? 'text-[#81E4F2] font-semibold'
+                          : 'text-[#81E4F2]/70 hover:text-[#81E4F2] font-medium'
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      My Profile
+                    </Link>
+                    <span className="text-gray-600">|</span>
+                    <Link
+                      href={username ? `/store/${username}` : `/store/${walletAddress}`}
+                      className={`transition-colors ${
+                        isStorePage
+                          ? 'text-[#81E4F2] font-semibold'
+                          : 'text-[#81E4F2]/70 hover:text-[#81E4F2] font-medium'
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      My Store
+                    </Link>
+                  </div>
+
                   <div className="text-sm text-gray-300 font-mono">
                     {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       disconnectWallet();
                       setIsMobileMenuOpen(false);
-                    }} 
+                    }}
                     className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors w-fit"
                   >
                     Disconnect
                   </button>
                 </div>
               ) : (
-                <button 
+                <button
                   onClick={() => {
                     connectWallet();
                     setIsMobileMenuOpen(false);
-                  }} 
-                  className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all w-fit" 
+                  }}
+                  className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all w-fit"
                   style={{ backgroundColor: '#061F3C' }}
                 >
                   Connect Wallet
