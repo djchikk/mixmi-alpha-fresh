@@ -215,7 +215,7 @@ export default function SpotlightItemModal({
             htmlFor="link"
             className="block text-sm font-medium text-gray-300 mb-1"
           >
-            Link URL
+            Link URL (optional)
           </label>
           <input
             type="text"

@@ -23,6 +23,8 @@ interface MediaSectionProps {
   onUpdate: () => Promise<void>;
 }
 
+// Note: This section is titled "Streams" in the UI but the component is still called MediaSection
+// to maintain consistency with database references and existing code
 export default function MediaSection({
   config = [],
   isOwnProfile,
@@ -37,7 +39,7 @@ export default function MediaSection({
   const handleAddItem = () => {
     // Check if we've reached the limit of 3 items
     if (items.length >= 3) {
-      showToast('Maximum 3 items allowed in Media section', 'error');
+      showToast('Maximum 3 items allowed in Streams section', 'error');
       return;
     }
     setEditingItem(undefined);
@@ -120,14 +122,14 @@ export default function MediaSection({
   return (
     <section className="mb-16">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Media</h2>
+        <h2 className="text-2xl font-bold text-white">Streams</h2>
         {isOwnProfile && (
           <button
             onClick={handleAddItem}
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
           >
             <Plus size={18} />
-            <span>Add Media</span>
+            <span>Add Stream</span>
           </button>
         )}
       </div>

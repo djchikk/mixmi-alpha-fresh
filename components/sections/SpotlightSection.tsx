@@ -142,8 +142,8 @@ export default function SpotlightSection({
           <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900/95 to-slate-900/0 transition-opacity duration-300 opacity-100">
             <div className="flex items-start">
               <div className="border-l-2 border-accent pl-2">
-                <h3 className="text-white font-medium text-sm drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">Feature anything -- projects, people, or inspirations</h3>
-                <p className="text-gray-200 text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">Click to add your first spotlight item</p>
+                <h3 className="text-white font-medium text-sm drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">Custom cards with image, text, and link</h3>
+                <p className="text-gray-200 text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">Feature anything: projects, people, or inspiration</p>
               </div>
             </div>
           </div>
