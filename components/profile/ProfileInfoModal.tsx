@@ -455,8 +455,8 @@ export default function ProfileInfoModal({
 
         {/* Username/BNS Toggle */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Profile URL Identifier
+          <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
+            Username (optional)
           </label>
 
           {/* BNS Toggle temporarily hidden - Sept 2025 API compatibility issues
@@ -495,7 +495,7 @@ export default function ProfileInfoModal({
                 type="text"
                 value={formData.username}
                 onChange={(e) => handleInputChange('username', e.target.value.toLowerCase())}
-                placeholder="username (letters, numbers, underscore)"
+                placeholder="Defaults to wallet address"
                 maxLength={30}
                 className={`w-full px-3 py-2 pr-10 bg-slate-800 text-white rounded-lg border ${
                   usernameStatus === 'available' ? 'border-green-500' :
@@ -552,11 +552,11 @@ export default function ProfileInfoModal({
             <span className="text-xs text-gray-500">
               {formData.use_bns
                 ? (formData.bns_name || formData.username
-                  ? `mixmi.com/profile/${formData.bns_name || formData.username}`
+                  ? `Your profile URL: mixmi.com/profile/${formData.bns_name || formData.username}`
                   : 'Enter your BNS name')
                 : (formData.username
-                  ? `mixmi.com/profile/${formData.username}`
-                  : 'Choose a unique username')
+                  ? `Your profile URL: mixmi.com/profile/${formData.username}`
+                  : `Your profile URL: mixmi.com/profile/${targetWallet.slice(0, 6)}...`)
               }
             </span>
             {!formData.use_bns && usernameError && (
@@ -576,7 +576,7 @@ export default function ProfileInfoModal({
 
         {/* Name Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
             Display Name
           </label>
           <input
@@ -599,7 +599,7 @@ export default function ProfileInfoModal({
 
         {/* Tagline Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
             Tagline
           </label>
           <input
@@ -622,7 +622,7 @@ export default function ProfileInfoModal({
 
         {/* Bio Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
             Bio
           </label>
           <textarea
@@ -646,7 +646,7 @@ export default function ProfileInfoModal({
         {/* Social Links */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-medium text-gray-300">
+            <label className="block text-sm font-medium text-gray-300 text-left">
               Social Links
             </label>
             <button
@@ -703,7 +703,7 @@ export default function ProfileInfoModal({
 
         {/* Wallet Address Settings */}
         <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-gray-300 text-left">
             Display Settings
           </label>
 
