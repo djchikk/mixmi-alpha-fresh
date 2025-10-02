@@ -146,7 +146,7 @@ export default function UserProfilePage() {
   const profile = profileData?.profile || {
     wallet_address: identifier.startsWith('SP') || identifier.startsWith('ST') ? identifier : '',
     display_name: artistName, // Use fetched artist name instead of 'New User'
-    tagline: '',
+    tagline: '...', // Minimal, universal placeholder
     bio: '',
     avatar_url: undefined,
     sticker_id: 'daisy-blue',
