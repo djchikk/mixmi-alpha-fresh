@@ -633,10 +633,14 @@ export default function HomePage() {
                   <div className="text-center mt-3">
                     <button
                       onClick={() => setCarouselPage(prev => prev + 1)}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
+                      className="hover:bg-[#1a2030]/90 hover:border-white text-white font-mono font-bold tracking-wide shadow-lg hover:shadow-xl hover:scale-105"
                       style={{
-                        background: 'linear-gradient(135deg, #81E4F2 0%, #5ac8d8 100%)',
-                        color: '#0a0e1a'
+                        background: 'rgba(16, 23, 38, 0.4)',
+                        backdropFilter: 'blur(12px)',
+                        border: '2px solid #81E4F2',
+                        borderRadius: '8px',
+                        padding: '12px 32px',
+                        transition: 'all 0.2s ease'
                       }}
                     >
                       Load More ({selectedNode.tracks.length - (8 + (carouselPage * 8))} remaining)
