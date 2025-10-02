@@ -103,65 +103,24 @@ export default function UserProfilePage() {
     );
   }
 
-  if (!profileData?.profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#151C2A] to-[#101726] pt-16">
-        <Header />
-        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
-          <div className="text-center max-w-lg px-6">
-            <h2 className="text-2xl font-bold text-white mb-3">Profile Not Found</h2>
+  // Instead of showing error, create a graceful default experience
+  const profile = profileData?.profile || {
+    wallet_address: identifier.startsWith('SP') || identifier.startsWith('ST') ? identifier : '',
+    display_name: 'New User',
+    tagline: '',
+    bio: '',
+    avatar_url: undefined,
+    sticker_id: 'daisy-blue',
+    sticker_visible: true,
+    custom_sticker: undefined,
+    show_wallet_address: true,
+    show_btc_address: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
 
-            {/* Check if identifier might be an old username/BNS */}
-            {!identifier.startsWith('SP') && !identifier.startsWith('ST') && (
-              <div className="mb-4">
-                <p className="text-gray-400 mb-2">
-                  The username or BNS name "{identifier}" doesn't exist or may have been changed.
-                </p>
-                <p className="text-sm text-gray-500">
-                  Tip: Profile owners can change their username/BNS at any time.
-                  Try using their wallet address instead, which never changes.
-                </p>
-              </div>
-            )}
-
-            {/* For wallet addresses */}
-            {(identifier.startsWith('SP') || identifier.startsWith('ST')) && (
-              <p className="text-gray-400">
-                {isOwnProfile
-                  ? 'There was an error setting up your profile. Please try again.'
-                  : 'This user has not set up their profile yet.'}
-              </p>
-            )}
-
-            {/* Helpful links */}
-            <div className="mt-6">
-              <p className="text-sm text-gray-500 mb-3">
-                Need help finding someone's profile?
-              </p>
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={() => window.history.back()}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors text-sm"
-                >
-                  Go Back
-                </button>
-                <a
-                  href="/"
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors text-sm"
-                >
-                  Go Home
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const profile = profileData.profile;
-  const sections = profileData.sections;
-  const links = profileData.links;
+  const sections = profileData?.sections || [];
+  const links = profileData?.links || [];
 
   const spotlightSection = sections.find(s => s.section_type === 'spotlight');
   const mediaSection = sections.find(s => s.section_type === 'media');
