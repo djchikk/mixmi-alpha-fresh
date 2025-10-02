@@ -8,6 +8,9 @@ import CompactTrackCardWithFlip from '@/components/cards/CompactTrackCardWithFli
 import { supabase } from '@/lib/supabase';
 import { IPTrack } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Plus } from 'lucide-react';
+import IPTrackModal from '@/components/modals/IPTrackModal';
 
 interface ContentFilter {
   type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep';
@@ -17,6 +20,7 @@ interface ContentFilter {
 export default function CreatorStorePage() {
   const params = useParams();
   const { showToast } = useToast();
+  const { isAuthenticated, walletAddress } = useAuth();
   const walletOrUsername = params.walletAddress as string; // This will be either wallet address or username
 
   const [tracks, setTracks] = useState<IPTrack[]>([]);
@@ -27,6 +31,7 @@ export default function CreatorStorePage() {
   const [creatorName, setCreatorName] = useState<string>('');
   const [actualWalletAddress, setActualWalletAddress] = useState<string>('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -38,6 +43,9 @@ export default function CreatorStorePage() {
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [visibleCards, setVisibleCards] = useState(0);
   const [waveLoadingActive, setWaveLoadingActive] = useState(false);
+
+  // Check if viewing own store
+  const isOwnStore = isAuthenticated && walletAddress === actualWalletAddress;
 
   // First, resolve username to wallet address if needed
   useEffect(() => {
@@ -314,6 +322,57 @@ export default function CreatorStorePage() {
     }
   };
 
+  const handleDeleteTrack = async (trackId: string) => {
+    if (!confirm('Are you sure you want to delete this track? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Soft delete by setting deleted_at timestamp
+      const { error } = await supabase
+        .from('ip_tracks')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', trackId)
+        .eq('primary_uploader_wallet', actualWalletAddress); // Verify ownership
+
+      if (error) {
+        console.error('Error deleting track:', error);
+        showToast('Failed to delete track', 'error');
+        return;
+      }
+
+      // Remove from local state
+      setTracks(prev => prev.filter(t => t.id !== trackId));
+      showToast('Track deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting track:', error);
+      showToast('Failed to delete track', 'error');
+    }
+  };
+
+  const refreshTracks = async () => {
+    if (!actualWalletAddress) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('primary_uploader_wallet', actualWalletAddress)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error refreshing tracks:', error);
+        return;
+      }
+
+      setTracks(data || []);
+      showToast('Content uploaded successfully!', 'success');
+    } catch (error) {
+      console.error('Error refreshing tracks:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#151C2A] to-[#101726] pt-16">
       <Header />
@@ -321,36 +380,48 @@ export default function CreatorStorePage() {
       <div className="max-w-7xl mx-auto px-6 pb-24">
         <div className="sticky top-[73px] z-40 bg-gradient-to-br from-[#151C2A]/95 to-[#101726]/95 backdrop-blur-md border-b border-white/10 -mx-6 px-6 pb-6 mb-8">
 
-          <div className="flex items-center gap-4 mb-6 pt-6">
-            <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800">
-              {profileImage ? (
-                <img
-                  src={profileImage}
-                  alt={creatorName || 'Creator'}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.error('Failed to load profile image');
-                    // Hide the broken image and show fallback
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
-                  {creatorName ? creatorName.charAt(0).toUpperCase() : 'M'}
-                </div>
-              )}
+          <div className="flex items-center justify-between mb-6 pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800">
+                {profileImage ? (
+                  <img
+                    src={profileImage}
+                    alt={creatorName || 'Creator'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Failed to load profile image');
+                      // Hide the broken image and show fallback
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
+                    {creatorName ? creatorName.charAt(0).toUpperCase() : 'M'}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h1 className="text-4xl font-bold">
+                  <span className="bg-gradient-to-r from-[#9772F4] to-[#FFE4B5] bg-clip-text text-transparent">
+                    {creatorName ? `${creatorName}'s Store` : 'Creator Store'}
+                  </span>
+                </h1>
+                <p className="text-gray-400 mt-1">
+                  {isOwnStore ? 'Manage your content' : 'Discover and license amazing tracks'}
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h1 className="text-4xl font-bold">
-                <span className="bg-gradient-to-r from-[#9772F4] to-[#FFE4B5] bg-clip-text text-transparent">
-                  {creatorName ? `${creatorName}'s Store` : 'Creator Store'}
-                </span>
-              </h1>
-              <p className="text-gray-400 mt-1">
-                Discover and license amazing tracks
-              </p>
-            </div>
+            {isOwnStore && (
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
+              >
+                <Plus size={18} />
+                <span>Upload Content</span>
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -475,7 +546,8 @@ export default function CreatorStorePage() {
                   isPlaying={playingTrack === track.id}
                   onPlayPreview={handlePlayPreview}
                   onStopPreview={handleStopPreview}
-                  showEditControls={false}
+                  showEditControls={isOwnStore}
+                  onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
                 />
               </div>
             ))}
@@ -499,6 +571,15 @@ export default function CreatorStorePage() {
       </div>
 
       <Crate />
+
+      {/* Upload Modal */}
+      {isOwnStore && (
+        <IPTrackModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          onUploadComplete={refreshTracks}
+        />
+      )}
 
       <style jsx>{`
         @keyframes waveCardFadeIn {
