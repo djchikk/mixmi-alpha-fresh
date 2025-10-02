@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import MediaCard from '../cards/MediaCard';
 import MediaItemModal from '../modals/MediaItemModal';
 import { UserProfileService } from '@/lib/userProfileService';
+import { useToast } from '@/contexts/ToastContext';
 
 interface MediaItem {
   id: string;
@@ -31,11 +32,12 @@ export default function MediaSection({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MediaItem | undefined>(undefined);
   const [items, setItems] = useState<MediaItem[]>(config);
+  const { showToast } = useToast();
 
   const handleAddItem = () => {
     // Check if we've reached the limit of 3 items
     if (items.length >= 3) {
-      alert('Maximum 3 items allowed in Media section');
+      showToast('Maximum 3 items allowed in Media section', 'error');
       return;
     }
     setEditingItem(undefined);

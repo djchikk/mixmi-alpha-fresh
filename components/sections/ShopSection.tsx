@@ -6,6 +6,7 @@ import ShopCard from '../cards/ShopCard';
 import StoreCard from '../cards/StoreCard';
 import ShopItemModal from '../modals/ShopItemModal';
 import { UserProfileService } from '@/lib/userProfileService';
+import { useToast } from '@/contexts/ToastContext';
 
 interface ShopItem {
   id: string;
@@ -31,14 +32,20 @@ export default function ShopSection({
 }: ShopSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ShopItem | undefined>(undefined);
-  const [items, setItems] = useState<ShopItem[]>(config);
+
+  // Separate store card from regular items
+  const savedStoreCard = config.find(item => item.id === 'store-card');
+  const regularItems = config.filter(item => item.id !== 'store-card');
+
+  const [items, setItems] = useState<ShopItem[]>(regularItems);
   const [storeCardVisible, setStoreCardVisible] = useState(true);
-  const [storeCard, setStoreCard] = useState<ShopItem>({
+  const [storeCard, setStoreCard] = useState<ShopItem>(savedStoreCard || {
     id: 'store-card',
-    title: 'Creator Store',
-    description: 'View all tracks and content from this creator',
-    image: '/placeholders/shop/product-1.jpeg'
+    title: 'My Creator Store',
+    description: 'Browse my tracks and loops',
+    image: ''
   });
+  const { showToast } = useToast();
 
   // Load store card visibility state from localStorage
   useEffect(() => {
@@ -77,7 +84,7 @@ export default function ShopSection({
     // Check if we've reached the limit accounting for store card
     const maxRegularItems = storeCardVisible ? 2 : 3;
     if (items.length >= maxRegularItems) {
-      alert(`Maximum ${maxRegularItems} product${maxRegularItems > 1 ? 's' : ''} allowed${storeCardVisible ? ' (plus store card)' : ''}`);
+      showToast(`Maximum ${maxRegularItems} product${maxRegularItems > 1 ? 's' : ''} allowed${storeCardVisible ? ' (plus store card)' : ''}`, 'error');
       return;
     }
     setEditingItem(undefined);
@@ -98,41 +105,40 @@ export default function ShopSection({
     try {
       console.log('Saving shop item:', item);
 
+      let updatedRegularItems: ShopItem[];
+      let updatedStoreCard: ShopItem = storeCard;
+
       // Check if we're saving the store card
       if (item.id === 'store-card') {
+        updatedStoreCard = item;
         setStoreCard(item);
-        // Store cards don't get saved to the database, just update local state
-        setIsModalOpen(false);
-        setEditingItem(undefined);
-        return;
-      }
-
-      let updatedItems: ShopItem[];
-
-      if (editingItem && editingItem.id !== 'store-card') {
-        // Update existing item
-        updatedItems = items.map(i => i.id === item.id ? item : i);
+        updatedRegularItems = items;
+      } else if (editingItem && editingItem.id !== 'store-card') {
+        // Update existing regular item
+        updatedRegularItems = items.map(i => i.id === item.id ? item : i);
       } else {
-        // Add new item
-        updatedItems = [...items, item];
+        // Add new regular item
+        updatedRegularItems = [...items, item];
       }
 
-      console.log('Updated shop items to save:', updatedItems);
+      // Combine store card and regular items for database storage
+      const allItemsToSave = [updatedStoreCard, ...updatedRegularItems];
+      console.log('Updated shop config to save (including store card):', allItemsToSave);
 
       // Save to database
       const success = await UserProfileService.updateSectionConfig(
         targetWallet,
         'shop',
-        updatedItems
+        allItemsToSave
       );
 
       if (success) {
-        setItems(updatedItems);
+        setItems(updatedRegularItems);
         await onUpdate();
-        console.log('Shop items saved successfully');
+        console.log('Shop section saved successfully (including store card)');
       } else {
-        console.error('Failed to save shop items - service returned false');
-        alert('Failed to save shop items. Check console for details.');
+        console.error('Failed to save shop section - service returned false');
+        showToast('Failed to save changes', 'error');
       }
     } catch (error) {
       console.error('Error saving shop item:', error);

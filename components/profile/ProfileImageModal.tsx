@@ -28,13 +28,18 @@ export default function ProfileImageModal({
   
   // Initialize state when modal opens (no cleanup needed since component unmounts on close)
   useEffect(() => {
+    console.log('🔧 ProfileImageModal useEffect triggered:', {
+      isOpen,
+      currentImage,
+      currentImageType: currentImage ? (currentImage.startsWith('http') ? 'URL' : 'base64') : 'none'
+    });
     if (isOpen) {
       setCurrentImageData(currentImage || "");
       setIsSaving(false);
       setSaveStatus('idle');
       setIsGifUpload(false);
     }
-  }, [isOpen]); // Removed currentImage dependency to prevent resetting during save
+  }, [isOpen, currentImage]); // Include currentImage to ensure preview updates when modal opens
   
   const handleImageChange = (imageData: string) => {
     console.log('🔧 ProfileImageModal.handleImageChange called:', {
@@ -118,11 +123,12 @@ export default function ProfileImageModal({
         </p>
         
         <ImageUploader
-          initialImage=""
+          initialImage={currentImageData || currentImage}
           onImageChange={handleImageChange}
           aspectRatio="square"
           section="profile"
           walletAddress={targetWallet}  // Pass wallet for storage upload
+          hideToggle={true}  // Hide upload/URL toggle to prevent tab switching from clearing preview
         />
         
         {/* Save Status Indicator */}
@@ -161,7 +167,7 @@ export default function ProfileImageModal({
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving || !currentImageData}
+            disabled={isSaving || !currentImageData || saveStatus === 'complete'}
             className="px-4 py-1.5 bg-[#101726] text-white border-2 border-white rounded-lg font-semibold hover:bg-[#1a2030] hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving && saveStatus === 'saving' && (

@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import SpotlightCard from '../cards/SpotlightCard';
 import SpotlightItemModal from '../modals/SpotlightItemModal';
 import { UserProfileService } from '@/lib/userProfileService';
+import { useToast } from '@/contexts/ToastContext';
 
 interface SpotlightItem {
   id: string;
@@ -30,11 +31,12 @@ export default function SpotlightSection({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SpotlightItem | undefined>(undefined);
   const [items, setItems] = useState<SpotlightItem[]>(config);
+  const { showToast } = useToast();
 
   const handleAddItem = () => {
     // Check if we've reached the limit of 3 items
     if (items.length >= 3) {
-      alert('Maximum 3 items allowed in Spotlight section');
+      showToast('Maximum 3 items allowed in Spotlight section', 'error');
       return;
     }
     setEditingItem(undefined);

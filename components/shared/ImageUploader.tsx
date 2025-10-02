@@ -83,18 +83,26 @@ export default function ImageUploader({
   
   // Reset preview when initialImage changes
   useEffect(() => {
+    console.log('🖼️ ImageUploader initialImage effect:', {
+      initialImage,
+      hasInitialImage: !!initialImage,
+      section,
+      hideToggle
+    });
     if (initialImage) {
+      console.log('✅ Setting preview to:', initialImage.substring(0, 100));
       setPreview(initialImage);
       setImageUrl(initialImage);
       setUrlValidationState('valid');
       setUrlFeedback('');
     } else {
+      console.log('❌ No initialImage - clearing preview');
       setPreview(null);
       setImageUrl("");
       setUrlValidationState('idle');
       setUrlFeedback('');
     }
-  }, [initialImage, setImageUrl, setUrlValidationState, setUrlFeedback]);
+  }, [initialImage, setImageUrl, setUrlValidationState, setUrlFeedback, section, hideToggle]);
   
   // Handle file drop
   const onDrop = useCallback((acceptedFiles: File[]) => {

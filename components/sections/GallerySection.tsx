@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import GalleryCard from '../cards/GalleryCard';
 import GalleryItemModal from '../modals/GalleryItemModal';
 import { UserProfileService } from '@/lib/userProfileService';
+import { useToast } from '@/contexts/ToastContext';
 
 interface GalleryItem {
   id: string;
@@ -29,11 +30,12 @@ export default function GallerySection({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<GalleryItem | undefined>(undefined);
   const [items, setItems] = useState<GalleryItem[]>(config);
+  const { showToast } = useToast();
 
   const handleAddItem = () => {
     // Check if we've reached the limit of 3 items
     if (items.length >= 3) {
-      alert('Maximum 3 items allowed in Gallery section');
+      showToast('Maximum 3 items allowed in Gallery section', 'error');
       return;
     }
     setEditingItem(undefined);

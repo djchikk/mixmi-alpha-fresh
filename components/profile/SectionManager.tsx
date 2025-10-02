@@ -100,7 +100,7 @@ export default function SectionManager({ sections, targetWallet, stickerVisible 
       case 'media': return 'Media';
       case 'shop': return 'Shop';
       case 'gallery': return 'Gallery';
-      case 'sticker': return 'Profile Sticker';
+      case 'sticker': return 'Sticker';
       default: return type;
     }
   };

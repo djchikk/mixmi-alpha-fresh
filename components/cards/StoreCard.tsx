@@ -24,7 +24,6 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
   const [isLoading, setIsLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
   const router = useRouter();
 
   // Fetch track count, username, and profile image from Supabase
@@ -51,20 +50,16 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
           setTrackCount(count || 0);
         }
 
-        // Fetch username and profile image from user_profiles
+        // Fetch username from user_profiles
         const { data: profileData, error: profileError } = await supabase
           .from('user_profiles')
-          .select('username, profile_config')
+          .select('username')
           .eq('wallet_address', wallet)
           .single();
 
         if (!profileError && profileData) {
           if (profileData.username) {
             setUsername(profileData.username);
-          }
-          // Extract profile image from profile_config
-          if (profileData.profile_config?.profile?.image) {
-            setProfileImage(profileData.profile_config.profile.image);
           }
         }
       } catch (error) {
@@ -160,10 +155,10 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
             )}
           </div>
           {/* Mixmi logo - subtle branding for store card */}
-          <div className="ml-3 flex items-center opacity-60 hover:opacity-80 transition-opacity">
-            <img 
-              src="/logos/mixmi-logotype-240x64.png" 
-              alt="Mixmi" 
+          <div className="ml-3 flex items-center opacity-80 hover:opacity-100 transition-opacity">
+            <img
+              src="/logos/mixmi-logotype-240x64.png"
+              alt="Mixmi"
               className="h-4 w-auto"
             />
           </div>
