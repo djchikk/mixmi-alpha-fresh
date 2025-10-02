@@ -130,7 +130,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
               type="text"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
-              placeholder="MIXMI-ABC123 or SP..."
+              placeholder="MIXMI-ABC123"
               disabled={isAuthenticating}
               className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#81E4F2] transition-colors"
             />

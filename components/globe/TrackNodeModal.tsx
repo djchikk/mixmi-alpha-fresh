@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { IPTrack } from '@/types';
 import { TrackNode } from '@/components/globe/types';
 import { supabase } from '@/lib/supabase';
-import OptimizedTrackCard from '@/components/cards/OptimizedTrackCard';
+import CompactTrackCardWithFlip from '@/components/cards/CompactTrackCardWithFlip';
 import { X } from 'lucide-react';
 
 interface TrackNodeModalProps {
@@ -97,7 +97,7 @@ export default function TrackNodeModal({
               </div>
             ) : ipTrack ? (
               <div className="flex justify-center">
-                <OptimizedTrackCard
+                <CompactTrackCardWithFlip
                   track={ipTrack}
                   isPlaying={playingTrackId === ipTrack.id}
                   onPlayPreview={onPlayPreview}

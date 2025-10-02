@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IPTrack } from '@/types';
 // Removed mixer dependency for alpha version
 import { useToast } from '@/contexts/ToastContext';
@@ -10,6 +10,8 @@ import InfoIcon from '../shared/InfoIcon';
 import SafeImage from '../shared/SafeImage';
 import { GripVertical } from 'lucide-react';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 interface CompactTrackCardWithFlipProps {
   track: IPTrack;
@@ -22,10 +24,10 @@ interface CompactTrackCardWithFlipProps {
   onDeleteTrack?: (trackId: string) => void;
 }
 
-export default function CompactTrackCardWithFlip({ 
-  track, 
-  isPlaying, 
-  onPlayPreview, 
+export default function CompactTrackCardWithFlip({
+  track,
+  isPlaying,
+  onPlayPreview,
   onStopPreview,
   showEditControls,
   onPurchase,
@@ -38,6 +40,24 @@ export default function CompactTrackCardWithFlip({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+
+  // Fetch username for the track's primary uploader wallet
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (!track.primary_uploader_wallet) return;
+
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('wallet_address', track.primary_uploader_wallet)
+        .single();
+
+      setUsername(data?.username || null);
+    };
+
+    fetchUsername();
+  }, [track.primary_uploader_wallet]);
 
   // Set up drag
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -231,8 +251,28 @@ export default function CompactTrackCardWithFlip({
                     <div>
                       {/* Title and Artist - full width with truncation */}
                       <div className="flex flex-col">
-                        <h3 className="font-medium text-white text-sm leading-tight truncate">{track.title}</h3>
-                        <p className="text-white/80 text-xs truncate">{track.artist}</p>
+                        {track.primary_uploader_wallet ? (
+                          <Link
+                            href={username ? `/store/${username}` : `/store/${track.primary_uploader_wallet}`}
+                            className="font-medium text-white text-sm leading-tight truncate hover:text-[#81E4F2] transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {track.title}
+                          </Link>
+                        ) : (
+                          <h3 className="font-medium text-white text-sm leading-tight truncate">{track.title}</h3>
+                        )}
+                        {track.primary_uploader_wallet ? (
+                          <Link
+                            href={username ? `/profile/${username}` : `/profile/${track.primary_uploader_wallet}`}
+                            className="text-white/80 text-xs truncate hover:text-[#81E4F2] transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {track.artist}
+                          </Link>
+                        ) : (
+                          <p className="text-white/80 text-xs truncate">{track.artist}</p>
+                        )}
                       </div>
                     </div>
 
