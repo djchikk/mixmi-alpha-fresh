@@ -153,7 +153,7 @@ export default function Header() {
           ) : (
             <button
               onClick={() => setIsSignInModalOpen(true)}
-              className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all"
+              className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/40 hover:border-[#81E4F2] hover:shadow-[0_0_12px_rgba(129,228,242,0.3)] transition-all"
               style={{ backgroundColor: '#061F3C' }}
             >
               Sign In
@@ -270,7 +270,7 @@ export default function Header() {
                     setIsSignInModalOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
-                  className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all w-fit"
+                  className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/40 hover:border-[#81E4F2] hover:shadow-[0_0_12px_rgba(129,228,242,0.3)] transition-all w-fit"
                   style={{ backgroundColor: '#061F3C' }}
                 >
                   Sign In

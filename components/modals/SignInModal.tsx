@@ -107,7 +107,8 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
         {/* Connect Wallet Button */}
         <button
           onClick={handleWalletConnect}
-          className="w-full px-6 py-4 bg-gradient-to-r from-[#81E4F2] to-[#6BC4D4] hover:from-[#6BC4D4] hover:to-[#81E4F2] text-gray-900 font-semibold rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
+          className="w-full px-6 py-4 text-gray-300 font-medium rounded-lg border border-white/40 hover:border-[#81E4F2] hover:shadow-[0_0_12px_rgba(129,228,242,0.3)] transition-all hover:bg-white/5"
+          style={{ backgroundColor: '#061F3C' }}
         >
           🔗 Connect Stacks Wallet
         </button>
