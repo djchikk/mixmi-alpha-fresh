@@ -427,6 +427,7 @@ export default function HomePage() {
                     tags: leftComparisonTrack.tags || [],
                     description: leftComparisonTrack.description || '',
                     license: leftComparisonTrack.license || '',
+                    primary_uploader_wallet: leftComparisonTrack.uploaderAddress || leftComparisonTrack.wallet_address,
                     // Required fields for IPTrack
                     wallet_address: '',
                     created_at: new Date().toISOString(),
@@ -482,6 +483,7 @@ export default function HomePage() {
                     tags: rightComparisonTrack.tags || [],
                     description: rightComparisonTrack.description || '',
                     license: rightComparisonTrack.license || '',
+                    primary_uploader_wallet: rightComparisonTrack.uploaderAddress || rightComparisonTrack.wallet_address,
                     // Required fields for IPTrack
                     wallet_address: '',
                     created_at: new Date().toISOString(),
@@ -616,7 +618,8 @@ export default function HomePage() {
                           bpm: track.bpm,
                           duration: track.duration,
                           description: track.description,
-                          primary_location: track.location
+                          primary_location: track.location,
+                          primary_uploader_wallet: track.uploaderAddress || track.wallet_address
                         } as any}
                         isPlaying={playingTrackId === track.id}
                         onPlayPreview={handlePlayPreview}
@@ -667,6 +670,7 @@ export default function HomePage() {
                       tags: displayTrack.tags || [],
                       description: displayTrack.description || '',
                       license: displayTrack.license || '',
+                      primary_uploader_wallet: displayTrack.uploaderAddress || displayTrack.wallet_address,
                       // Required fields for IPTrack
                       wallet_address: '',
                       created_at: new Date().toISOString(),
