@@ -203,12 +203,23 @@ export default function ShopSection({
       </div>
 
       {displayItems.length === 0 ? (
-        <div className="bg-gray-800/30 rounded-lg p-8 text-center">
-          <p className="text-gray-400">
-            {isOwnProfile
-              ? "No products yet. Click 'Add Product' to showcase items for sale or link to your store."
-              : "No products available."}
-          </p>
+        <div
+          className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 bg-slate-800 cursor-pointer hover:border-accent hover:border-[3px] transition-all"
+          onClick={isOwnProfile ? handleAddItem : undefined}
+        >
+          <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto bg-accent/10 rounded-full flex items-center justify-center mb-4 border border-accent/20">
+                <svg className="w-10 h-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <h3 className="text-white font-medium text-sm mb-1">Shop</h3>
+              {isOwnProfile && (
+                <p className="text-gray-400 text-xs px-4">Showcase your products</p>
+              )}
+            </div>
+          </div>
         </div>
       ) : (
         <div className="flex flex-wrap gap-4 justify-center">
