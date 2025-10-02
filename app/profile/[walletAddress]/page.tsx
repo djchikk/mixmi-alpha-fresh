@@ -143,7 +143,11 @@ export default function UserProfilePage() {
   }
 
   // Instead of showing error, create a graceful default experience
-  const profile = profileData?.profile || {
+  const profile = profileData?.profile ? {
+    ...profileData.profile,
+    // Use "..." placeholder if tagline is empty
+    tagline: profileData.profile.tagline || '...'
+  } : {
     wallet_address: identifier.startsWith('SP') || identifier.startsWith('ST') ? identifier : '',
     display_name: artistName, // Use fetched artist name instead of 'New User'
     tagline: '...', // Minimal, universal placeholder
