@@ -20,28 +20,41 @@ function isValidWalletAddress(address: string): boolean {
   return stacksMainnetPattern.test(address.toUpperCase());
 }
 
+// Validate alpha invite code format (e.g., MIXMI-ABC123)
+function isValidInviteCode(code: string): boolean {
+  // Invite codes are typically formatted like MIXMI-ABC123 or similar
+  // Match alphanumeric codes with optional hyphens, 6-20 characters
+  const inviteCodePattern = /^[A-Z0-9-]{6,20}$/i;
+  return inviteCodePattern.test(code);
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🔐 Alpha auth API called');
-    
+
     const { walletAddress } = await request.json();
-    
+
     if (!walletAddress) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Wallet address is required' 
-      }, { status: 400 });
-    }
-    
-    console.log('🔍 Checking alpha user:', walletAddress);
-    
-    // Validate wallet format
-    if (!isValidWalletAddress(walletAddress)) {
       return NextResponse.json({
         success: false,
-        error: 'Invalid wallet address format. Please use a valid STX mainnet address (SP...)'
+        error: 'Wallet address or invite code is required'
       }, { status: 400 });
     }
+
+    console.log('🔍 Checking alpha access for:', walletAddress);
+
+    // Determine if input is a wallet address or invite code
+    const isWallet = isValidWalletAddress(walletAddress);
+    const isInviteCode = isValidInviteCode(walletAddress);
+
+    if (!isWallet && !isInviteCode) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid format. Please provide a valid Stacks wallet address (SP...) or alpha invite code.'
+      }, { status: 400 });
+    }
+
+    console.log(`📝 Input type: ${isWallet ? 'Wallet Address' : 'Invite Code'}`);
     
     // Get environment variables (available server-side)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -64,34 +77,52 @@ export async function POST(request: NextRequest) {
         persistSession: false
       }
     });
-    
-    // Query alpha_users table - supports both invite codes and wallet addresses
-    const { data: user, error } = await supabase.rpc('validate_alpha_invite', {
-      input_code: walletAddress
-    }).single();
-    
-    if (error && error.code !== 'PGRST116') {
+
+    // Query alpha_users table
+    // Check by wallet_address if it's a wallet, or by invite_code if it's an invite code
+    let query = supabase
+      .from('alpha_users')
+      .select('wallet_address, artist_name, email, notes, approved, created_at, invite_code')
+      .eq('approved', true);
+
+    if (isWallet) {
+      // Direct wallet address lookup
+      query = query.eq('wallet_address', walletAddress);
+    } else {
+      // Invite code lookup
+      query = query.eq('invite_code', walletAddress.toUpperCase());
+    }
+
+    const { data: users, error } = await query;
+
+    if (error) {
       console.error('❌ Database error:', error);
       return NextResponse.json({
         success: false,
         error: 'Database error checking user status'
       }, { status: 500 });
     }
-    
+
+    const user = users && users.length > 0 ? users[0] : null;
+
     if (!user) {
-      console.log('❌ Wallet not approved:', walletAddress);
+      console.log('❌ Not approved:', walletAddress);
       return NextResponse.json({
         success: false,
-        error: 'This wallet address is not approved for alpha access. Please contact support.'
+        error: isWallet
+          ? 'This wallet is not approved for alpha access. Please use an invite code or contact support.'
+          : 'Invalid invite code. Please check your code or contact support.'
       }, { status: 403 });
     }
-    
-    console.log('✅ Alpha user approved:', user.artist_name);
-    
-    // Return success with user info
+
+    console.log('✅ Alpha user approved:', user.artist_name, `(${isWallet ? 'wallet' : 'invite code'})`);
+
+    // Return success with user info and auth type
     return NextResponse.json({
       success: true,
       user: user,
+      authType: isWallet ? 'wallet' : 'invite',
+      effectiveWallet: user.wallet_address,
       message: `Welcome, ${user.artist_name}!`
     });
     

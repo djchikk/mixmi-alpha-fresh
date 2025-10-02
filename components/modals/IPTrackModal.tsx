@@ -224,7 +224,44 @@ export default function IPTrackModal({
     setShowLocationDropdown(suggestions.length > 0);
   }, [suggestions]);
 
-  // 🎯 Alpha Authentication Handler - only runs when user wants to upload
+  // 🎯 Auto-check wallet approval when modal opens with connected wallet
+  useEffect(() => {
+    const checkWalletApproval = async () => {
+      if (isOpen && globalWalletConnected && globalWalletAddress && !alphaWallet) {
+        console.log('🔍 Auto-checking wallet approval for:', globalWalletAddress);
+        setIsAuthenticating(true);
+
+        try {
+          const response = await fetch('/api/auth/alpha-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ walletAddress: globalWalletAddress })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              // Wallet is approved! Skip auth screen
+              console.log('✅ Wallet approved:', result.user?.artist_name);
+              setAlphaWallet(globalWalletAddress);
+              showToast(`✅ Welcome ${result.user?.artist_name || 'Alpha User'}!`, 'success');
+            } else {
+              // Wallet not approved - user will see alpha code input
+              console.log('⚠️ Wallet not approved, showing invite code input');
+            }
+          }
+        } catch (error) {
+          console.error('Error checking wallet approval:', error);
+        } finally {
+          setIsAuthenticating(false);
+        }
+      }
+    };
+
+    checkWalletApproval();
+  }, [isOpen, globalWalletConnected, globalWalletAddress, alphaWallet, showToast]);
+
+  // 🎯 Alpha Authentication Handler - runs when user manually enters invite code/wallet
   const handleAlphaAuthentication = async (inputWallet: string) => {
     setIsAuthenticating(true);
     try {
@@ -2079,14 +2116,16 @@ export default function IPTrackModal({
             Upload Your Music
           </h2>
           
-          <p 
+          <p
             style={{
               fontSize: '15px',
               color: '#a0a0a0',
               lineHeight: '1.4'
             }}
           >
-            🎫 Enter your alpha invite code
+            {globalWalletConnected
+              ? '🎫 Wallet not approved. Enter alpha invite code'
+              : '🎫 Enter your alpha invite code or connect wallet'}
           </p>
         </div>
         

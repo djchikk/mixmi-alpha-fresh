@@ -47,63 +47,86 @@ export class AlphaAuth {
     });
   }
   
-  // Validate wallet address OR invite code format
-  private static isValidInput(input: string): boolean {
-    // Check for invite code format: MIXMI-ABC123
-    const inviteCodePattern = /^MIXMI-[A-Z0-9]{6}$/;
-    if (inviteCodePattern.test(input.toUpperCase())) {
-      return true;
-    }
-    
-    // Check for wallet address format: Stacks mainnet addresses start with SP
+  // Validate wallet address format
+  private static isValidWalletAddress(address: string): boolean {
+    // Stacks mainnet addresses start with SP and range from 39-42 characters total
     const stacksMainnetPattern = /^SP[0-9A-Z]{37,40}$/;
-    return stacksMainnetPattern.test(input.toUpperCase());
+    return stacksMainnetPattern.test(address.toUpperCase());
   }
-  
-  // Check if wallet is in approved alpha users list
-  static async checkAlphaUser(walletAddress: string): Promise<AuthResult> {
+
+  // Validate alpha invite code format (e.g., MIXMI-ABC123)
+  private static isValidInviteCode(code: string): boolean {
+    // Invite codes are typically formatted like MIXMI-ABC123 or similar
+    // Match alphanumeric codes with optional hyphens, 6-20 characters
+    const inviteCodePattern = /^[A-Z0-9-]{6,20}$/i;
+    return inviteCodePattern.test(code);
+  }
+
+  // Check if wallet or invite code is in approved alpha users list
+  static async checkAlphaUser(input: string): Promise<AuthResult & { effectiveWallet?: string; authType?: 'wallet' | 'invite' }> {
     try {
-      console.log('Checking alpha user status for:', walletAddress);
-      
-      // Validate input format first (invite code or wallet address)
-      if (!this.isValidInput(walletAddress)) {
+      console.log('🔍 Checking alpha access for:', input);
+
+      // Determine if input is a wallet address or invite code
+      const isWallet = this.isValidWalletAddress(input);
+      const isInviteCode = this.isValidInviteCode(input);
+
+      if (!isWallet && !isInviteCode) {
         return {
           success: false,
-          error: 'Invalid format. Please use an invite code (MIXMI-ABC123) or STX wallet address (SP...)'
+          error: 'Invalid format. Please provide a valid Stacks wallet address (SP...) or alpha invite code.'
         };
       }
-      
-      // Query alpha_users table - supports both invite codes and wallet addresses
+
+      console.log(`📝 Input type: ${isWallet ? 'Wallet Address' : 'Invite Code'}`);
+
+      // Query alpha_users table directly
       const supabase = this.getServiceClient();
-      const { data: user, error } = await supabase.rpc('validate_alpha_invite', {
-        input_code: walletAddress
-      }).single();
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error('Database error checking alpha user:', error);
+      let query = supabase
+        .from('alpha_users')
+        .select('wallet_address, artist_name, email, notes, approved, created_at, invite_code')
+        .eq('approved', true);
+
+      if (isWallet) {
+        // Direct wallet address lookup
+        query = query.eq('wallet_address', input);
+      } else {
+        // Invite code lookup
+        query = query.eq('invite_code', input.toUpperCase());
+      }
+
+      const { data: users, error } = await query;
+
+      if (error) {
+        console.error('❌ Database error checking alpha user:', error);
         return {
           success: false,
           error: 'Database error checking user status'
         };
       }
-      
-      if (!user || !user.approved) {
-        console.log('Input not found in alpha users list or not approved:', walletAddress);
+
+      const user = users && users.length > 0 ? users[0] : null;
+
+      if (!user) {
+        console.log('❌ Not approved:', input);
         return {
           success: false,
-          error: 'This invite code or wallet address is not approved for alpha access. Please contact support.'
+          error: isWallet
+            ? 'This wallet is not approved for alpha access. Please use an invite code or contact support.'
+            : 'Invalid invite code. Please check your code or contact support.'
         };
       }
-      
-      console.log('Alpha user verified:', user.artist_name);
+
+      console.log('✅ Alpha user verified:', user.artist_name, `(${isWallet ? 'wallet' : 'invite code'})`);
       return {
         success: true,
-        user: user
-        // Note: supabaseClient intentionally removed for security - never expose service role key to client
+        user: user,
+        authType: isWallet ? 'wallet' : 'invite',
+        effectiveWallet: user.wallet_address
       };
-      
+
     } catch (error) {
-      console.error('Error in alpha user check:', error);
+      console.error('❌ Error in alpha user check:', error);
       return {
         success: false,
         error: 'System error during authentication'

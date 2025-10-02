@@ -52,24 +52,22 @@ export class SupabaseAuthBridge {
       const { token, expires_at } = await response.json();
       console.log('✅ Received JWT token from server');
 
-      // Create Supabase client with custom token
+      // Create Supabase client with custom JWT token in headers
+      // Instead of using auth.setSession(), we pass the JWT directly in the Authorization header
+      // This avoids the need to have actual users in Supabase's auth.users table
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        }
       );
 
-      // Set the session with our custom JWT token
-      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-        access_token: token,
-        refresh_token: token
-      });
-
-      if (sessionError) {
-        console.error('🚨 Supabase session error:', sessionError);
-        throw new Error(`Failed to set Supabase session: ${sessionError.message}`);
-      }
-
-      console.log('✅ Supabase session created successfully');
+      console.log('✅ Supabase client created with wallet authentication');
 
       return {
         supabase,

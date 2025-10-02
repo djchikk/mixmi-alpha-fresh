@@ -36,36 +36,10 @@ export async function POST(request: NextRequest) {
     
     // Convert wallet address to UUID format for Supabase compatibility
     const userUUID = walletToUUID(walletAddress);
-    
-    // Ensure user exists in Supabase auth system
-    try {
-      const supabaseAdmin = getSupabaseAdmin();
-      
-      if (supabaseAdmin) {
-        // Try to get the user first
-        const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userUUID);
-        
-        if (getUserError || !existingUser.user) {
-          // Create the user in Supabase auth system
-          const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-            id: userUUID,
-            email: `${walletAddress}@wallet.local`, // Placeholder email
-            email_confirm: true,
-            user_metadata: {
-              wallet_address: walletAddress,
-              created_via: 'wallet_auth'
-            }
-          });
-          
-          if (createError) {
-            console.error('Failed to create user:', createError);
-          }
-        }
-      }
-    } catch (userCreationError) {
-      console.error('User creation/check failed, continuing with JWT:', userCreationError);
-      // Continue anyway - JWT might still work
-    }
+
+    // Note: We're using wallet-based authentication with JWTs only
+    // The JWT is passed directly in the Authorization header, so we don't need
+    // users to exist in Supabase's auth.users table
     
     // Create JWT token
     const secret = new TextEncoder().encode(jwtSecret);
