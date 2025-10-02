@@ -70,17 +70,40 @@ export default function UserProfilePage() {
           }
         }
 
-        // Fetch artist name from first track if no profile exists
+        // Fetch artist name and cover image from first track if no profile exists
         if (!data.profile && (identifier.startsWith('SP') || identifier.startsWith('ST'))) {
           const { data: tracks } = await supabase
             .from('ip_tracks')
-            .select('artist')
+            .select('artist, cover_image_url')
             .eq('primary_uploader_wallet', identifier)
             .order('created_at', { ascending: true })
             .limit(1);
 
-          if (tracks && tracks.length > 0 && tracks[0].artist) {
-            setArtistName(tracks[0].artist);
+          if (tracks && tracks.length > 0) {
+            if (tracks[0].artist) {
+              setArtistName(tracks[0].artist);
+            }
+            // Cheeky: Use their first track's cover as profile image!
+            if (tracks[0].cover_image_url) {
+              setProfileData(prev => ({
+                ...prev,
+                profile: {
+                  ...(prev?.profile || {
+                    wallet_address: identifier,
+                    display_name: tracks[0].artist || 'New User',
+                    tagline: '',
+                    bio: '',
+                    sticker_id: 'daisy-blue',
+                    sticker_visible: true,
+                    show_wallet_address: true,
+                    show_btc_address: false,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  }),
+                  avatar_url: tracks[0].cover_image_url
+                } as any
+              }));
+            }
           }
         }
       } catch (error) {
