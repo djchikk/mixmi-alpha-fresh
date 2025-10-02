@@ -132,7 +132,7 @@ export default function GallerySection({
 
       {items.length === 0 ? (
         <div
-          className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 bg-slate-800 cursor-pointer hover:border-accent hover:border-[3px] transition-all"
+          className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 bg-slate-800 cursor-pointer hover:border-accent hover:border-[3px] transition-all group"
           onClick={isOwnProfile ? handleAddItem : undefined}
         >
           <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
@@ -144,10 +144,40 @@ export default function GallerySection({
               </div>
               <h3 className="text-white font-medium text-sm mb-1">Gallery</h3>
               {isOwnProfile && (
-                <p className="text-gray-400 text-xs px-4">Share visual moments</p>
+                <p className="text-gray-400 text-xs px-4">Share images and GIFs</p>
               )}
             </div>
           </div>
+
+          {/* Edit button */}
+          {isOwnProfile && (
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddItem();
+                }}
+                className="bg-slate-800/70 p-1 rounded-full hover:bg-slate-700/80"
+                aria-label="Add Image"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-accent"
+                >
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-wrap gap-4 justify-center">

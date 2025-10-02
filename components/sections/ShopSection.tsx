@@ -205,12 +205,14 @@ export default function ShopSection({
       <div className="flex flex-wrap gap-4">
         {/* Show Store Card - either populated or empty state */}
         {storeCardVisible && items.length === 0 && (
-          <div className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 bg-slate-800">
+          <div className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all group cursor-pointer bg-slate-800"
+            onClick={isOwnProfile ? handleStoreCardEdit : undefined}
+          >
             {/* Background gradient */}
             <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-              <div className="ml-3 flex items-center opacity-80 transition-opacity">
-                <svg className="w-32 h-32 text-[#81E4F2]" viewBox="0 0 100 100" fill="currentColor">
-                  <path d="M20 30 L35 50 L20 70 M50 30 L35 50 L50 70 M80 30 L65 50 L80 70" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center border border-accent/20">
+                <svg className="w-10 h-10 text-accent" viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                  <path d="M20 30 L35 50 L20 70 M50 30 L35 50 L50 70 M80 30 L65 50 L80 70" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
             </div>
@@ -220,14 +222,71 @@ export default function ShopSection({
               <div className="flex items-start">
                 <div className="border-l-2 border-accent pl-2">
                   <h3 className="text-white font-medium text-sm drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-                    My Creator Store
+                    My Store on mixmi
                   </h3>
                   <p className="text-gray-200 text-xs mt-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-                    Browse my tracks and loops
+                    Sell loops, packs, songs, and EPs
                   </p>
                 </div>
               </div>
             </div>
+
+            {/* Edit/Delete Controls */}
+            {isOwnProfile && (
+              <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStoreCardEdit();
+                  }}
+                  className="bg-slate-800/70 p-1 rounded-full hover:bg-slate-700/80"
+                  aria-label="Edit Store Card"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-accent"
+                  >
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleStoreCardVisibility();
+                  }}
+                  className="bg-slate-800/70 p-1 rounded-full hover:bg-slate-700/80"
+                  aria-label="Hide Store Card"
+                  title="Hide Store Card"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-gray-400"
+                  >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -265,6 +324,36 @@ export default function ShopSection({
                 </div>
               </div>
             </div>
+
+            {/* Edit button */}
+            {isOwnProfile && (
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddItem();
+                  }}
+                  className="bg-slate-800/70 p-1 rounded-full hover:bg-slate-700/80"
+                  aria-label="Add Product"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-accent"
+                  >
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           items.slice(0, storeCardVisible ? 2 : 3).map(item => (
