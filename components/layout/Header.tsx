@@ -10,6 +10,7 @@ import { Button } from "../ui/Button";
 import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import SignInModal from "../modals/SignInModal";
 
 export default function Header() {
   const pathname = usePathname();
@@ -26,6 +27,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
 
   // Fetch username and avatar when wallet connects
   useEffect(() => {
@@ -150,11 +152,11 @@ export default function Header() {
             </div>
           ) : (
             <button
-              onClick={connectWallet}
+              onClick={() => setIsSignInModalOpen(true)}
               className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all"
               style={{ backgroundColor: '#061F3C' }}
             >
-              Connect Wallet
+              Sign In
             </button>
           )}
         </div>
@@ -265,19 +267,25 @@ export default function Header() {
               ) : (
                 <button
                   onClick={() => {
-                    connectWallet();
+                    setIsSignInModalOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
                   className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/20 hover:border-white/30 transition-all w-fit"
                   style={{ backgroundColor: '#061F3C' }}
                 >
-                  Connect Wallet
+                  Sign In
                 </button>
               )}
             </div>
           </nav>
         </div>
       )}
+
+      {/* Sign In Modal */}
+      <SignInModal
+        isOpen={isSignInModalOpen}
+        onClose={() => setIsSignInModalOpen(false)}
+      />
     </header>
   );
 } 

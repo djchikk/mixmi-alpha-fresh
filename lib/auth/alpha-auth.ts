@@ -20,25 +20,20 @@ interface AuthResult {
 }
 
 export class AlphaAuth {
-  // Get environment variables dynamically to avoid client/server issues
-  private static getEnvVars() {
+  // Create service role client directly (server-side only)
+  private static getServiceClient() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Missing environment variables:', { 
-        hasUrl: !!supabaseUrl, 
-        hasServiceKey: !!serviceRoleKey 
-      });
-      throw new Error('Missing required environment variables');
+
+    if (!supabaseUrl) {
+      throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
     }
-    
-    return { supabaseUrl, serviceRoleKey };
-  }
-  
-  // Create service role client (server-side only, never exposed to users)
-  private static getServiceClient() {
-    const { supabaseUrl, serviceRoleKey } = this.getEnvVars();
+
+    if (!serviceRoleKey) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
+    }
+
+    // Create a fresh client with service role key
     return createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
@@ -98,11 +93,20 @@ export class AlphaAuth {
       const { data: users, error } = await query;
 
       if (error) {
-        console.error('❌ Database error checking alpha user:', error);
+        console.error('❌ Database error checking alpha user:');
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error code:', error.code);
+        console.error('❌ Error details:', error.details);
+        console.error('❌ Full error:', error);
         return {
           success: false,
           error: 'Database error checking user status'
         };
+      }
+
+      console.log('📊 Query result - User count:', users?.length);
+      if (users && users.length > 0) {
+        console.log('📊 Found user:', { wallet: users[0].wallet_address, artist: users[0].artist_name, invite_code: users[0].invite_code });
       }
 
       const user = users && users.length > 0 ? users[0] : null;

@@ -2227,11 +2227,38 @@ export default function IPTrackModal({
   };
 
   const renderStep = () => {
-    // Authentication step - only show alpha verification if no global wallet connected
-    if (!globalWalletConnected && !alphaWallet) {
-      return renderAuthentication();
+    // Check if user is authenticated (via wallet or invite code)
+    if (!isAuthenticated) {
+      return (
+        <div className="text-center py-12">
+          <div className="mb-6">
+            <div
+              className="inline-flex items-center justify-center mb-4"
+              style={{
+                width: '56px',
+                height: '56px',
+                background: 'linear-gradient(135deg, rgba(129, 228, 242, 0.15) 0%, rgba(129, 228, 242, 0.05) 100%)',
+                borderRadius: '14px',
+                fontSize: '24px'
+              }}
+            >
+              🔐
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Sign In Required</h3>
+            <p className="text-gray-400 max-w-md mx-auto">
+              Please sign in using the header to upload content. You can use your Stacks wallet or an alpha invite code.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="px-6 py-3 bg-[#81E4F2] hover:bg-[#6BC4D4] text-gray-900 font-semibold rounded-lg transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      );
     }
-    
+
     if (isQuickUpload) {
       // Quick upload steps
       switch (currentStep) {

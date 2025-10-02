@@ -38,21 +38,37 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Load auth state from storage and check if user is already signed in
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Check if user is already signed in
+      // Check if user is already signed in with Stacks wallet
       if (userSession.isUserSignedIn()) {
         const userData = userSession.loadUserData();
-        
+
         setAuth({
           isAuthenticated: true,
           walletAddress: userData.profile.stxAddress?.mainnet || null,
           btcAddress: userData.profile.btcAddress?.p2wpkh?.mainnet || null
         });
       } else {
-        // Load from our own storage as fallback
-        const storedAuth = StorageService.getItem(STORAGE_KEYS.AUTH, defaultAuthState);
-        
-        // ALPHA UPLOADER: Don't auto-authenticate - let users paste any wallet address
-        console.log("Alpha uploader mode: No auto-authentication");
+        // Check for invite code auth in localStorage
+        const alphaAuth = localStorage.getItem('alpha_auth');
+        if (alphaAuth) {
+          try {
+            const authData = JSON.parse(alphaAuth);
+            if (authData.type === 'invite' && authData.walletAddress) {
+              console.log('✅ Restored invite code auth:', authData.artistName);
+              setAuth({
+                isAuthenticated: true,
+                walletAddress: authData.walletAddress,
+                btcAddress: null // Invite code users don't have BTC address
+              });
+              return;
+            }
+          } catch (error) {
+            console.error('Failed to parse alpha_auth:', error);
+            localStorage.removeItem('alpha_auth');
+          }
+        }
+
+        // No auth found
         setAuth(defaultAuthState);
       }
     }
@@ -139,7 +155,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     if (userSession.isUserSignedIn()) {
       userSession.signUserOut();
     }
-    
+
+    // Clear invite code auth if present
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('alpha_auth');
+    }
+
     // ALPHA UPLOADER: Always completely clear auth data
     setAuth({
       isAuthenticated: false,
