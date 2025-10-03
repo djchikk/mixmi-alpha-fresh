@@ -36,10 +36,8 @@ export default function CompactTrackCardWithFlip({
 }: CompactTrackCardWithFlipProps) {
   // Alpha version - no mixer collection functionality
   const { showToast } = useToast();
-  const [isFlipped, setIsFlipped] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
 
   // Fetch username for the track's primary uploader wallet
@@ -147,62 +145,27 @@ export default function CompactTrackCardWithFlip({
     }
   };
 
-  // Handle info click - TEST: goes directly to modal instead of flip
+  // Handle info click - opens TrackDetailsModal
   const handleInfoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsExpanded(true);
-  };
-
-  // Handle expand to modal
-  const handleExpandClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsExpanded(true);
-  };
-
-  // Format license type for display - simplified
-  const getLicenseDisplay = () => {
-    if (track.content_type === 'loop') {
-      // Loops have two options
-      if (track.license_selection === 'platform_remix') return 'Remix Only';
-      if (track.license_selection === 'platform_download') return 'Remix + Download';
-      return 'Remix Only'; // Default for loops
-    } else {
-      // Songs are download only (no remixing allowed)
-      return 'Download Only';
-    }
   };
 
 
   return (
     <>
       <div className="relative group">
-        {/* Compact Card Container - 160x160px with flip */}
-        <div 
+        {/* Compact Card Container - 160x160px */}
+        <div
           ref={drag}
           className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${getBorderColor()} ${getBorderThickness()} bg-slate-800 ${isDragging ? 'opacity-50' : ''}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          style={{ 
-            cursor: isDragging ? 'grabbing' : 'grab',
-            perspective: '1000px'
+          style={{
+            cursor: isDragging ? 'grabbing' : 'grab'
           }}
         >
-          {/* Flip Container */}
-          <div 
-            className="relative w-full h-full transition-transform duration-700 ease-in-out"
-            style={{ 
-              transformStyle: 'preserve-3d',
-              transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
-            }}
-          >
-            {/* FRONT OF CARD */}
-            <div 
-              className="absolute inset-0 w-full h-full"
-              style={{ 
-                backfaceVisibility: 'hidden',
-                zIndex: isFlipped ? -1 : 2
-              }}
-            >
+          <div className="relative w-full h-full">
               {/* Cover Image - Full Card */}
               <div className="relative w-full h-full">
                 {(track.cover_image_url || track.imageUrl) ? (
@@ -220,35 +183,36 @@ export default function CompactTrackCardWithFlip({
                   </div>
                 )}
                 
-                {/* Drag Handle - Left side, vertically centered */}
-                {isHovered && !isFlipped && (
+                {/* HIDDEN: Drag Handle - Left side, vertically centered - Uncomment to restore */}
+                {/* {isHovered && (
                   <div
                     className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10"
                     title="Drag to crate or mixer (loops only for mixer)"
                   >
                     <GripVertical className="w-5 h-5 text-white" />
                   </div>
-                )}
+                )} */}
 
-                {/* Info Icon - Right side, vertically centered (mirrors drag handle) */}
-                {isHovered && !isFlipped && (
+                {/* Info Icon - Left side, vertically centered */}
+                {isHovered && (
                   <div
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 z-10"
+                    className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10"
                   >
                     <InfoIcon
                       size="lg"
                       onClick={handleInfoClick}
                       title="Click to see all info + drag individual tracks from Loop Packs/EPs"
+                      className="text-white hover:text-white"
                     />
                   </div>
                 )}
 
                 {/* Hover Overlay */}
-                {isHovered && !isFlipped && (
-                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 flex flex-col justify-between p-2 animate-fadeIn">
-                    
+                {isHovered && (
+                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2 animate-fadeIn">
+
                     {/* Top Section: Title, Artist (full width) */}
-                    <div>
+                    <div className="absolute top-1 left-2 right-2">
                       {/* Title and Artist - full width with truncation */}
                       <div className="flex flex-col">
                         {track.primary_uploader_wallet ? (
@@ -276,21 +240,21 @@ export default function CompactTrackCardWithFlip({
                       </div>
                     </div>
 
-                    {/* Center: Play Button and Delete Button */}
-                    <div className="flex items-center justify-center relative">
+                    {/* Center: Play Button and Delete Button - Absolutely centered */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
                       {/* Delete Button - positioned on right side */}
                       {showEditControls && (
                         <button
                           onClick={handleDeleteClick}
                           title="Remove from store"
-                          className="absolute right-0 w-6 h-6 bg-red-900/50 hover:bg-red-600 rounded flex items-center justify-center transition-all border border-red-700 hover:border-red-500 group"
+                          className="absolute right-[-50px] w-6 h-6 bg-red-900/50 hover:bg-red-600 rounded flex items-center justify-center transition-all border border-red-700 hover:border-red-500 group"
                         >
                           <svg className="w-4 h-4 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       )}
-                      
+
                       {/* Play Button - centered */}
                       {track.audio_url && (
                         <button
@@ -316,7 +280,7 @@ export default function CompactTrackCardWithFlip({
                     </div>
 
                     {/* Bottom Section: Price, Content Type Badge, BPM */}
-                    <div className="flex items-center justify-between gap-1">
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
                       {/* Buy Button (left) - compact */}
                       <button
                         onClick={handlePurchaseClick}
@@ -351,105 +315,18 @@ export default function CompactTrackCardWithFlip({
                 )}
               </div>
             </div>
-
-            {/* BACK OF CARD - New Layout */}
-            <div 
-              className="absolute inset-0 w-full h-full bg-slate-900 flex flex-col"
-              style={{ 
-                backfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)',
-                zIndex: isFlipped ? 2 : -1
-              }}
-            >
-              {/* Close button - upper right corner */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsFlipped(false);
-                }}
-                className="absolute top-2 right-2 z-20 w-6 h-6 bg-black/80 hover:bg-black text-gray-400 hover:text-white rounded-full flex items-center justify-center transition-all text-xs border border-gray-700"
-                title="Close"
-              >
-                ✕
-              </button>
-
-              {/* Expand button - top center */}
-              <div className="flex justify-center pt-2 pb-1">
-                <button
-                  onClick={handleExpandClick}
-                  className="bg-slate-800/50 hover:bg-slate-700 text-gray-400 hover:text-white rounded px-2 py-1 flex items-center gap-1 transition-all text-xs"
-                  title="Expand for full details"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                  </svg>
-                  <span className="text-[10px]">Details</span>
-                </button>
-              </div>
-
-              {/* Main content area - description with hover expand */}
-              <div className="flex-1 px-3 overflow-hidden flex items-center">
-                <div className="w-full">
-                  {track.description ? (
-                    <div 
-                      className="text-gray-300 text-xs leading-relaxed transition-all duration-300 overflow-hidden cursor-pointer"
-                      onMouseEnter={() => setIsDescriptionHovered(true)}
-                      onMouseLeave={() => setIsDescriptionHovered(false)}
-                      style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: isDescriptionHovered ? 'none' : 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: isDescriptionHovered ? 'auto' : 'hidden'
-                      }}
-                    >
-                      {track.description}
-                    </div>
-                  ) : (
-                    <div className="text-gray-500 text-xs italic text-center">
-                      No description available
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* License - pinned to bottom */}
-              <div className="border-t border-gray-800 px-3 py-2">
-                <div className="text-gray-400 text-[10px] font-mono uppercase tracking-wider text-center">
-                  {getLicenseDisplay()}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* CSS for animations and custom scrollbar */}
+      {/* CSS for animations */}
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        
+
         .animate-fadeIn {
           animation: fadeIn 0.2s ease-out;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.2);
-          border-radius: 2px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 2px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.3);
         }
       `}</style>
 

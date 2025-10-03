@@ -50,7 +50,7 @@ export default function InfoIcon({
         cursor: onClick ? 'pointer' : 'default'
       }}
     >
-      <span className={`${config.text} text-white group-hover:text-[#81E4F2] font-bold select-none leading-none transition-colors`}>
+      <span className={`${config.text} font-bold select-none leading-none transition-colors`}>
         i
       </span>
     </button>

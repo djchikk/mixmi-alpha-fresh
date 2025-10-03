@@ -162,18 +162,20 @@ export default function SimplifiedDeckCompact({
                 <div className="absolute inset-0 bg-black bg-opacity-70 pointer-events-none" />
               )}
 
-              {/* Drag handle - left side */}
-              {isHovered && (
-                <div
-                  ref={dragRef}
-                  className="absolute top-1 left-1"
-                  title={`Drag Deck ${deck} to Crate`}
-                >
-                  <GripVertical className="w-4 h-4 text-white" />
-                </div>
-              )}
+              {/* Invisible drag area - still draggable but no visible handle */}
+              <div
+                ref={dragRef}
+                className="absolute inset-0"
+                title={`Drag Deck ${deck} to Crate`}
+                style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+              />
 
-              {/* Remove button - right side */}
+              {/* BPM display - always visible in lower right */}
+              <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none pointer-events-none">
+                {currentTrack.bpm || 120}
+              </div>
+
+              {/* Remove button - top right, only on hover */}
               {isHovered && onTrackClear && (
                 <button
                   onClick={(e) => {

@@ -671,16 +671,6 @@ export default function Crate({ className = '' }: CrateProps) {
               {/* Unified hover overlay - same for all contexts */}
               {hoveredTrackId === track.id && (
                 <>
-                  {/* Drag handle (all contexts, except full songs in mixer) */}
-                  {!(context === 'mixer' && track.content_type === 'full_song') && (
-                    <div
-                      className="absolute top-1 left-0.5"
-                      title="Drag to mixer or cart"
-                    >
-                      <GripVertical className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  )}
-
                   {/* Remove from crate button - top center */}
                   <button
                     onClick={(e) => {

@@ -408,9 +408,9 @@ export default function HomePage() {
                 {/* Close button - positioned outside the card */}
                 <button
                   onClick={() => setLeftComparisonTrack(null)}
-                  className="absolute -top-2 -right-2 bg-[#101726] border border-[#1E293B] rounded-full p-1 hover:bg-[#1E293B] transition-colors z-10"
+                  className="absolute -top-1 -right-1 text-white/60 hover:text-white transition-colors z-10"
                 >
-                  <X className="w-4 h-4 text-gray-400 hover:text-white" />
+                  <X className="w-3 h-3" />
                 </button>
                 
                 {/* Globe Track Card */}
@@ -464,9 +464,9 @@ export default function HomePage() {
                 {/* Close button - positioned outside the card */}
                 <button
                   onClick={() => setRightComparisonTrack(null)}
-                  className="absolute -top-2 -right-2 bg-[#101726] border border-[#1E293B] rounded-full p-1 hover:bg-[#1E293B] transition-colors z-10"
+                  className="absolute -top-1 -right-1 text-white/60 hover:text-white transition-colors z-10"
                 >
-                  <X className="w-4 h-4 text-gray-400 hover:text-white" />
+                  <X className="w-3 h-3" />
                 </button>
                 
                 {/* Globe Track Card */}
