@@ -65,14 +65,25 @@ export default function SimplifiedDeckCompact({
         
         // 🎛️ SMART FILTERING: Only allow loops in mixer
         if (item.track.content_type !== 'loop') {
-          const contentTypeName = item.track.content_type === 'loop_pack' ? 'Loop Pack' 
+          const contentTypeName = item.track.content_type === 'loop_pack' ? 'Loop Pack'
             : item.track.content_type === 'ep' ? 'EP'
             : item.track.content_type === 'full_song' ? 'Song' : 'content';
-          
+
           console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops allowed`);
-          
-          // Show user-friendly error message
-          showToast(`🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate instead.`, 'info');
+
+          // Show user-friendly error message with specific guidance
+          let message = '';
+          if (item.track.content_type === 'loop_pack') {
+            message = '🎛️ This is a Loop Pack! Click the chevron to expand it and drag individual loops to the mixer.';
+          } else if (item.track.content_type === 'ep') {
+            message = '🎛️ This is an EP! Click the chevron to expand it and drag individual songs to the Crate.';
+          } else if (item.track.content_type === 'full_song') {
+            message = '🎵 Songs can\'t be mixed! Only 8-bar loops work in the mixer. Try dragging songs to the Crate instead.';
+          } else {
+            message = `🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate instead.`;
+          }
+
+          showToast(message, 'info', 5000); // Show for 5 seconds
           return;
         }
         
