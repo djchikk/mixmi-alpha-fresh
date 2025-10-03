@@ -137,21 +137,25 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Load track to Deck A
   const loadTrackToDeckA = async (track: Track) => {
     console.log('🎵 SimplifiedMixer: Loading track to Deck A:', track);
-    
+
     if (mixerState.deckA.loading) {
       console.log('⚠️ Deck A already loading, skipping');
       return;
     }
-    
+
     // Ensure we have audioUrl
     if (!track.audioUrl) {
       console.error('❌ Track missing audioUrl:', track);
       return;
     }
-    
+
+    // Check if sync is active before loading
+    const syncWasActive = mixerState.syncActive;
+
     setMixerState(prev => ({
       ...prev,
-      deckA: { ...prev.deckA, loading: true, playing: false }
+      deckA: { ...prev.deckA, loading: true, playing: false },
+      syncActive: false // Disable sync while loading
     }));
 
     try {
@@ -160,9 +164,15 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         console.log('🎵 Audio not initialized, initializing now...');
         await initializeAudio();
       }
-      
+
       // Clean up existing audio
       await cleanupDeckAudio(mixerState.deckA.audioControls, 'Deck A');
+
+      // Disable sync engine if it was active
+      if (syncWasActive && syncEngineRef.current) {
+        syncEngineRef.current.disableSync();
+        syncEngineRef.current = null;
+      }
       
       // Load new audio
       console.log('🎵 Loading audio for track:', track.audioUrl);
@@ -268,21 +278,25 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Load track to Deck B
   const loadTrackToDeckB = async (track: Track) => {
     console.log('🎵 SimplifiedMixer: Loading track to Deck B:', track);
-    
+
     if (mixerState.deckB.loading) {
       console.log('⚠️ Deck B already loading, skipping');
       return;
     }
-    
+
     // Ensure we have audioUrl
     if (!track.audioUrl) {
       console.error('❌ Track missing audioUrl:', track);
       return;
     }
-    
+
+    // Check if sync is active before loading
+    const syncWasActive = mixerState.syncActive;
+
     setMixerState(prev => ({
       ...prev,
-      deckB: { ...prev.deckB, loading: true, playing: false }
+      deckB: { ...prev.deckB, loading: true, playing: false },
+      syncActive: false // Disable sync while loading
     }));
 
     try {
@@ -291,9 +305,15 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         console.log('🎵 Audio not initialized, initializing now...');
         await initializeAudio();
       }
-      
+
       // Clean up existing audio
       await cleanupDeckAudio(mixerState.deckB.audioControls, 'Deck B');
+
+      // Disable sync engine if it was active
+      if (syncWasActive && syncEngineRef.current) {
+        syncEngineRef.current.disableSync();
+        syncEngineRef.current = null;
+      }
       
       // Load new audio
       console.log('🎵 Loading audio for track:', track.audioUrl);
