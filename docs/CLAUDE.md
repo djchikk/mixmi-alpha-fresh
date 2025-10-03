@@ -312,6 +312,17 @@ scripts/                # Database migration and utility scripts
 - **Info icon consistency**: Added missing info icons to mixer page, TrackDetailsModal works everywhere
 - **Design system**: Standardized all modals with consistent button styling and colors
 
+### Card UI Simplification & Performance (October 2025)
+- **Removed drag handles**: Eliminated visible drag handles from crate and globe cards - cursor provides sufficient affordance
+- **Simplified deck cards**: Removed visible drag handle from mixer decks, entire card remains draggable
+- **Removed flip functionality**: Eliminated unused card flip animation - info icon opens TrackDetailsModal directly
+- **Play button centering**: Fixed vertical centering in globe cards using absolute positioning instead of flexbox
+- **Globe modal close buttons**: Reduced size and opacity for less visual dominance (w-3 h-3, white/60)
+- **InfoIcon component**: Updated to support custom colors via className prop for context-specific styling
+- **Top padding adjustment**: Optimized spacing in globe card hover overlay (top-1) for better visual balance
+- **Code cleanup**: Removed 130+ lines of unused flip-related code from CompactTrackCardWithFlip
+- **Benefits**: Cleaner UI, simpler codebase, better visual hierarchy, improved maintainability
+
 ### Search & Filter Updates
 - **Nomenclature update**: "Full" → "Songs" to match content registration flow
 - **New filter**: Added "Stem" filter for stem content
