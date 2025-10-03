@@ -8,7 +8,7 @@ import TrackDetailsModal from '../modals/TrackDetailsModal';
 import { useDrag } from 'react-dnd';
 import InfoIcon from '../shared/InfoIcon';
 import SafeImage from '../shared/SafeImage';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -40,6 +40,13 @@ export default function CompactTrackCardWithFlip({
   const [isHovered, setIsHovered] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
 
+  // Loop pack expansion state
+  const [isPackExpanded, setIsPackExpanded] = useState(false);
+  const [packLoops, setPackLoops] = useState<IPTrack[]>([]);
+  const [loadingLoops, setLoadingLoops] = useState(false);
+  const [playingLoopId, setPlayingLoopId] = useState<string | null>(null);
+  const [loopAudio, setLoopAudio] = useState<HTMLAudioElement | null>(null);
+
   // Fetch username for the track's primary uploader wallet
   useEffect(() => {
     const fetchUsername = async () => {
@@ -56,6 +63,80 @@ export default function CompactTrackCardWithFlip({
 
     fetchUsername();
   }, [track.primary_uploader_wallet]);
+
+  // Fetch loops when pack is expanded
+  useEffect(() => {
+    const fetchLoops = async () => {
+      if (!isPackExpanded || track.content_type !== 'loop_pack') {
+        console.log('🔍 Not fetching loops:', { isPackExpanded, content_type: track.content_type });
+        return;
+      }
+      if (packLoops.length > 0) {
+        console.log('🔍 Loops already loaded:', packLoops.length);
+        return; // Already loaded
+      }
+
+      setLoadingLoops(true);
+      const packId = track.pack_id || track.id.split('-loc-')[0];
+      console.log('🔍 Fetching loops for pack:', packId);
+
+      const { data, error } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('pack_id', packId)
+        .eq('content_type', 'loop')
+        .order('pack_position', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error fetching pack loops:', error);
+      } else if (data) {
+        console.log('✅ Fetched loops:', data.length, data);
+        setPackLoops(data as IPTrack[]);
+      }
+      setLoadingLoops(false);
+    };
+
+    fetchLoops();
+  }, [isPackExpanded, track.content_type, track.id]);
+
+  // Handle loop playback
+  const handleLoopPlay = (loop: IPTrack) => {
+    if (playingLoopId === loop.id) {
+      // Stop current loop
+      if (loopAudio) {
+        loopAudio.pause();
+        setLoopAudio(null);
+      }
+      setPlayingLoopId(null);
+    } else {
+      // Stop previous audio
+      if (loopAudio) {
+        loopAudio.pause();
+      }
+
+      // Play new loop
+      const audio = new Audio(loop.audio_url);
+      audio.play();
+      setLoopAudio(audio);
+      setPlayingLoopId(loop.id);
+
+      // Auto-stop after 20 seconds
+      setTimeout(() => {
+        audio.pause();
+        setLoopAudio(null);
+        setPlayingLoopId(null);
+      }, 20000);
+    }
+  };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (loopAudio) {
+        loopAudio.pause();
+      }
+    };
+  }, [loopAudio]);
 
   // Set up drag
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -241,7 +322,7 @@ export default function CompactTrackCardWithFlip({
                     </div>
 
                     {/* Center: Play Button and Delete Button - Absolutely centered */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-2">
                       {/* Delete Button - positioned on right side */}
                       {showEditControls && (
                         <button
@@ -274,6 +355,24 @@ export default function CompactTrackCardWithFlip({
                             <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
                             </svg>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Chevron Button - only for loop packs */}
+                      {track.content_type === 'loop_pack' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsPackExpanded(!isPackExpanded);
+                          }}
+                          className="transition-all hover:scale-110"
+                          title={isPackExpanded ? "Collapse loops" : "Expand loops"}
+                        >
+                          {isPackExpanded ? (
+                            <ChevronUp className="w-6 h-6 text-white" />
+                          ) : (
+                            <ChevronDown className="w-6 h-6 text-white" />
                           )}
                         </button>
                       )}
@@ -316,6 +415,88 @@ export default function CompactTrackCardWithFlip({
               </div>
             </div>
         </div>
+
+        {/* Expandable Loop Drawer - Only for loop packs */}
+        {track.content_type === 'loop_pack' && isPackExpanded && (
+          <div
+            className="w-[160px] bg-slate-900 border-2 border-[#9772F4] border-t-0 rounded-b-lg overflow-hidden"
+            style={{
+              animation: 'slideDown 0.2s ease-out'
+            }}
+          >
+            {loadingLoops ? (
+              <div className="p-2 flex items-center justify-center gap-2 text-xs text-gray-400">
+                <div className="animate-spin rounded-full h-3 w-3 border border-gray-500 border-t-transparent"></div>
+                Loading...
+              </div>
+            ) : packLoops.length > 0 ? (
+              <div className="py-1">
+                {packLoops.map((loop, index) => {
+                  // Create draggable loop item
+                  const DraggableLoop = () => {
+                    const [{ isDragging }, loopDrag] = useDrag(() => ({
+                      type: 'TRACK_CARD',
+                      item: () => ({
+                        track: {
+                          ...loop,
+                          imageUrl: getOptimizedTrackImage(loop, 64),
+                          cover_image_url: getOptimizedTrackImage(loop, 64),
+                          audioUrl: loop.audio_url
+                        }
+                      }),
+                      collect: (monitor) => ({
+                        isDragging: monitor.isDragging(),
+                      }),
+                    }), [loop]);
+
+                    return (
+                      <div
+                        ref={loopDrag}
+                        className={`flex items-center gap-2 px-2 py-1 hover:bg-slate-800 cursor-grab ${isDragging ? 'opacity-50' : ''}`}
+                        style={{ height: '28px' }}
+                      >
+                        {/* Loop number badge */}
+                        <div className="flex-shrink-0 w-5 h-5 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#9772F4'}}>
+                          {index + 1}
+                        </div>
+
+                        {/* BPM */}
+                        <div className="flex-1 text-white text-xs font-mono text-center">
+                          {loop.bpm || 120}
+                        </div>
+
+                        {/* Play/Pause button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLoopPlay(loop);
+                          }}
+                          className="flex-shrink-0 w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
+                        >
+                          {playingLoopId === loop.id ? (
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  };
+
+                  return <DraggableLoop key={loop.id} />;
+                })}
+              </div>
+            ) : (
+              <div className="p-2 text-xs text-gray-500 text-center">
+                No loops found
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* CSS for animations */}
@@ -327,6 +508,17 @@ export default function CompactTrackCardWithFlip({
 
         .animate-fadeIn {
           animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
 
