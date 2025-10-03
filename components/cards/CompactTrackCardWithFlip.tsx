@@ -322,7 +322,7 @@ export default function CompactTrackCardWithFlip({
                     </div>
 
                     {/* Center: Play Button and Delete Button - Absolutely centered */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-2">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
                       {/* Delete Button - positioned on right side */}
                       {showEditControls && (
                         <button
@@ -358,25 +358,25 @@ export default function CompactTrackCardWithFlip({
                           )}
                         </button>
                       )}
-
-                      {/* Chevron Button - only for loop packs */}
-                      {track.content_type === 'loop_pack' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsPackExpanded(!isPackExpanded);
-                          }}
-                          className="transition-all hover:scale-110"
-                          title={isPackExpanded ? "Collapse loops" : "Expand loops"}
-                        >
-                          {isPackExpanded ? (
-                            <ChevronUp className="w-6 h-6 text-white" />
-                          ) : (
-                            <ChevronDown className="w-6 h-6 text-white" />
-                          )}
-                        </button>
-                      )}
                     </div>
+
+                    {/* Chevron Button - only for loop packs - positioned on right side, vertically centered */}
+                    {track.content_type === 'loop_pack' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsPackExpanded(!isPackExpanded);
+                        }}
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center transition-all hover:scale-110 z-10"
+                        title={isPackExpanded ? "Collapse loops" : "Expand loops"}
+                      >
+                        {isPackExpanded ? (
+                          <ChevronUp className="w-5 h-5" style={{ color: '#C4AEF8' }} strokeWidth={3} />
+                        ) : (
+                          <ChevronDown className="w-5 h-5" style={{ color: '#C4AEF8' }} strokeWidth={3} />
+                        )}
+                      </button>
+                    )}
 
                     {/* Bottom Section: Price, Content Type Badge, BPM */}
                     <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
