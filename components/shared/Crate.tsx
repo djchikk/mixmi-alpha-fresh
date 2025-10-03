@@ -6,13 +6,14 @@ import { useMixer } from '@/contexts/MixerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDrop, useDrag } from 'react-dnd';
 import { IPTrack } from '@/types';
-import { Play, Pause, Info, GripVertical, X } from 'lucide-react';
+import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
 import { createPortal } from 'react-dom';
 import { openSTXTransfer } from '@stacks/connect';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
+import { supabase } from '@/lib/supabase';
 
 // Extend window interface for global handlers
 declare global {
@@ -128,6 +129,10 @@ export default function Crate({ className = '' }: CrateProps) {
   const [showCartPopover, setShowCartPopover] = useState(false);
   const [cartPinned, setCartPinned] = useState(false);
   const [cartPulse, setCartPulse] = useState(false);
+
+  // Pack expansion state
+  const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
+  const [packTracks, setPackTracks] = useState<{ [key: string]: IPTrack[] }>({});
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -260,6 +265,38 @@ export default function Crate({ className = '' }: CrateProps) {
   // Handle track removal
   const handleRemoveTrack = (index: number) => {
     removeTrackFromCollection(index);
+  };
+
+  // Handle pack expansion
+  const handlePackExpansion = async (track: any) => {
+    // If clicking the same pack, collapse it
+    if (expandedPackId === track.id) {
+      setExpandedPackId(null);
+      return;
+    }
+
+    // Expand this pack
+    setExpandedPackId(track.id);
+
+    // If we already have the tracks cached, no need to fetch
+    if (packTracks[track.id]) {
+      return;
+    }
+
+    // Fetch tracks for this pack
+    const packId = track.pack_id || track.id.split('-loc-')[0];
+    const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : 'full_song';
+
+    const { data, error } = await supabase
+      .from('ip_tracks')
+      .select('*')
+      .eq('pack_id', packId)
+      .eq('content_type', contentTypeToFetch)
+      .order('pack_position', { ascending: true });
+
+    if (data) {
+      setPackTracks({ ...packTracks, [track.id]: data as IPTrack[] });
+    }
   };
 
   // Cart functions
@@ -612,6 +649,14 @@ export default function Crate({ className = '' }: CrateProps) {
               <div
                 key={`${track.id}-${index}`}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  flexShrink: 0
+                }}
+              >
+              <div
+                style={{
                   position: 'relative',
                   flexShrink: 0,
                   group: true
@@ -740,10 +785,172 @@ export default function Crate({ className = '' }: CrateProps) {
                   {track.bpm || 120}
                 </div>
               )}
+
+              {/* Chevron button for loop packs and EPs - always visible, center right */}
+              {(track.content_type === 'loop_pack' || track.content_type === 'ep') && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePackExpansion(track);
+                  }}
+                  className="absolute right-0.5 top-1/2 transform -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 z-10"
+                  title={expandedPackId === track.id ? (track.content_type === 'ep' ? "Collapse tracks" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : "Expand loops")}
+                >
+                  {expandedPackId === track.id ? (
+                    <ChevronLeft
+                      className="w-3.5 h-3.5"
+                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }}
+                      strokeWidth={3}
+                    />
+                  ) : (
+                    <ChevronRight
+                      className="w-3.5 h-3.5"
+                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }}
+                      strokeWidth={3}
+                    />
+                  )}
+                </button>
+              )}
             </div>
               </div>
+
+            {/* Expanded pack tracks - displayed horizontally to the right */}
+            {expandedPackId === track.id && packTracks[track.id] && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  animation: 'slideInRight 0.2s ease-out'
+                }}
+              >
+                {packTracks[track.id].map((packTrack: IPTrack, packIndex: number) => {
+                  const ExpandedTrackElement = () => {
+                    const [isPackTrackHovered, setIsPackTrackHovered] = React.useState(false);
+                    const [{ isDragging: isPackTrackDragging }, packDrag] = useDrag(() => ({
+                      type: 'COLLECTION_TRACK',
+                      item: () => ({
+                        track: {
+                          id: packTrack.id,
+                          title: packTrack.title,
+                          artist: packTrack.artist,
+                          imageUrl: getOptimizedTrackImage(packTrack, 64),
+                          bpm: packTrack.bpm || 120,
+                          audioUrl: packTrack.audio_url,
+                          content_type: packTrack.content_type,
+                          price_stx: packTrack.price_stx,
+                          license: packTrack.license
+                        },
+                        sourceIndex: -1
+                      }),
+                      collect: (monitor) => ({
+                        isDragging: monitor.isDragging(),
+                      }),
+                    }), [packTrack]);
+
+                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8';
+                    const textColor = track.content_type === 'ep' ? '#000000' : '#FFFFFF';
+
+                    return (
+                      <div
+                        ref={packDrag}
+                        style={{
+                          position: 'relative',
+                          flexShrink: 0,
+                          opacity: isPackTrackDragging ? 0.5 : 1
+                        }}
+                      >
+                        <div
+                          className={`cursor-grab transition-all ${getBorderColor(packTrack)} ${getBorderThickness(packTrack)}`}
+                          style={{
+                            width: '64px',
+                            height: '64px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            backgroundColor: '#1a1a1a'
+                          }}
+                          onClick={() => handleTrackClick({
+                            ...packTrack,
+                            audioUrl: packTrack.audio_url
+                          })}
+                          onMouseEnter={() => setIsPackTrackHovered(true)}
+                          onMouseLeave={() => setIsPackTrackHovered(false)}
+                        >
+                          <img
+                            src={getOptimizedTrackImage(packTrack, 64)}
+                            alt={packTrack.title}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+
+                          {/* Dark overlay on hover */}
+                          {isPackTrackHovered && (
+                            <div className="absolute inset-0 bg-black bg-opacity-70" />
+                          )}
+
+                          {/* Track number badge */}
+                          <div
+                            className="absolute top-1 left-1 w-4 h-4 rounded text-xs font-bold flex items-center justify-center"
+                            style={{ backgroundColor: badgeColor, color: textColor }}
+                          >
+                            {packIndex + 1}
+                          </div>
+
+                          {/* Cart button - bottom left - show on hover */}
+                          {isPackTrackHovered && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(packTrack);
+                              }}
+                              className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
+                              title="Add to cart"
+                            >
+                              <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                            </button>
+                          )}
+
+                          {/* Play icon - centered - show on hover */}
+                          {isPackTrackHovered && packTrack.audio_url && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            </div>
+                          )}
+
+                          {/* Playing indicator when playing */}
+                          {playingTrack === packTrack.id && !isPackTrackHovered && (
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
+                              <div className="flex gap-1">
+                                <div className="w-1 h-3 bg-green-400 animate-pulse" />
+                                <div className="w-1 h-3 bg-green-400 animate-pulse animation-delay-200" />
+                                <div className="w-1 h-3 bg-green-400 animate-pulse animation-delay-400" />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* BPM */}
+                          <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
+                            {packTrack.bpm || 120}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  };
+
+                  return <ExpandedTrackElement key={packTrack.id} />;
+                })}
+              </div>
+            )}
+              </div>
             );
-            
+
             // Wrap in DraggableTrack if in mixer context and not a song
             return isDraggable ? (
               <DraggableTrack
@@ -969,6 +1176,17 @@ export default function Crate({ className = '' }: CrateProps) {
           }
           100% {
             transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideInRight {
+          from {
+            transform: translateX(-20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
             opacity: 1;
           }
         }
