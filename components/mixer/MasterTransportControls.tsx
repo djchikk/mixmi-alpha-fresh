@@ -170,27 +170,6 @@ const MasterTransportControls = memo(function MasterTransportControls({
         </div>
       )}
 
-      {/* Master Reset Button */}
-      <button
-        onClick={onMasterSyncReset}
-        disabled={!deckALoaded && !deckBLoaded}
-        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105 ${
-          deckALoaded || deckBLoaded
-            ? 'border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300'
-            : 'border border-slate-700 text-slate-600 cursor-not-allowed'
-        }`}
-        title={
-          deckALoaded || deckBLoaded
-            ? 'Stop transport and reset both tracks to start'
-            : 'Load tracks to enable reset'
-        }
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M11 4 L6 9 L11 14 Z" fill="currentColor"/>
-          <path d="M6 4 L1 9 L6 14 Z" fill="currentColor"/>
-        </svg>
-      </button>
-
       {/* Record Button */}
       <button
         onClick={onRecordToggle}
