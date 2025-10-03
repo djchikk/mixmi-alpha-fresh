@@ -70,27 +70,31 @@ export default function UserProfilePage() {
           }
         }
 
-        // Fetch artist name and cover image from first track if no profile exists
-        if (!data.profile && (identifier.startsWith('SP') || identifier.startsWith('ST'))) {
+        // Fetch artist name and cover image from first track as fallback
+        // Use for profiles that don't exist OR haven't been customized yet
+        const walletToCheck = data.profile?.wallet_address || identifier;
+        if (walletToCheck.startsWith('SP') || walletToCheck.startsWith('ST')) {
           const { data: tracks } = await supabase
             .from('ip_tracks')
             .select('artist, cover_image_url')
-            .eq('primary_uploader_wallet', identifier)
+            .eq('primary_uploader_wallet', walletToCheck)
             .order('created_at', { ascending: true })
             .limit(1);
 
           if (tracks && tracks.length > 0) {
-            if (tracks[0].artist) {
+            const hasCustomizedName = data.profile?.display_name && data.profile.display_name !== 'New User';
+            const hasCustomizedAvatar = data.profile?.avatar_url;
+
+            // Set artist name as fallback if not customized
+            if (tracks[0].artist && !hasCustomizedName) {
               setArtistName(tracks[0].artist);
-            }
-            // Cheeky: Use their first track's cover as profile image!
-            if (tracks[0].cover_image_url) {
+
+              // Update profile data with artist name
               setProfileData(prev => ({
                 ...prev,
                 profile: {
                   ...(prev?.profile || {
-                    wallet_address: identifier,
-                    display_name: tracks[0].artist || 'New User',
+                    wallet_address: walletToCheck,
                     tagline: '',
                     bio: '',
                     sticker_id: 'daisy-blue',
@@ -100,6 +104,16 @@ export default function UserProfilePage() {
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                   }),
+                  display_name: tracks[0].artist,
+                  avatar_url: !hasCustomizedAvatar && tracks[0].cover_image_url ? tracks[0].cover_image_url : prev?.profile?.avatar_url
+                } as any
+              }));
+            } else if (tracks[0].cover_image_url && !hasCustomizedAvatar) {
+              // Only update avatar if name was already customized
+              setProfileData(prev => ({
+                ...prev,
+                profile: {
+                  ...prev?.profile,
                   avatar_url: tracks[0].cover_image_url
                 } as any
               }));

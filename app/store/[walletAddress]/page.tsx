@@ -55,12 +55,11 @@ export default function CreatorStorePage() {
       // Check if it's a wallet address (starts with SP or ST)
       if (walletOrUsername.startsWith('SP') || walletOrUsername.startsWith('ST')) {
         setActualWalletAddress(walletOrUsername);
-        // Set a default creator name from wallet (will be overridden if profile found)
+        // Set a default creator name from wallet (will be overridden by profile or first track)
         setCreatorName(walletOrUsername.slice(0, 8) + '...');
 
-        // Also fetch profile data for wallet addresses
+        // Fetch profile data for wallet addresses
         try {
-          // Fetch profile data including avatar_url
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
             .select('display_name, username, avatar_url')
@@ -68,29 +67,28 @@ export default function CreatorStorePage() {
             .single();
 
           if (!profileError && profileData) {
-            // Use display_name first, then username, then wallet
-            setCreatorName(profileData.display_name || profileData.username || walletOrUsername);
+            // Only use profile data if it's been customized (not "New User")
+            if (profileData.display_name && profileData.display_name !== 'New User') {
+              setCreatorName(profileData.display_name);
+            } else if (profileData.username) {
+              setCreatorName(profileData.username);
+            }
+            // Otherwise leave it for the track fetch to set from artist name
 
-            // Set profile image from avatar_url
+            // Set profile image from avatar_url if customized
             if (profileData.avatar_url) {
               setProfileImage(profileData.avatar_url);
-              console.log('Profile image found:', profileData.avatar_url);
-            } else {
-              console.log('No avatar_url in profile');
             }
-          } else {
-            console.log('No profile found for wallet:', walletOrUsername);
+            // Otherwise leave it for track fetch to set from first track cover
           }
         } catch (error) {
           console.error('Error fetching profile data:', error);
         }
       } else {
         // It's a username, resolve to wallet address
-        // Set the username as creator name initially
         setCreatorName(walletOrUsername);
 
         try {
-          // Fetch profile data by username including avatar_url
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
             .select('wallet_address, display_name, username, avatar_url')
@@ -99,18 +97,19 @@ export default function CreatorStorePage() {
 
           if (!profileError && profileData) {
             setActualWalletAddress(profileData.wallet_address);
-            // Use display_name first, then username
-            setCreatorName(profileData.display_name || profileData.username || walletOrUsername);
 
-            // Set profile image from avatar_url
+            // Only use profile data if it's been customized
+            if (profileData.display_name && profileData.display_name !== 'New User') {
+              setCreatorName(profileData.display_name);
+            } else if (profileData.username) {
+              setCreatorName(profileData.username);
+            }
+
+            // Set profile image from avatar_url if customized
             if (profileData.avatar_url) {
               setProfileImage(profileData.avatar_url);
-              console.log('Profile image found for username:', profileData.avatar_url);
-            } else {
-              console.log('No avatar_url in profile for username');
             }
           } else {
-            console.error('Error fetching profile by username:', profileError);
             // Username not found, treat as wallet address
             setActualWalletAddress(walletOrUsername);
           }
@@ -154,8 +153,23 @@ export default function CreatorStorePage() {
           const trackData = dataResult.data || [];
           setTracks(trackData);
 
+          // Use first track's data as fallback if profile not customized
           if (trackData.length > 0) {
-            setCreatorName(trackData[0].artist || 'Creator');
+            // Set artist name as fallback if creatorName is still wallet address or empty
+            setCreatorName(prev => {
+              if (!prev || prev.includes('...') || prev === 'New User') {
+                return trackData[0].artist || 'Creator';
+              }
+              return prev;
+            });
+
+            // Set first track's cover as fallback avatar if no profile image set
+            setProfileImage(prev => {
+              if (!prev && trackData[0].cover_image_url) {
+                return trackData[0].cover_image_url;
+              }
+              return prev;
+            });
           }
         }
       } catch (error) {
