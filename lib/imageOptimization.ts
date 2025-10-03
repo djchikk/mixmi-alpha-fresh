@@ -18,14 +18,23 @@ export function optimizeImageUrl(imageUrl: string | undefined, targetSize: Image
   if (!imageUrl) return '';
 
   // Already optimized? Return as-is
-  if (imageUrl.includes('&w=') || imageUrl.includes('?w=')) {
+  if (imageUrl.includes('width=') || imageUrl.includes('&width=')) {
     return imageUrl;
   }
 
-  // Add responsive sizing params
-  // Note: Actual transformation depends on Supabase Storage configuration
-  const separator = imageUrl.includes('?') ? '&' : '?';
-  return `${imageUrl}${separator}w=${targetSize}&h=${targetSize}&fit=cover`;
+  // Only apply transformations to Supabase Storage URLs
+  // Supabase uses /render/image/public/ endpoint for transformations
+  if (imageUrl.includes('supabase.co/storage/v1/object/public/')) {
+    // Convert public URL to render URL for transformations
+    const transformedUrl = imageUrl.replace(
+      '/storage/v1/object/public/',
+      `/storage/v1/render/image/public/`
+    );
+    return `${transformedUrl}?width=${targetSize}&height=${targetSize}&resize=cover`;
+  }
+
+  // For non-Supabase images, return original
+  return imageUrl;
 }
 
 /**

@@ -5,6 +5,7 @@ import { useDrop, useDrag } from 'react-dnd';
 import { Track } from '../types';
 import { useToast } from '@/contexts/ToastContext';
 import { GripVertical } from 'lucide-react';
+import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 
 interface SimplifiedDeckProps {
   currentTrack: Track | null;
@@ -75,27 +76,22 @@ export default function SimplifiedDeckCompact({
           return;
         }
         
-        // PERFORMANCE FIX: Don't re-optimize already optimized images
-        const existingImageUrl = item.track.imageUrl || item.track.cover_image_url;
-        const isAlreadyOptimized = existingImageUrl && existingImageUrl.includes('&w=64&h=64');
-        
+        // Use proper image optimization
+        const optimizedImageUrl = getOptimizedTrackImage(item.track, 64);
+
         console.log('🎛️ DECK DROP DEBUG:', {
-          existingImageUrl: existingImageUrl,
-          isAlreadyOptimized: isAlreadyOptimized,
+          originalUrl: item.track.imageUrl || item.track.cover_image_url,
+          optimizedUrl: optimizedImageUrl,
           trackId: item.track.id
         });
-        
+
         // Convert IPTrack format to mixer Track format if needed
         const mixerTrack = {
           id: item.track.id,
           title: item.track.title,
           artist: item.track.artist || item.track.artist_name,
-          imageUrl: isAlreadyOptimized 
-            ? existingImageUrl  // Use already optimized URL
-            : (existingImageUrl 
-              ? `${existingImageUrl}?t=${Date.now()}&w=64&h=64}`
-              : ''), // Empty string = fallback to music icon
-          audioUrl: item.track.audioUrl || item.track.audio_url, // Fix the audio URL field
+          imageUrl: optimizedImageUrl,
+          audioUrl: item.track.audioUrl || item.track.audio_url,
           bpm: item.track.bpm || 120,
           content_type: item.track.content_type
         };
