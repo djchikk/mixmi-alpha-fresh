@@ -535,13 +535,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (newSyncState && mixerState.deckA.audioState && mixerState.deckB.audioState) {
       // Enable sync
       const audioContext = mixerState.deckA.audioState.audioContext;
-      
+
       syncEngineRef.current = new SimpleLoopSync(
         audioContext,
-        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls },
-        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls }
+        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
+        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track }
       );
-      
+
       await syncEngineRef.current.enableSync();
     } else if (!newSyncState && syncEngineRef.current) {
       // Disable sync
