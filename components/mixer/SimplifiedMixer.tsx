@@ -168,12 +168,18 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       // Clean up existing audio
       await cleanupDeckAudio(mixerState.deckA.audioControls, 'Deck A');
 
-      // Disable sync engine if it was active
+      // Disable sync engine if it was active and reset Deck B playback rate
       if (syncWasActive && syncEngineRef.current) {
         syncEngineRef.current.disableSync();
         syncEngineRef.current = null;
+
+        // Reset Deck B playback rate immediately (don't wait for smooth transition)
+        if (mixerState.deckB.audioState?.audio) {
+          mixerState.deckB.audioState.audio.playbackRate = 1.0;
+          console.log('🔄 Reset Deck B playback rate to 1.0 after Deck A load');
+        }
       }
-      
+
       // Load new audio
       console.log('🎵 Loading audio for track:', track.audioUrl);
       const audioResult = await loadAudioForDeck(track, 'Deck A');
@@ -309,12 +315,18 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       // Clean up existing audio
       await cleanupDeckAudio(mixerState.deckB.audioControls, 'Deck B');
 
-      // Disable sync engine if it was active
+      // Disable sync engine if it was active and reset Deck A playback rate
       if (syncWasActive && syncEngineRef.current) {
         syncEngineRef.current.disableSync();
         syncEngineRef.current = null;
+
+        // Reset Deck A playback rate immediately (though it's master, good for consistency)
+        if (mixerState.deckA.audioState?.audio) {
+          mixerState.deckA.audioState.audio.playbackRate = 1.0;
+          console.log('🔄 Reset Deck A playback rate to 1.0 after Deck B load');
+        }
       }
-      
+
       // Load new audio
       console.log('🎵 Loading audio for track:', track.audioUrl);
       const audioResult = await loadAudioForDeck(track, 'Deck B');
