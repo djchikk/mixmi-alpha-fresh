@@ -64,39 +64,42 @@ export default function CompactTrackCardWithFlip({
     fetchUsername();
   }, [track.primary_uploader_wallet]);
 
-  // Fetch loops when pack is expanded
+  // Fetch loops when pack is expanded (for loop_pack) or tracks when EP is expanded
   useEffect(() => {
-    const fetchLoops = async () => {
-      if (!isPackExpanded || track.content_type !== 'loop_pack') {
-        console.log('🔍 Not fetching loops:', { isPackExpanded, content_type: track.content_type });
+    const fetchPackTracks = async () => {
+      if (!isPackExpanded || (track.content_type !== 'loop_pack' && track.content_type !== 'ep')) {
+        console.log('🔍 Not fetching pack tracks:', { isPackExpanded, content_type: track.content_type });
         return;
       }
       if (packLoops.length > 0) {
-        console.log('🔍 Loops already loaded:', packLoops.length);
+        console.log('🔍 Pack tracks already loaded:', packLoops.length);
         return; // Already loaded
       }
 
       setLoadingLoops(true);
       const packId = track.pack_id || track.id.split('-loc-')[0];
-      console.log('🔍 Fetching loops for pack:', packId);
+      console.log('🔍 Fetching pack tracks for:', packId, track.content_type);
+
+      // For loop packs, fetch loops. For EPs, fetch full songs
+      const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : 'full_song';
 
       const { data, error } = await supabase
         .from('ip_tracks')
         .select('*')
         .eq('pack_id', packId)
-        .eq('content_type', 'loop')
+        .eq('content_type', contentTypeToFetch)
         .order('pack_position', { ascending: true });
 
       if (error) {
-        console.error('❌ Error fetching pack loops:', error);
+        console.error('❌ Error fetching pack tracks:', error);
       } else if (data) {
-        console.log('✅ Fetched loops:', data.length, data);
+        console.log('✅ Fetched pack tracks:', data.length, data);
         setPackLoops(data as IPTrack[]);
       }
       setLoadingLoops(false);
     };
 
-    fetchLoops();
+    fetchPackTracks();
   }, [isPackExpanded, track.content_type, track.id]);
 
   // Handle loop playback
@@ -360,20 +363,20 @@ export default function CompactTrackCardWithFlip({
                       )}
                     </div>
 
-                    {/* Chevron Button - only for loop packs - positioned on right side, vertically centered */}
-                    {track.content_type === 'loop_pack' && (
+                    {/* Chevron Button - for loop packs and EPs - positioned on right side, vertically centered */}
+                    {(track.content_type === 'loop_pack' || track.content_type === 'ep') && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsPackExpanded(!isPackExpanded);
                         }}
                         className="absolute right-1 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center transition-all hover:scale-110 z-10"
-                        title={isPackExpanded ? "Collapse loops" : "Expand loops"}
+                        title={isPackExpanded ? (track.content_type === 'ep' ? "Collapse tracks" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : "Expand loops")}
                       >
                         {isPackExpanded ? (
-                          <ChevronUp className="w-5 h-5" style={{ color: '#C4AEF8' }} strokeWidth={3} />
+                          <ChevronUp className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }} strokeWidth={3} />
                         ) : (
-                          <ChevronDown className="w-5 h-5" style={{ color: '#C4AEF8' }} strokeWidth={3} />
+                          <ChevronDown className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }} strokeWidth={3} />
                         )}
                       </button>
                     )}
@@ -416,11 +419,12 @@ export default function CompactTrackCardWithFlip({
             </div>
         </div>
 
-        {/* Expandable Loop Drawer - Only for loop packs */}
-        {track.content_type === 'loop_pack' && isPackExpanded && (
+        {/* Expandable Drawer - For loop packs and EPs */}
+        {(track.content_type === 'loop_pack' || track.content_type === 'ep') && isPackExpanded && (
           <div
-            className="w-[160px] bg-slate-900 border-2 border-[#9772F4] border-t-0 rounded-b-lg overflow-hidden"
+            className="w-[160px] bg-slate-900 border-2 border-t-0 rounded-b-lg overflow-hidden"
             style={{
+              borderColor: track.content_type === 'ep' ? '#FFE4B5' : '#9772F4',
               animation: 'slideDown 0.2s ease-out'
             }}
           >
@@ -432,9 +436,9 @@ export default function CompactTrackCardWithFlip({
             ) : packLoops.length > 0 ? (
               <div className="py-1">
                 {packLoops.map((loop, index) => {
-                  // Create draggable loop item
-                  const DraggableLoop = () => {
-                    const [{ isDragging }, loopDrag] = useDrag(() => ({
+                  // Create draggable track item
+                  const DraggableTrack = () => {
+                    const [{ isDragging }, trackDrag] = useDrag(() => ({
                       type: 'TRACK_CARD',
                       item: () => ({
                         track: {
@@ -449,14 +453,20 @@ export default function CompactTrackCardWithFlip({
                       }),
                     }), [loop]);
 
+                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : '#9772F4';
+                    const textColor = track.content_type === 'ep' ? '#000000' : '#FFFFFF';
+
                     return (
                       <div
-                        ref={loopDrag}
+                        ref={trackDrag}
                         className={`flex items-center gap-2 px-2 py-1 hover:bg-slate-800 cursor-grab ${isDragging ? 'opacity-50' : ''}`}
                         style={{ height: '28px' }}
                       >
-                        {/* Loop number badge */}
-                        <div className="flex-shrink-0 w-5 h-5 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#9772F4'}}>
+                        {/* Track number badge */}
+                        <div
+                          className="flex-shrink-0 w-5 h-5 rounded text-xs font-bold flex items-center justify-center"
+                          style={{backgroundColor: badgeColor, color: textColor}}
+                        >
                           {index + 1}
                         </div>
 
@@ -487,12 +497,12 @@ export default function CompactTrackCardWithFlip({
                     );
                   };
 
-                  return <DraggableLoop key={loop.id} />;
+                  return <DraggableTrack key={loop.id} />;
                 })}
               </div>
             ) : (
               <div className="p-2 text-xs text-gray-500 text-center">
-                No loops found
+                {track.content_type === 'ep' ? 'No tracks found' : 'No loops found'}
               </div>
             )}
           </div>
