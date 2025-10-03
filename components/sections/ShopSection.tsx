@@ -47,6 +47,22 @@ export default function ShopSection({
   });
   const { showToast } = useToast();
 
+  // Sync local state with config prop changes (e.g., after save)
+  useEffect(() => {
+    console.log('🔄 Config changed, syncing local state. Config:', config);
+    const savedStoreCard = config.find(item => item.id === 'store-card');
+    const regularItems = config.filter(item => item.id !== 'store-card');
+
+    console.log('🔄 Found store card in config:', savedStoreCard);
+    console.log('🔄 Found regular items in config:', regularItems);
+
+    setItems(regularItems);
+    if (savedStoreCard) {
+      setStoreCard(savedStoreCard);
+      console.log('✅ Updated storeCard state with:', savedStoreCard);
+    }
+  }, [config]);
+
   // Load store card visibility state from localStorage
   useEffect(() => {
     const storedVisibility = localStorage.getItem(`storeCardVisible_${targetWallet}`);
@@ -103,27 +119,30 @@ export default function ShopSection({
 
   const handleSaveItem = async (item: ShopItem) => {
     try {
-      console.log('Saving shop item:', item);
+      console.log('🔵 Saving shop item:', item);
 
       let updatedRegularItems: ShopItem[];
       let updatedStoreCard: ShopItem = storeCard;
 
       // Check if we're saving the store card
       if (item.id === 'store-card') {
+        console.log('🟢 Detected store card save');
         updatedStoreCard = item;
         setStoreCard(item);
         updatedRegularItems = items;
       } else if (editingItem && editingItem.id !== 'store-card') {
         // Update existing regular item
+        console.log('🟡 Updating existing shop item');
         updatedRegularItems = items.map(i => i.id === item.id ? item : i);
       } else {
         // Add new regular item
+        console.log('🟠 Adding new shop item');
         updatedRegularItems = [...items, item];
       }
 
       // Combine store card and regular items for database storage
       const allItemsToSave = [updatedStoreCard, ...updatedRegularItems];
-      console.log('Updated shop config to save (including store card):', allItemsToSave);
+      console.log('💾 Saving to database:', allItemsToSave);
 
       // Save to database
       const success = await UserProfileService.updateSectionConfig(
@@ -134,14 +153,15 @@ export default function ShopSection({
 
       if (success) {
         setItems(updatedRegularItems);
+        console.log('✅ Save successful, calling onUpdate()');
         await onUpdate();
-        console.log('Shop section saved successfully (including store card)');
+        console.log('✅ onUpdate() complete');
       } else {
-        console.error('Failed to save shop section - service returned false');
+        console.error('❌ Failed to save shop section - service returned false');
         showToast('Failed to save changes', 'error');
       }
     } catch (error) {
-      console.error('Error saving shop item:', error);
+      console.error('❌ Error saving shop item:', error);
       alert(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
@@ -155,10 +175,13 @@ export default function ShopSection({
     try {
       const updatedItems = items.filter(i => i.id !== itemId);
 
+      // Include store card when saving to preserve it
+      const allItemsToSave = [storeCard, ...updatedItems];
+
       const success = await UserProfileService.updateSectionConfig(
         targetWallet,
         'shop',
-        updatedItems
+        allItemsToSave
       );
 
       if (success) {
@@ -203,8 +226,19 @@ export default function ShopSection({
       </div>
 
       <div className="flex flex-wrap gap-4">
-        {/* Show Store Card - either populated or empty state */}
-        {storeCardVisible && items.length === 0 && (
+        {/* Show Store Card - always use the StoreCard component */}
+        {storeCardVisible && (
+          <StoreCard
+            storeCard={storeCard}
+            targetWallet={targetWallet}
+            isOwnProfile={isOwnProfile}
+            onEdit={isOwnProfile ? handleStoreCardEdit : undefined}
+            onDelete={isOwnProfile ? toggleStoreCardVisibility : undefined}
+          />
+        )}
+
+        {/* Old empty state - remove this */}
+        {false && storeCardVisible && items.length === 0 && (
           <div className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all group cursor-pointer bg-slate-800"
             onClick={isOwnProfile ? handleStoreCardEdit : undefined}
           >
@@ -288,16 +322,6 @@ export default function ShopSection({
               </div>
             )}
           </div>
-        )}
-
-        {storeCardVisible && items.length > 0 && (
-          <StoreCard
-            storeCard={storeCard}
-            targetWallet={targetWallet}
-            isOwnProfile={isOwnProfile}
-            onEdit={isOwnProfile ? handleStoreCardEdit : undefined}
-            onDelete={isOwnProfile ? toggleStoreCardVisibility : undefined}
-          />
         )}
 
         {/* Show Shop Items - either populated or empty state */}
