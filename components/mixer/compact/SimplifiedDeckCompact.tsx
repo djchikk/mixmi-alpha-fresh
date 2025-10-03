@@ -141,7 +141,7 @@ export default function SimplifiedDeckCompact({
           key={currentTrack?.id || 'empty'}
           className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging && !currentTrack ? 'drop-target' : ''}`}
           style={{
-            border: isOver && canDrop && !isDragging && !currentTrack ? '3px solid #00FF88' : undefined
+            border: isOver && canDrop && !isDragging && !currentTrack ? '3px solid #9772F4' : undefined
           }}
         >
           {isLoading ? (
@@ -192,12 +192,12 @@ export default function SimplifiedDeckCompact({
               )}
             </div>
           ) : (
-            <div 
+            <div
               className="deck-empty"
               title="Drag loops from the globe, crate, or search"
             >
               <span className="deck-empty-icon">+</span>
-              <span className="deck-empty-text">Load Track</span>
+              <span className="deck-empty-text">Load Loop</span>
             </div>
           )}
 
@@ -236,26 +236,26 @@ export default function SimplifiedDeckCompact({
         .carousel-track.current:not(.has-track) {
           border: 2px solid transparent;
         }
-        
+
         .carousel-track.current.has-track {
-          border: 2px solid #81E4F2;
+          border: 2px solid #9772F4;
         }
-        
+
         .carousel-track.current.new-track-loaded {
-          border-color: #81E4F2 !important;
+          border-color: #9772F4 !important;
         }
-        
-        
+
+
         .carousel-track.current.playing {
-          border-color: #81E4F2 !important;
+          border-color: #9772F4 !important;
         }
-        
+
         .loading-spinner {
           width: 24px;
           height: 24px;
           border: 2px solid rgba(255, 255, 255, 0.2);
           border-radius: 50%;
-          border-top-color: #81E4F2;
+          border-top-color: #9772F4;
           animation: spin 0.8s linear infinite;
         }
         
@@ -294,8 +294,8 @@ export default function SimplifiedDeckCompact({
         
         .carousel-track.drop-target {
           transform: scale(1.05);
-          border-color: #00FF88 !important;
-          box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+          border-color: #9772F4 !important;
+          box-shadow: 0 0 20px rgba(151, 114, 244, 0.3);
         }
       `}</style>
     </div>
