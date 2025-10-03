@@ -70,12 +70,13 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
   return {
     id: ipTrack.id,
     title: ipTrack.title,
-    artist: ipTrack.artist_name || 'Unknown Artist',
-    imageUrl: (ipTrack as any).imageUrl || ipTrack.cover_image_url || '', // Handle both imageUrl and cover_image_url
+    artist: ipTrack.artist || (ipTrack as any).artist_name || 'Unknown Artist', // Handle both artist and artist_name
+    imageUrl: ipTrack.cover_image_url || (ipTrack as any).imageUrl || '', // Prefer original cover_image_url for better quality
     bpm: ipTrack.bpm || 120,
     audioUrl: (ipTrack as any).audioUrl || ipTrack.audio_url, // Handle both audioUrl and audio_url
     content_type: ipTrack.content_type || 'loop', // Preserve original content type!
-    price_stx: ipTrack.price_stx // Preserve price for cart functionality
+    price_stx: ipTrack.price_stx, // Preserve price for cart functionality
+    primary_uploader_wallet: ipTrack.primary_uploader_wallet // Preserve for linking to creator store
   };
 };
 

@@ -9,6 +9,7 @@ export interface Track {
   audioUrl?: string;
   content_type?: 'loop' | 'full_song'; // Added to maintain content type for UI
   price_stx?: number; // Price in STX for purchase
+  primary_uploader_wallet?: string; // For linking to creator's store
 }
 
 export interface FXState {

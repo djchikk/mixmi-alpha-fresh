@@ -44,12 +44,13 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           id: track.id,
           title: track.title,
           artist: track.artist,
-          imageUrl: track.imageUrl,
+          imageUrl: (track as any).cover_image_url || track.imageUrl, // Prefer original cover_image_url
           bpm: track.bpm || 120,
           audioUrl: track.audioUrl || track.audio_url, // Handle both formats like deck conversion!
           content_type: track.content_type,
           price_stx: track.price_stx,
-          license: track.license
+          license: track.license,
+          primary_uploader_wallet: track.primary_uploader_wallet
         },
         sourceIndex: index
       };

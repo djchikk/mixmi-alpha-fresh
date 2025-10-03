@@ -4,11 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { Track } from './types';
 import { useToast } from '@/contexts/ToastContext';
+import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 
 interface SimplifiedDeckProps {
   currentTrack: Track | null;
   isPlaying: boolean;
   onTrackDrop?: (track: Track) => void;
+  onClearDeck?: () => void;
+  onAddToCart?: (track: Track) => void;
   deck: 'A' | 'B';
   className?: string;
   trackInfoPosition?: 'left' | 'right' | 'bottom' | 'none';
@@ -18,6 +21,8 @@ export default function SimplifiedDeck({
   currentTrack,
   isPlaying,
   onTrackDrop,
+  onClearDeck,
+  onAddToCart,
   deck,
   className = '',
   trackInfoPosition = 'bottom'
@@ -48,7 +53,13 @@ export default function SimplifiedDeck({
           return;
         }
 
-        onTrackDrop(item.track);
+        // Ensure track has all needed fields for linking
+        const mixerTrack = {
+          ...item.track,
+          primary_uploader_wallet: item.track.primary_uploader_wallet
+        };
+
+        onTrackDrop(mixerTrack);
       } else {
         console.warn(`❌ No onTrackDrop handler for Deck ${deck}`);
       }
@@ -93,25 +104,13 @@ export default function SimplifiedDeck({
         >
           {currentTrack ? (
             <>
-              <img src={currentTrack.imageUrl} alt={currentTrack.title} />
+              <img
+                src={getOptimizedTrackImage(currentTrack, 256)}
+                alt={currentTrack.title}
+              />
 
               {/* Subtle dark overlay */}
               <div className="absolute inset-0 bg-black opacity-20 pointer-events-none"></div>
-
-              {/* Hover overlay with track info */}
-              {isHovered && (
-                <div className="absolute inset-0 bg-black bg-opacity-75 flex flex-col justify-center items-center p-2 rounded-lg transition-opacity duration-200">
-                  <div className="text-white text-sm font-semibold text-center mb-1 line-clamp-2">
-                    {currentTrack.title}
-                  </div>
-                  <div className="text-gray-300 text-xs text-center">
-                    {currentTrack.artist}
-                  </div>
-                  <div className="text-gray-400 text-xs mt-1">
-                    {currentTrack.bpm} BPM
-                  </div>
-                </div>
-              )}
             </>
           ) : (
             <div className="deck-empty">

@@ -4,14 +4,14 @@
  * Adds responsive image sizing to Supabase Storage URLs to improve performance
  */
 
-export type ImageSize = 64 | 160 | 320;
+export type ImageSize = 64 | 160 | 256 | 320 | 512;
 
 /**
  * Optimizes an image URL for display at a specific size
  * Adds query parameters to request appropriately sized images from Supabase Storage
  *
  * @param imageUrl - Original image URL (cover_image_url or imageUrl)
- * @param targetSize - Display size (64px for crate, 160px for cards, 320px for modals)
+ * @param targetSize - Display size (64px for tiny mixer, 160px for cards, 256px for big mixer decks, 320px for compact cards, 512px for modals)
  * @returns Optimized URL with size parameters, or original if no URL provided
  */
 export function optimizeImageUrl(imageUrl: string | undefined, targetSize: ImageSize): string {
