@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Crate from '@/components/shared/Crate';
 import CompactTrackCardWithFlip from '@/components/cards/CompactTrackCardWithFlip';
@@ -396,7 +397,10 @@ export default function CreatorStorePage() {
 
           <div className="flex items-center justify-between mb-6 pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800">
+              <Link
+                href={`/profile/${walletOrUsername}`}
+                className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:border-[#9772F4] transition-colors cursor-pointer"
+              >
                 {profileImage ? (
                   <img
                     src={profileImage}
@@ -413,7 +417,7 @@ export default function CreatorStorePage() {
                     {creatorName ? creatorName.charAt(0).toUpperCase() : 'M'}
                   </div>
                 )}
-              </div>
+              </Link>
 
               <div>
                 <h1 className="text-4xl font-bold">
