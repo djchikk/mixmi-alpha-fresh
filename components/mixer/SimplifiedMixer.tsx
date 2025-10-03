@@ -176,9 +176,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         if (audioControls) {
           audioControls.setLoopEnabled(mixerState.deckA.loopEnabled);
           audioControls.setLoopLength(mixerState.deckA.loopLength);
-          audioControls.setLoopPosition(mixerState.deckA.loopPosition);
+          audioControls.setLoopPosition(0); // Reset to start for new track
         }
-        
+
         setMixerState(prev => ({
           ...prev,
           masterBPM: trackBPM,
@@ -188,7 +188,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             playing: false,
             audioState,
             audioControls,
-            loading: false
+            loading: false,
+            loopPosition: 0 // Reset position in state too
           }
         }));
 
@@ -306,9 +307,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         if (audioControls) {
           audioControls.setLoopEnabled(mixerState.deckB.loopEnabled);
           audioControls.setLoopLength(mixerState.deckB.loopLength);
-          audioControls.setLoopPosition(mixerState.deckB.loopPosition);
+          audioControls.setLoopPosition(0); // Reset to start for new track
         }
-        
+
         setMixerState(prev => ({
           ...prev,
           deckB: {
@@ -317,7 +318,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             playing: false,
             audioState,
             audioControls,
-            loading: false
+            loading: false,
+            loopPosition: 0 // Reset position in state too
           }
         }));
 
