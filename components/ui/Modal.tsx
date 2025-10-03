@@ -55,10 +55,9 @@ const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black bg-opacity-60 backdrop-blur-sm">
-      <div 
-        ref={modalRef} 
+      <div
+        ref={modalRef}
         className={`bg-[#101726] rounded-lg shadow-xl w-full mx-4 max-h-[calc(90vh-90px)] overflow-y-auto ${maxWidthClasses[maxWidth]} border border-[#151C2A]`}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center px-6 py-4 border-b border-[#151C2A]">
           <h3 className="text-xl font-medium text-white">{title}</h3>

@@ -6,6 +6,47 @@ This file provides guidance to Claude Code when working with the Mixmi Alpha Upl
 
 **Mixmi Alpha Uploader** is a standalone Next.js application for alpha content migration, built separately from the main Mixmi app to avoid production environment issues. It provides a complete loop pack upload system with 3-way content selection (Song | Loop | Loop Pack).
 
+## 🎨 **Recent Major Improvements (January 2025)**
+
+### **Authentication & User System**
+- **Unified Sign-In Modal**: Combined alpha invite code and approved wallet authentication in single modal
+- **Stacks Wallet Integration**: Full wallet connection with signature verification (not just address input)
+- **Editable User Profiles**: Authenticated users can edit display name, tagline, and profile image
+- **Editable Creator Stores**: Store owners can manage their content, add/remove tracks, edit metadata
+
+### **Content Navigation & Linking**
+- **Smart Card Linking**: Track cards link to creator stores, artist names link to profiles
+- **Username/Wallet Routing**: Automatic routing to `/store/{username}` or `/profile/{username}` with fallback to wallet addresses
+- **TrackDetailsModal Enhancement**: Added linked title and artist at top of modal matching card behavior
+
+### **Loop Pack & EP Expansion System**
+**Globe/Store Cards (Vertical Expansion):**
+- Chevron button (color-coded: purple for loop packs, cream for EPs) on right side of card
+- Vertical dropdown drawer below card showing draggable track rows
+- Each row: numbered badge, BPM, play/pause button
+- Smooth slideDown animation with 28px compact rows
+- Individual tracks draggable to crate or mixer (loops only for mixer)
+
+**Crate Cards (Horizontal Expansion):**
+- Chevron button with dark semi-transparent background for visibility
+- Horizontal slide-out to the right showing 64px draggable cards
+- Numbered badges, BPM, hover interactions (play, add to cart)
+- Maintains horizontal alignment in crate scroll area
+- Playing indicators and smooth slideInRight animation
+
+### **Mixer Improvements**
+- **Purple Loop Theme**: Changed from cyan to loop purple (#9772F4) for all deck states
+- **Educational Error Messages**: Context-specific guidance when wrong content type dropped:
+  - Loop packs/EPs: Instructs to use chevron expansion
+  - Songs: Redirects to crate
+  - Messages persist 5 seconds for readability
+- **Deck Labels**: Changed "Load Track" to "Load Loop" for clarity
+
+### **UI Polish**
+- **Icon Standardization**: Consistent close button styling across crate and deck cards
+- **Card Simplification**: Removed unnecessary complexity, improved hover states
+- **Image Optimization**: Maintained throughout expansion features
+
 ## 🔐 **Alpha Code to Wallet Mapping System (Sept 17, 2025)**
 
 **Critical Architecture:** Separates user-friendly authentication from blockchain operations
