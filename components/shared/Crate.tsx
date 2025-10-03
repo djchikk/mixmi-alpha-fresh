@@ -786,14 +786,14 @@ export default function Crate({ className = '' }: CrateProps) {
                 </div>
               )}
 
-              {/* Chevron button for loop packs and EPs - always visible, center right */}
+              {/* Chevron button for loop packs and EPs - always visible, far right edge */}
               {(track.content_type === 'loop_pack' || track.content_type === 'ep') && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handlePackExpansion(track);
                   }}
-                  className="absolute right-0.5 top-1/2 transform -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 z-10"
+                  className="absolute right-[1px] top-1/2 transform -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 z-10 bg-black bg-opacity-80 rounded"
                   title={expandedPackId === track.id ? (track.content_type === 'ep' ? "Collapse tracks" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : "Expand loops")}
                 >
                   {expandedPackId === track.id ? (
