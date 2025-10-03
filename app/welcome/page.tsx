@@ -93,7 +93,7 @@ export default function Welcome() {
           </p>
         </div>
 
-        {/* What's Live + CTA Combined Section */}
+        {/* What's Live Section */}
         <div className="section-card mb-16" style={{
           background: 'rgba(20, 25, 39, 0.6)',
           border: '1px solid rgba(129, 228, 242, 0.1)',
@@ -104,193 +104,107 @@ export default function Welcome() {
           zIndex: 1
         }}>
           <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-3" style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '12px', color: '#e1e5f0' }}>
+            <h2 className="text-2xl font-semibold mb-6" style={{ fontSize: '2rem', fontWeight: '600', color: '#e1e5f0' }}>
               What's Live
             </h2>
-            <div className="text-[#a8b2c3] mb-8">
-              <p className="mb-4">The globe uploader is ready. Pin your sounds anywhere on Earth.</p>
 
-              <div className="text-left max-w-2xl mx-auto">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#81E4F2]">•</span>
-                    Compact mixer functioning
+            <div className="text-left max-w-3xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">🌍</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Globe Browser with Tiny Mixer</h3>
+                    <p className="text-[#a8b2c3]">Discover sounds pinned anywhere on Earth and mix loops in the tiny dj mixer</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#81E4F2]">•</span>
-                    Search enabled
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">🎚️</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Professional Mixer</h3>
+                    <p className="text-[#a8b2c3]">Dual decks with sync, loop length controls and FX</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#81E4F2]">•</span>
-                    Drag/drop content to mixer and crate
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">🏪</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Creator Stores</h3>
+                    <p className="text-[#a8b2c3]">Your own music marketplace for loops, loop packs, songs and EPs</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#81E4F2]">•</span>
-                    Crate and shopping cart working
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">👤</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Artist Profiles</h3>
+                    <p className="text-[#a8b2c3]">Customizable showcases for creators</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#81E4F2]">•</span>
-                    Purchasing Enabled
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#81E4F2]">•</span>
-                    Pro Mixer Live
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg md:col-span-2">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">💰</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Purchasing & Payments Live</h3>
+                    <p className="text-[#a8b2c3]">Buy and sell with STX - real value, on-chain transactions</p>
                   </div>
                 </div>
               </div>
             </div>
-            
           </div>
         </div>
 
-        {/* How It Works - Content Type Grid (Exact match to form) */}
+        {/* Upload Invitation Section */}
         <div className="section-card mb-16" style={{
           background: 'rgba(20, 25, 39, 0.6)',
           border: '1px solid rgba(129, 228, 242, 0.1)',
           borderRadius: '16px',
-          padding: '40px',
+          padding: '48px 40px',
           backdropFilter: 'blur(10px)',
           position: 'relative',
           zIndex: 1
         }}>
-          <h2 className="text-2xl font-semibold mb-3 text-center" style={{ fontSize: '2rem', fontWeight: '600' }}>Upload in Under a Minute</h2>
-          <p className="text-[#A1B0C4] mb-6 text-center">
-            Alpha perk: Made a mistake? Everything can be changed or deleted - just message me!
-          </p>
+          <div className="text-center max-w-2xl mx-auto">
+            <div className="text-6xl mb-6">🎵</div>
+            <h2 className="text-3xl font-semibold mb-4" style={{ color: '#e1e5f0' }}>
+              Ready to Share Your Sound?
+            </h2>
+            <p className="text-[#a8b2c3] text-lg mb-8">
+              Upload loops, loop packs, songs, or EPs. Pin your content anywhere on Earth.
+              Start earning with every track you share.
+            </p>
 
-          {/* Authentication Options - Informational Only */}
-          <h3 className="text-center text-[#a8b2c3] mb-4 font-semibold">Connect to Upload</h3>
-          
-          <div className="mb-6 max-w-2xl mx-auto">
-            <div className="p-6 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <div className="flex items-center justify-center gap-8">
-                
-                {/* LEFT SIDE - Alpha Invite */}
-                <div className="flex-1 text-center">
-                  <div className="text-2xl mb-2">🔑</div>
-                  <h4 className="text-[#a8b2c3] text-sm font-medium">Alpha Invite</h4>
-                  <p className="text-[#6b7489] text-xs mt-1">Enter your access code</p>
-                </div>
-
-                {/* CENTER - OR Divider */}
-                <div className="flex flex-col items-center justify-center px-4">
-                  <div className="text-[#6b7489] text-sm font-medium">OR</div>
-                  <div className="w-px h-8 bg-[rgba(255,255,255,0.1)] mt-2"></div>
-                </div>
-
-                {/* RIGHT SIDE - Stacks Wallet */}
-                <div className="flex-1 text-center">
-                  <div className="text-2xl mb-2">⭐</div>
-                  <h4 className="text-[#a8b2c3] text-sm font-medium">Stacks Connect</h4>
-                  <p className="text-[#6b7489] text-xs mt-1">Connect via header button</p>
-                </div>
-
+            <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-6">
+              <div className="flex items-center gap-2 text-[#a8b2c3] text-sm">
+                <span className="text-[#81E4F2]">✓</span>
+                <span>Quick or Advanced modes</span>
+              </div>
+              <div className="flex items-center gap-2 text-[#a8b2c3] text-sm">
+                <span className="text-[#81E4F2]">✓</span>
+                <span>Split rights up to 3 creators</span>
+              </div>
+              <div className="flex items-center gap-2 text-[#a8b2c3] text-sm">
+                <span className="text-[#81E4F2]">✓</span>
+                <span>Everything is editable</span>
               </div>
             </div>
-          </div>
 
-          {/* Step 2: Mode Selection */}
-          <h3 className="text-center text-[#a8b2c3] mb-4 font-semibold">Choose Your Upload Mode</h3>
-          <div className="flex gap-5 mb-6">
-            <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <h3 className="text-[#a8b2c3] text-center text-base mb-3" style={{ fontSize: '15px' }}>
-                <span>⚡</span> Quick Upload
-              </h3>
-              <p className="text-[#a8b2c3] text-sm text-center">
-                Solo creators: Auto-assigns 100% rights to you
-              </p>
+            <div className="flex justify-center">
+              <button
+                onClick={() => setUploadModalOpen(true)}
+                className="flex items-center gap-3 px-8 py-4 bg-transparent text-white font-mono text-lg rounded-xl border-2 border-[#81E4F2] hover:bg-[#81E4F2]/10 hover:shadow-[0_0_20px_rgba(129,228,242,0.4)] transition-all"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+                <span>sign in and upload</span>
+              </button>
             </div>
-            <div className="flex-1 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-              <h3 className="text-[#a8b2c3] text-center text-base mb-3" style={{ fontSize: '15px' }}>
-                <span>⚙️</span> Advanced Options
-              </h3>
-              <p className="text-[#a8b2c3] text-sm text-center">
-                Split rights between up to 3 creators. Add ISRC codes
-              </p>
-            </div>
-          </div>
 
-          <p className="text-[#6b7489] text-center mb-6" style={{ 
-            fontSize: '16px',
-            margin: '20px auto',
-            display: 'block'
-          }}>
-            💡 Switch between Quick/Advanced anytime - your data is saved
-          </p>
-          
-          {/* Step 3: Content Type Selection */}
-          <h3 className="text-center text-[#a8b2c3] mb-4 font-semibold">Select Content Type</h3>
-          <div className="max-w-2xl mx-auto mb-8">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Top left: 8-Bar Loop - Simple uniform styling */}
-              <div className="p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-                <div className="text-center">
-                  <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
-                    8-Bar Loop
-                  </div>
-                  <div className="text-xs mt-2" style={{ color: designVars.textMuted }}>
-                    Quick creative building blocks
-                  </div>
-                </div>
-              </div>
-              
-              {/* Top right: Loop Pack - Simple uniform styling */}
-              <div className="p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-                <div className="text-center">
-                  <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
-                    Loop Pack
-                  </div>
-                  <div className="text-xs mt-2" style={{ color: designVars.textMuted }}>
-                    2-5 loops working together
-                  </div>
-                </div>
-              </div>
-              
-              {/* Bottom left: Song - Simple uniform styling */}
-              <div className="p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-                <div className="text-center">
-                  <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
-                    Song
-                  </div>
-                  <div className="text-xs mt-2" style={{ color: designVars.textMuted }}>
-                    Complete musical piece
-                  </div>
-                </div>
-              </div>
-              
-              {/* Bottom right: EP - Simple uniform styling */}
-              <div className="p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-xl">
-                <div className="text-center">
-                  <div className="font-semibold text-lg" style={{ color: designVars.textPrimary }}>
-                    EP
-                  </div>
-                  <div className="text-xs mt-2" style={{ color: designVars.textMuted }}>
-                    2-5 songs collection
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 4: Form Details - Compact horizontal flow */}
-          <h3 className="text-center text-[#a8b2c3] mb-4 font-semibold">Fill In Your Details</h3>
-          <div className="text-center mb-6">
-            <p className="text-[#6b7489] text-sm max-w-4xl mx-auto" style={{ lineHeight: '1.6' }}>
-              • Artist Name & Title  • Description  • BPM & Key<br />
-              • Tags  • Location  • Cover Art & Audio
+            <p className="text-[#6b7489] text-sm mt-6">
+              💡 Alpha perk: Made a mistake? Everything can be changed or deleted - just message me!
             </p>
           </div>
-
-          {/* Start Uploading Button - After reading all instructions */}
-          <div className="text-center">
-            <button 
-              onClick={() => setUploadModalOpen(true)}
-              className="bg-gray-200 text-[#0a0e1a] px-10 py-3 rounded-lg font-semibold hover:-translate-y-0.5 hover:bg-gray-300 transition-all"
-            >
-              Start Uploading
-            </button>
-          </div>
-
         </div>
 
         {/* Coming Soon Section */}
@@ -303,109 +217,54 @@ export default function Welcome() {
           position: 'relative',
           zIndex: 1
         }}>
-          <h2 className="text-2xl font-semibold mb-3 text-center" style={{ fontSize: '2rem', fontWeight: '600' }}>
-            Coming Soon
-          </h2>
-          <p className="text-center text-[#a8b2c3] mb-8">
-            Within 3 weeks
-          </p>
-          
-          {/* Coming Soon - 2-column layout for wider aspect ratio */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            
-            {/* Globe + Tiny Mixer - COMPLETED! */}
-            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm relative"
-                 style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
-              <div className="aspect-video bg-gray-800 relative">
-                <Image src="/welcome-images/globe-tiny-mixer.png" alt="Globe with Tiny Mixer" fill className="object-cover" />
-                
-                {/* DONE! Stamp - Globe + Mixer shipped! */}
-                <ShippedStamp 
-                  timestamp="17-SEP-2025 • 23:45 UTC"
-                  rotation={-15}
-                  scale={1.2}
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2 text-[#e1e5f0]">Globe + Mixer</h3>
-                <p className="text-sm text-[#6b7489]">Discover and mix in real-time</p>
-              </div>
-            </div>
-            
-            {/* Professional Mixer */}
-            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm relative"
-                 style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
-              <div className="aspect-video bg-gray-800 relative">
-                <Image src="/welcome-images/professional-mixer.png" alt="Professional Mixer Interface" fill className="object-cover" />
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold mb-6" style={{ fontSize: '2rem', fontWeight: '600', color: '#e1e5f0' }}>
+              Coming Soon
+            </h2>
 
-                {/* DONE! Stamp - Professional Mixer shipped! */}
-                <ShippedStamp
-                  timestamp="27-SEP-2025 • 18:30 UTC"
-                  rotation={12}
-                  scale={1.2}
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2 text-[#e1e5f0]">Professional Mixer</h3>
-                <p className="text-sm text-[#6b7489]">Dual decks with sync, loop length controls and FX</p>
-              </div>
-            </div>
-            
-            {/* Creator Store */}
-            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm relative"
-                 style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
-              <div className="aspect-video bg-gray-800 relative">
-                <Image src="/welcome-images/creator-store.png" alt="Creator Store Interface" fill className="object-cover" />
+            <div className="max-w-3xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">💸</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Revenue Splitting Smart Contracts</h3>
+                    <p className="text-[#a8b2c3]">Automatic payment splits for collaborators</p>
+                  </div>
+                </div>
 
-                {/* DONE! Stamp - Creator Stores shipped! */}
-                <ShippedStamp
-                  timestamp="27-SEP-2025 • 23:00 UTC"
-                  rotation={15}
-                  scale={1.2}
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2 text-[#e1e5f0]">Creator Stores</h3>
-                <p className="text-sm text-[#6b7489]">Your own music marketplace</p>
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">🔗</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Remix Tracking</h3>
+                    <p className="text-[#a8b2c3]">Trace the lineage of every remix and derivative</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">🎖️</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">On-Chain Certification</h3>
+                    <p className="text-[#a8b2c3]">Permanent proof of ownership for uploaded content</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">📻</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Playlist Streaming & Radio</h3>
+                    <p className="text-[#a8b2c3]">Curate and broadcast continuous mixes</p>
+                  </div>
+                </div>
               </div>
             </div>
-            
-            {/* Artist Profiles */}
-            <div className="rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 backdrop-blur-sm"
-                 style={{ background: 'rgba(20, 25, 39, 0.6)', border: '1px solid rgba(129, 228, 242, 0.1)' }}>
-              <div className="aspect-video bg-gray-800 relative">
-                <Image src="/welcome-images/profile-showcase.gif" alt="Artist Profile Showcase" fill className="object-cover" />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold mb-2 text-[#e1e5f0]">Artist Profiles</h3>
-                <p className="text-sm text-[#6b7489]">Rich creator showcases</p>
-              </div>
-            </div>
-            
           </div>
         </div>
 
-        {/* Real Money Moment - Standalone */}
-        <div className="bg-[rgba(255,228,181,0.1)] border border-[rgba(255,228,181,0.3)] rounded-xl p-6 text-center mb-16 relative overflow-hidden">
-          <h3 className="text-xl text-[#FFE4B5] mb-3">💰 Real Money Moment</h3>
-          <p className="text-[#a8b2c3]">
-            Payments are LIVE! Your content is now ready to sell.
-            Start earning with every track you upload.
+        {/* Closing */}
+        <div className="text-center mt-8 mb-12">
+          <p className="text-[#a8b2c3] text-xl font-medium">
+            Ready to light up the planet? 🚀✨
           </p>
-
-          {/* DONE! Stamp - Payments shipped! */}
-          <div className="absolute top-6 right-28">
-            <ShippedStamp
-              timestamp="27-SEP-2025 • 14:15 UTC"
-              rotation={-8}
-              scale={0.9}
-            />
-          </div>
-        </div>
-
-        {/* Simple Closing */}
-        <div className="text-center text-[#6b7489]">
-          Ready to light up the planet? 🚀✨
         </div>
       </div>
 

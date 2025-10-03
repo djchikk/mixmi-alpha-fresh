@@ -2244,20 +2244,20 @@ export default function IPTrackModal({
             >
               🔐
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Sign In Required</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">Hey! You'll need to sign in first</h3>
             <p className="text-gray-400 max-w-md mx-auto mb-4">
-              MIXMI is currently in early alpha and invite-only. To upload content, please sign in using the <span className="text-white font-medium">Sign In</span> button at the top of the page.
+              To upload your music, just click the <span className="text-white font-medium">Sign In</span> button at the top of the page.
             </p>
             <p className="text-gray-400 max-w-md mx-auto text-sm">
-              You can sign in with your Stacks wallet (if approved) or an alpha invite code.
+              You can sign in with your Stacks wallet or alpha invite code.
             </p>
             <div className="mt-6 pt-6 border-t border-gray-700">
-              <p className="text-gray-500 text-sm mb-2">Don't have access yet?</p>
+              <p className="text-gray-500 text-sm mb-2">Need an invite code?</p>
               <a
                 href="mailto:mixmialpha@gmail.com?subject=MIXMI%20Alpha%20Access%20Request&body=Hi%2C%0A%0AI'd%20like%20to%20request%20early%20alpha%20access%20to%20MIXMI.%0A%0AThank%20you!"
                 className="text-[#81E4F2] hover:text-[#6BC4D4] font-medium text-sm transition-colors"
               >
-                Apply for early alpha invite →
+                Email us for alpha access →
               </a>
             </div>
           </div>
@@ -2266,7 +2266,7 @@ export default function IPTrackModal({
             className="px-6 py-3 text-gray-300 font-medium rounded-lg border border-white/40 hover:border-[#81E4F2] hover:shadow-[0_0_12px_rgba(129,228,242,0.3)] transition-all hover:bg-white/5"
             style={{ backgroundColor: '#061F3C' }}
           >
-            Got It
+            Close
           </button>
         </div>
       );
