@@ -6,7 +6,7 @@ import { useMixer } from '@/contexts/MixerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDrop, useDrag } from 'react-dnd';
 import { IPTrack } from '@/types';
-import { Play, Pause, Info, GripVertical } from 'lucide-react';
+import { Play, Pause, Info, GripVertical, X } from 'lucide-react';
 import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
@@ -637,7 +637,6 @@ export default function Crate({ className = '' }: CrateProps) {
                 position: 'relative',
                 backgroundColor: '#1a1a1a'
               }}
-              title="Click to preview"
             >
               {track.imageUrl ? (
                 <img
@@ -675,12 +674,24 @@ export default function Crate({ className = '' }: CrateProps) {
                   {/* Drag handle (all contexts, except full songs in mixer) */}
                   {!(context === 'mixer' && track.content_type === 'full_song') && (
                     <div
-                      className="absolute top-1 left-1"
+                      className="absolute top-1 left-0.5"
                       title="Drag to mixer or cart"
                     >
-                      <GripVertical className="w-4 h-4 text-white" />
+                      <GripVertical className="w-3.5 h-3.5 text-white" />
                     </div>
                   )}
+
+                  {/* Remove from crate button - top center */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveTrack(index);
+                    }}
+                    className="absolute top-1 left-1/2 -translate-x-1/2 transition-all hover:scale-125 bg-white/90 hover:bg-white rounded-full p-[1px]"
+                    title="Remove from crate"
+                  >
+                    <X className="w-2.5 h-2.5 text-slate-900 stroke-[3.5]" />
+                  </button>
 
                   {/* Cart button (all contexts) */}
                   <button
@@ -688,10 +699,10 @@ export default function Crate({ className = '' }: CrateProps) {
                       e.stopPropagation();
                       addToCart(track);
                     }}
-                    className="absolute bottom-1 left-1 transition-all hover:scale-110"
+                    className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
                     title="Add to cart"
                   >
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </button>
@@ -706,7 +717,7 @@ export default function Crate({ className = '' }: CrateProps) {
                   )}
 
                   {/* Info icon - opens TrackDetailsModal (all contexts) - top right to balance drag handle */}
-                  <div className="absolute top-0.5 right-1">
+                  <div className="absolute top-0.5 right-0.5">
                     <InfoIcon
                       size="sm"
                       onClick={(e) => {
@@ -733,7 +744,7 @@ export default function Crate({ className = '' }: CrateProps) {
 
               {/* BPM overlay for mixer (always) and store/globe (on hover) contexts */}
               {(context === 'mixer' || ((context === 'store' || context === 'globe') && hoveredTrackId === track.id)) && (
-                <div className="absolute bottom-1 right-1 text-[11px] text-white font-mono font-bold">
+                <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
                   {track.bpm || 120}
                 </div>
               )}

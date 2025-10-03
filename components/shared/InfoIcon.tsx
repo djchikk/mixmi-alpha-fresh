@@ -41,6 +41,7 @@ export default function InfoIcon({
         justify-center
         transition-all
         hover:scale-110
+        group
         ${className}
       `}
       title={title}
@@ -49,7 +50,7 @@ export default function InfoIcon({
         cursor: onClick ? 'pointer' : 'default'
       }}
     >
-      <span className={`${config.text} text-white font-bold select-none leading-none`}>
+      <span className={`${config.text} text-white group-hover:text-[#81E4F2] font-bold select-none leading-none transition-colors`}>
         i
       </span>
     </button>
