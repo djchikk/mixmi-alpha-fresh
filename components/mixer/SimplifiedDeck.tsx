@@ -116,7 +116,7 @@ export default function SimplifiedDeck({
           ) : (
             <div className="deck-empty">
               <span className="deck-empty-icon">+</span>
-              <span className="deck-empty-text">Load Track</span>
+              <span className="deck-empty-text">Load Loop</span>
             </div>
           )}
 
