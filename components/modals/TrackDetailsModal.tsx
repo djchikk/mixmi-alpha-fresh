@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import { useDrag } from 'react-dnd';
 import { GripVertical } from 'lucide-react';
+import Link from 'next/link';
 
 interface TrackDetailsModalProps {
   track: IPTrack;
@@ -50,6 +51,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   }
   const [packLoops, setPackLoops] = useState<IPTrack[]>([]);
   const [loadingLoops, setLoadingLoops] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const [ipRights, setIPRights] = useState<{
     composition_split: number;
     composition_wallet: string;
@@ -61,11 +63,30 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     license_type: string;
     license_selection: string;
   } | null>(null);
-  
+
   // Audio playback state for individual loops
   const [playingLoopId, setPlayingLoopId] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [previewTimeout, setPreviewTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Fetch username for the track's primary uploader wallet
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (!track.primary_uploader_wallet) return;
+
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('wallet_address', track.primary_uploader_wallet)
+        .single();
+
+      setUsername(data?.username || null);
+    };
+
+    if (isOpen) {
+      fetchUsername();
+    }
+  }, [track.primary_uploader_wallet, isOpen]);
 
   // Fetch IP rights directly from database
   useEffect(() => {
@@ -306,7 +327,31 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto max-h-[calc(70vh-120px)] p-6 space-y-4">
-          
+
+          {/* Track Title and Artist - Top Section */}
+          <div className="mb-4">
+            {track.primary_uploader_wallet ? (
+              <Link
+                href={username ? `/store/${username}` : `/store/${track.primary_uploader_wallet}`}
+                className="font-bold text-white text-lg leading-tight hover:text-[#81E4F2] transition-colors block mb-1"
+              >
+                {track.title}
+              </Link>
+            ) : (
+              <h3 className="font-bold text-white text-lg leading-tight mb-1">{track.title}</h3>
+            )}
+            {track.primary_uploader_wallet ? (
+              <Link
+                href={username ? `/profile/${username}` : `/profile/${track.primary_uploader_wallet}`}
+                className="text-gray-400 text-sm hover:text-[#81E4F2] transition-colors"
+              >
+                {track.artist}
+              </Link>
+            ) : (
+              <p className="text-gray-400 text-sm">{track.artist}</p>
+            )}
+          </div>
+
           {/* Individual Loops Section - For Loop Packs Only */}
           {track.content_type === 'loop_pack' && (
             <div>
