@@ -545,40 +545,156 @@ export default function CreatorStorePage() {
             <p className="text-gray-400">This creator hasn't uploaded any tracks yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
-            {filteredTracks.slice(0, visibleCards).map((track, index) => (
-              <div
-                key={track.id}
-                className="wave-card"
-                style={{
-                  animationDelay: `${index * 75}ms`,
-                  animationDuration: '0.5s'
-                }}
-              >
-                <CompactTrackCardWithFlip
-                  track={track}
-                  isPlaying={playingTrack === track.id}
-                  onPlayPreview={handlePlayPreview}
-                  onStopPreview={handleStopPreview}
-                  showEditControls={isOwnStore}
-                  onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
-                />
-              </div>
-            ))}
-
-            {waveLoadingActive && filteredTracks.length > visibleCards && (
+          <div className="space-y-12">
+            {/* Group tracks by content type when showing "All" */}
+            {activeFilter.type === 'all' ? (
               <>
-                {Array.from({ length: Math.min(8, filteredTracks.length - visibleCards) }, (_, i) => (
-                  <div
-                    key={`skeleton-${i}`}
-                    className="w-[160px] h-[160px] bg-slate-800 rounded-lg animate-pulse"
-                    style={{
-                      animationDelay: `${(visibleCards + i) * 75}ms`,
-                      animationDuration: '1.5s'
-                    }}
-                  />
-                ))}
+                {/* Loops Section */}
+                {filteredTracks.filter(t => t.content_type === 'loop').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <h2 className="font-mono text-2xl font-bold text-[#9772F4] tracking-wide">loops</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#9772F4]/50 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                      {filteredTracks
+                        .filter(t => t.content_type === 'loop')
+                        .slice(0, visibleCards)
+                        .map((track, index) => (
+                          <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
+                            <CompactTrackCardWithFlip
+                              track={track}
+                              isPlaying={playingTrack === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={isOwnStore}
+                              onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Loop Packs Section */}
+                {filteredTracks.filter(t => t.content_type === 'loop_pack').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <h2 className="font-mono text-2xl font-bold text-[#9772F4] tracking-wide">loop packs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#9772F4]/50 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                      {filteredTracks
+                        .filter(t => t.content_type === 'loop_pack')
+                        .slice(0, visibleCards)
+                        .map((track, index) => (
+                          <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
+                            <CompactTrackCardWithFlip
+                              track={track}
+                              isPlaying={playingTrack === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={isOwnStore}
+                              onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Songs Section */}
+                {filteredTracks.filter(t => t.content_type === 'full_song').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <h2 className="font-mono text-2xl font-bold text-[#FFE4B5] tracking-wide">songs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FFE4B5]/50 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                      {filteredTracks
+                        .filter(t => t.content_type === 'full_song')
+                        .slice(0, visibleCards)
+                        .map((track, index) => (
+                          <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
+                            <CompactTrackCardWithFlip
+                              track={track}
+                              isPlaying={playingTrack === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={isOwnStore}
+                              onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* EPs Section */}
+                {filteredTracks.filter(t => t.content_type === 'ep').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <h2 className="font-mono text-2xl font-bold text-[#FFE4B5] tracking-wide">eps</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FFE4B5]/50 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                      {filteredTracks
+                        .filter(t => t.content_type === 'ep')
+                        .slice(0, visibleCards)
+                        .map((track, index) => (
+                          <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
+                            <CompactTrackCardWithFlip
+                              track={track}
+                              isPlaying={playingTrack === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={isOwnStore}
+                              onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </>
+            ) : (
+              /* Filtered view - single grid */
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                {filteredTracks.slice(0, visibleCards).map((track, index) => (
+                  <div
+                    key={track.id}
+                    className="wave-card"
+                    style={{
+                      animationDelay: `${index * 75}ms`,
+                      animationDuration: '0.5s'
+                    }}
+                  >
+                    <CompactTrackCardWithFlip
+                      track={track}
+                      isPlaying={playingTrack === track.id}
+                      onPlayPreview={handlePlayPreview}
+                      onStopPreview={handleStopPreview}
+                      showEditControls={isOwnStore}
+                      onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                    />
+                  </div>
+                ))}
+
+                {waveLoadingActive && filteredTracks.length > visibleCards && (
+                  <>
+                    {Array.from({ length: Math.min(8, filteredTracks.length - visibleCards) }, (_, i) => (
+                      <div
+                        key={`skeleton-${i}`}
+                        className="w-[160px] h-[160px] bg-slate-800 rounded-lg animate-pulse"
+                        style={{
+                          animationDelay: `${(visibleCards + i) * 75}ms`,
+                          animationDuration: '1.5s'
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
+              </div>
             )}
           </div>
         )}
