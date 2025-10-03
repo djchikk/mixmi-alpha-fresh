@@ -201,13 +201,20 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
       
       // Clean up existing audio
       await cleanupDeckAudio(mixerState.deckA.audioControls, 'Deck A');
-      
-      // Disable sync engine if it was active
+
+      // Disable sync engine if it was active and reset Deck B
       if (syncWasActive && syncEngineRef.current) {
         syncEngineRef.current.disableSync();
         syncEngineRef.current = null;
+
+        // Reset Deck B to clean state (playback rate + loop position)
+        if (mixerState.deckB.audioState?.audio && mixerState.deckB.audioControls) {
+          mixerState.deckB.audioState.audio.playbackRate = 1.0;
+          mixerState.deckB.audioControls.setLoopPosition(0); // Reset to start of loop
+          console.log('🔄 Reset Deck B: playback rate to 1.0, loop position to 0');
+        }
       }
-      
+
       // Load new audio
       console.log('🎵 Loading audio for track:', track.audioUrl);
       const audioResult = await loadAudioForDeck(track, 'Deck A');
@@ -285,13 +292,20 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
       
       // Clean up existing audio
       await cleanupDeckAudio(mixerState.deckB.audioControls, 'Deck B');
-      
-      // Disable sync engine if it was active
+
+      // Disable sync engine if it was active and reset Deck A
       if (syncWasActive && syncEngineRef.current) {
         syncEngineRef.current.disableSync();
         syncEngineRef.current = null;
+
+        // Reset Deck A to clean state (playback rate + loop position)
+        if (mixerState.deckA.audioState?.audio && mixerState.deckA.audioControls) {
+          mixerState.deckA.audioState.audio.playbackRate = 1.0;
+          mixerState.deckA.audioControls.setLoopPosition(0); // Reset to start of loop
+          console.log('🔄 Reset Deck A: playback rate to 1.0, loop position to 0');
+        }
       }
-      
+
       // Load new audio
       console.log('🎵 Loading audio for track:', track.audioUrl);
       const audioResult = await loadAudioForDeck(track, 'Deck B');
