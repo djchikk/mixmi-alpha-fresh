@@ -426,22 +426,27 @@ class SimpleLoopSync {
   }
 
   private activateSync(): void {
-    const masterBPM = this.deckA.bpm;
-    const slaveBPM = this.deckB.bpm;
-    
+    // 🔧 FIX: Always use original track BPM, not potentially mutated state.bpm
+    const masterBPM = this.deckA.track?.bpm || this.deckA.bpm;
+    const slaveBPM = this.deckB.track?.bpm || this.deckB.bpm;
+
     console.log(`🎵 SYNC: activateSync() called with BPMs:`, {
       masterBPM,
       slaveBPM,
+      deckA_track_bpm: this.deckA.track?.bpm,
+      deckB_track_bpm: this.deckB.track?.bpm,
+      deckA_state_bpm: this.deckA.bpm,
+      deckB_state_bpm: this.deckB.bpm,
       deckA_audio_playbackRate: this.deckA.audio?.playbackRate,
       deckB_audio_playbackRate: this.deckB.audio?.playbackRate
     });
-    
+
     if (!masterBPM || !slaveBPM) {
       console.warn('🚨 SYNC: Missing BPM data, cannot sync');
       return;
     }
-    
-    console.log(`🎵 SYNC: Syncing ${slaveBPM} BPM → ${masterBPM} BPM`);
+
+    console.log(`🎵 SYNC: Syncing ${slaveBPM} BPM → ${masterBPM} BPM (using original track BPMs)`);
     
     // Calculate playback rate adjustment
     const targetRate = masterBPM / slaveBPM;
