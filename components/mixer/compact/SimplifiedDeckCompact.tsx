@@ -182,10 +182,10 @@ export default function SimplifiedDeckCompact({
                     e.stopPropagation();
                     onTrackClear();
                   }}
-                  className="absolute top-1 right-1 transition-all hover:scale-110 z-10"
+                  className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 z-10"
                   title={`Clear Deck ${deck}`}
                 >
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>

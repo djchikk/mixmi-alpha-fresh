@@ -671,16 +671,31 @@ export default function Crate({ className = '' }: CrateProps) {
               {/* Unified hover overlay - same for all contexts */}
               {hoveredTrackId === track.id && (
                 <>
-                  {/* Remove from crate button - top center */}
+                  {/* Info icon - opens TrackDetailsModal - top left */}
+                  <div className="absolute top-1 left-1">
+                    <InfoIcon
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTrack(track);
+                        setShowInfoModal(true);
+                      }}
+                      title="View track details"
+                    />
+                  </div>
+
+                  {/* Remove from crate button - top right */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRemoveTrack(index);
                     }}
-                    className="absolute top-1 left-1/2 -translate-x-1/2 transition-all hover:scale-125 bg-white/90 hover:bg-white rounded-full p-[1px]"
+                    className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 z-10"
                     title="Remove from crate"
                   >
-                    <X className="w-2.5 h-2.5 text-slate-900 stroke-[3.5]" />
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
 
                   {/* Cart button (all contexts) */}
@@ -705,19 +720,6 @@ export default function Crate({ className = '' }: CrateProps) {
                       </svg>
                     </div>
                   )}
-
-                  {/* Info icon - opens TrackDetailsModal (all contexts) - top right to balance drag handle */}
-                  <div className="absolute top-0.5 right-0.5">
-                    <InfoIcon
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTrack(track);
-                        setShowInfoModal(true);
-                      }}
-                      title="View track details"
-                    />
-                  </div>
                 </>
               )}
 
