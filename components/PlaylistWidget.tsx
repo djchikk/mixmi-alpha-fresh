@@ -416,6 +416,7 @@ interface PlaylistItemProps {
 }
 
 const PlaylistItem: React.FC<PlaylistItemProps> = ({ track, index, isPlaying, onRemove, onPlay, moveTrack }) => {
+  // Drag for reordering within playlist
   const [{ isDragging }, drag] = useDrag({
     type: 'PLAYLIST_ITEM',
     item: { index },
@@ -437,13 +438,17 @@ const PlaylistItem: React.FC<PlaylistItemProps> = ({ track, index, isPlaying, on
   return (
     <div
       ref={(node) => drag(drop(node))}
-      className={`track-item flex items-center gap-2 p-1.5 rounded bg-slate-800/30 hover:bg-slate-800/50 transition-colors cursor-move ${
+      className={`track-item flex items-center gap-2 p-1.5 rounded bg-slate-800/30 hover:bg-slate-800/50 transition-colors ${
         isDragging ? 'opacity-50' : ''
       } ${isPlaying ? 'ring-1 ring-[#81E4F2]' : ''}`}
     >
-      <GripVertical className="w-3 h-3 text-gray-600" />
+      {/* Reorder handle */}
+      <div className="cursor-move">
+        <GripVertical className="w-3 h-3 text-gray-600" />
+      </div>
 
-      <div className="relative w-8 h-8 rounded overflow-hidden flex-shrink-0">
+      {/* Album art with cart button on hover */}
+      <div className="relative w-8 h-8 rounded overflow-hidden flex-shrink-0 group">
         {track.imageUrl && (
           <Image
             src={track.imageUrl}
@@ -452,6 +457,34 @@ const PlaylistItem: React.FC<PlaylistItemProps> = ({ track, index, isPlaying, on
             className="object-cover"
           />
         )}
+        {/* Cart icon - click to add to cart */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (typeof window !== 'undefined' && (window as any).addToCart) {
+              (window as any).addToCart({
+                id: track.id,
+                title: track.title,
+                artist: track.artist,
+                artist_name: track.artist,
+                cover_image_url: track.imageUrl,
+                imageUrl: track.imageUrl,
+                audio_url: track.audioUrl,
+                audioUrl: track.audioUrl,
+                bpm: track.bpm,
+                content_type: track.content_type,
+                price_stx: track.price_stx,
+                primary_uploader_wallet: track.primary_uploader_wallet
+              });
+            }
+          }}
+          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-black/75"
+          title="Add to cart"
+        >
+          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+          </svg>
+        </button>
       </div>
 
       <button
