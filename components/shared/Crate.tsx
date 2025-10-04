@@ -11,7 +11,7 @@ import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
 import { createPortal } from 'react-dom';
-import { openSTXTransfer } from '@stacks/connect';
+// Dynamic import for @stacks/connect - imported in purchaseAll function
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import { supabase } from '@/lib/supabase';
 
@@ -367,6 +367,10 @@ export default function Crate({ className = '' }: CrateProps) {
         recipient: recipientAddress,
         cart: cart.map(i => ({ id: i.id, price_stx: i.price_stx, title: i.title }))
       });
+
+      // Use dynamic import to fix @stacks/connect compatibility issues
+      const connectModule = await import('@stacks/connect');
+      const openSTXTransfer = connectModule.openSTXTransfer;
 
       await openSTXTransfer({
         recipient: recipientAddress,
