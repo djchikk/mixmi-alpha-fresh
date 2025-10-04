@@ -358,12 +358,12 @@ export default function Crate({ className = '' }: CrateProps) {
       const recipientAddress = 'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9'; // Placeholder - replace with actual artist wallet
 
       // Convert STX to microSTX (1 STX = 1,000,000 microSTX)
-      // Use BigInt to ensure precision for small amounts
-      const amountInMicroSTX = BigInt(Math.floor(cartTotal * 1000000));
+      const amountInMicroSTX = Math.floor(cartTotal * 1000000);
 
       console.log('🔍 Purchase Debug:', {
         cartTotal,
-        amountInMicroSTX: amountInMicroSTX.toString(),
+        amountInMicroSTX,
+        amountString: amountInMicroSTX.toString(),
         recipient: recipientAddress,
         cart: cart.map(i => ({ id: i.id, price_stx: i.price_stx, title: i.title }))
       });
