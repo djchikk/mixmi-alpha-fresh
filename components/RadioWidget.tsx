@@ -168,6 +168,8 @@ export default function RadioWidget() {
 
   // Handle track end - auto-advance
   const handleTrackEnd = () => {
+    console.log('🎵 Radio: Track ended, fetching next track...');
+    shouldAutoPlayRef.current = true; // Auto-play the next track
     fetchRandomTrack();
   };
 
@@ -261,10 +263,10 @@ export default function RadioWidget() {
       />
 
       <div
-        className={`radio-widget relative bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 transition-all duration-300 overflow-hidden ${
+        className={`radio-widget relative bg-slate-900/20 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 transition-all duration-300 overflow-hidden ${
           isCollapsed ? 'h-10' : 'h-[200px]'
         }`}
-        style={{ width: isCollapsed ? '200px' : '320px' }}
+        style={{ width: isCollapsed ? '240px' : '320px' }}
       >
         {/* Collapse/Expand Button */}
         <button
@@ -298,7 +300,7 @@ export default function RadioWidget() {
                 e.stopPropagation();
                 togglePlay();
               }}
-              className="p-1 hover:bg-white/10 rounded transition-colors"
+              className="p-1 hover:bg-white/10 rounded transition-colors mr-6"
             >
               {isPlaying ? (
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -317,7 +319,7 @@ export default function RadioWidget() {
         {!isCollapsed && (
           <div className="h-full p-3 flex flex-col">
             {/* Header */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-0">
               <Radio className={`w-4 h-4 ${isPlaying ? 'text-[#81E4F2]' : 'text-gray-400'}`} />
               <span className="text-sm font-medium text-white/90">Radio</span>
 
@@ -328,8 +330,8 @@ export default function RadioWidget() {
                     key={i}
                     className={`w-1 rounded-sm transition-all duration-75 ${
                       audioLevel >= threshold
-                        ? 'bg-[#81E4F2]'
-                        : 'bg-gray-700'
+                        ? 'bg-gray-300'
+                        : 'bg-gray-700/50'
                     }`}
                     style={{
                       height: `${(i + 1) * 2 + 2}px`
@@ -372,7 +374,7 @@ export default function RadioWidget() {
                       }}
                       disabled={!currentTrack}
                       className="absolute bottom-0.5 left-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
-                      title="Add to crate"
+                      title="Add to cart"
                     >
                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
@@ -394,7 +396,7 @@ export default function RadioWidget() {
                           height: '24px'
                         }}
                       >
-                        <span className="text-xs font-medium text-white">
+                        <span className="text-xs font-medium text-gray-200">
                           {currentTrack.title} • {currentTrack.artist}
                           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                           {currentTrack.title} • {currentTrack.artist}
@@ -425,14 +427,18 @@ export default function RadioWidget() {
               {/* Play/Pause */}
               <button
                 onClick={togglePlay}
-                className="w-8 h-8 flex items-center justify-center bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 rounded transition-colors"
+                className={`w-8 h-8 flex items-center justify-center rounded transition-all ${
+                  isPlaying
+                    ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
+                    : 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2]'
+                }`}
               >
                 {isPlaying ? (
                   <svg className="w-4 h-4 text-[#81E4F2]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                   </svg>
                 ) : (
-                  <svg className="w-4 h-4 text-[#81E4F2]" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
                 )}
@@ -456,7 +462,7 @@ export default function RadioWidget() {
                   step="0.01"
                   value={volume}
                   onChange={handleVolumeChange}
-                  className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#81E4F2] [&::-webkit-slider-thumb]:cursor-pointer"
+                  className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-300 [&::-webkit-slider-thumb]:cursor-pointer"
                 />
               </div>
             </div>

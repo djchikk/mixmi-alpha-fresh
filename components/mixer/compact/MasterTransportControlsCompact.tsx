@@ -131,7 +131,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
         disabled={!deckALoaded && !deckBLoaded}
         className={`master-play-btn w-10 h-10 rounded-full flex items-center justify-center text-base font-bold transition-all ${
           anyPlaying
-            ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50 hover:bg-[#81E4F2]/80'
+            ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
             : countingIn
             ? 'bg-[#81E4F2]/50 border-2 border-[#81E4F2] text-slate-900 animate-pulse cursor-wait'
             : deckALoaded || deckBLoaded
@@ -149,7 +149,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
         {countingIn ? (
           countBeat
         ) : anyPlaying ? (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" className="text-[#81E4F2]">
             <rect x="3" y="2" width="3" height="10" />
             <rect x="8" y="2" width="3" height="10" />
           </svg>
