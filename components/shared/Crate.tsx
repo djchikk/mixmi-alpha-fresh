@@ -372,7 +372,13 @@ export default function Crate({ className = '' }: CrateProps) {
       const connectModule = await import('@stacks/connect');
       const openSTXTransfer = connectModule.openSTXTransfer;
 
+      const appDetails = {
+        name: "Mixmi",
+        icon: window.location.origin + "/favicon.ico",
+      };
+
       await openSTXTransfer({
+        appDetails,
         recipient: recipientAddress,
         amount: amountInMicroSTX.toString(),
         memo: `Purchase: ${cart.map(item => item.title).join(', ').slice(0, 32)}`,
