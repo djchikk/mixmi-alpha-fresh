@@ -266,7 +266,20 @@ export default function CompactTrackCardWithFlip({
                     </svg>
                   </div>
                 )}
-                
+
+                {/* Track number badge - for individual tracks that are part of a pack/EP */}
+                {track.pack_id && typeof track.pack_position === 'number' && (
+                  <div
+                    className="absolute top-1 left-1 w-6 h-6 rounded text-sm font-bold flex items-center justify-center z-10"
+                    style={{
+                      backgroundColor: track.content_type === 'full_song' ? '#FFE4B5' : '#C4AEF8',
+                      color: track.content_type === 'full_song' ? '#000000' : '#FFFFFF'
+                    }}
+                  >
+                    {track.pack_position}
+                  </div>
+                )}
+
                 {/* HIDDEN: Drag Handle - Left side, vertically centered - Uncomment to restore */}
                 {/* {isHovered && (
                   <div
