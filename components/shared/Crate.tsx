@@ -358,7 +358,15 @@ export default function Crate({ className = '' }: CrateProps) {
       const recipientAddress = 'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9'; // Placeholder - replace with actual artist wallet
 
       // Convert STX to microSTX (1 STX = 1,000,000 microSTX)
-      const amountInMicroSTX = Math.floor(cartTotal * 1000000);
+      // Use BigInt to ensure precision for small amounts
+      const amountInMicroSTX = BigInt(Math.floor(cartTotal * 1000000));
+
+      console.log('🔍 Purchase Debug:', {
+        cartTotal,
+        amountInMicroSTX: amountInMicroSTX.toString(),
+        recipient: recipientAddress,
+        cart: cart.map(i => ({ id: i.id, price_stx: i.price_stx, title: i.title }))
+      });
 
       await openSTXTransfer({
         recipient: recipientAddress,
@@ -1068,9 +1076,10 @@ export default function Crate({ className = '' }: CrateProps) {
                       </button>
                       <button
                         onClick={purchaseAll}
-                        className="flex-1 px-3 py-2 bg-[#81E4F2] hover:bg-[#6BC8D6] text-black font-medium rounded text-xs transition-colors"
+                        disabled={purchaseStatus === 'pending'}
+                        className="flex-1 px-3 py-2 bg-[#81E4F2] hover:bg-[#6BC8D6] text-black font-medium rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Purchase All →
+                        {purchaseStatus === 'pending' ? 'Processing...' : 'Purchase All →'}
                       </button>
                     </div>
                   </div>
