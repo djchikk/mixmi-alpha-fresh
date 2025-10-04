@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { ListMusic, ChevronDown, ChevronUp, X, GripVertical } from 'lucide-react';
 import Image from 'next/image';
+import AudioWidgetControls from './AudioWidgetControls';
 
 interface PlaylistTrack {
   id: string;
@@ -28,7 +29,7 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [audioLevel, setAudioLevel] = useState(0);
-  const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 220 });
+  const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 280 });
   const [isDragging, setIsDragging] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -63,7 +64,7 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
 
   // Accept drops from various sources
   const [{ isOver }, drop] = useDrop({
-    accept: ['TRACK', 'GLOBE_CARD', 'CRATE_TRACK', 'RADIO_TRACK'],
+    accept: ['TRACK_CARD', 'TRACK', 'GLOBE_CARD', 'CRATE_TRACK', 'RADIO_TRACK'],
     drop: (item: any) => {
       console.log('🎵 Playlist: Received drop:', item);
 
@@ -284,9 +285,9 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
 
         {/* Expanded Content */}
         {!isCollapsed && (
-          <>
+          <div className="h-full p-3 pt-10 flex flex-col">
             {/* Playlist Items - Scrollable */}
-            <div className="absolute top-10 left-0 right-0 bottom-14 overflow-y-auto px-3 py-2 space-y-1">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-1 mb-2">
               {playlist.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500 text-sm">
                   <ListMusic className="w-8 h-8 mb-2 opacity-50" />
@@ -325,52 +326,15 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
             </div>
 
             {/* Transport Controls */}
-            <div className="absolute bottom-0 left-0 right-0 bg-[#81E4F2]/10 rounded-lg px-3 py-2 flex items-center gap-2">
-              {/* Play/Pause */}
-              <button
-                onClick={togglePlay}
-                disabled={playlist.length === 0}
-                className={`w-8 h-8 flex items-center justify-center rounded transition-all ${
-                  isPlaying
-                    ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
-                    : 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2]'
-                } ${playlist.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isPlaying ? (
-                  <svg className="w-4 h-4 text-[#81E4F2]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                )}
-              </button>
-
-              {/* Current Track Info */}
-              {currentTrack && (
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="text-xs text-gray-200 truncate">
-                    {currentTrack.title} • {currentTrack.artist}
-                  </div>
-                  <div className="text-[9px] text-gray-500">
-                    {currentTrack.content_type === 'full_song' ? '20s preview' : 'Full loop'}
-                  </div>
-                </div>
-              )}
-
-              {/* Volume */}
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-300 [&::-webkit-slider-thumb]:cursor-pointer"
-              />
-            </div>
-          </>
+            <AudioWidgetControls
+              isPlaying={isPlaying}
+              onTogglePlay={togglePlay}
+              onSkip={playNext}
+              volume={volume}
+              onVolumeChange={setVolume}
+              disabled={playlist.length === 0}
+            />
+          </div>
         )}
       </div>
     </div>
