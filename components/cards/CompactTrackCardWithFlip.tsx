@@ -324,21 +324,21 @@ export default function CompactTrackCardWithFlip({
                       </div>
                     </div>
 
-                    {/* Center: Play Button and Delete Button - Absolutely centered */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                      {/* Delete Button - positioned on right side */}
-                      {showEditControls && (
-                        <button
-                          onClick={handleDeleteClick}
-                          title="Remove from store"
-                          className="absolute right-[-50px] w-6 h-6 bg-red-900/50 hover:bg-red-600 rounded flex items-center justify-center transition-all border border-red-700 hover:border-red-500 group"
-                        >
-                          <svg className="w-4 h-4 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      )}
+                    {/* Delete Button - positioned in upper-right corner */}
+                    {showEditControls && (
+                      <button
+                        onClick={handleDeleteClick}
+                        title="Remove from store"
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-900/50 hover:bg-red-600 rounded flex items-center justify-center transition-all border border-red-700 hover:border-red-500 group z-20"
+                      >
+                        <svg className="w-4 h-4 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
 
+                    {/* Center: Play Button - Absolutely centered */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
                       {/* Play Button - centered */}
                       {track.audio_url && (
                         <button
