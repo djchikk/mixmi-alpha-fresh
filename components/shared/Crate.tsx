@@ -11,7 +11,7 @@ import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
 import { createPortal } from 'react-dom';
-// Dynamic import for @stacks/connect - imported in purchaseAll function
+import { openSTXTransfer } from '@stacks/connect';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import { supabase } from '@/lib/supabase';
 
@@ -368,17 +368,7 @@ export default function Crate({ className = '' }: CrateProps) {
         cart: cart.map(i => ({ id: i.id, price_stx: i.price_stx, title: i.title }))
       });
 
-      // Use dynamic import to fix @stacks/connect compatibility issues
-      const connectModule = await import('@stacks/connect');
-      const openSTXTransfer = connectModule.openSTXTransfer;
-
-      const appDetails = {
-        name: "Mixmi",
-        icon: window.location.origin + "/favicon.ico",
-      };
-
       await openSTXTransfer({
-        appDetails,
         recipient: recipientAddress,
         amount: amountInMicroSTX.toString(),
         memo: `Purchase: ${cart.map(item => item.title).join(', ').slice(0, 32)}`,
