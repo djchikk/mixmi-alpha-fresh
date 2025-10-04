@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Radio, SkipForward, Volume2, ChevronDown, ChevronUp, Music, ShoppingCart } from 'lucide-react';
+import { Radio, SkipForward, Volume2, ChevronDown, ChevronUp, Music } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { IPTrack } from '@/types';
 import SafeImage from './shared/SafeImage';
@@ -18,8 +18,6 @@ export default function RadioWidget() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shouldAutoPlayRef = useRef(false);
-
-  const { addToCart } = useMixer();
 
   // Set up drag for album art
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -165,8 +163,8 @@ export default function RadioWidget() {
 
   // Add current track to cart
   const handleAddToCart = () => {
-    if (currentTrack) {
-      addToCart(currentTrack);
+    if (currentTrack && typeof window !== 'undefined' && (window as any).addToCart) {
+      (window as any).addToCart(currentTrack);
       console.log('🎵 Radio: Added to cart:', currentTrack.title);
     }
   };
@@ -255,9 +253,9 @@ export default function RadioWidget() {
           <div className="h-full p-3 flex flex-col">
             {/* Header */}
             <div className="flex items-center gap-2 mb-3">
-              <Radio className={`w-4 h-4 ${isPlaying ? 'text-cyan-400' : 'text-gray-400'}`} />
+              <Radio className={`w-4 h-4 ${isPlaying ? 'text-[#81E4F2]' : 'text-gray-400'}`} />
               <span className="text-sm font-medium text-white/90">Radio</span>
-              <div className={`w-1 h-3 rounded-full ml-auto ${isPlaying ? 'bg-cyan-400 animate-pulse' : 'bg-gray-600'}`} />
+              <div className={`w-1 h-3 rounded-full ml-auto ${isPlaying ? 'bg-[#81E4F2] animate-pulse' : 'bg-gray-600'}`} />
             </div>
 
             {/* Now Playing */}
@@ -268,7 +266,7 @@ export default function RadioWidget() {
                   {/* 64px Album Art - Draggable */}
                   <div
                     ref={drag}
-                    className={`w-16 h-16 rounded overflow-hidden border-2 border-cyan-400/30 relative ${
+                    className={`w-16 h-16 rounded overflow-hidden border-2 border-white/20 relative ${
                       isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'
                     }`}
                     title="Drag to crate or mixer"
@@ -293,9 +291,11 @@ export default function RadioWidget() {
                       }}
                       disabled={!currentTrack}
                       className="absolute bottom-0.5 left-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
-                      title="Add to cart"
+                      title="Add to crate"
                     >
-                      <ShoppingCart className="w-3 h-3 text-white" />
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -323,11 +323,11 @@ export default function RadioWidget() {
 
                     {/* Content type and BPM */}
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-cyan-400 font-mono">
+                      <span className="text-xs text-white/50 font-mono">
                         {currentTrack.content_type === 'full_song' ? 'SONG' : 'LOOP'}
                       </span>
                       {currentTrack.bpm && (
-                        <span className="text-xs text-white/50 font-mono">{currentTrack.bpm} BPM</span>
+                        <span className="text-xs text-white/40 font-mono">{currentTrack.bpm} BPM</span>
                       )}
                     </div>
                   </div>
@@ -344,14 +344,14 @@ export default function RadioWidget() {
               {/* Play/Pause */}
               <button
                 onClick={togglePlay}
-                className="w-8 h-8 flex items-center justify-center bg-cyan-400/20 hover:bg-cyan-400/30 rounded transition-colors"
+                className="w-8 h-8 flex items-center justify-center bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 rounded transition-colors"
               >
                 {isPlaying ? (
-                  <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-[#81E4F2]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                   </svg>
                 ) : (
-                  <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-[#81E4F2]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
                 )}
@@ -375,7 +375,7 @@ export default function RadioWidget() {
                   step="0.01"
                   value={volume}
                   onChange={handleVolumeChange}
-                  className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-400 [&::-webkit-slider-thumb]:cursor-pointer"
+                  className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#81E4F2] [&::-webkit-slider-thumb]:cursor-pointer"
                 />
               </div>
             </div>
