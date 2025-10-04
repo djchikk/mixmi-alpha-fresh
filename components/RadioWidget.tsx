@@ -199,9 +199,9 @@ export default function RadioWidget() {
 
       <div
         className={`radio-widget relative bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 transition-all duration-300 overflow-hidden ${
-          isCollapsed ? 'h-10' : 'h-[120px]'
+          isCollapsed ? 'h-10' : 'h-[200px]'
         }`}
-        style={{ width: isCollapsed ? '200px' : '280px' }}
+        style={{ width: isCollapsed ? '200px' : '320px' }}
       >
         {/* Collapse/Expand Button */}
         <button
@@ -262,39 +262,74 @@ export default function RadioWidget() {
 
             {/* Now Playing */}
             {currentTrack ? (
-              <div className="flex gap-3 mb-3 flex-1 min-h-0">
-                {/* 64px Album Art - Draggable */}
-                <div
-                  ref={drag}
-                  className={`w-16 h-16 rounded overflow-hidden border-2 border-cyan-400/30 flex-shrink-0 relative ${
-                    isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'
-                  }`}
-                  title="Drag to crate or mixer"
-                >
-                  {currentTrack.cover_image_url ? (
-                    <img
-                      src={getOptimizedTrackImage(currentTrack, 128)}
-                      alt={currentTrack.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-slate-700 flex items-center justify-center">
-                      <Music className="w-6 h-6 text-gray-500" />
-                    </div>
-                  )}
+              <div className="flex gap-3 flex-1 min-h-0">
+                {/* Left side: Album Art with hover cart icon */}
+                <div className="flex-shrink-0 group relative self-center">
+                  {/* 64px Album Art - Draggable */}
+                  <div
+                    ref={drag}
+                    className={`w-16 h-16 rounded overflow-hidden border-2 border-cyan-400/30 relative ${
+                      isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'
+                    }`}
+                    title="Drag to crate or mixer"
+                  >
+                    {currentTrack.cover_image_url ? (
+                      <img
+                        src={getOptimizedTrackImage(currentTrack, 128)}
+                        alt={currentTrack.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+                        <Music className="w-6 h-6 text-gray-500" />
+                      </div>
+                    )}
+
+                    {/* Cart icon - bottom left on hover */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart();
+                      }}
+                      disabled={!currentTrack}
+                      className="absolute bottom-0.5 left-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+                      title="Add to cart"
+                    >
+                      <ShoppingCart className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Track Info */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <h4 className="text-sm font-medium text-white truncate">{currentTrack.title}</h4>
-                  <p className="text-xs text-white/60 truncate">{currentTrack.artist}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] text-cyan-400 font-mono">
-                      {currentTrack.content_type === 'full_song' ? 'SONG' : 'LOOP'}
-                    </span>
-                    {currentTrack.bpm && (
-                      <span className="text-[10px] text-white/50 font-mono">{currentTrack.bpm} BPM</span>
-                    )}
+                {/* Right side: Track Info with Ticker Scroll - Centered with image */}
+                <div className="flex-1 min-w-0 flex items-center">
+                  <div className="w-full flex flex-col gap-1">
+                    {/* Scrolling ticker */}
+                    <div className="relative w-full overflow-hidden" style={{ height: '24px' }}>
+                      <div
+                        className="absolute whitespace-nowrap flex items-center"
+                        style={{
+                          animation: 'scroll 15s linear infinite',
+                          willChange: 'transform',
+                          height: '24px'
+                        }}
+                      >
+                        <span className="text-xs font-medium text-white">
+                          {currentTrack.title} • {currentTrack.artist}
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                          {currentTrack.title} • {currentTrack.artist}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Content type and BPM */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-cyan-400 font-mono">
+                        {currentTrack.content_type === 'full_song' ? 'SONG' : 'LOOP'}
+                      </span>
+                      {currentTrack.bpm && (
+                        <span className="text-xs text-white/50 font-mono">{currentTrack.bpm} BPM</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -331,19 +366,8 @@ export default function RadioWidget() {
                 <SkipForward className="w-4 h-4 text-white/70" />
               </button>
 
-              {/* Add to Cart */}
-              <button
-                onClick={handleAddToCart}
-                disabled={!currentTrack}
-                className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Add to cart"
-              >
-                <ShoppingCart className="w-4 h-4 text-white/70" />
-              </button>
-
               {/* Volume Control */}
               <div className="flex items-center gap-2 flex-1">
-                <Volume2 className="w-4 h-4 text-white/50" />
                 <input
                   type="range"
                   min="0"
