@@ -347,9 +347,15 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
             {/* Playlist Items - Scrollable */}
             <div className="flex-1 min-h-0 overflow-y-auto space-y-1 mb-2">
               {playlist.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500 text-sm">
-                  <ListMusic className="w-8 h-8 mb-2 opacity-50" />
-                  <p>Drag tracks here</p>
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 text-xs px-4">
+                  <ListMusic className="w-8 h-8 mb-3 opacity-50" />
+                  <p className="text-center mb-2 font-medium text-gray-300">Drag tracks here to build your playlist</p>
+                  <p className="text-center text-[10px] leading-relaxed">
+                    Loops play in full • Songs preview for 20s
+                  </p>
+                  <p className="text-center text-[10px] text-gray-500 mt-1">
+                    (Full streaming coming soon!)
+                  </p>
                 </div>
               ) : (
                 playlist.map((track, index) => (
