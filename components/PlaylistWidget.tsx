@@ -5,6 +5,8 @@ import { useDrag, useDrop } from 'react-dnd';
 import { ListMusic, ChevronDown, ChevronUp, X, GripVertical } from 'lucide-react';
 import Image from 'next/image';
 import AudioWidgetControls from './AudioWidgetControls';
+import { supabase } from '@/lib/supabase';
+import { IPTrack } from '@/types';
 
 interface PlaylistTrack {
   id: string;
@@ -62,30 +64,86 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
     }
   }, [playlist, currentIndex]);
 
+  // Helper to fetch pack tracks
+  const fetchPackTracks = async (packTrack: any): Promise<IPTrack[]> => {
+    const packId = packTrack.pack_id || packTrack.id.split('-loc-')[0];
+    const contentTypeToFetch = packTrack.content_type === 'loop_pack' ? 'loop' : 'full_song';
+
+    const { data, error } = await supabase
+      .from('ip_tracks')
+      .select('*')
+      .eq('pack_id', packId)
+      .eq('content_type', contentTypeToFetch)
+      .order('pack_position', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching pack tracks:', error);
+      return [];
+    }
+
+    return (data as IPTrack[]) || [];
+  };
+
   // Accept drops from various sources
   const [{ isOver }, drop] = useDrop({
-    accept: ['TRACK_CARD', 'TRACK', 'GLOBE_CARD', 'CRATE_TRACK', 'RADIO_TRACK'],
-    drop: (item: any) => {
+    accept: ['TRACK_CARD', 'COLLECTION_TRACK', 'TRACK', 'GLOBE_CARD', 'CRATE_TRACK', 'RADIO_TRACK'],
+    drop: async (item: any) => {
       console.log('🎵 Playlist: Received drop:', item);
 
-      const track: PlaylistTrack = {
-        id: item.id || item.track?.id,
-        title: item.title || item.track?.title,
-        artist: item.artist || item.artist_name || item.track?.artist || 'Unknown Artist',
-        imageUrl: item.imageUrl || item.cover_image_url || item.track?.imageUrl || '',
-        audioUrl: item.audioUrl || item.audio_url || item.track?.audioUrl,
-        bpm: item.bpm || item.track?.bpm,
-        content_type: item.content_type || item.track?.content_type || 'loop',
-        price_stx: item.price_stx || item.track?.price_stx,
-        primary_uploader_wallet: item.primary_uploader_wallet || item.track?.primary_uploader_wallet
-      };
+      const contentType = item.content_type || item.track?.content_type || 'loop';
 
-      // Add to top of playlist
-      setPlaylist(prev => {
-        // Avoid duplicates
-        if (prev.some(t => t.id === track.id)) return prev;
-        return [track, ...prev];
-      });
+      // Check if this is a pack (loop_pack or ep)
+      if (contentType === 'loop_pack' || contentType === 'ep') {
+        console.log('🎵 Playlist: Unpacking', contentType, '...');
+
+        // Fetch all tracks in the pack
+        const packTracks = await fetchPackTracks(item.track || item);
+
+        if (packTracks.length > 0) {
+          console.log(`🎵 Playlist: Adding ${packTracks.length} tracks from pack`);
+
+          // Convert all pack tracks to PlaylistTrack format
+          const newTracks: PlaylistTrack[] = packTracks.map(track => ({
+            id: track.id,
+            title: track.title,
+            artist: track.artist || track.artist_name || 'Unknown Artist',
+            imageUrl: track.cover_image_url || '',
+            audioUrl: track.audio_url,
+            bpm: track.bpm,
+            content_type: track.content_type as 'loop' | 'full_song',
+            price_stx: track.price_stx,
+            primary_uploader_wallet: track.primary_uploader_wallet
+          }));
+
+          // Add all tracks to playlist
+          setPlaylist(prev => {
+            // Filter out duplicates
+            const existingIds = new Set(prev.map(t => t.id));
+            const uniqueNewTracks = newTracks.filter(t => !existingIds.has(t.id));
+            return [...uniqueNewTracks, ...prev];
+          });
+        }
+      } else {
+        // Single track (loop or full_song)
+        const track: PlaylistTrack = {
+          id: item.id || item.track?.id,
+          title: item.title || item.track?.title,
+          artist: item.artist || item.artist_name || item.track?.artist || 'Unknown Artist',
+          imageUrl: item.imageUrl || item.cover_image_url || item.track?.imageUrl || '',
+          audioUrl: item.audioUrl || item.audio_url || item.track?.audioUrl,
+          bpm: item.bpm || item.track?.bpm,
+          content_type: contentType as 'loop' | 'full_song',
+          price_stx: item.price_stx || item.track?.price_stx,
+          primary_uploader_wallet: item.primary_uploader_wallet || item.track?.primary_uploader_wallet
+        };
+
+        // Add to top of playlist
+        setPlaylist(prev => {
+          // Avoid duplicates
+          if (prev.some(t => t.id === track.id)) return prev;
+          return [track, ...prev];
+        });
+      }
     },
     collect: (monitor) => ({
       isOver: !!monitor.isOver()
