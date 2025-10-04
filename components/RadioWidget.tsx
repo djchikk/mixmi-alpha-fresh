@@ -15,9 +15,14 @@ export default function RadioWidget() {
   const [currentTrack, setCurrentTrack] = useState<IPTrack | null>(null);
   const [volume, setVolume] = useState(0.5);
   const [playedTracks, setPlayedTracks] = useState<Set<string>>(new Set());
+  const [audioLevel, setAudioLevel] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shouldAutoPlayRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const audioSourceSetupRef = useRef(false);
 
   // Set up drag for album art
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -122,6 +127,11 @@ export default function RadioWidget() {
       setIsPlaying(false);
       shouldAutoPlayRef.current = false;
     } else {
+      // Notify other audio sources to pause
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('audioSourcePlaying', { detail: { source: 'radio' } }));
+      }
+
       if (!currentTrack) {
         // First time playing - fetch a track and auto-play it
         shouldAutoPlayRef.current = true;
@@ -169,12 +179,67 @@ export default function RadioWidget() {
     }
   };
 
+  // Listen for other audio sources playing
+  useEffect(() => {
+    const handleOtherAudioPlaying = (event: CustomEvent) => {
+      if (event.detail.source !== 'radio' && isPlaying && audioRef.current) {
+        console.log('🎵 Radio: Pausing due to', event.detail.source, 'playing');
+        audioRef.current.pause();
+        setIsPlaying(false);
+        shouldAutoPlayRef.current = false;
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('audioSourcePlaying', handleOtherAudioPlaying as EventListener);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('audioSourcePlaying', handleOtherAudioPlaying as EventListener);
+      }
+    };
+  }, [isPlaying]);
+
+  // Setup audio analysis for VU meter
+  useEffect(() => {
+    if (!audioRef.current || typeof window === 'undefined') return;
+
+    // TEMPORARILY DISABLED - Testing if Web Audio API is blocking sound
+    // TODO: Re-enable once we fix the audio routing issue
+
+    // Simple fake VU meter based on playing state for now
+    const updateAudioLevel = () => {
+      if (!isPlaying) {
+        setAudioLevel(0);
+        return;
+      }
+
+      // Simulate VU meter with random values when playing
+      setAudioLevel(0.3 + Math.random() * 0.4);
+      animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+    };
+
+    if (isPlaying) {
+      updateAudioLevel();
+    }
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isPlaying]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
     };
   }, []);
@@ -255,22 +320,39 @@ export default function RadioWidget() {
             <div className="flex items-center gap-2 mb-3">
               <Radio className={`w-4 h-4 ${isPlaying ? 'text-[#81E4F2]' : 'text-gray-400'}`} />
               <span className="text-sm font-medium text-white/90">Radio</span>
-              <div className={`w-1 h-3 rounded-full ml-auto ${isPlaying ? 'bg-[#81E4F2] animate-pulse' : 'bg-gray-600'}`} />
             </div>
 
             {/* Now Playing */}
             {currentTrack ? (
               <div className="flex gap-3 flex-1 min-h-0">
-                {/* Left side: Album Art with hover cart icon */}
-                <div className="flex-shrink-0 group relative self-center">
+                {/* Left side: VU Meters above Album Art */}
+                <div className="flex-shrink-0 flex flex-col gap-1 items-center self-center">
+                  {/* VU Meters - 5 bars */}
+                  <div className="flex items-end gap-0.5 h-3">
+                    {[0.2, 0.4, 0.6, 0.8, 1.0].map((threshold, i) => (
+                      <div
+                        key={i}
+                        className={`w-1 rounded-sm transition-all duration-75 ${
+                          audioLevel >= threshold
+                            ? 'bg-[#81E4F2]'
+                            : 'bg-gray-700'
+                        }`}
+                        style={{
+                          height: `${(i + 1) * 2 + 2}px`
+                        }}
+                      />
+                    ))}
+                  </div>
+
                   {/* 64px Album Art - Draggable */}
-                  <div
-                    ref={drag}
-                    className={`w-16 h-16 rounded overflow-hidden border-2 border-white/20 relative ${
-                      isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'
-                    }`}
-                    title="Drag to crate or mixer"
-                  >
+                  <div className="group relative">
+                    <div
+                      ref={drag}
+                      className={`w-16 h-16 rounded overflow-hidden border-2 border-white/20 relative ${
+                        isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'
+                      }`}
+                      title="Drag to crate or mixer"
+                    >
                     {currentTrack.cover_image_url ? (
                       <img
                         src={getOptimizedTrackImage(currentTrack, 128)}
@@ -283,20 +365,21 @@ export default function RadioWidget() {
                       </div>
                     )}
 
-                    {/* Cart icon - bottom left on hover */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToCart();
-                      }}
-                      disabled={!currentTrack}
-                      className="absolute bottom-0.5 left-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
-                      title="Add to crate"
-                    >
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
-                      </svg>
-                    </button>
+                      {/* Cart icon - bottom left on hover */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart();
+                        }}
+                        disabled={!currentTrack}
+                        className="absolute bottom-0.5 left-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+                        title="Add to crate"
+                      >
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
 

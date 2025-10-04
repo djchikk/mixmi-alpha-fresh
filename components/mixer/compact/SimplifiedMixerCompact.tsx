@@ -359,6 +359,10 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
           deckA: { ...prev.deckA, playing: false }
         }));
       } else {
+        // Notify other audio sources to pause
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('audioSourcePlaying', { detail: { source: 'mixer' } }));
+        }
         await audioControls.play();
         setMixerState(prev => ({
           ...prev,
@@ -383,6 +387,10 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
           deckB: { ...prev.deckB, playing: false }
         }));
       } else {
+        // Notify other audio sources to pause
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('audioSourcePlaying', { detail: { source: 'mixer' } }));
+        }
         await audioControls.play();
         setMixerState(prev => ({
           ...prev,
