@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Radio, SkipForward, Volume2, ChevronDown, ChevronUp, Music } from 'lucide-react';
+import { Radio, SkipForward, Volume2, ChevronDown, ChevronUp, Music, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { IPTrack } from '@/types';
 import SafeImage from './shared/SafeImage';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
+import { useDrag } from 'react-dnd';
+import { useMixer } from '@/contexts/MixerContext';
 
 export default function RadioWidget() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -16,6 +18,28 @@ export default function RadioWidget() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shouldAutoPlayRef = useRef(false);
+
+  const { addToCart } = useMixer();
+
+  // Set up drag for album art
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'TRACK_CARD',
+    item: () => {
+      if (!currentTrack) return null;
+      return {
+        track: {
+          ...currentTrack,
+          imageUrl: getOptimizedTrackImage(currentTrack, 64),
+          cover_image_url: getOptimizedTrackImage(currentTrack, 64),
+          audioUrl: currentTrack.audio_url
+        }
+      };
+    },
+    canDrag: () => !!currentTrack,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [currentTrack]);
 
   // Fetch random track
   const fetchRandomTrack = async () => {
@@ -139,6 +163,14 @@ export default function RadioWidget() {
     fetchRandomTrack();
   };
 
+  // Add current track to cart
+  const handleAddToCart = () => {
+    if (currentTrack) {
+      addToCart(currentTrack);
+      console.log('🎵 Radio: Added to cart:', currentTrack.title);
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -231,8 +263,14 @@ export default function RadioWidget() {
             {/* Now Playing */}
             {currentTrack ? (
               <div className="flex gap-3 mb-3 flex-1 min-h-0">
-                {/* 64px Album Art */}
-                <div className="w-16 h-16 rounded overflow-hidden border-2 border-cyan-400/30 flex-shrink-0 relative">
+                {/* 64px Album Art - Draggable */}
+                <div
+                  ref={drag}
+                  className={`w-16 h-16 rounded overflow-hidden border-2 border-cyan-400/30 flex-shrink-0 relative ${
+                    isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'
+                  }`}
+                  title="Drag to crate or mixer"
+                >
                   {currentTrack.cover_image_url ? (
                     <img
                       src={getOptimizedTrackImage(currentTrack, 128)}
@@ -291,6 +329,16 @@ export default function RadioWidget() {
                 title="Skip track"
               >
                 <SkipForward className="w-4 h-4 text-white/70" />
+              </button>
+
+              {/* Add to Cart */}
+              <button
+                onClick={handleAddToCart}
+                disabled={!currentTrack}
+                className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Add to cart"
+              >
+                <ShoppingCart className="w-4 h-4 text-white/70" />
               </button>
 
               {/* Volume Control */}
