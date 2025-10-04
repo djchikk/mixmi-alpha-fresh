@@ -652,7 +652,9 @@ export default function Crate({ className = '' }: CrateProps) {
         ) : (
           // Track list
           collection.map((track, index) => {
-            const isDraggable = (context === 'mixer' || context === 'globe' || context === 'store') && track.content_type !== 'full_song';
+            // Allow all tracks to be draggable - loops and songs
+            // Note: Mixer decks won't accept full_song drops, but Playlist will
+            const isDraggable = (context === 'mixer' || context === 'globe' || context === 'store');
             
             const trackElement = (
               <div

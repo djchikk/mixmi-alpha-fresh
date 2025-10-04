@@ -53,6 +53,11 @@ const RadioWidget = dynamic(() => import('@/components/RadioWidget'), {
   ssr: false
 });
 
+// Dynamically import PlaylistWidget - the playlist player!
+const PlaylistWidget = dynamic(() => import('@/components/PlaylistWidget'), {
+  ssr: false
+});
+
 // Dynamically import GlobeSearch to avoid SSR issues
 const GlobeSearch = dynamic(() => import('@/components/globe/GlobeSearch'), {
   ssr: false
@@ -770,6 +775,9 @@ export default function HomePage() {
       <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
         <SimplifiedMixerCompact />
       </div>
+
+      {/* Playlist Widget - Positioned in lower-left corner */}
+      <PlaylistWidget />
 
       {/* Radio Widget - Positioned above Crate (right side, aligned with mixer) */}
       <div className="fixed bottom-20 right-6 z-30">

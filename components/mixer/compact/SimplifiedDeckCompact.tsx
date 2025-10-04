@@ -74,13 +74,13 @@ export default function SimplifiedDeckCompact({
           // Show user-friendly error message with specific guidance
           let message = '';
           if (item.track.content_type === 'loop_pack') {
-            message = '🎛️ This is a Loop Pack! Click the chevron to expand it and drag individual loops to the mixer.';
+            message = '🎛️ This is a Loop Pack! Click the chevron to expand it, or drag it to the Crate or Playlist to add all loops at once.';
           } else if (item.track.content_type === 'ep') {
-            message = '🎛️ This is an EP! Click the chevron to expand it and drag individual songs to the Crate.';
+            message = '🎛️ This is an EP! Click the chevron to expand it, or drag it to the Crate or Playlist to add all songs at once.';
           } else if (item.track.content_type === 'full_song') {
-            message = '🎵 Songs can\'t be mixed! Only 8-bar loops work in the mixer. Try dragging songs to the Crate instead.';
+            message = '🎵 Songs can\'t be mixed! Only 8-bar loops work in the mixer. Try dragging songs to the Crate or Playlist instead.';
           } else {
-            message = `🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate instead.`;
+            message = `🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate or Playlist instead.`;
           }
 
           showToast(message, 'info', 5000); // Show for 5 seconds
@@ -205,7 +205,7 @@ export default function SimplifiedDeckCompact({
           ) : (
             <div
               className="deck-empty"
-              title="Drag loops from the globe, crate, or search"
+              title="Drag loops from the globe, crate, playlist, or search"
             >
               <span className="deck-empty-icon">+</span>
               <span className="deck-empty-text">Load Loop</span>
