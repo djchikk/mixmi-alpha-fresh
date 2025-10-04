@@ -6,7 +6,46 @@ This file provides guidance to Claude Code when working with the Mixmi Alpha Upl
 
 **Mixmi Alpha Uploader** is a standalone Next.js application for alpha content migration, built separately from the main Mixmi app to avoid production environment issues. It provides a complete loop pack upload system with 3-way content selection (Song | Loop | Loop Pack).
 
-## 🎨 **Recent Major Improvements (January 2025)**
+## 🚀 **October 2025 Achievements**
+
+### **STX Payment System Fixed (October 3, 2025)**
+- **Purchase Flow Restored**: Fixed wallet popup not appearing during purchases
+- **Button State Management**: Added disabled state to prevent double-click transactions
+- **Static Import Fix**: Reverted to static import for `openSTXTransfer` (dynamic import was breaking wallet popup)
+- **Debug Logging**: Added comprehensive purchase flow logging for troubleshooting
+- **All Amount Support**: Verified working with 0.5 STX, 2.5 STX, and all amounts
+- **Key Insight**: Compared with working backup branch (`backup/main-with-stx-payment-20250927`) to identify regression
+
+### **Welcome Page Redesign (October 2025)**
+- **Alpha Video Preparation**: Complete redesign for tomorrow's alpha video recording
+- **What's Live Section**: Card-based layout showcasing:
+  - Globe Browser with Tiny Mixer
+  - Professional Mixer (dual decks, sync, FX)
+  - Creator Stores
+  - Artist Profiles
+  - Purchasing & Payments
+- **Coming Soon Section**: Streamlined roadmap with:
+  - Revenue Splitting Smart Contracts
+  - Remix Tracking
+  - On-Chain Certification
+  - Playlist Streaming & Radio
+- **Upload CTA**: Styled button matching globe page aesthetic
+- **Friendly Messaging**: Rewrote sign-in modal for alpha testers (friends/colleagues)
+- **Removed**: Outdated "Upload in Under a Minute" section and "DONE" stamps
+
+### **Store Edit Mode Feature Branch Merged**
+- **Complete Feature**: Merged `feature/store-edit-mode` into main (164 files, 31k+ additions)
+- **Clean Merge**: Fast-forward merge with no conflicts
+- **Production Deployment**: Successfully deployed to Vercel
+- **Security Scan**: Passed - no exposed secrets
+
+### **Documentation Cleanup (October 3, 2025)**
+- **Removed**: 43 duplicate markdown files (with " 2" suffix)
+- **Deleted**: Obsolete recovery comparison folders
+- **Updated**: CLAUDE.md and STX-PAYMENT-INTEGRATION.md
+- **Created**: DOCUMENTATION_AUDIT_REPORT.md for ongoing maintenance
+
+## 🎨 **Major Improvements (January 2025)**
 
 ### **Authentication & User System**
 - **Unified Sign-In Modal**: Combined alpha invite code and approved wallet authentication in single modal

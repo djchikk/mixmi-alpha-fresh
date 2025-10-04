@@ -599,11 +599,109 @@ Integration Date: September 27, 2025
 
 ---
 
-**Last Updated**: September 27, 2025
-**Document Version**: 1.1
-**Status**: ✅ Production Ready (Phase 1 Complete + Card Consolidation Complete)
+**Last Updated**: October 3, 2025
+**Document Version**: 1.2
+**Status**: ✅ Production Ready (Phase 1 Complete + Card Consolidation Complete + Purchase Flow Fixed)
 
 ## Recent Updates
+
+### October 3, 2025 - Purchase Flow Debugging & Fix ✅
+
+**Problem**: After merging `feature/store-edit-mode` branch, wallet purchase popup stopped appearing in production deployment, despite wallet connection working correctly.
+
+**Symptoms**:
+- Wallet authentication successful ✅
+- Cart functioning properly ✅
+- Purchase button showing "Processing..." spinner ✅
+- **Wallet popup never appearing** ❌
+- No transaction initiated ❌
+
+**Debugging Process**:
+
+1. **Initial Investigation**: Added debug logging to trace values:
+   ```typescript
+   console.log('🔍 Purchase Debug:', {
+     cartTotal,
+     amountInMicroSTX,
+     amountString: amountInMicroSTX.toString(),
+     recipient: recipientAddress,
+     cart: cart.map(i => ({ id: i.id, price_stx: i.price_stx, title: i.title }))
+   });
+   ```
+
+2. **Failed Attempts**:
+   - **BigInt precision fix**: Tried `BigInt(Math.floor(cartTotal * 1000000))` - made it worse
+   - **Dynamic import**: Tried `const connectModule = await import('@stacks/connect')` - didn't help
+   - **Added appDetails**: Tried passing app identification object - still broken
+
+3. **Breakthrough**: User suggested checking backup branch `backup/main-with-stx-payment-20250927`
+   - Compared working implementation with current broken code
+   - Discovered three critical differences:
+     - ✅ Working version used **static import**
+     - ✅ Working version had **NO BigInt wrapper**
+     - ✅ Working version had **NO appDetails parameter**
+
+**Solution**:
+
+Reverted to simple, clean pattern from working backup:
+
+```typescript
+// Static import at top of file
+import { openSTXTransfer } from '@stacks/connect';
+
+// Simple implementation in function
+const amountInMicroSTX = Math.floor(cartTotal * 1000000);
+
+await openSTXTransfer({
+  recipient: recipientAddress,
+  amount: amountInMicroSTX.toString(),
+  memo: `Purchase: ${cart.map(item => item.title).join(', ').slice(0, 32)}`,
+  onFinish: (data) => {
+    console.log('✅ Transaction submitted:', data);
+    setPurchaseStatus('success');
+    setTimeout(() => {
+      clearCart();
+      setShowPurchaseModal(false);
+      setPurchaseStatus('idle');
+    }, 3000);
+  },
+  onCancel: () => {
+    console.log('❌ Transaction cancelled');
+    setPurchaseStatus('idle');
+    setShowPurchaseModal(false);
+  }
+});
+```
+
+**Additional Improvement**: Added button disabled state to prevent double-click race conditions:
+
+```typescript
+<button
+  onClick={purchaseAll}
+  disabled={purchaseStatus === 'pending'}
+  className="... disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {purchaseStatus === 'pending' ? 'Processing...' : 'Purchase All →'}
+</button>
+```
+
+**Results**:
+- ✅ Wallet popup appears correctly
+- ✅ All amounts work (0.5 STX, 2.5 STX, any amount)
+- ✅ No double-click transaction issues
+- ✅ Smooth purchase flow end-to-end
+
+**Key Lessons Learned**:
+1. **Simpler is better**: Removed complexity rather than adding it
+2. **Check working backups early**: Saved hours of debugging
+3. **Static imports for @stacks/connect**: Dynamic imports break wallet popup
+4. **Minimal parameters**: Only pass what's required by the API
+5. **Button state management**: Critical for preventing race conditions
+
+**Implementation Files**:
+- `/components/shared/Crate.tsx` (lines 14, 360-383, 1077-1083)
+
+---
 
 ### September 27, 2025 - Card Consolidation Success ✅
 - **Card System**: Successfully consolidated all card components
