@@ -8,11 +8,12 @@ import { TrackNode } from "@/components/globe/types";
 import { IPTrack } from "@/types";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
-import { Music, Globe as GlobeIcon, Headphones, X } from "lucide-react";
+import { Globe as GlobeIcon, Headphones, X } from "lucide-react";
 import { fetchGlobeTracksFromSupabase, fallbackGlobeNodes } from "@/lib/globeDataSupabase";
 import { supabase } from "@/lib/supabase";
 import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } from "@/lib/globe/simpleCluster";
 import Crate from "@/components/shared/Crate";
+import WidgetLauncher from "@/components/WidgetLauncher";
 
 
 // Dynamically import GlobeTrackCard to avoid SSR issues
@@ -33,10 +34,6 @@ const Globe = dynamic(() => import('@/components/globe/Globe'), {
   )
 });
 
-// Alpha Upload Modal - for loop pack uploads
-const IPTrackModal = dynamic(() => import('@/components/modals/IPTrackModal'), {
-  ssr: false
-});
 
 // Dynamically import SimplifiedMixerCompact - the tiny mixer!
 const SimplifiedMixerCompact = dynamic(() => import('@/components/mixer/compact/SimplifiedMixerCompact'), {
@@ -81,7 +78,13 @@ export default function HomePage() {
   const [carouselPage, setCarouselPage] = useState(0); // For Load More functionality
   const [hoveredNodeTags, setHoveredNodeTags] = useState<string[] | null>(null);
   const [selectedNodeTags, setSelectedNodeTags] = useState<string[] | null>(null);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [centerTrackCard, setCenterTrackCard] = useState<any | null>(null); // For FILL button centered card
+  const [fillAddedTrackIds, setFillAddedTrackIds] = useState<Set<string>>(new Set()); // Track IDs added by FILL
+
+  // Widget visibility state
+  const [isMixerVisible, setIsMixerVisible] = useState(true);
+  const [isPlaylistVisible, setIsPlaylistVisible] = useState(false);
+  const [isRadioVisible, setIsRadioVisible] = useState(false);
 
   // Handle comparison track from collection bar
   const handleComparisonTrack = (track: any) => {
@@ -124,6 +127,131 @@ export default function HomePage() {
       delete (window as any).handleGlobeComparisonTrack;
     };
   }, [leftComparisonTrack, rightComparisonTrack, comparisonOrder]); // Update when state changes
+
+  // Make loadTracks available globally for Header upload
+  useEffect(() => {
+    (window as any).refreshGlobeData = loadTracks;
+    return () => {
+      delete (window as any).refreshGlobeData;
+    };
+  }, []);
+
+  // Fill all widgets with content
+  const handleFillWidgets = async () => {
+    try {
+      console.log('🎲 FILL: Starting to populate widgets...');
+
+      // First, remove previously FILL-added tracks from crate
+      if (fillAddedTrackIds.size > 0 && typeof window !== 'undefined' && (window as any).removeFromCollection) {
+        // Convert to array to avoid issues with Set iteration
+        Array.from(fillAddedTrackIds).forEach((trackId: string) => {
+          (window as any).removeFromCollection(trackId);
+        });
+        console.log(`🗑️ FILL: Cleared ${fillAddedTrackIds.size} previous FILL tracks from crate`);
+      }
+
+      // 1. MIXER: Load predetermined loops that mix well together
+      // "Test Disco" (Deck A) + "test loop audio upload" (Deck B)
+      const { data: mixerTracks, error: mixerError } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('content_type', 'loop')
+        .in('title', ['Test Disco', 'test loop audio upload'])
+        .is('deleted_at', null);
+
+      if (!mixerError && mixerTracks && mixerTracks.length >= 2) {
+        const testDisco = mixerTracks.find(t => t.title === 'Test Disco');
+        const testLoop = mixerTracks.find(t => t.title === 'test loop audio upload');
+
+        if (testDisco && testLoop && typeof window !== 'undefined' && (window as any).loadMixerTracks) {
+          (window as any).loadMixerTracks(testDisco, testLoop);
+          console.log('🎛️ FILL: Loaded Test Disco to Deck A and test loop audio upload to Deck B');
+        } else {
+          console.log('🎛️ FILL: Missing one or both tracks:', {
+            hasTestDisco: !!testDisco,
+            hasTestLoop: !!testLoop,
+            hasMethod: !!(window as any).loadMixerTracks
+          });
+        }
+      } else {
+        console.log('🎛️ FILL: Could not find both mixer tracks');
+      }
+
+      // 2. PLAYLIST: Add 5 random tracks (mix of loops & songs)
+      const { data: playlistTracks, error: playlistError } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .in('content_type', ['loop', 'full_song'])
+        .is('deleted_at', null)
+        .limit(100);
+
+      if (!playlistError && playlistTracks && playlistTracks.length > 0) {
+        const shuffled = playlistTracks.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, Math.min(5, shuffled.length));
+
+        if (typeof window !== 'undefined' && (window as any).fillPlaylist) {
+          (window as any).fillPlaylist(selected);
+          console.log('📝 FILL: Added 5 tracks to playlist');
+        }
+      }
+
+      // 3. RADIO: Load 1 random track
+      const { data: radioTracks, error: radioError } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .in('content_type', ['loop', 'full_song'])
+        .is('deleted_at', null)
+        .limit(50);
+
+      if (!radioError && radioTracks && radioTracks.length > 0) {
+        const randomTrack = radioTracks[Math.floor(Math.random() * radioTracks.length)];
+
+        if (typeof window !== 'undefined' && (window as any).loadRadioTrack) {
+          (window as any).loadRadioTrack(randomTrack);
+          console.log('📻 FILL: Loaded radio track');
+        }
+      }
+
+      // 4. CRATE: Add 5 random items to collection
+      const { data: crateTracks, error: crateError } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .in('content_type', ['loop', 'full_song'])
+        .is('deleted_at', null)
+        .limit(100);
+
+      if (!crateError && crateTracks && crateTracks.length > 0) {
+        const shuffled = crateTracks.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, Math.min(5, shuffled.length));
+
+        // Track the new FILL-added track IDs
+        const newFillTrackIds = new Set<string>();
+
+        if (typeof window !== 'undefined' && (window as any).addToCollection) {
+          selected.forEach((track: any) => {
+            (window as any).addToCollection(track);
+            newFillTrackIds.add(track.id);
+          });
+          console.log(`📦 FILL: Added ${newFillTrackIds.size} tracks to crate collection`);
+          console.log('📦 FILL: New track IDs:', Array.from(newFillTrackIds));
+        }
+
+        // Update the tracked FILL-added IDs
+        setFillAddedTrackIds(newFillTrackIds);
+      }
+
+      // 5. GLOBE: Launch 1 random centered track card
+      if (originalNodes.length > 0) {
+        const randomNode = originalNodes[Math.floor(Math.random() * originalNodes.length)];
+        setCenterTrackCard(randomNode);
+        console.log('🌍 FILL: Launched centered globe track card');
+      }
+
+      console.log('✅ FILL: All widgets populated!');
+    } catch (error) {
+      console.error('❌ FILL: Error populating widgets:', error);
+    }
+  };
 
   // Simple single query approach - fast and reliable
   const loadTracks = async () => {
@@ -375,34 +503,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
-        
-        {/* Upload Button - positioned as floating action button in upper right */}
-        <div 
-          className="fixed z-10"
-          style={{
-            position: 'fixed',
-            top: 'calc(50vh - 50px)', // Centered vertically (much more reliable)
-            right: '20px', // Close to edge to avoid globe overlap
-            zIndex: 10
-          }}
-        >
-          <Button
-            onClick={() => setUploadModalOpen(true)}
-            style={{
-              background: 'rgba(16, 23, 38, 0.4)',
-              backdropFilter: 'blur(12px)',
-              border: '2px solid #81E4F2',
-              borderRadius: '8px',
-              padding: '12px 32px',
-              transition: 'all 0.2s ease'
-            }}
-            className="hover:bg-[#1a2030]/90 hover:border-white text-white font-mono font-bold tracking-wide flex items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
-          >
-            <Music className="w-5 h-5" />
-            upload_content
-          </Button>
-        </div>
-        
+
         {/* Comparison Cards */}
           {/* Left Comparison Card */}
           {leftComparisonTrack && (
@@ -515,7 +616,62 @@ export default function HomePage() {
               </div>
             </div>
           )}
-          
+
+          {/* Center Track Card (from FILL button) */}
+          {centerTrackCard && (
+            <div
+              className="fixed z-50"
+              style={{
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)'
+              }}
+            >
+              <div className="relative bg-[#101726]/95 backdrop-blur-sm rounded-lg p-2 border border-[#1E293B] shadow-xl animate-scale-in">
+                {/* Close button */}
+                <button
+                  onClick={() => setCenterTrackCard(null)}
+                  className="absolute -top-1 -right-1 text-white/60 hover:text-white transition-colors z-10"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+
+                {/* Globe Track Card */}
+                <GlobeTrackCard
+                  track={{
+                    id: centerTrackCard.id,
+                    title: centerTrackCard.title,
+                    artist: centerTrackCard.artist,
+                    cover_image_url: centerTrackCard.imageUrl || centerTrackCard.cover_image_url || '',
+                    audio_url: centerTrackCard.audioUrl || centerTrackCard.audio_url || '',
+                    price_stx: centerTrackCard.price_stx || '5 STX',
+                    content_type: centerTrackCard.content_type || centerTrackCard.genre || 'loop',
+                    bpm: centerTrackCard.bpm,
+                    tags: centerTrackCard.tags || [],
+                    description: centerTrackCard.description || '',
+                    license: centerTrackCard.license || '',
+                    primary_uploader_wallet: centerTrackCard.uploaderAddress || centerTrackCard.wallet_address,
+                    wallet_address: '',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    composition_split: 50,
+                    production_split: 50,
+                    isrc: '',
+                    social_links: {},
+                    contact_email: ''
+                  }}
+                  isPlaying={playingTrackId === centerTrackCard.id}
+                  onPlayPreview={handlePlayPreview}
+                  onStopPreview={handleStopPreview}
+                  showEditControls={false}
+                  onPurchase={(track) => {
+                    // Purchase functionality would be implemented here
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
 
         {/* Hover Tags - Position shifts when card is selected */}
         {hoveredNodeTags && (
@@ -757,34 +913,37 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Alpha Upload Modal */}
-      {uploadModalOpen && (
-        <IPTrackModal
-          isOpen={uploadModalOpen}
-          onClose={() => setUploadModalOpen(false)}
-          onSave={(track) => {
-            // After successful upload, close modal and refresh globe data
-            setUploadModalOpen(false);
-            // Refresh globe data to show new content
-            loadTracks();
-          }}
-        />
-      )}
+      {/* Widget Launcher - Always visible */}
+      <WidgetLauncher
+        onMixClick={() => setIsMixerVisible(!isMixerVisible)}
+        onPlayClick={() => setIsPlaylistVisible(!isPlaylistVisible)}
+        onRadioClick={() => setIsRadioVisible(!isRadioVisible)}
+        onFillClick={handleFillWidgets}
+        isMixerVisible={isMixerVisible}
+        isPlaylistVisible={isPlaylistVisible}
+        isRadioVisible={isRadioVisible}
+      />
 
       {/* Tiny Mixer - Positioned above Crate (left side) */}
-      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
-        <SimplifiedMixerCompact />
-      </div>
+      {isMixerVisible && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
+          <SimplifiedMixerCompact />
+        </div>
+      )}
 
       {/* Playlist Widget - Positioned in lower-left corner above Crate */}
-      <div className="fixed bottom-20 left-6 z-30">
-        <PlaylistWidget />
-      </div>
+      {isPlaylistVisible && (
+        <div className="fixed bottom-20 left-6 z-30">
+          <PlaylistWidget />
+        </div>
+      )}
 
       {/* Radio Widget - Positioned above Crate (right side, aligned with mixer) */}
-      <div className="fixed bottom-20 right-6 z-30">
-        <RadioWidget />
-      </div>
+      {isRadioVisible && (
+        <div className="fixed bottom-20 right-6 z-30">
+          <RadioWidget />
+        </div>
+      )}
 
       {/* Crate - Persistent across all pages */}
       <Crate />

@@ -545,7 +545,7 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
 
   const handleLoopPositionChange = (deck: 'A' | 'B', position: number) => {
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
-    
+
     setMixerState(prev => ({
       ...prev,
       [deckKey]: {
@@ -553,13 +553,52 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
         loopPosition: position
       }
     }));
-    
+
     // Update audio controls
     const audioControls = mixerState[deckKey].audioControls;
     if (audioControls && audioControls.setLoopPosition) {
       audioControls.setLoopPosition(position);
     }
   };
+
+  // Expose loadMixerTracks method for FILL button
+  useEffect(() => {
+    (window as any).loadMixerTracks = async (trackA: any, trackB: any) => {
+      console.log('🎛️ Mixer: Loading tracks from FILL:', trackA.title, '&', trackB.title);
+
+      // Normalize track data from database format to Track type
+      const normalizeTrack = (track: any): Track => ({
+        id: track.id,
+        title: track.title,
+        artist: track.artist || track.artist_name || 'Unknown Artist',
+        imageUrl: track.imageUrl || track.cover_image_url || '',
+        audioUrl: track.audioUrl || track.audio_url,
+        bpm: track.bpm,
+        content_type: track.content_type,
+        price_stx: track.price_stx,
+        primary_uploader_wallet: track.primary_uploader_wallet
+      });
+
+      // Load track A to Deck A
+      if (trackA) {
+        console.log('🎛️ Mixer: Loading Deck A with:', normalizeTrack(trackA));
+        await loadTrackToDeckA(normalizeTrack(trackA));
+      }
+
+      // Wait for Deck A to finish loading before loading Deck B
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Load track B to Deck B
+      if (trackB) {
+        console.log('🎛️ Mixer: Loading Deck B with:', normalizeTrack(trackB));
+        await loadTrackToDeckB(normalizeTrack(trackB));
+      }
+    };
+
+    return () => {
+      delete (window as any).loadMixerTracks;
+    };
+  }, []);
 
   return (
     <div 

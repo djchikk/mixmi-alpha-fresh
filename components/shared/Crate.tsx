@@ -216,11 +216,20 @@ export default function Crate({ className = '' }: CrateProps) {
         addTrackToCollection(track);
       }
     };
-    
+
+    (window as any).removeFromCollection = (trackId: string) => {
+      // Find the index of the track with this ID
+      const index = collection.findIndex(t => t.id === trackId);
+      if (index !== -1) {
+        removeTrackFromCollection(index);
+      }
+    };
+
     return () => {
       delete (window as any).addToCollection;
+      delete (window as any).removeFromCollection;
     };
-  }, [collection, addTrackToCollection]);
+  }, [collection, addTrackToCollection, removeTrackFromCollection]);
 
   // Handle track preview
   const handleTrackClick = (track: any) => {
@@ -647,7 +656,7 @@ export default function Crate({ className = '' }: CrateProps) {
             fontSize: '14px',
             fontStyle: 'italic'
           }}>
-            Your crate is empty — drag content from the cards on the globe, mixer, or search results to add them here
+            Your crate is your persistent collection — drag content here from anywhere in Mixmi
           </div>
         ) : (
           // Track list

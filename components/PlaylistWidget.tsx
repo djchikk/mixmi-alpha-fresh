@@ -258,6 +258,36 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
 
   const currentTrack = playlist[currentIndex];
 
+  // Expose fillPlaylist method for FILL button
+  useEffect(() => {
+    (window as any).fillPlaylist = (tracks: any[]) => {
+      console.log('🎵 Playlist: Filling with', tracks.length, 'tracks from FILL');
+
+      const newTracks: PlaylistTrack[] = tracks.map(track => ({
+        id: track.id,
+        title: track.title,
+        artist: track.artist || track.artist_name || 'Unknown Artist',
+        imageUrl: track.cover_image_url || '',
+        audioUrl: track.audio_url,
+        bpm: track.bpm,
+        content_type: track.content_type as 'loop' | 'full_song',
+        price_stx: track.price_stx,
+        primary_uploader_wallet: track.primary_uploader_wallet
+      }));
+
+      // Add all tracks to playlist
+      setPlaylist(prev => {
+        const existingIds = new Set(prev.map(t => t.id));
+        const uniqueNewTracks = newTracks.filter(t => !existingIds.has(t.id));
+        return [...uniqueNewTracks, ...prev];
+      });
+    };
+
+    return () => {
+      delete (window as any).fillPlaylist;
+    };
+  }, []);
+
   return (
     <div
       ref={drop}
