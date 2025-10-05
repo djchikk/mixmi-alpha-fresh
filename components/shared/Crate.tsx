@@ -656,7 +656,7 @@ export default function Crate({ className = '' }: CrateProps) {
             fontSize: '14px',
             fontStyle: 'italic'
           }}>
-            Your crate is empty — drag content from the cards on the globe, mixer, or search results to add them here
+            Your crate is your persistent collection — drag content here from anywhere in Mixmi
           </div>
         ) : (
           // Track list
