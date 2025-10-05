@@ -34,10 +34,10 @@ export default function WidgetLauncher({
         {/* Mix Button */}
         <button
           onClick={onMixClick}
-          className="transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
+          className="group transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
           style={{
-            width: '124px',
-            height: '124px',
+            width: '64px',
+            height: '64px',
             borderRadius: '8px',
             backgroundColor: '#000000',
           }}
@@ -49,16 +49,16 @@ export default function WidgetLauncher({
               opacity: isMixerVisible ? 1 : 0.65,
             }}
           />
-          <span className="relative z-10 uppercase">Mix</span>
+          <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Mix</span>
         </button>
 
         {/* Play Button */}
         <button
           onClick={onPlayClick}
-          className="transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
+          className="group transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
           style={{
-            width: '124px',
-            height: '124px',
+            width: '64px',
+            height: '64px',
             borderRadius: '8px',
             backgroundColor: '#000000',
           }}
@@ -70,16 +70,16 @@ export default function WidgetLauncher({
               opacity: isPlaylistVisible ? 1 : 0.65,
             }}
           />
-          <span className="relative z-10 uppercase">Play</span>
+          <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Play</span>
         </button>
 
         {/* Radio Button */}
         <button
           onClick={onRadioClick}
-          className="transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
+          className="group transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
           style={{
-            width: '124px',
-            height: '124px',
+            width: '64px',
+            height: '64px',
             borderRadius: '8px',
             backgroundColor: '#000000',
           }}
@@ -91,16 +91,16 @@ export default function WidgetLauncher({
               opacity: isRadioVisible ? 1 : 0.65,
             }}
           />
-          <span className="relative z-10 uppercase">Radio</span>
+          <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Radio</span>
         </button>
 
         {/* Fill Button */}
         <button
           onClick={onFillClick}
-          className="transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
+          className="group transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
           style={{
-            width: '124px',
-            height: '124px',
+            width: '64px',
+            height: '64px',
             borderRadius: '8px',
             backgroundColor: '#000000',
           }}
@@ -112,7 +112,7 @@ export default function WidgetLauncher({
               opacity: 0.65,
             }}
           />
-          <span className="relative z-10 uppercase">Fill</span>
+          <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Fill</span>
         </button>
       </div>
     </div>
