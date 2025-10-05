@@ -143,10 +143,11 @@ export default function HomePage() {
 
       // First, remove previously FILL-added tracks from crate
       if (fillAddedTrackIds.size > 0 && typeof window !== 'undefined' && (window as any).removeFromCollection) {
-        fillAddedTrackIds.forEach((trackId: string) => {
+        // Convert to array to avoid issues with Set iteration
+        Array.from(fillAddedTrackIds).forEach((trackId: string) => {
           (window as any).removeFromCollection(trackId);
         });
-        console.log('🗑️ FILL: Cleared previous FILL tracks from crate');
+        console.log(`🗑️ FILL: Cleared ${fillAddedTrackIds.size} previous FILL tracks from crate`);
       }
 
       // TODO: 1. MIXER: Load specific loops (Test Disco to A, Test Loop Audio Upload to B)
@@ -181,7 +182,8 @@ export default function HomePage() {
             (window as any).addToCollection(track);
             newFillTrackIds.add(track.id);
           });
-          console.log('📦 FILL: Added tracks to crate collection');
+          console.log(`📦 FILL: Added ${newFillTrackIds.size} tracks to crate collection`);
+          console.log('📦 FILL: New track IDs:', Array.from(newFillTrackIds));
         }
 
         // Update the tracked FILL-added IDs
