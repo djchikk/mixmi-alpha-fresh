@@ -83,8 +83,8 @@ export default function HomePage() {
 
   // Widget visibility state
   const [isMixerVisible, setIsMixerVisible] = useState(true);
-  const [isPlaylistVisible, setIsPlaylistVisible] = useState(true);
-  const [isRadioVisible, setIsRadioVisible] = useState(true);
+  const [isPlaylistVisible, setIsPlaylistVisible] = useState(false);
+  const [isRadioVisible, setIsRadioVisible] = useState(false);
 
   // Handle comparison track from collection bar
   const handleComparisonTrack = (track: any) => {
