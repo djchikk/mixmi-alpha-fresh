@@ -7,13 +7,13 @@ The STX Payment Integration enables users to purchase music content (loops, stem
 ## Features
 
 - **Shopping Cart**: Add multiple tracks to cart from Globe, Big Mixer, Store, or Search
+- **Cart in Header**: Global cart icon in top-right corner (moved from Crate - Oct 2025)
 - **Cart Persistence**: Cart contents persist in localStorage across sessions and pages
-- **Cross-Page Consistency**: Cart state syncs seamlessly between Globe and Big Mixer
+- **Cross-Page Consistency**: Cart state syncs seamlessly across all pages via CartContext
 - **Wallet Integration**: Connect Stacks wallet (Hiro, Xverse) via header button
-- **Transaction Flow**: Seamless STX transfer with real-time status updates
-- **Modal UI**: Clean payment status display (pending/success/error)
-- **Auto-clear**: Cart automatically clears after successful payment
-- **Error Handling**: User-friendly error messages for failed transactions
+- **Transaction Flow**: ~~Seamless STX transfer with real-time status updates~~ **DISABLED** (Oct 2025)
+- **Payment Status**: "Payments Coming Soon" button (disabled until smart contracts ready)
+- **Multi-Artist Support**: Cart stores artist wallet addresses for future payment splitting
 - **Unified Card System**: Consolidated card components ensure consistent price handling across all pages
 
 ## Technical Stack
@@ -27,34 +27,44 @@ The STX Payment Integration enables users to purchase music content (loops, stem
 
 ### Key Files
 
-1. **`components/shared/Crate.tsx`** - Main shopping cart component
-   - Lines 6, 14: Import `useAuth` and `openSTXTransfer`
-   - Lines 117-152: Cart state and localStorage persistence
-   - Lines 154-160: Payment state management
-   - Lines 227-256: Cart functions (add, remove, clear)
-   - Lines 258-308: `purchaseAll` async function
-   - Lines 1042-1100+: Purchase status modal UI
+1. **`contexts/CartContext.tsx`** - Global cart state management (NEW - Oct 2025)
+   - Cart state and localStorage persistence
+   - Payment state management (currently disabled)
+   - Cart functions (add, remove, clear)
+   - `purchaseAll` async function (disabled until smart contracts ready)
+   - Stores `primary_uploader_wallet` for future payment splitting
 
-2. **`contexts/AuthContext.tsx`** - Wallet authentication
+2. **`components/layout/Header.tsx`** - Shopping cart UI + wallet connect
+   - Cart icon in top-right corner with item count badge
+   - Cart dropdown showing items, prices, and total
+   - "Payments Coming Soon" disabled button
+   - Wallet connection UI in app header
+   - Shows connected address or "Connect Wallet" prompt
+
+3. **`components/shared/Crate.tsx`** - DJ crate (cart removed Oct 2025)
+   - Shopping cart functionality moved to Header component
+   - Now focused purely on DJ workflow (track staging for mixer)
+
+4. **`contexts/AuthContext.tsx`** - Wallet authentication
    - Provides `isAuthenticated` and `walletAddress` state
    - Manages Stacks wallet connection via `@stacks/connect`
 
-3. **`components/layout/Header.tsx`** - Wallet connect button
-   - Displays wallet connection UI in app header
-   - Shows connected address or "Connect Wallet" prompt
+5. **`app/providers.tsx`** - Context providers
+   - Wraps app with CartProvider for global cart access
 
 ## Implementation Details
 
 ### Cart State Management
 
 ```typescript
-// Cart item interface
-interface CartItem {
+// Cart item interface (contexts/CartContext.tsx)
+export interface CartItem {
   id: string;
   title: string;
   artist: string;
   price_stx: string;
-  license: string;
+  license?: string;
+  primary_uploader_wallet?: string; // NEW - stores artist wallet for payment splitting
 }
 
 // Cart state with localStorage persistence
@@ -68,13 +78,47 @@ useEffect(() => {
   }
 }, []);
 
-// Save to localStorage on change
+// Save to localStorage on change (skip initial mount)
 useEffect(() => {
+  if (isInitialMount.current) {
+    isInitialMount.current = false;
+    return;
+  }
   localStorage.setItem('mixmi-cart', JSON.stringify(cart));
 }, [cart]);
+
+// Add to cart with artist wallet
+const addToCart = (track: any) => {
+  const cartItem: CartItem = {
+    id: track.id,
+    title: track.title || track.name,
+    artist: track.artist || 'Unknown Artist',
+    price_stx: track.price_stx?.toString() || '2.5',
+    license: track.license || 'Standard',
+    primary_uploader_wallet: track.primary_uploader_wallet // Store for future splitting
+  };
+  setCart([...cart, cartItem]);
+};
 ```
 
-### Payment Flow
+### Payment Flow (CURRENTLY DISABLED - Oct 2025)
+
+**Status**: Payment functionality disabled until smart contracts are implemented for multi-artist revenue splitting.
+
+**The Issue**: Current implementation only sends payment to first artist in cart:
+```typescript
+const recipientAddress = cart[0]?.primary_uploader_wallet; // ❌ Only first artist gets paid!
+```
+
+**Why It's Disabled**: If cart contains tracks from multiple artists, only the first artist would receive payment for all tracks. This is unacceptable for a fair marketplace.
+
+**Solution Required**: Smart contracts (Clarity) to automatically split payments:
+- Cart with 3 tracks from 3 artists → 3 separate payments
+- Each artist receives only payment for their tracks
+- Revenue splits honor collaborator percentages
+- Atomic transaction (all or nothing)
+
+**Future Implementation** (when smart contracts ready):
 
 ```typescript
 const purchaseAll = async () => {
@@ -89,21 +133,26 @@ const purchaseAll = async () => {
   // 2. Validate cart contents
   if (cart.length === 0) return;
 
-  // 3. Calculate total and convert to microSTX
-  const amountInMicroSTX = Math.floor(cartTotal * 1000000);
+  // 3. Group by artist and calculate splits
+  const paymentsByArtist = cart.reduce((acc, item) => {
+    const wallet = item.primary_uploader_wallet;
+    if (!acc[wallet]) acc[wallet] = 0;
+    acc[wallet] += parseFloat(item.price_stx);
+    return acc;
+  }, {});
 
-  // 4. Initiate STX transfer
+  // 4. Execute smart contract for payment splitting
   try {
     setPurchaseStatus('pending');
     setShowPurchaseModal(true);
 
-    await openSTXTransfer({
-      recipient: recipientAddress, // Artist wallet
-      amount: amountInMicroSTX.toString(),
+    // TODO: Call Clarity smart contract
+    await executePaymentSplitContract({
+      buyer: walletAddress,
+      payments: paymentsByArtist, // { wallet1: 2.5, wallet2: 1.0, etc. }
       memo: `Purchase: ${cart.map(item => item.title).join(', ')}`,
       onFinish: (data) => {
         setPurchaseStatus('success');
-        // Clear cart after 3 seconds
         setTimeout(() => {
           clearCart();
           setShowPurchaseModal(false);
@@ -599,11 +648,77 @@ Integration Date: September 27, 2025
 
 ---
 
-**Last Updated**: October 3, 2025
-**Document Version**: 1.2
-**Status**: ✅ Production Ready (Phase 1 Complete + Card Consolidation Complete + Purchase Flow Fixed)
+**Last Updated**: October 5, 2025
+**Document Version**: 1.3
+**Status**: 🚧 Payments Disabled (Cart functional, payments require smart contracts)
 
 ## Recent Updates
+
+### October 5, 2025 - Cart Moved to Header + Payments Disabled 🛒
+
+**Major Architectural Change**: Shopping cart extracted from Crate component to global Header position.
+
+**Motivation**:
+1. Better UX - cart always visible and accessible
+2. Cleaner separation of concerns (DJ crate vs shopping cart)
+3. Global state management via CartContext
+
+**Changes Made**:
+
+1. **Created CartContext** (`contexts/CartContext.tsx`)
+   - Global cart state with `useCart()` hook
+   - LocalStorage persistence
+   - Cart functions: `addToCart`, `removeFromCart`, `clearCart`, `purchaseAll`
+   - Stores `primary_uploader_wallet` for future payment splitting
+
+2. **Updated Header** (`components/layout/Header.tsx`)
+   - Added cart icon with item count badge (top-right corner)
+   - Cart dropdown showing items, prices, total
+   - "Payments Coming Soon" button (disabled)
+   - Replaced "Purchase All" functionality
+
+3. **Cleaned Crate** (`components/shared/Crate.tsx`)
+   - Removed ~200 lines of cart code
+   - Now uses global `window.addToCart` for cart button handlers
+   - Focused purely on DJ workflow (track staging)
+
+4. **Payment Splitting Discovery** 🚨
+   - **Critical Issue Found**: Current implementation only pays first artist
+   - **User Quote**: "I'm so glad we stumbled across this. That could have been a bit disastrous!"
+   - **Action Taken**: Disabled purchase button immediately
+   - **Solution**: Requires Clarity smart contracts for multi-artist revenue splitting
+
+**Button State**:
+```typescript
+<button
+  disabled={true}
+  className="... cursor-not-allowed opacity-60"
+  title="Payment splitting smart contracts coming soon"
+>
+  Payments Coming Soon
+</button>
+```
+
+**Why Disabled**:
+- Cart can contain tracks from multiple artists
+- Current code: `cart[0]?.primary_uploader_wallet` only sends to first artist
+- Need smart contracts to split payments fairly among all artists
+- Better to disable than risk unfair payments
+
+**Future Work**:
+- Build Clarity smart contract for payment splitting
+- Group cart items by artist wallet
+- Execute atomic multi-recipient transaction
+- Honor collaborator revenue splits (already stored in database)
+
+**Files Modified**:
+- `contexts/CartContext.tsx` (NEW)
+- `components/layout/Header.tsx` (cart UI added)
+- `components/shared/Crate.tsx` (cart removed)
+- `app/providers.tsx` (CartProvider added)
+- `app/welcome/page.tsx` ("Payments" moved to Coming Soon section)
+
+---
 
 ### October 3, 2025 - Purchase Flow Debugging & Fix ✅
 

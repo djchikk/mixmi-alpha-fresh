@@ -8,6 +8,22 @@ This file provides guidance to Claude Code when working with the Mixmi Alpha Upl
 
 ## 🚀 **October 2025 Achievements**
 
+### **Shopping Cart Moved to Header (October 5, 2025)**
+- **Cart Relocation**: Moved shopping cart from Crate component to Header (top-right position)
+- **Global State Management**: Created CartContext for app-wide cart functionality
+- **LocalStorage Persistence**: Cart items persist across sessions and page navigation
+- **Purchase Flow Disabled**: Changed "Purchase All" to "Payments Coming Soon" until smart contracts ready
+- **Payment Splitting Issue**: Discovered and prevented payments only going to first artist (needs smart contracts)
+- **Artist Wallet Integration**: Cart stores `primary_uploader_wallet` for future payment splitting
+- **Architecture**: Clean separation of cart UI (Header) from cart logic (CartContext)
+- **User Feedback**: "I'm so glad we stumbled across this. That could have been a bit disastrous!"
+
+### **Welcome Page Updates (October 5, 2025)**
+- **Payments Moved to Coming Soon**: Relocated "Purchasing & Payments" from "What's Live" to "Coming Soon"
+- **Playlist Radio Promoted**: Moved "Playlist Streaming & Radio" from "Coming Soon" to "What's Live"
+- **Layout Improvements**: Artist Profiles now sits next to Creator Stores (proper 2x2 grid)
+- **Accurate Feature Status**: Welcome page now reflects what's actually ready for alpha users
+
 ### **STX Payment System Fixed (October 3, 2025)**
 - **Purchase Flow Restored**: Fixed wallet popup not appearing during purchases
 - **Button State Management**: Added disabled state to prevent double-click transactions
@@ -16,19 +32,10 @@ This file provides guidance to Claude Code when working with the Mixmi Alpha Upl
 - **All Amount Support**: Verified working with 0.5 STX, 2.5 STX, and all amounts
 - **Key Insight**: Compared with working backup branch (`backup/main-with-stx-payment-20250927`) to identify regression
 
-### **Welcome Page Redesign (October 2025)**
+### **Welcome Page Redesign (October 2, 2025)**
 - **Alpha Video Preparation**: Complete redesign for tomorrow's alpha video recording
-- **What's Live Section**: Card-based layout showcasing:
-  - Globe Browser with Tiny Mixer
-  - Professional Mixer (dual decks, sync, FX)
-  - Creator Stores
-  - Artist Profiles
-  - Purchasing & Payments
-- **Coming Soon Section**: Streamlined roadmap with:
-  - Revenue Splitting Smart Contracts
-  - Remix Tracking
-  - On-Chain Certification
-  - Playlist Streaming & Radio
+- **What's Live Section**: Card-based layout showcasing working features
+- **Coming Soon Section**: Streamlined roadmap with planned features including payment splitting
 - **Upload CTA**: Styled button matching globe page aesthetic
 - **Friendly Messaging**: Rewrote sign-in modal for alpha testers (friends/colleagues)
 - **Removed**: Outdated "Upload in Under a Minute" section and "DONE" stamps
@@ -196,10 +203,13 @@ app/                     # Next.js App Router
 ├── api/                # API routes (auth, debugging)
 ├── mixer/              # Professional DJ interface
 ├── profile/            # Creator profile management
-└── store/              # Individual creator stores
+├── store/              # Individual creator stores
+├── welcome/            # Alpha welcome/landing page
+└── providers.tsx       # Global context providers (Auth, Cart, Mixer, Toast)
 
-components/             
+components/
 ├── globe/              # 3D globe visualization
+├── layout/             # Header (with shopping cart)
 ├── mixer/              # DJ components (decks, waveforms)
 ├── modals/             # Upload and editing interfaces
 ├── sections/           # Profile content sections
@@ -208,6 +218,11 @@ components/
 └── ui/                 # shadcn/ui components
 
 contexts/               # State management
+├── AuthContext.tsx     # Wallet authentication
+├── CartContext.tsx     # Shopping cart state (NEW - Oct 2025)
+├── MixerContext.tsx    # DJ mixer state
+└── ToastContext.tsx    # Toast notifications
+
 hooks/                  # Custom React hooks
 lib/                    # Utilities and services
 types/                  # TypeScript definitions
@@ -250,6 +265,16 @@ scripts/                # Database migration and utility scripts
 - **Behavior**: Persistent across Globe, Store, Mixer pages
 - **Context-Aware**: Different functionality per page context
 - **Storage**: localStorage + MixerContext state management
+- **Cart Removed**: Shopping cart moved to Header component (Oct 2025)
+
+### Shopping Cart System (NEW - October 2025)
+- **Component**: components/layout/Header.tsx (UI) + contexts/CartContext.tsx (state)
+- **Position**: Fixed top-right corner, visible across all pages
+- **Features**: Add to cart, remove items, view cart total, localStorage persistence
+- **Purchase Flow**: DISABLED until payment splitting smart contracts are implemented
+- **Button State**: "Payments Coming Soon" (disabled with tooltip)
+- **Future Work**: Smart contracts for automatic revenue splitting among collaborators
+- **Architecture**: Global CartContext provides cart state to entire app
 
 ### TrackCoverUploader System (NEW - September 2025)
 - **Component**: components/shared/TrackCoverUploader.tsx
@@ -567,7 +592,7 @@ The `reference/full-app/` directory contains complete main Mixmi application cod
 
 **The reference code provides the blueprint for scaling from alpha uploader to complete music ecosystem!**
 
-## Next Priority Tasks (Updated Sept 17, 2025)
+## Next Priority Tasks (Updated Oct 5, 2025)
 1. **✅ System Performance** - Globe loading optimized to 17ms
 2. **✅ Image Architecture** - TrackCoverUploader and clean URL system working
 3. **✅ Location Accuracy** - Exact coordinate preservation implemented
@@ -575,10 +600,14 @@ The `reference/full-app/` directory contains complete main Mixmi application cod
 5. **✅ Carousel Optimization** - Performance fixed by CC14 (eliminated double-optimization)
 6. **✅ Production Deployment** - Deployed with full security hardening
 7. **✅ Security Compliance** - CORS fixes + alpha invite code system implemented
-8. **🎯 Hover Interaction UX** - Planned: Instant card popup on globe node hover
-9. **🎛️ Big Mixer Integration** - Professional mixer from reference code
-10. **🔄 Card System Unification** - Standardize all card components across contexts
-11. **🧹 Code Cleanup** - Remove debug statements and unused components
+8. **✅ Shopping Cart to Header** - Cart moved from Crate to global Header (Oct 5, 2025)
+9. **✅ Payment Flow Disabled** - Prevented disaster of payments going to only first artist
+10. **✅ Welcome Page Accuracy** - Features correctly categorized as Live vs Coming Soon
+11. **🎯 Payment Splitting Smart Contracts** - Enable multi-artist revenue splitting (Clarity)
+12. **🎯 Hover Interaction UX** - Planned: Instant card popup on globe node hover
+13. **🎛️ Big Mixer Integration** - Professional mixer from reference code
+14. **🔄 Card System Unification** - Standardize all card components across contexts
+15. **🧹 Code Cleanup** - Remove debug statements and unused components
 
 ## Admin Tool Architecture
 
