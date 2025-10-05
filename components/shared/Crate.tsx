@@ -216,11 +216,20 @@ export default function Crate({ className = '' }: CrateProps) {
         addTrackToCollection(track);
       }
     };
-    
+
+    (window as any).removeFromCollection = (trackId: string) => {
+      // Find the index of the track with this ID
+      const index = collection.findIndex(t => t.id === trackId);
+      if (index !== -1) {
+        removeTrackFromCollection(index);
+      }
+    };
+
     return () => {
       delete (window as any).addToCollection;
+      delete (window as any).removeFromCollection;
     };
-  }, [collection, addTrackToCollection]);
+  }, [collection, addTrackToCollection, removeTrackFromCollection]);
 
   // Handle track preview
   const handleTrackClick = (track: any) => {

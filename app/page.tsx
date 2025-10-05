@@ -78,6 +78,8 @@ export default function HomePage() {
   const [carouselPage, setCarouselPage] = useState(0); // For Load More functionality
   const [hoveredNodeTags, setHoveredNodeTags] = useState<string[] | null>(null);
   const [selectedNodeTags, setSelectedNodeTags] = useState<string[] | null>(null);
+  const [centerTrackCard, setCenterTrackCard] = useState<any | null>(null); // For FILL button centered card
+  const [fillAddedTrackIds, setFillAddedTrackIds] = useState<Set<string>>(new Set()); // Track IDs added by FILL
 
   // Widget visibility state
   const [isMixerVisible, setIsMixerVisible] = useState(true);
@@ -133,6 +135,71 @@ export default function HomePage() {
       delete (window as any).refreshGlobeData;
     };
   }, []);
+
+  // Fill all widgets with content
+  const handleFillWidgets = async () => {
+    try {
+      console.log('🎲 FILL: Starting to populate widgets...');
+
+      // First, remove previously FILL-added tracks from crate
+      if (fillAddedTrackIds.size > 0 && typeof window !== 'undefined' && (window as any).removeFromCollection) {
+        fillAddedTrackIds.forEach((trackId: string) => {
+          (window as any).removeFromCollection(trackId);
+        });
+        console.log('🗑️ FILL: Cleared previous FILL tracks from crate');
+      }
+
+      // TODO: 1. MIXER: Load specific loops (Test Disco to A, Test Loop Audio Upload to B)
+      // Will be implemented after widgets expose their methods
+      console.log('🎛️ FILL: Mixer loading - coming soon!');
+
+      // TODO: 2. PLAYLIST: Add 5 random tracks (mix of loops & songs)
+      // Will be implemented after PlaylistWidget exposes fillPlaylist method
+      console.log('📝 FILL: Playlist filling - coming soon!');
+
+      // TODO: 3. RADIO: Load 1 random track
+      // Will be implemented after RadioWidget exposes loadRadioTrack method
+      console.log('📻 FILL: Radio loading - coming soon!');
+
+      // 4. CRATE: Add 5 random items to collection
+      const { data: crateTracks, error: crateError } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .in('content_type', ['loop', 'full_song'])
+        .is('deleted_at', null)
+        .limit(100);
+
+      if (!crateError && crateTracks && crateTracks.length > 0) {
+        const shuffled = crateTracks.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, Math.min(5, shuffled.length));
+
+        // Track the new FILL-added track IDs
+        const newFillTrackIds = new Set<string>();
+
+        if (typeof window !== 'undefined' && (window as any).addToCollection) {
+          selected.forEach((track: any) => {
+            (window as any).addToCollection(track);
+            newFillTrackIds.add(track.id);
+          });
+          console.log('📦 FILL: Added tracks to crate collection');
+        }
+
+        // Update the tracked FILL-added IDs
+        setFillAddedTrackIds(newFillTrackIds);
+      }
+
+      // 5. GLOBE: Launch 1 random centered track card
+      if (originalNodes.length > 0) {
+        const randomNode = originalNodes[Math.floor(Math.random() * originalNodes.length)];
+        setCenterTrackCard(randomNode);
+        console.log('🌍 FILL: Launched centered globe track card');
+      }
+
+      console.log('✅ FILL: All widgets populated!');
+    } catch (error) {
+      console.error('❌ FILL: Error populating widgets:', error);
+    }
+  };
 
   // Simple single query approach - fast and reliable
   const loadTracks = async () => {
@@ -497,7 +564,62 @@ export default function HomePage() {
               </div>
             </div>
           )}
-          
+
+          {/* Center Track Card (from FILL button) */}
+          {centerTrackCard && (
+            <div
+              className="fixed z-50"
+              style={{
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)'
+              }}
+            >
+              <div className="relative bg-[#101726]/95 backdrop-blur-sm rounded-lg p-2 border border-[#1E293B] shadow-xl animate-scale-in">
+                {/* Close button */}
+                <button
+                  onClick={() => setCenterTrackCard(null)}
+                  className="absolute -top-1 -right-1 text-white/60 hover:text-white transition-colors z-10"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+
+                {/* Globe Track Card */}
+                <GlobeTrackCard
+                  track={{
+                    id: centerTrackCard.id,
+                    title: centerTrackCard.title,
+                    artist: centerTrackCard.artist,
+                    cover_image_url: centerTrackCard.imageUrl || centerTrackCard.cover_image_url || '',
+                    audio_url: centerTrackCard.audioUrl || centerTrackCard.audio_url || '',
+                    price_stx: centerTrackCard.price_stx || '5 STX',
+                    content_type: centerTrackCard.content_type || centerTrackCard.genre || 'loop',
+                    bpm: centerTrackCard.bpm,
+                    tags: centerTrackCard.tags || [],
+                    description: centerTrackCard.description || '',
+                    license: centerTrackCard.license || '',
+                    primary_uploader_wallet: centerTrackCard.uploaderAddress || centerTrackCard.wallet_address,
+                    wallet_address: '',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    composition_split: 50,
+                    production_split: 50,
+                    isrc: '',
+                    social_links: {},
+                    contact_email: ''
+                  }}
+                  isPlaying={playingTrackId === centerTrackCard.id}
+                  onPlayPreview={handlePlayPreview}
+                  onStopPreview={handleStopPreview}
+                  showEditControls={false}
+                  onPurchase={(track) => {
+                    // Purchase functionality would be implemented here
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
 
         {/* Hover Tags - Position shifts when card is selected */}
         {hoveredNodeTags && (
@@ -744,10 +866,7 @@ export default function HomePage() {
         onMixClick={() => setIsMixerVisible(!isMixerVisible)}
         onPlayClick={() => setIsPlaylistVisible(!isPlaylistVisible)}
         onRadioClick={() => setIsRadioVisible(!isRadioVisible)}
-        onFillClick={() => {
-          // TODO: Implement fill functionality
-          console.log('Fill clicked - will populate widgets with random content');
-        }}
+        onFillClick={handleFillWidgets}
         isMixerVisible={isMixerVisible}
         isPlaylistVisible={isPlaylistVisible}
         isRadioVisible={isRadioVisible}
