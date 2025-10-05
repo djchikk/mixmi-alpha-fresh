@@ -8,7 +8,7 @@ import { TrackNode } from "@/components/globe/types";
 import { IPTrack } from "@/types";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
-import { Music, Globe as GlobeIcon, Headphones, X } from "lucide-react";
+import { Globe as GlobeIcon, Headphones, X } from "lucide-react";
 import { fetchGlobeTracksFromSupabase, fallbackGlobeNodes } from "@/lib/globeDataSupabase";
 import { supabase } from "@/lib/supabase";
 import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } from "@/lib/globe/simpleCluster";
@@ -33,10 +33,6 @@ const Globe = dynamic(() => import('@/components/globe/Globe'), {
   )
 });
 
-// Alpha Upload Modal - for loop pack uploads
-const IPTrackModal = dynamic(() => import('@/components/modals/IPTrackModal'), {
-  ssr: false
-});
 
 // Dynamically import SimplifiedMixerCompact - the tiny mixer!
 const SimplifiedMixerCompact = dynamic(() => import('@/components/mixer/compact/SimplifiedMixerCompact'), {
@@ -81,7 +77,6 @@ export default function HomePage() {
   const [carouselPage, setCarouselPage] = useState(0); // For Load More functionality
   const [hoveredNodeTags, setHoveredNodeTags] = useState<string[] | null>(null);
   const [selectedNodeTags, setSelectedNodeTags] = useState<string[] | null>(null);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   // Handle comparison track from collection bar
   const handleComparisonTrack = (track: any) => {
@@ -124,6 +119,14 @@ export default function HomePage() {
       delete (window as any).handleGlobeComparisonTrack;
     };
   }, [leftComparisonTrack, rightComparisonTrack, comparisonOrder]); // Update when state changes
+
+  // Make loadTracks available globally for Header upload
+  useEffect(() => {
+    (window as any).refreshGlobeData = loadTracks;
+    return () => {
+      delete (window as any).refreshGlobeData;
+    };
+  }, []);
 
   // Simple single query approach - fast and reliable
   const loadTracks = async () => {
@@ -375,34 +378,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
-        
-        {/* Upload Button - positioned as floating action button in upper right */}
-        <div 
-          className="fixed z-10"
-          style={{
-            position: 'fixed',
-            top: 'calc(50vh - 50px)', // Centered vertically (much more reliable)
-            right: '20px', // Close to edge to avoid globe overlap
-            zIndex: 10
-          }}
-        >
-          <Button
-            onClick={() => setUploadModalOpen(true)}
-            style={{
-              background: 'rgba(16, 23, 38, 0.4)',
-              backdropFilter: 'blur(12px)',
-              border: '2px solid #81E4F2',
-              borderRadius: '8px',
-              padding: '12px 32px',
-              transition: 'all 0.2s ease'
-            }}
-            className="hover:bg-[#1a2030]/90 hover:border-white text-white font-mono font-bold tracking-wide flex items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105"
-          >
-            <Music className="w-5 h-5" />
-            upload_content
-          </Button>
-        </div>
-        
+
         {/* Comparison Cards */}
           {/* Left Comparison Card */}
           {leftComparisonTrack && (
@@ -756,20 +732,6 @@ export default function HomePage() {
           </div>
         )}
       </div>
-
-      {/* Alpha Upload Modal */}
-      {uploadModalOpen && (
-        <IPTrackModal
-          isOpen={uploadModalOpen}
-          onClose={() => setUploadModalOpen(false)}
-          onSave={(track) => {
-            // After successful upload, close modal and refresh globe data
-            setUploadModalOpen(false);
-            // Refresh globe data to show new content
-            loadTracks();
-          }}
-        />
-      )}
 
       {/* Tiny Mixer - Positioned above Crate (left side) */}
       <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">

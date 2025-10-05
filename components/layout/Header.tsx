@@ -11,6 +11,7 @@ import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SignInModal from "../modals/SignInModal";
+import IPTrackModal from "../modals/IPTrackModal";
 
 export default function Header() {
   const pathname = usePathname();
@@ -28,6 +29,7 @@ export default function Header() {
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   // Fetch username and avatar when wallet connects
   useEffect(() => {
@@ -98,6 +100,12 @@ export default function Header() {
         >
           mixer
         </Link>
+        <button
+          onClick={() => setIsUploadModalOpen(true)}
+          className="text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95 transition-all duration-300 tracking-wide"
+        >
+          upload
+        </button>
       </nav>
 
       {/* Right: Wallet Authentication */}
@@ -209,7 +217,17 @@ export default function Header() {
             >
               Mixer
             </Link>
-            
+
+            <button
+              onClick={() => {
+                setIsUploadModalOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+              className="text-gray-300 hover:text-white font-medium active:scale-95 transition-all duration-300 text-left"
+            >
+              Upload
+            </button>
+
             {/* Mobile Wallet Authentication */}
             <div className="pt-2 border-t border-border">
               {isAuthenticated && walletAddress ? (
@@ -285,6 +303,19 @@ export default function Header() {
       <SignInModal
         isOpen={isSignInModalOpen}
         onClose={() => setIsSignInModalOpen(false)}
+      />
+
+      {/* Upload Modal */}
+      <IPTrackModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSave={() => {
+          setIsUploadModalOpen(false);
+          // Refresh globe data if on globe page
+          if (typeof window !== 'undefined' && (window as any).refreshGlobeData) {
+            (window as any).refreshGlobeData();
+          }
+        }}
       />
     </header>
   );
