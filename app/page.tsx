@@ -150,22 +150,31 @@ export default function HomePage() {
         console.log(`🗑️ FILL: Cleared ${fillAddedTrackIds.size} previous FILL tracks from crate`);
       }
 
-      // 1. MIXER: Load specific loops (Test Disco to A, Test Loop Audio Upload to B)
+      // 1. MIXER: Load predetermined loops that mix well together
+      // "Test Disco" (Deck A) + "test loop audio upload" (Deck B)
       const { data: mixerTracks, error: mixerError } = await supabase
         .from('ip_tracks')
         .select('*')
-        .in('title', ['Test Disco', 'Test Loop Audio Upload'])
         .eq('content_type', 'loop')
+        .in('title', ['Test Disco', 'test loop audio upload'])
         .is('deleted_at', null);
 
       if (!mixerError && mixerTracks && mixerTracks.length >= 2) {
         const testDisco = mixerTracks.find(t => t.title === 'Test Disco');
-        const testLoop = mixerTracks.find(t => t.title === 'Test Loop Audio Upload');
+        const testLoop = mixerTracks.find(t => t.title === 'test loop audio upload');
 
         if (testDisco && testLoop && typeof window !== 'undefined' && (window as any).loadMixerTracks) {
           (window as any).loadMixerTracks(testDisco, testLoop);
-          console.log('🎛️ FILL: Loaded Test Disco to Deck A and Test Loop Audio Upload to Deck B');
+          console.log('🎛️ FILL: Loaded Test Disco to Deck A and test loop audio upload to Deck B');
+        } else {
+          console.log('🎛️ FILL: Missing one or both tracks:', {
+            hasTestDisco: !!testDisco,
+            hasTestLoop: !!testLoop,
+            hasMethod: !!(window as any).loadMixerTracks
+          });
         }
+      } else {
+        console.log('🎛️ FILL: Could not find both mixer tracks');
       }
 
       // 2. PLAYLIST: Add 5 random tracks (mix of loops & songs)
