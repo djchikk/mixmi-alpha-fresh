@@ -31,12 +31,9 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [audioLevel, setAudioLevel] = useState(0);
-  const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 280 });
-  const [isDragging, setIsDragging] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const dragStartPos = useRef({ x: 0, y: 0 });
 
   // Load playlist from localStorage
   useEffect(() => {
@@ -259,48 +256,15 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
     };
   }, [isPlaying]);
 
-  // Widget dragging
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button, input, .track-item')) return;
-    setIsDragging(true);
-    dragStartPos.current = { x: e.clientX - position.x, y: e.clientY - position.y };
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      setPosition({
-        x: e.clientX - dragStartPos.current.x,
-        y: e.clientY - dragStartPos.current.y
-      });
-    };
-
-    const handleMouseUp = () => setIsDragging(false);
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging]);
-
   const currentTrack = playlist[currentIndex];
 
   return (
     <div
       ref={drop}
-      className={`playlist-widget fixed z-40 select-none ${className}`}
+      className={`playlist-widget relative ${className}`}
       style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        width: isCollapsed ? '240px' : '320px',
-        cursor: isDragging ? 'grabbing' : 'grab'
+        width: isCollapsed ? '240px' : '320px'
       }}
-      onMouseDown={handleMouseDown}
     >
       <div
         className={`relative bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border transition-all duration-300 overflow-hidden ${
@@ -312,40 +276,78 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
           onEnded={handleTrackEnd}
         />
 
-        {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-20 px-3 py-2 bg-gradient-to-b from-slate-900/50 to-transparent">
-          <div className="flex items-center gap-2 mb-0">
-            <ListMusic className={`w-4 h-4 ${isPlaying ? 'text-[#81E4F2]' : 'text-gray-400'}`} />
-            <span className="text-sm font-medium text-white/90">Playlist</span>
+        {/* Collapse/Expand Button */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={`absolute ${isCollapsed ? 'top-1' : 'top-2'} right-2 p-1 rounded hover:bg-white/10 transition-all duration-200 z-20`}
+          title={isCollapsed ? "Expand Playlist" : "Collapse Playlist"}
+        >
+          {isCollapsed ? (
+            <ChevronUp className="w-4 h-4 text-white/70" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-white/70" />
+          )}
+        </button>
 
-            {/* VU Meters */}
-            <div className="flex items-end gap-0.5 h-3 ml-auto mr-6">
-              {[0.2, 0.4, 0.6, 0.8, 1.0].map((threshold, i) => (
-                <div
-                  key={i}
-                  className={`w-1 rounded-sm transition-all duration-75 ${
-                    audioLevel >= threshold ? 'bg-gray-300' : 'bg-gray-700/50'
-                  }`}
-                  style={{ height: `${(i + 1) * 2 + 2}px` }}
-                />
-              ))}
+        {/* Collapsed State - Mini View */}
+        {isCollapsed && (
+          <div className="h-full flex items-center justify-between px-3">
+            <div className="flex items-center gap-2">
+              <ListMusic className={`w-4 h-4 ${isPlaying ? 'text-[#81E4F2]' : 'text-gray-400'}`} />
+              <div className={`w-1 h-3 rounded-full ${isPlaying ? 'bg-[#81E4F2] animate-pulse' : 'bg-gray-600'}`} />
             </div>
 
-            {/* Collapse Toggle */}
+            {currentTrack && (
+              <div className="flex-1 mx-2 truncate">
+                <p className="text-xs text-white/70 truncate">{currentTrack.title}</p>
+              </div>
+            )}
+
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-gray-400 hover:text-[#81E4F2] transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlay();
+              }}
+              disabled={playlist.length === 0}
+              className="p-1 hover:bg-white/10 rounded transition-colors mr-6 disabled:opacity-50"
             >
-              {isCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {isPlaying ? (
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              )}
             </button>
           </div>
-        </div>
+        )}
 
-        {/* Expanded Content */}
+        {/* Expanded State - Full View */}
         {!isCollapsed && (
-          <div className="h-full p-3 pt-10 flex flex-col">
+          <div className="h-full p-3 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-0">
+              <ListMusic className={`w-4 h-4 ${isPlaying ? 'text-[#81E4F2]' : 'text-gray-400'}`} />
+              <span className="text-sm font-medium text-white/90">Playlist</span>
+
+              {/* VU Meters */}
+              <div className="flex items-end gap-0.5 h-3 ml-auto mr-6">
+                {[0.2, 0.4, 0.6, 0.8, 1.0].map((threshold, i) => (
+                  <div
+                    key={i}
+                    className={`w-1 rounded-sm transition-all duration-75 ${
+                      audioLevel >= threshold ? 'bg-gray-300' : 'bg-gray-700/50'
+                    }`}
+                    style={{ height: `${(i + 1) * 2 + 2}px` }}
+                  />
+                ))}
+              </div>
+            </div>
+
             {/* Playlist Items - Scrollable */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-1 mb-2">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-1 mb-2 mt-2">
               {playlist.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 text-xs px-4">
                   <ListMusic className="w-8 h-8 mb-3 opacity-50" />

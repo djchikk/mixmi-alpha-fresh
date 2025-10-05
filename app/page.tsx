@@ -776,8 +776,10 @@ export default function HomePage() {
         <SimplifiedMixerCompact />
       </div>
 
-      {/* Playlist Widget - Positioned in lower-left corner */}
-      <PlaylistWidget />
+      {/* Playlist Widget - Positioned in lower-left corner above Crate */}
+      <div className="fixed bottom-20 left-6 z-30">
+        <PlaylistWidget />
+      </div>
 
       {/* Radio Widget - Positioned above Crate (right side, aligned with mixer) */}
       <div className="fixed bottom-20 right-6 z-30">
