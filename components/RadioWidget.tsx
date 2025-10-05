@@ -254,6 +254,26 @@ export default function RadioWidget() {
     }
   }, [volume]);
 
+  // Expose loadRadioTrack globally for FILL button
+  useEffect(() => {
+    (window as any).loadRadioTrack = (track: any) => {
+      console.log('📻 Radio: Loading track from FILL:', track.title);
+      setCurrentTrack(track);
+      setPlayedTracks(prev => new Set([...prev, track.id]));
+
+      // Load audio but don't auto-play
+      if (audioRef.current) {
+        audioRef.current.src = track.audio_url;
+        audioRef.current.volume = volume;
+        console.log('📻 Radio: Track loaded, waiting for user to press play');
+      }
+    };
+
+    return () => {
+      delete (window as any).loadRadioTrack;
+    };
+  }, [volume]);
+
   return (
     <>
       <audio

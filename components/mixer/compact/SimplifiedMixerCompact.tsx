@@ -545,7 +545,7 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
 
   const handleLoopPositionChange = (deck: 'A' | 'B', position: number) => {
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
-    
+
     setMixerState(prev => ({
       ...prev,
       [deckKey]: {
@@ -553,13 +553,36 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
         loopPosition: position
       }
     }));
-    
+
     // Update audio controls
     const audioControls = mixerState[deckKey].audioControls;
     if (audioControls && audioControls.setLoopPosition) {
       audioControls.setLoopPosition(position);
     }
   };
+
+  // Expose loadMixerTracks method for FILL button
+  useEffect(() => {
+    (window as any).loadMixerTracks = (trackA: any, trackB: any) => {
+      console.log('🎛️ Mixer: Loading tracks from FILL:', trackA.title, '&', trackB.title);
+
+      // Load track A to Deck A
+      if (trackA) {
+        loadTrackToDeckA(trackA);
+      }
+
+      // Load track B to Deck B (with slight delay to prevent conflicts)
+      if (trackB) {
+        setTimeout(() => {
+          loadTrackToDeckB(trackB);
+        }, 100);
+      }
+    };
+
+    return () => {
+      delete (window as any).loadMixerTracks;
+    };
+  }, []);
 
   return (
     <div 

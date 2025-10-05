@@ -150,17 +150,58 @@ export default function HomePage() {
         console.log(`🗑️ FILL: Cleared ${fillAddedTrackIds.size} previous FILL tracks from crate`);
       }
 
-      // TODO: 1. MIXER: Load specific loops (Test Disco to A, Test Loop Audio Upload to B)
-      // Will be implemented after widgets expose their methods
-      console.log('🎛️ FILL: Mixer loading - coming soon!');
+      // 1. MIXER: Load specific loops (Test Disco to A, Test Loop Audio Upload to B)
+      const { data: mixerTracks, error: mixerError } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .in('title', ['Test Disco', 'Test Loop Audio Upload'])
+        .eq('content_type', 'loop')
+        .is('deleted_at', null);
 
-      // TODO: 2. PLAYLIST: Add 5 random tracks (mix of loops & songs)
-      // Will be implemented after PlaylistWidget exposes fillPlaylist method
-      console.log('📝 FILL: Playlist filling - coming soon!');
+      if (!mixerError && mixerTracks && mixerTracks.length >= 2) {
+        const testDisco = mixerTracks.find(t => t.title === 'Test Disco');
+        const testLoop = mixerTracks.find(t => t.title === 'Test Loop Audio Upload');
 
-      // TODO: 3. RADIO: Load 1 random track
-      // Will be implemented after RadioWidget exposes loadRadioTrack method
-      console.log('📻 FILL: Radio loading - coming soon!');
+        if (testDisco && testLoop && typeof window !== 'undefined' && (window as any).loadMixerTracks) {
+          (window as any).loadMixerTracks(testDisco, testLoop);
+          console.log('🎛️ FILL: Loaded Test Disco to Deck A and Test Loop Audio Upload to Deck B');
+        }
+      }
+
+      // 2. PLAYLIST: Add 5 random tracks (mix of loops & songs)
+      const { data: playlistTracks, error: playlistError } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .in('content_type', ['loop', 'full_song'])
+        .is('deleted_at', null)
+        .limit(100);
+
+      if (!playlistError && playlistTracks && playlistTracks.length > 0) {
+        const shuffled = playlistTracks.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, Math.min(5, shuffled.length));
+
+        if (typeof window !== 'undefined' && (window as any).fillPlaylist) {
+          (window as any).fillPlaylist(selected);
+          console.log('📝 FILL: Added 5 tracks to playlist');
+        }
+      }
+
+      // 3. RADIO: Load 1 random track
+      const { data: radioTracks, error: radioError } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .in('content_type', ['loop', 'full_song'])
+        .is('deleted_at', null)
+        .limit(50);
+
+      if (!radioError && radioTracks && radioTracks.length > 0) {
+        const randomTrack = radioTracks[Math.floor(Math.random() * radioTracks.length)];
+
+        if (typeof window !== 'undefined' && (window as any).loadRadioTrack) {
+          (window as any).loadRadioTrack(randomTrack);
+          console.log('📻 FILL: Loaded radio track');
+        }
+      }
 
       // 4. CRATE: Add 5 random items to collection
       const { data: crateTracks, error: crateError } = await supabase
