@@ -13,6 +13,7 @@ import { fetchGlobeTracksFromSupabase, fallbackGlobeNodes } from "@/lib/globeDat
 import { supabase } from "@/lib/supabase";
 import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } from "@/lib/globe/simpleCluster";
 import Crate from "@/components/shared/Crate";
+import WidgetLauncher from "@/components/WidgetLauncher";
 
 
 // Dynamically import GlobeTrackCard to avoid SSR issues
@@ -77,6 +78,11 @@ export default function HomePage() {
   const [carouselPage, setCarouselPage] = useState(0); // For Load More functionality
   const [hoveredNodeTags, setHoveredNodeTags] = useState<string[] | null>(null);
   const [selectedNodeTags, setSelectedNodeTags] = useState<string[] | null>(null);
+
+  // Widget visibility state
+  const [isMixerVisible, setIsMixerVisible] = useState(true);
+  const [isPlaylistVisible, setIsPlaylistVisible] = useState(true);
+  const [isRadioVisible, setIsRadioVisible] = useState(true);
 
   // Handle comparison track from collection bar
   const handleComparisonTrack = (track: any) => {
@@ -733,20 +739,40 @@ export default function HomePage() {
         )}
       </div>
 
+      {/* Widget Launcher - Always visible */}
+      <WidgetLauncher
+        onMixClick={() => setIsMixerVisible(!isMixerVisible)}
+        onPlayClick={() => setIsPlaylistVisible(!isPlaylistVisible)}
+        onRadioClick={() => setIsRadioVisible(!isRadioVisible)}
+        onFillClick={() => {
+          // TODO: Implement fill functionality
+          console.log('Fill clicked - will populate widgets with random content');
+        }}
+        isMixerVisible={isMixerVisible}
+        isPlaylistVisible={isPlaylistVisible}
+        isRadioVisible={isRadioVisible}
+      />
+
       {/* Tiny Mixer - Positioned above Crate (left side) */}
-      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
-        <SimplifiedMixerCompact />
-      </div>
+      {isMixerVisible && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
+          <SimplifiedMixerCompact />
+        </div>
+      )}
 
       {/* Playlist Widget - Positioned in lower-left corner above Crate */}
-      <div className="fixed bottom-20 left-6 z-30">
-        <PlaylistWidget />
-      </div>
+      {isPlaylistVisible && (
+        <div className="fixed bottom-20 left-6 z-30">
+          <PlaylistWidget />
+        </div>
+      )}
 
       {/* Radio Widget - Positioned above Crate (right side, aligned with mixer) */}
-      <div className="fixed bottom-20 right-6 z-30">
-        <RadioWidget />
-      </div>
+      {isRadioVisible && (
+        <div className="fixed bottom-20 right-6 z-30">
+          <RadioWidget />
+        </div>
+      )}
 
       {/* Crate - Persistent across all pages */}
       <Crate />
