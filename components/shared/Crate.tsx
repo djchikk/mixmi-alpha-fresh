@@ -531,7 +531,12 @@ export default function Crate({ className = '' }: CrateProps) {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedTrack(track);
+                        // Ensure track has primary_uploader_wallet for modal links to work
+                        const trackWithWallet = {
+                          ...track,
+                          primary_uploader_wallet: track.primary_uploader_wallet || track.wallet_address || track.uploader_address
+                        };
+                        setSelectedTrack(trackWithWallet);
                         setShowInfoModal(true);
                       }}
                       title="View track details"
