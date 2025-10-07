@@ -17,23 +17,32 @@ The Mixmi payment splitting system ensures fair compensation for all music contr
 
 **Key Features:**
 - ✅ 50/50 split between composition and production rights
-- ✅ Up to 3 contributors per category
-- ✅ Percentage-based distribution
+- ✅ Up to 50 contributors per category (supports cart batching)
+- ✅ Percentage-based distribution with automatic validation
 - ✅ Handles all edge cases (thirds, dust, weird percentages)
 - ✅ Atomic transactions (all succeed or all fail)
-- ✅ Deployed and tested on Stacks testnet
+- ✅ **LIVE ON MAINNET** with successful real-money transactions
+- ✅ Shopping cart integration with batch payment aggregation
 
 ---
 
 ## Contract Details
 
-### Deployed Contract
+### 🎉 **MAINNET V3 - LIVE & WORKING!** (October 7, 2025)
+- **Network:** Stacks Mainnet 🚀
+- **Contract Address:** `SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN`
+- **Contract Name:** `music-payment-splitter-v3`
+- **Full Identifier:** `SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN.music-payment-splitter-v3`
+- **Language:** Clarity v3
+- **Deployment Date:** October 7, 2025
+- **Status:** ✅ Production-ready with successful test transactions
+
+### Testnet Contract (v2 - Development)
 - **Network:** Stacks Testnet (Testnet4)
 - **Contract Address:** `ST1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMY3JEHB`
 - **Contract Name:** `music-payment-splitter`
 - **Full Identifier:** `ST1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMY3JEHB.music-payment-splitter`
-- **Language:** Clarity v3
-- **Deployment Date:** October 6, 2025
+- **Status:** Development/testing only
 
 ### Contract Location
 - **Source Code:** `/contracts/mixmi-payment-splitter/contracts/music-payment-splitter.clar`
@@ -41,8 +50,52 @@ The Mixmi payment splitting system ensures fair compensation for all music contr
 - **Deployment Plan:** `/contracts/mixmi-payment-splitter/deployments/default.testnet-plan.yaml`
 
 ### Explorer Links
-- **Testnet:** https://explorer.hiro.so/txid/ST1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMY3JEHB.music-payment-splitter?chain=testnet
-- **Call Functions:** Scroll to "Available functions" → `split-track-payment`
+- **Mainnet Contract:** https://explorer.hiro.so/txid/SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN.music-payment-splitter-v3?chain=mainnet
+- **Successful Test Transaction:** https://explorer.hiro.so/txid/0xd06bbc3488a4249083378ff8288b62a12e695d11ffc46077017138745ff49c39?chain=mainnet
+- **Testnet Contract:** https://explorer.hiro.so/txid/ST1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMY3JEHB.music-payment-splitter?chain=testnet
+
+---
+
+## V3 Architecture (Mainnet)
+
+### Critical Design Changes
+
+**V2 Problem (Testnet):**
+The original contract tried to pull STX directly from the caller's wallet:
+```clarity
+(stx-transfer? amount tx-sender (get wallet split))  ;; FAILS - can't pull from user
+```
+
+**V3 Solution (Mainnet):**
+The contract now acts as an escrow - receives payment first, then distributes:
+```clarity
+;; Step 1: Receive payment from buyer
+(try! (stx-transfer? total-price buyer (as-contract tx-sender)))
+
+;; Step 2: Distribute from contract to artists
+(as-contract (stx-transfer? amount tx-sender (get wallet split)))
+```
+
+### Post-Condition Mode Fix
+
+**The Issue:**
+Wallets automatically add post-conditions to protect users. The v3 contract makes multiple transfers (buyer → contract → artists), but default post-conditions only expected one transfer.
+
+**The Solution:**
+Use `PostConditionMode.Allow` to permit all contract-initiated transfers:
+
+```typescript
+await openContractCall({
+  contractAddress,
+  contractName: 'music-payment-splitter-v3',
+  functionName: 'split-track-payment',
+  functionArgs: [...],
+  postConditionMode: PostConditionMode.Allow,  // Critical!
+  // ...
+})
+```
+
+This tells the wallet: "Trust this contract to handle multiple STX transfers correctly."
 
 ---
 
@@ -88,7 +141,27 @@ The contract accepts this minimal loss rather than complex tracking.
 
 ## Testing Results
 
-All tests conducted on Stacks Testnet4 (October 6, 2025)
+### 🎉 **MAINNET SUCCESS** (October 7, 2025)
+**First successful real-money payment split!**
+
+**Transaction:** `0xd06bbc3488a4249083378ff8288b62a12e695d11ffc46077017138745ff49c39`
+
+**Test Track:** "Frens Food Fight" - 2 STX purchase
+
+**Payment Distribution:**
+- **Alice (Buyer):** Paid 2 STX ✅
+- **Charlie (60% composition):** Received 0.60 STX ✅
+- **Dora (40% composition):** Received 0.40 STX ✅
+- **Eve (100% production):** Received 1.00 STX ✅
+
+**Total Distributed:** 2.00 STX (100% accuracy)
+
+**Result:** ✅ Perfect distribution on mainnet with real STX!
+
+---
+
+### Testnet Results (October 6, 2025)
+All tests conducted on Stacks Testnet4
 
 ### Test 1: Three-Way Uneven Split (33/33/34)
 **Amount:** 1.0 STX
@@ -348,20 +421,22 @@ Preview payment distribution without executing.
 
 ### Environment Variables
 
-Add to `.env.local`:
-
+**MAINNET (Production):**
 ```bash
-# Stacks Network ('testnet' or 'mainnet')
-NEXT_PUBLIC_STACKS_NETWORK=testnet
+# Stacks Network
+NEXT_PUBLIC_STACKS_NETWORK=mainnet
 
-# Contract address (testnet)
-NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT=ST1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMY3JEHB
+# V3 Contract (CURRENT)
+NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT=SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN
 ```
 
-For mainnet deployment, change to:
+**Testnet (Development):**
 ```bash
-NEXT_PUBLIC_STACKS_NETWORK=mainnet
-NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT=<mainnet-contract-address>
+# Stacks Network
+NEXT_PUBLIC_STACKS_NETWORK=testnet
+
+# V2 Contract
+NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT=ST1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMY3JEHB
 ```
 
 ### Deploy New Contract
