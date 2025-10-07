@@ -9,10 +9,10 @@ plan:
     - id: 0
       transactions:
         - contract-publish:
-            contract-name: music-payment-splitter
+            contract-name: music-payment-splitter-v2
             expected-sender: ST1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMY3JEHB
-            cost: 37870
-            path: contracts/music-payment-splitter.clar
+            cost: 41280
+            path: contracts/music-payment-splitter-v2.clar
             anchor-block-only: true
             clarity-version: 3
       epoch: "3.2"

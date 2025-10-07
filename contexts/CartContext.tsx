@@ -1,7 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { openSTXTransfer } from '@stacks/connect';
+import { openContractCall } from '@stacks/connect';
+import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from '@stacks/transactions';
+import { aggregateCartPayments } from '@/lib/batch-payment-aggregator';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Cart item interface
@@ -111,39 +113,78 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    console.log('✅ Starting purchase flow...');
+    console.log('✅ Starting purchase flow with smart contract...');
     try {
       setPurchaseStatus('pending');
       setShowPurchaseModal(true);
 
-      // Use the first track's uploader wallet
-      // In production, you'd batch payments or split to multiple artists
-      const recipientAddress = cart[0]?.primary_uploader_wallet;
+      // Fetch payment splits for all tracks in cart
+      const tracksWithSplits = await Promise.all(
+        cart.map(async (item) => {
+          const response = await fetch(`/api/calculate-payment-splits?trackId=${item.id}`);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch splits for track ${item.title}`);
+          }
+          const data = await response.json();
+          return {
+            trackId: item.id,
+            title: item.title,
+            totalPriceMicroSTX: Math.floor(parseFloat(item.price_stx) * 1000000),
+            compositionSplits: data.compositionSplits,
+            productionSplits: data.productionSplits
+          };
+        })
+      );
 
-      if (!recipientAddress) {
-        console.log('❌ No recipient wallet address found');
-        setPurchaseError('Track missing wallet address. Please contact support.');
-        setPurchaseStatus('error');
-        return;
-      }
+      console.log('💰 Tracks with splits:', tracksWithSplits);
 
-      // Convert STX to microSTX (1 STX = 1,000,000 microSTX)
-      const amountInMicroSTX = Math.floor(cartTotal * 1000000);
+      // Aggregate all cart payments into single contract call
+      const aggregated = aggregateCartPayments(tracksWithSplits);
 
-      console.log('🔍 Purchase Debug:', {
-        cartTotal,
-        amountInMicroSTX,
-        amountString: amountInMicroSTX.toString(),
-        recipient: recipientAddress,
-        cart: cart.map(i => ({ id: i.id, price_stx: i.price_stx, title: i.title }))
+      console.log('📊 Aggregated payment:', aggregated);
+
+      // Format splits for smart contract
+      const compositionCV = listCV(
+        aggregated.compositionSplits.map(split =>
+          tupleCV({
+            wallet: standardPrincipalCV(split.wallet),
+            percentage: uintCV(split.percentage)
+          })
+        )
+      );
+
+      const productionCV = listCV(
+        aggregated.productionSplits.map(split =>
+          tupleCV({
+            wallet: standardPrincipalCV(split.wallet),
+            percentage: uintCV(split.percentage)
+          })
+        )
+      );
+
+      const contractAddress = process.env.NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT || 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN';
+      const network = process.env.NEXT_PUBLIC_STACKS_NETWORK || 'mainnet';
+
+      console.log('🔗 Calling contract:', {
+        contractAddress,
+        network,
+        totalMicroSTX: aggregated.totalPriceMicroSTX,
+        compositionSplits: aggregated.compositionSplits,
+        productionSplits: aggregated.productionSplits
       });
 
-      await openSTXTransfer({
-        recipient: recipientAddress,
-        amount: amountInMicroSTX.toString(),
-        memo: `Purchase: ${cart.map(item => item.title).join(', ').slice(0, 32)}`,
+      await openContractCall({
+        contractAddress,
+        contractName: 'music-payment-splitter-v3',
+        functionName: 'split-track-payment',
+        functionArgs: [
+          uintCV(aggregated.totalPriceMicroSTX),
+          compositionCV,
+          productionCV
+        ],
+        postConditionMode: PostConditionMode.Allow,
         onFinish: (data) => {
-          console.log('✅ Transaction submitted:', data);
+          console.log('✅ Payment split transaction submitted:', data);
           setPurchaseStatus('success');
           // Clear cart after successful transaction
           setTimeout(() => {

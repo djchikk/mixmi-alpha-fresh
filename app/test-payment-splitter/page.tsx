@@ -20,7 +20,7 @@ export default function TestPaymentSplitter() {
   const DORA = 'ST60C6T2VN2CN0T8BVR008J5B12ZMX2CF3YJ336S'; // Production 100%
 
   const CONTRACT_ADDRESS = 'ST1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMY3JEHB';
-  const CONTRACT_NAME = 'music-payment-splitter';
+  const CONTRACT_NAME = 'music-payment-splitter-v2';
 
   const testPaymentSplit = async () => {
     try {
