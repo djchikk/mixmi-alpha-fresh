@@ -24,6 +24,8 @@ export default function RecordingWaveformDisplay({
   const [selectionEnd, setSelectionEnd] = useState(8); // End bar (exclusive, so 8 means bars 0-7)
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<'start' | 'end' | 'move' | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1); // 1 = normal, 2 = 2x zoom, etc.
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Calculate timing
   const beatsPerBar = 4;
@@ -39,7 +41,10 @@ export default function RecordingWaveformDisplay({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
+    // Dynamic width based on zoom level
+    const baseWidth = 800;
+    const width = baseWidth * zoomLevel;
+    canvas.width = width;
     const height = canvas.height;
 
     // Clear canvas
@@ -151,7 +156,7 @@ export default function RecordingWaveformDisplay({
       ctx.stroke();
     }
 
-  }, [audioBuffer, selectionStart, selectionEnd, totalBars, isPlaying, currentTime, totalDuration, bpm]);
+  }, [audioBuffer, selectionStart, selectionEnd, totalBars, isPlaying, currentTime, totalDuration, bpm, zoomLevel]);
 
   // Handle mouse events for selection
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -184,7 +189,12 @@ export default function RecordingWaveformDisplay({
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const bar = Math.max(0, Math.min(totalBars, Math.floor((x / rect.width) * totalBars)));
+
+    // Quantize to beats (1/4 bar) instead of whole bars for precision
+    const beatsPerBar = 4;
+    const totalBeats = totalBars * beatsPerBar;
+    const beat = Math.max(0, Math.min(totalBeats, Math.floor((x / rect.width) * totalBeats)));
+    const bar = beat / beatsPerBar; // Can be fractional (e.g., 2.25 = Bar 2, Beat 3)
 
     if (dragType === 'start') {
       const newStart = Math.min(bar, selectionEnd - 8);
@@ -194,7 +204,7 @@ export default function RecordingWaveformDisplay({
       setSelectionEnd(newEnd);
     } else if (dragType === 'move') {
       const selectionLength = selectionEnd - selectionStart;
-      const newStart = Math.max(0, Math.min(totalBars - selectionLength, bar - Math.floor(selectionLength / 2)));
+      const newStart = Math.max(0, Math.min(totalBars - selectionLength, bar - selectionLength / 2));
       setSelectionStart(newStart);
       setSelectionEnd(newStart + selectionLength);
     }
@@ -209,19 +219,54 @@ export default function RecordingWaveformDisplay({
   };
 
   return (
-    <div className="relative">
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={150}
-        className="w-full h-32 bg-slate-900 rounded-lg cursor-pointer"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      />
-      <div className="mt-2 text-xs text-gray-400 text-center">
-        Drag the bracket to select which 8 bars to save • Total: {totalBars} bars recorded
+    <div className="space-y-3">
+      {/* Zoom controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setZoomLevel(Math.max(1, zoomLevel - 0.5))}
+            disabled={zoomLevel <= 1}
+            className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded text-sm transition-colors"
+          >
+            Zoom Out
+          </button>
+          <span className="text-sm text-gray-400 min-w-[60px] text-center">
+            {zoomLevel}x
+          </span>
+          <button
+            onClick={() => setZoomLevel(Math.min(4, zoomLevel + 0.5))}
+            disabled={zoomLevel >= 4}
+            className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded text-sm transition-colors"
+          >
+            Zoom In
+          </button>
+        </div>
+        <div className="text-xs text-gray-400">
+          Drag the bracket to select which 8 bars to save
+        </div>
+      </div>
+
+      {/* Scrollable canvas container */}
+      <div
+        ref={containerRef}
+        className="overflow-x-auto bg-slate-900 rounded-lg"
+        style={{ maxWidth: '100%' }}
+      >
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={150}
+          className="h-32 cursor-pointer"
+          style={{ minWidth: '100%' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        />
+      </div>
+
+      <div className="text-xs text-gray-400 text-center">
+        Total: {totalBars} bars recorded • Selected: bars {selectionStart + 1}-{selectionEnd} ({selectionEnd - selectionStart} bars)
       </div>
     </div>
   );
