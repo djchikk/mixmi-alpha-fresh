@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Track } from './types';
 import { useMixerAudio } from '@/hooks/useMixerAudio';
-import { applyCrossfader, SimpleLoopSync, getAudioContext } from '@/lib/mixerAudio';
+import { applyCrossfader, SimpleLoopSync, getAudioContext, getMasterGain } from '@/lib/mixerAudio';
 import SimplifiedDeck from './SimplifiedDeck';
 import WaveformDisplay from './WaveformDisplay';
 import CrossfaderControl from './CrossfaderControl';
@@ -11,6 +11,7 @@ import MasterTransportControls from './MasterTransportControls';
 import LoopControls from './LoopControls';
 import FXComponent from './FXComponent';
 import DeckCrate from './DeckCrate';
+import RecordingPreview from './RecordingPreview';
 
 interface SimplifiedMixerProps {
   className?: string;
@@ -43,6 +44,17 @@ interface SimplifiedMixerState {
   syncActive: boolean;
 }
 
+// Recording state
+interface RecordingState {
+  isRecording: boolean;
+  recordingStartTime: number | null;
+  cyclesRecorded: number;
+  targetCycles: number;
+  recordedUrl: string | null;
+  recordedDuration: number | null;
+  showPreview: boolean;
+}
+
 export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps) {
   // Initialize simplified mixer state
   const [mixerState, setMixerState] = useState<SimplifiedMixerState>({
@@ -67,6 +79,20 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Sync engine reference
   const syncEngineRef = React.useRef<SimpleLoopSync | null>(null);
+
+  // Recording state and refs
+  const [recordingState, setRecordingState] = useState<RecordingState>({
+    isRecording: false,
+    recordingStartTime: null,
+    cyclesRecorded: 0,
+    targetCycles: 5, // Default to 5 cycles
+    recordedUrl: null,
+    recordedDuration: null,
+    showPreview: false
+  });
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = React.useRef<Blob[]>([]);
+  const mixerDestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
 
   // Responsive waveform width based on breakpoints
   const [waveformWidth, setWaveformWidth] = useState(700);
@@ -626,7 +652,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   const handleLoopPositionChange = (deck: 'A' | 'B', position: number) => {
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
-    
+
     setMixerState(prev => ({
       ...prev,
       [deckKey]: {
@@ -634,13 +660,169 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         loopPosition: position
       }
     }));
-    
+
     // Update audio controls
     const audioControls = mixerState[deckKey].audioControls;
     if (audioControls && audioControls.setLoopPosition) {
       audioControls.setLoopPosition(position);
     }
   };
+
+  // Recording handlers
+  const setupMixerRecording = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) {
+      console.error('❌ No audio context available');
+      return null;
+    }
+
+    // Create mixer destination node if it doesn't exist
+    if (!mixerDestinationRef.current) {
+      mixerDestinationRef.current = audioContext.createMediaStreamDestination();
+      console.log('🎙️ Created MediaStreamDestination for recording');
+    }
+
+    // CRITICAL: Connect to the MASTER gain node to capture everything
+    // This captures the final mix AFTER crossfader, FX, loop controls, etc.
+    const masterGain = getMasterGain();
+    if (masterGain) {
+      try {
+        // Disconnect previous connection if exists
+        masterGain.disconnect(mixerDestinationRef.current);
+      } catch (e) {
+        // Not connected yet, that's fine
+      }
+
+      // Connect master to recording destination
+      masterGain.connect(mixerDestinationRef.current);
+      console.log('✅ Master gain connected to recording destination');
+      console.log('🎚️ Recording will capture: Crossfader ✓ FX ✓ Loop Controls ✓ Master Volume ✓');
+    } else {
+      console.error('❌ Master gain node not available');
+      return null;
+    }
+
+    return mixerDestinationRef.current.stream;
+  }, []);
+
+  const startRecording = useCallback(() => {
+    console.log('🎙️ Starting mixer recording...');
+
+    const stream = setupMixerRecording();
+    if (!stream) {
+      console.error('❌ Failed to setup mixer recording');
+      return;
+    }
+
+    // Clear previous recording
+    recordedChunksRef.current = [];
+
+    // Create MediaRecorder
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus'
+    });
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      console.log('🎙️ Recording stopped, processing audio...');
+      const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+
+      setRecordingState(prev => ({
+        ...prev,
+        isRecording: false,
+        recordedUrl: url,
+        recordedDuration: (Date.now() - (prev.recordingStartTime || Date.now())) / 1000,
+        showPreview: true
+      }));
+    };
+
+    mediaRecorder.start(100); // Collect data every 100ms
+    mediaRecorderRef.current = mediaRecorder;
+
+    setRecordingState(prev => ({
+      ...prev,
+      isRecording: true,
+      recordingStartTime: Date.now(),
+      cyclesRecorded: 0
+    }));
+
+    console.log('✅ Recording started');
+  }, [setupMixerRecording]);
+
+  const stopRecording = useCallback(() => {
+    console.log('🎙️ Stopping recording...');
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+
+    // Stop mixer playback when recording stops
+    if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
+      mixerState.deckA.audioControls.pause();
+    }
+    if (mixerState.deckB.playing && mixerState.deckB.audioControls) {
+      mixerState.deckB.audioControls.pause();
+    }
+
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, playing: false },
+      deckB: { ...prev.deckB, playing: false }
+    }));
+
+    console.log('⏸️ Mixer playback stopped');
+  }, [mixerState]);
+
+  const handleRecordToggle = useCallback(() => {
+    if (recordingState.isRecording) {
+      stopRecording();
+    } else {
+      // Ensure both decks are loaded
+      if (!mixerState.deckA.track || !mixerState.deckB.track) {
+        console.warn('⚠️ Both decks must have tracks loaded to record');
+        return;
+      }
+
+      // Start playback if not already playing
+      if (!mixerState.deckA.playing) {
+        handleDeckAPlayPause();
+      }
+      if (!mixerState.deckB.playing) {
+        handleDeckBPlayPause();
+      }
+
+      // Start recording
+      setTimeout(() => startRecording(), 100); // Small delay to ensure playback starts
+    }
+  }, [recordingState.isRecording, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
+
+  // Monitor playback to count cycles and auto-stop recording
+  useEffect(() => {
+    if (!recordingState.isRecording || !recordingState.recordingStartTime) return;
+
+    const checkCycles = setInterval(() => {
+      const elapsed = (Date.now() - recordingState.recordingStartTime!) / 1000;
+      const secondsPerBar = 4 / (mixerState.masterBPM / 60);
+      const secondsPerCycle = secondsPerBar * 8; // 8-bar cycle
+      const cyclesRecorded = Math.floor(elapsed / secondsPerCycle);
+
+      if (cyclesRecorded >= recordingState.targetCycles) {
+        console.log(`🎙️ Reached ${recordingState.targetCycles} cycles, stopping recording`);
+        stopRecording();
+      } else if (cyclesRecorded > recordingState.cyclesRecorded) {
+        setRecordingState(prev => ({ ...prev, cyclesRecorded }));
+        console.log(`🎙️ Cycle ${cyclesRecorded + 1} of ${recordingState.targetCycles} recorded`);
+      }
+    }, 100);
+
+    return () => clearInterval(checkCycles);
+  }, [recordingState.isRecording, recordingState.recordingStartTime, recordingState.targetCycles, recordingState.cyclesRecorded, mixerState.masterBPM, stopRecording]);
 
   return (
     <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 mx-auto ${className}`} style={{ maxWidth: '1168px' }}>
@@ -720,11 +902,11 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             deckBPlaying={mixerState.deckB.playing}
             deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
             syncActive={mixerState.syncActive}
-            recordingRemix={false}
+            recordingRemix={recordingState.isRecording}
             onMasterPlay={handleMasterPlay}
             onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
             onMasterStop={handleMasterStop}
-            onRecordToggle={() => {}}
+            onRecordToggle={handleRecordToggle}
             onSyncToggle={handleSync}
             onMasterSyncReset={handleMasterSyncReset}
           />
@@ -897,6 +1079,35 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           )}
         </div>
       </div>
+
+      {/* Recording Preview Modal */}
+      {recordingState.showPreview && recordingState.recordedUrl && (
+        <RecordingPreview
+          recordingUrl={recordingState.recordedUrl}
+          duration={recordingState.recordedDuration || 0}
+          bars={recordingState.targetCycles * 8} // 5 cycles × 8 bars = 40 bars
+          bpm={mixerState.masterBPM}
+          onClose={() => {
+            setRecordingState(prev => ({
+              ...prev,
+              showPreview: false,
+              recordedUrl: null,
+              recordedDuration: null,
+              cyclesRecorded: 0
+            }));
+            if (recordingState.recordedUrl) {
+              URL.revokeObjectURL(recordingState.recordedUrl);
+            }
+          }}
+          onSave={(selectedSegment) => {
+            console.log('💾 Save remix with segment:', selectedSegment);
+            // TODO: Implement save remix flow with payment
+          }}
+          onSelectSegment={(start, end) => {
+            console.log('📍 Selected segment:', { start, end });
+          }}
+        />
+      )}
     </div>
   );
 }
