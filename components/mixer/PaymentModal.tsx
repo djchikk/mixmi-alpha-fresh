@@ -174,31 +174,33 @@ export default function PaymentModal({
 
       await new Promise<void>((resolve, reject) => {
         console.log('🔐 Inside Promise, calling openContractCall now...');
-        openContractCall({
-          network: 'mainnet',
-          contractAddress: 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN',
-          contractName: 'music-payment-splitter-v3',
-          functionName: 'split-track-payment',
-          functionArgs: [
-            uintCV(totalPriceMicroSTX),
-            compositionCV,
-            productionCV
-          ],
-          postConditionMode: PostConditionMode.Allow,
-          onFinish: (data) => {
-            console.log('✅ Payment transaction completed:', data.txId);
-            console.log('✅ Full transaction data:', data);
-            stacksTxId = data.txId;
-            resolve();
-          },
-          onCancel: () => {
-            console.log('❌ Payment cancelled by user');
-            reject(new Error('Payment cancelled'));
-          }
-        }).catch((error) => {
+        try {
+          openContractCall({
+            network: 'mainnet',
+            contractAddress: 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN',
+            contractName: 'music-payment-splitter-v3',
+            functionName: 'split-track-payment',
+            functionArgs: [
+              uintCV(totalPriceMicroSTX),
+              compositionCV,
+              productionCV
+            ],
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data) => {
+              console.log('✅ Payment transaction completed:', data.txId);
+              console.log('✅ Full transaction data:', data);
+              stacksTxId = data.txId;
+              resolve();
+            },
+            onCancel: () => {
+              console.log('❌ Payment cancelled by user');
+              reject(new Error('Payment cancelled'));
+            }
+          });
+        } catch (error) {
           console.error('❌ openContractCall error:', error);
           reject(error);
-        });
+        }
       });
 
       if (!stacksTxId) {
