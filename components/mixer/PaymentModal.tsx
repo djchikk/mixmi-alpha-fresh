@@ -229,7 +229,8 @@ export default function PaymentModal({
         id: crypto.randomUUID(),
         title: `${deckATrack?.title || 'Track A'} x ${deckBTrack?.title || 'Track B'} Mix`,
         artist: 'You', // TODO: Get from profile
-        uploader_address: walletAddress, // Database expects uploader_address, not primary_uploader_wallet
+        primary_uploader_wallet: walletAddress, // The wallet that owns this track in their store
+        uploader_address: walletAddress, // Legacy field - required by database
 
         // Remix depth tracking
         remix_depth: newRemixDepth,
@@ -267,7 +268,7 @@ export default function PaymentModal({
         // Additional metadata
         tags: ['remix', '8-bar', 'mixer'],
         description: `8-bar remix created in Mixmi Mixer from bars ${selectedSegment.start + 1} to ${selectedSegment.end}`,
-        license_type: 'RMX',
+        license_type: 'remix_only', // Must be one of: remix_only, remix_external, custom
         allow_remixing: true,
         price_stx: 2.5,
 
@@ -285,8 +286,14 @@ export default function PaymentModal({
         .single();
 
       if (error) {
-        console.error('Failed to save remix:', error);
-        throw new Error('Failed to save remix to database');
+        console.error('❌ Database save error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        throw new Error(`Failed to save remix to database: ${error.message || 'Unknown error'}`);
       }
 
       console.log('✅ Remix saved successfully:', {
