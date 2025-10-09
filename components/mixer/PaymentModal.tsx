@@ -47,6 +47,7 @@ export default function PaymentModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [sourceLoopsAvailable, setSourceLoopsAvailable] = useState(false);
   const [mixCoverImageUrl, setMixCoverImageUrl] = useState<string | null>(null);
+  const [mixTitle, setMixTitle] = useState(`${deckATrack?.title || 'Track A'} x ${deckBTrack?.title || 'Track B'} Mix`);
 
   // Check if source loops are available for offline use
   useEffect(() => {
@@ -227,7 +228,7 @@ export default function PaymentModal({
       // Prepare the new remix track data with full split attribution
       const newRemixData = {
         id: crypto.randomUUID(),
-        title: `${deckATrack?.title || 'Track A'} x ${deckBTrack?.title || 'Track B'} Mix`,
+        title: mixTitle,
         artist: 'You', // TODO: Get from profile
         primary_uploader_wallet: walletAddress, // The wallet that owns this track in their store
         uploader_address: walletAddress, // Legacy field - required by database
@@ -377,25 +378,39 @@ export default function PaymentModal({
           </button>
         </div>
 
+        {/* Mix title input */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Mix Title
+          </label>
+          <input
+            type="text"
+            value={mixTitle}
+            onChange={(e) => setMixTitle(e.target.value)}
+            className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+            placeholder="Enter a title for your remix..."
+          />
+        </div>
+
         {/* Selected segment info and preview */}
         <div className="flex gap-4 mb-6">
           {/* Mix cover image preview */}
           {mixCoverImageUrl && (
             <div className="flex-shrink-0">
-              <img 
-                src={mixCoverImageUrl} 
-                alt="Mix cover" 
+              <img
+                src={mixCoverImageUrl}
+                alt="Mix cover"
                 className="w-32 h-32 rounded-lg object-cover border border-slate-700"
               />
               <p className="text-xs text-gray-500 mt-1 text-center">Auto-generated</p>
             </div>
           )}
-          
+
           {/* Segment info */}
           <div className="flex-1 bg-slate-800 rounded-lg p-4">
             <p className="text-gray-400 text-sm mb-1">Selected Segment</p>
             <p className="text-white font-semibold mb-2">
-              Bars {selectedSegment.start + 1} to {selectedSegment.end} 
+              Bars {selectedSegment.start + 1} to {selectedSegment.end}
               ({selectedSegment.end - selectedSegment.start} bars at {bpm} BPM)
             </p>
             <p className="text-xs text-gray-500">
