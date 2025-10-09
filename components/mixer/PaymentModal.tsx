@@ -40,7 +40,7 @@ export default function PaymentModal({
   onClose,
   onSuccess
 }: PaymentModalProps) {
-  const { isAuthenticated, connect, walletAddress } = useAuth();
+  const { isAuthenticated, connectWallet, walletAddress } = useAuth();
   const { loadedTracks } = useMixer();
   const [selectedOption, setSelectedOption] = useState<'loop-only' | 'loop-plus-sources'>('loop-only');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -113,7 +113,7 @@ export default function PaymentModal({
     }
 
     if (!isAuthenticated || !walletAddress) {
-      await connect();
+      await connectWallet();
       return;
     }
 
@@ -169,7 +169,11 @@ export default function PaymentModal({
       // Call smart contract for payment
       let stacksTxId: string | null = null;
 
+      console.log('🔐 About to call openContractCall...');
+      console.log('🔐 openContractCall function exists?', typeof openContractCall);
+
       await new Promise<void>((resolve, reject) => {
+        console.log('🔐 Inside Promise, calling openContractCall now...');
         openContractCall({
           network: 'mainnet',
           contractAddress: 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN',
@@ -183,6 +187,7 @@ export default function PaymentModal({
           postConditionMode: PostConditionMode.Allow,
           onFinish: (data) => {
             console.log('✅ Payment transaction completed:', data.txId);
+            console.log('✅ Full transaction data:', data);
             stacksTxId = data.txId;
             resolve();
           },
@@ -190,6 +195,9 @@ export default function PaymentModal({
             console.log('❌ Payment cancelled by user');
             reject(new Error('Payment cancelled'));
           }
+        }).catch((error) => {
+          console.error('❌ openContractCall error:', error);
+          reject(error);
         });
       });
 
