@@ -1087,6 +1087,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           duration={recordingState.recordedDuration || 0}
           bars={recordingState.targetCycles * 8} // 5 cycles × 8 bars = 40 bars
           bpm={mixerState.masterBPM}
+          deckATrack={mixerState.deckA.track}
+          deckBTrack={mixerState.deckB.track}
           onClose={() => {
             setRecordingState(prev => ({
               ...prev,
