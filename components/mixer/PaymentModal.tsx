@@ -7,6 +7,9 @@ import { generateMixCoverImage } from '@/lib/generateMixCoverImage';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { CertificateService } from '@/lib/certificate-service';
+import { openContractCall } from '@stacks/connect';
+import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from '@stacks/transactions';
+import { calculateRemixSplits } from '@/lib/calculateRemixSplits';
 
 interface TrackInfo {
   id: string;
@@ -117,16 +120,82 @@ export default function PaymentModal({
     setIsProcessing(true);
 
     try {
-      // TODO: Implement actual Stacks payment transaction
-      console.log('Processing payment...', {
+      // Calculate the total price in microSTX
+      const totalPriceSTX = selectedOption === 'loop-only' ? loopOnlyPrice : loopPlusSourcesPrice;
+      const totalPriceMicroSTX = Math.floor(totalPriceSTX * 1_000_000);
+
+      console.log('💰 Processing payment...', {
         option: selectedOption,
-        price: selectedOption === 'loop-only' ? loopOnlyPrice : loopPlusSourcesPrice,
-        segment: selectedSegment
+        priceSTX: totalPriceSTX,
+        priceMicroSTX: totalPriceMicroSTX,
+        segment: selectedSegment,
+        deckA: deckATrack?.title,
+        deckB: deckBTrack?.title
       });
 
-      // Simulate payment processing (replace with actual Stacks transaction)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const stacksTxId = 'simulated-tx-' + Date.now(); // TODO: Get real tx ID from Stacks
+      // Calculate remix splits (80/20 formula)
+      const remixSplits = calculateRemixSplits(
+        deckATrack || {},
+        deckBTrack || {},
+        walletAddress!
+      );
+
+      console.log('📊 Remix splits calculated:', {
+        composition: remixSplits.composition,
+        production: remixSplits.production,
+        totalComposition: remixSplits.totalComposition,
+        totalProduction: remixSplits.totalProduction
+      });
+
+      // Convert splits to Clarity values
+      const compositionCV = listCV(
+        remixSplits.composition.map(split =>
+          tupleCV({
+            wallet: standardPrincipalCV(split.wallet),
+            percentage: uintCV(split.percentage)
+          })
+        )
+      );
+
+      const productionCV = listCV(
+        remixSplits.production.map(split =>
+          tupleCV({
+            wallet: standardPrincipalCV(split.wallet),
+            percentage: uintCV(split.percentage)
+          })
+        )
+      );
+
+      // Call smart contract for payment
+      let stacksTxId: string | null = null;
+
+      await new Promise<void>((resolve, reject) => {
+        openContractCall({
+          network: 'mainnet',
+          contractAddress: 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN',
+          contractName: 'music-payment-splitter-v3',
+          functionName: 'split-track-payment',
+          functionArgs: [
+            uintCV(totalPriceMicroSTX),
+            compositionCV,
+            productionCV
+          ],
+          postConditionMode: PostConditionMode.Allow,
+          onFinish: (data) => {
+            console.log('✅ Payment transaction completed:', data.txId);
+            stacksTxId = data.txId;
+            resolve();
+          },
+          onCancel: () => {
+            console.log('❌ Payment cancelled by user');
+            reject(new Error('Payment cancelled'));
+          }
+        });
+      });
+
+      if (!stacksTxId) {
+        throw new Error('Payment transaction failed - no transaction ID received');
+      }
 
       // Calculate remix depth from loaded tracks
       const maxDepth = Math.max(...loadedTracks.map(t => t.remix_depth || 0), 0);
@@ -140,44 +209,63 @@ export default function PaymentModal({
         sourceTrackIds
       });
 
-      // Prepare the new remix track data
+      // LIMIT: Maximum remix depth of 2 to prevent contributor explosion
+      if (newRemixDepth > 2) {
+        throw new Error('Cannot remix this content - maximum remix depth (2 generations) exceeded. This prevents contributor lists from becoming unmanageable.');
+      }
+
+      // Prepare the new remix track data with full split attribution
       const newRemixData = {
         id: crypto.randomUUID(),
         title: `${deckATrack?.title || 'Track A'} x ${deckBTrack?.title || 'Track B'} Mix`,
         artist: 'You', // TODO: Get from profile
-        primary_uploader_wallet: walletAddress,
-        
+        uploader_address: walletAddress, // Database expects uploader_address, not primary_uploader_wallet
+
         // Remix depth tracking
         remix_depth: newRemixDepth,
         source_track_ids: sourceTrackIds,
-        
+
         // Mix metadata
         bpm: bpm,
         content_type: 'loop',
         loop_category: 'remix',
         sample_type: 'instrumentals',
-        
+
         // Recording data
         audio_url: recordingUrl, // TODO: Upload to storage
         cover_image_url: mixCoverImageUrl, // TODO: Upload to storage
-        
+
         // Stacks transaction
         stacks_tx_id: stacksTxId,
-        
-        // IP Attribution (20% for remixer, rest distributed)
-        composition_split_1_wallet: walletAddress,
-        composition_split_1_percentage: 20, // Remixer gets 20%
-        
+
+        // IP Attribution - Composition (from calculated splits)
+        composition_split_1_wallet: remixSplits.composition[0]?.wallet,
+        composition_split_1_percentage: remixSplits.composition[0]?.percentage,
+        composition_split_2_wallet: remixSplits.composition[1]?.wallet,
+        composition_split_2_percentage: remixSplits.composition[1]?.percentage,
+        composition_split_3_wallet: remixSplits.composition[2]?.wallet,
+        composition_split_3_percentage: remixSplits.composition[2]?.percentage,
+
+        // IP Attribution - Production (from calculated splits)
+        production_split_1_wallet: remixSplits.production[0]?.wallet,
+        production_split_1_percentage: remixSplits.production[0]?.percentage,
+        production_split_2_wallet: remixSplits.production[1]?.wallet,
+        production_split_2_percentage: remixSplits.production[1]?.percentage,
+        production_split_3_wallet: remixSplits.production[2]?.wallet,
+        production_split_3_percentage: remixSplits.production[2]?.percentage,
+
         // Additional metadata
         tags: ['remix', '8-bar', 'mixer'],
         description: `8-bar remix created in Mixmi Mixer from bars ${selectedSegment.start + 1} to ${selectedSegment.end}`,
         license_type: 'RMX',
         allow_remixing: true,
         price_stx: 2.5,
-        
+
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
+      console.log('💾 Attempting to save remix data:', JSON.stringify(newRemixData, null, 2));
 
       // Save to database
       const { data, error } = await supabase
@@ -200,7 +288,7 @@ export default function PaymentModal({
 
       // Generate certificate for the remix
       console.log('🎓 Generating certificate for remix...');
-      
+
       const certificateData = {
         id: data.id,
         title: data.title,
@@ -210,15 +298,16 @@ export default function PaymentModal({
         key: undefined,
         tags: data.tags || [],
         description: data.description,
-        composition_splits: [
-          {
-            name: 'Remixer',
-            wallet: walletAddress,
-            percentage: 20
-          }
-          // TODO: Add original artist splits
-        ],
-        production_splits: [],
+        composition_splits: remixSplits.composition.map((split, index) => ({
+          name: index === 0 ? 'Remixer' : `Contributor ${index}`,
+          wallet: split.wallet,
+          percentage: split.percentage
+        })),
+        production_splits: remixSplits.production.map((split, index) => ({
+          name: `Producer ${index + 1}`,
+          wallet: split.wallet,
+          percentage: split.percentage
+        })),
         license_type: data.license_type || 'RMX',
         price_stx: data.price_stx,
         stacksTxId: stacksTxId,
@@ -238,9 +327,21 @@ export default function PaymentModal({
         });
       
       onSuccess();
-    } catch (error) {
-      console.error('Payment/save failed:', error);
-      alert('Failed to save your remix. Please try again.');
+    } catch (error: any) {
+      console.error('💥 Payment/save failed:', error);
+
+      // Provide specific error messages
+      let errorMessage = 'Failed to save your remix. Please try again.';
+
+      if (error.message === 'Payment cancelled') {
+        errorMessage = 'Payment was cancelled. Your remix was not saved.';
+      } else if (error.message?.includes('transaction')) {
+        errorMessage = 'Payment transaction failed. Please check your wallet and try again.';
+      } else if (error.message?.includes('database')) {
+        errorMessage = 'Database error. Please contact support if this persists.';
+      }
+
+      alert(errorMessage);
     } finally {
       setIsProcessing(false);
     }
