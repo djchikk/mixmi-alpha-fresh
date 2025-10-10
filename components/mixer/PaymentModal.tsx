@@ -135,9 +135,21 @@ export default function PaymentModal({
       });
 
       // Calculate remix splits (80/20 formula)
+      // We need to use loadedTracks instead of deckATrack/deckBTrack because
+      // deckATrack/deckBTrack only have basic info, not the full attribution splits
+      const loop1 = loadedTracks[0] || {};
+      const loop2 = loadedTracks[1] || {};
+
+      console.log('🎵 Source loops for split calculation:', {
+        loop1Title: loop1.title || 'Not found',
+        loop2Title: loop2.title || 'Not found',
+        loop1HasSplits: !!(loop1.composition_split_1_wallet),
+        loop2HasSplits: !!(loop2.composition_split_1_wallet)
+      });
+
       const remixSplits = calculateRemixSplits(
-        deckATrack || {},
-        deckBTrack || {},
+        loop1,
+        loop2,
         walletAddress!
       );
 
