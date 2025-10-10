@@ -182,26 +182,27 @@ export default function MixerPage({ onExit }: MixerPageProps) {
       return;
     }
     
-    // Fetch remix depth information for the track
+    // Fetch full track data including attribution splits
     try {
       const { data, error } = await supabase
         .from('ip_tracks')
-        .select('id, title, remix_depth, source_track_ids')
+        .select('*')
         .eq('id', track.id)
         .single();
-      
+
       if (!error && data) {
-        // Add to loaded tracks with remix depth info
-        addLoadedTrack({
+        // Add full IPTrack data to loadedTracks for remix split calculations
+        addLoadedTrack(data as any);
+        console.log(`📊 Track loaded with full data:`, {
           id: data.id,
           title: data.title,
           remix_depth: data.remix_depth || 0,
-          source_track_ids: data.source_track_ids || []
+          hasCompositionSplits: !!(data.composition_split_1_wallet),
+          hasProductionSplits: !!(data.production_split_1_wallet)
         });
-        console.log(`📊 Track loaded with remix depth: ${data.remix_depth || 0}`);
       }
     } catch (error) {
-      console.error('Failed to fetch remix depth:', error);
+      console.error('Failed to fetch full track data:', error);
     }
     
     // 🎵 SIMPLIFIED: Single state update for loading
@@ -391,26 +392,27 @@ export default function MixerPage({ onExit }: MixerPageProps) {
       return;
     }
     
-    // Fetch remix depth information for the track
+    // Fetch full track data including attribution splits
     try {
       const { data, error } = await supabase
         .from('ip_tracks')
-        .select('id, title, remix_depth, source_track_ids')
+        .select('*')
         .eq('id', track.id)
         .single();
-      
+
       if (!error && data) {
-        // Add to loaded tracks with remix depth info
-        addLoadedTrack({
+        // Add full IPTrack data to loadedTracks for remix split calculations
+        addLoadedTrack(data as any);
+        console.log(`📊 Track loaded with full data:`, {
           id: data.id,
           title: data.title,
           remix_depth: data.remix_depth || 0,
-          source_track_ids: data.source_track_ids || []
+          hasCompositionSplits: !!(data.composition_split_1_wallet),
+          hasProductionSplits: !!(data.production_split_1_wallet)
         });
-        console.log(`📊 Track loaded with remix depth: ${data.remix_depth || 0}`);
       }
     } catch (error) {
-      console.error('Failed to fetch remix depth:', error);
+      console.error('Failed to fetch full track data:', error);
     }
     
     // 🎵 SIMPLIFIED: Single state update for loading
