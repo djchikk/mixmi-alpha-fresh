@@ -271,7 +271,7 @@ export default function PaymentModal({
         description: `8-bar remix created in Mixmi Mixer from bars ${selectedSegment.start + 1} to ${selectedSegment.end}`,
         license_type: 'remix_only', // Must be one of: remix_only, remix_external, custom
         allow_remixing: true,
-        price_stx: 2.5,
+        price_stx: 1.0, // 1 STX per remix loop (matches source loop pricing)
 
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
