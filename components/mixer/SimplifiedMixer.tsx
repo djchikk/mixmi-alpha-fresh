@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Track } from './types';
 import { useMixerAudio } from '@/hooks/useMixerAudio';
+import { useMixer } from '@/contexts/MixerContext';
+import { supabase } from '@/lib/supabase';
 import { applyCrossfader, SimpleLoopSync, getAudioContext, getMasterGain } from '@/lib/mixerAudio';
 import SimplifiedDeck from './SimplifiedDeck';
 import WaveformDisplay from './WaveformDisplay';
@@ -129,6 +131,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     loadAudioForDeck
   } = useMixerAudio();
 
+  // Use the mixer context for loaded tracks
+  const { addLoadedTrack } = useMixer();
+
   // Initialize audio on mount
   useEffect(() => {
     if (!audioInitialized) {
@@ -173,6 +178,29 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (!track.audioUrl) {
       console.error('❌ Track missing audioUrl:', track);
       return;
+    }
+
+    // Fetch full track data including attribution splits
+    try {
+      const { data, error } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('id', track.id)
+        .single();
+
+      if (!error && data) {
+        // Add full IPTrack data to loadedTracks for remix split calculations
+        addLoadedTrack(data as any);
+        console.log(`📊 Track loaded with full data:`, {
+          id: data.id,
+          title: data.title,
+          remix_depth: data.remix_depth || 0,
+          hasCompositionSplits: !!(data.composition_split_1_wallet),
+          hasProductionSplits: !!(data.production_split_1_wallet)
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch full track data:', error);
     }
 
     // Check if sync is active before loading
@@ -321,6 +349,29 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (!track.audioUrl) {
       console.error('❌ Track missing audioUrl:', track);
       return;
+    }
+
+    // Fetch full track data including attribution splits
+    try {
+      const { data, error } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('id', track.id)
+        .single();
+
+      if (!error && data) {
+        // Add full IPTrack data to loadedTracks for remix split calculations
+        addLoadedTrack(data as any);
+        console.log(`📊 Track loaded with full data:`, {
+          id: data.id,
+          title: data.title,
+          remix_depth: data.remix_depth || 0,
+          hasCompositionSplits: !!(data.composition_split_1_wallet),
+          hasProductionSplits: !!(data.production_split_1_wallet)
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch full track data:', error);
     }
 
     // Check if sync is active before loading
