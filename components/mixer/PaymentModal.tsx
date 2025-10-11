@@ -160,9 +160,30 @@ export default function PaymentModal({
         totalProduction: remixSplits.totalProduction
       });
 
-      // Convert splits to Clarity values
+      // Consolidate duplicate wallets in splits
+      const consolidateSplits = (splits: Array<{ wallet: string; percentage: number }>) => {
+        const walletMap = new Map<string, number>();
+        splits.forEach(split => {
+          const current = walletMap.get(split.wallet) || 0;
+          walletMap.set(split.wallet, current + split.percentage);
+        });
+        return Array.from(walletMap.entries()).map(([wallet, percentage]) => ({
+          wallet,
+          percentage
+        }));
+      };
+
+      const consolidatedComposition = consolidateSplits(remixSplits.composition);
+      const consolidatedProduction = consolidateSplits(remixSplits.production);
+
+      console.log('🔄 Consolidated splits:', {
+        composition: consolidatedComposition,
+        production: consolidatedProduction
+      });
+
+      // Convert CONSOLIDATED splits to Clarity values
       const compositionCV = listCV(
-        remixSplits.composition.map(split =>
+        consolidatedComposition.map(split =>
           tupleCV({
             wallet: standardPrincipalCV(split.wallet),
             percentage: uintCV(split.percentage)
@@ -171,7 +192,7 @@ export default function PaymentModal({
       );
 
       const productionCV = listCV(
-        remixSplits.production.map(split =>
+        consolidatedProduction.map(split =>
           tupleCV({
             wallet: standardPrincipalCV(split.wallet),
             percentage: uintCV(split.percentage)
@@ -262,21 +283,21 @@ export default function PaymentModal({
         // Stacks transaction
         stacks_tx_id: stacksTxId,
 
-        // IP Attribution - Composition (from calculated splits)
-        composition_split_1_wallet: remixSplits.composition[0]?.wallet,
-        composition_split_1_percentage: remixSplits.composition[0]?.percentage,
-        composition_split_2_wallet: remixSplits.composition[1]?.wallet,
-        composition_split_2_percentage: remixSplits.composition[1]?.percentage,
-        composition_split_3_wallet: remixSplits.composition[2]?.wallet,
-        composition_split_3_percentage: remixSplits.composition[2]?.percentage,
+        // IP Attribution - Composition (from CONSOLIDATED splits)
+        composition_split_1_wallet: consolidatedComposition[0]?.wallet,
+        composition_split_1_percentage: consolidatedComposition[0]?.percentage,
+        composition_split_2_wallet: consolidatedComposition[1]?.wallet,
+        composition_split_2_percentage: consolidatedComposition[1]?.percentage,
+        composition_split_3_wallet: consolidatedComposition[2]?.wallet,
+        composition_split_3_percentage: consolidatedComposition[2]?.percentage,
 
-        // IP Attribution - Production (from calculated splits)
-        production_split_1_wallet: remixSplits.production[0]?.wallet,
-        production_split_1_percentage: remixSplits.production[0]?.percentage,
-        production_split_2_wallet: remixSplits.production[1]?.wallet,
-        production_split_2_percentage: remixSplits.production[1]?.percentage,
-        production_split_3_wallet: remixSplits.production[2]?.wallet,
-        production_split_3_percentage: remixSplits.production[2]?.percentage,
+        // IP Attribution - Production (from CONSOLIDATED splits)
+        production_split_1_wallet: consolidatedProduction[0]?.wallet,
+        production_split_1_percentage: consolidatedProduction[0]?.percentage,
+        production_split_2_wallet: consolidatedProduction[1]?.wallet,
+        production_split_2_percentage: consolidatedProduction[1]?.percentage,
+        production_split_3_wallet: consolidatedProduction[2]?.wallet,
+        production_split_3_percentage: consolidatedProduction[2]?.percentage,
 
         // Additional metadata
         tags: ['remix', '8-bar', 'mixer'],
@@ -328,12 +349,12 @@ export default function PaymentModal({
         key: undefined,
         tags: data.tags || [],
         description: data.description,
-        composition_splits: remixSplits.composition.map((split, index) => ({
+        composition_splits: consolidatedComposition.map((split, index) => ({
           name: index === 0 ? 'Remixer' : `Contributor ${index}`,
           wallet: split.wallet,
           percentage: split.percentage
         })),
-        production_splits: remixSplits.production.map((split, index) => ({
+        production_splits: consolidatedProduction.map((split, index) => ({
           name: `Producer ${index + 1}`,
           wallet: split.wallet,
           percentage: split.percentage
