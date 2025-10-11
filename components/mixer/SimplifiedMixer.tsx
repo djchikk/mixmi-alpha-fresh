@@ -132,7 +132,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   } = useMixerAudio();
 
   // Use the mixer context for loaded tracks
-  const { addLoadedTrack } = useMixer();
+  const { addLoadedTrack, clearLoadedTracks } = useMixer();
 
   // Initialize audio on mount
   useEffect(() => {
@@ -181,6 +181,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
 
     // Fetch full track data including attribution splits
+    // We'll replace the existing Deck A track in loadedTracks
     try {
       const { data, error } = await supabase
         .from('ip_tracks')
@@ -190,8 +191,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
       if (!error && data) {
         // Add full IPTrack data to loadedTracks for remix split calculations
+        // Note: addLoadedTrack already checks for duplicates by ID
         addLoadedTrack(data as any);
-        console.log(`📊 Track loaded with full data:`, {
+        console.log(`📊 Deck A track loaded with full data:`, {
           id: data.id,
           title: data.title,
           remix_depth: data.remix_depth || 0,

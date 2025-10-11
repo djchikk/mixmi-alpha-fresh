@@ -10,6 +10,7 @@ import { CertificateService } from '@/lib/certificate-service';
 import { openContractCall } from '@stacks/connect';
 import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from '@stacks/transactions';
 import { calculateRemixSplits } from '@/lib/calculateRemixSplits';
+import { SupabaseAuthBridge } from '@/lib/auth/supabase-auth-bridge';
 
 interface TrackInfo {
   id: string;
@@ -48,6 +49,53 @@ export default function PaymentModal({
   const [sourceLoopsAvailable, setSourceLoopsAvailable] = useState(false);
   const [mixCoverImageUrl, setMixCoverImageUrl] = useState<string | null>(null);
   const [mixTitle, setMixTitle] = useState(`${deckATrack?.title || 'Track A'} x ${deckBTrack?.title || 'Track B'} Mix`);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [artistName, setArtistName] = useState<string>('');
+
+  // Fetch user's profile data (image and name)
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!walletAddress) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('avatar_url, display_name, username')
+          .eq('wallet_address', walletAddress)
+          .single();
+
+        if (!error && data) {
+          // Set profile image if available
+          if (data.avatar_url) {
+            console.log('🖼️ Fetched profile image for remix cover:', data.avatar_url);
+            setProfileImageUrl(data.avatar_url);
+          }
+
+          // Set artist name - priority: display_name > username > wallet address
+          let name = walletAddress;
+          if (data.display_name && data.display_name !== 'New User') {
+            name = data.display_name;
+          } else if (data.username) {
+            name = data.username;
+          }
+
+          console.log('👤 Setting artist name for remix:', name);
+          setArtistName(name);
+        } else {
+          // Fallback to wallet address if no profile found
+          setArtistName(walletAddress);
+        }
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+        // Fallback to wallet address on error
+        if (walletAddress) {
+          setArtistName(walletAddress);
+        }
+      }
+    };
+
+    fetchProfileData();
+  }, [walletAddress]);
 
   // Check if source loops are available for offline use
   useEffect(() => {
@@ -56,33 +104,33 @@ export default function PaymentModal({
     setSourceLoopsAvailable(deckAAllows && deckBAllows);
   }, [deckATrack, deckBTrack]);
 
-  // Generate mix cover image
+  // Generate mix cover image (regenerate when profile image is loaded)
   useEffect(() => {
     const generateCoverImage = async () => {
       if (!deckATrack?.imageUrl || !deckBTrack?.imageUrl) return;
-      
+
       try {
         const blob = await generateMixCoverImage(
           deckATrack.imageUrl,
-          deckBTrack.imageUrl
-          // TODO: Add profile image URL when available
+          deckBTrack.imageUrl,
+          profileImageUrl || undefined // Pass profile image if available
         );
-        
+
         const url = URL.createObjectURL(blob);
         setMixCoverImageUrl(url);
       } catch (error) {
         console.error('Failed to generate mix cover image:', error);
       }
     };
-    
+
     generateCoverImage();
-    
+
     return () => {
       if (mixCoverImageUrl) {
         URL.revokeObjectURL(mixCoverImageUrl);
       }
     };
-  }, [deckATrack?.imageUrl, deckBTrack?.imageUrl]);
+  }, [deckATrack?.imageUrl, deckBTrack?.imageUrl, profileImageUrl]);
 
   // Calculate pricing based on source track prices
   const calculatePrices = () => {
@@ -107,6 +155,139 @@ export default function PaymentModal({
   
   const { loopOnlyPrice, loopPlusSourcesPrice } = calculatePrices();
 
+  // Helper function to convert blob URL to File object
+  const blobUrlToFile = async (blobUrl: string, filename: string): Promise<File> => {
+    const response = await fetch(blobUrl);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: blob.type });
+  };
+
+  // Helper function to upload remix audio to Supabase storage
+  const uploadRemixAudio = async (blobUrl: string): Promise<string> => {
+    try {
+      console.log('📤 Uploading remix audio to storage...');
+
+      // Convert blob URL to File
+      const timestamp = Date.now();
+      const filename = `remix_${timestamp}.webm`;
+      const audioFile = await blobUrlToFile(blobUrl, filename);
+
+      console.log('📦 Audio file created:', {
+        name: audioFile.name,
+        size: audioFile.size,
+        type: audioFile.type
+      });
+
+      if (!walletAddress) {
+        throw new Error('Wallet address is required for upload');
+      }
+
+      // Create authenticated session
+      const authSession = await SupabaseAuthBridge.createWalletSession(walletAddress);
+
+      if (!authSession?.supabase) {
+        throw new Error('Failed to create authenticated session for upload');
+      }
+
+      // Generate storage path
+      const audioPath = `${walletAddress}/audio/remixes/${timestamp}_${filename}`;
+
+      console.log('📂 Uploading to path:', audioPath);
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await authSession.supabase.storage
+        .from('user-content')
+        .upload(audioPath, audioFile, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: audioFile.type
+        });
+
+      if (uploadError) {
+        console.error('❌ Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ Upload successful:', uploadData);
+
+      // Get public URL
+      const { data: urlData } = authSession.supabase.storage
+        .from('user-content')
+        .getPublicUrl(audioPath);
+
+      const publicUrl = urlData.publicUrl;
+      console.log('🔗 Public URL obtained:', publicUrl);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Failed to upload remix audio:', error);
+      throw new Error('Failed to upload remix audio to storage');
+    }
+  };
+
+  // Helper function to upload cover image to Supabase storage
+  const uploadCoverImage = async (blobUrl: string): Promise<string> => {
+    try {
+      console.log('📤 Uploading cover image to storage...');
+
+      // Convert blob URL to File
+      const timestamp = Date.now();
+      const filename = `remix_cover_${timestamp}.png`;
+      const imageFile = await blobUrlToFile(blobUrl, filename);
+
+      console.log('📦 Image file created:', {
+        name: imageFile.name,
+        size: imageFile.size,
+        type: imageFile.type
+      });
+
+      if (!walletAddress) {
+        throw new Error('Wallet address is required for upload');
+      }
+
+      // Create authenticated session
+      const authSession = await SupabaseAuthBridge.createWalletSession(walletAddress);
+
+      if (!authSession?.supabase) {
+        throw new Error('Failed to create authenticated session for upload');
+      }
+
+      // Generate storage path
+      const imagePath = `${walletAddress}/images/remixes/${timestamp}_${filename}`;
+
+      console.log('📂 Uploading to path:', imagePath);
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await authSession.supabase.storage
+        .from('user-content')
+        .upload(imagePath, imageFile, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: imageFile.type
+        });
+
+      if (uploadError) {
+        console.error('❌ Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ Upload successful:', uploadData);
+
+      // Get public URL
+      const { data: urlData } = authSession.supabase.storage
+        .from('user-content')
+        .getPublicUrl(imagePath);
+
+      const publicUrl = urlData.publicUrl;
+      console.log('🔗 Public URL obtained:', publicUrl);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Failed to upload cover image:', error);
+      throw new Error('Failed to upload cover image to storage');
+    }
+  };
+
   const handlePayment = async () => {
     if (!agreedToTerms) {
       alert('Please agree to the licensing terms');
@@ -121,6 +302,19 @@ export default function PaymentModal({
     setIsProcessing(true);
 
     try {
+      // Upload audio to storage before payment
+      console.log('🎵 Current recording URL (blob):', recordingUrl);
+      const permanentAudioUrl = await uploadRemixAudio(recordingUrl);
+      console.log('🎵 Permanent audio URL:', permanentAudioUrl);
+
+      // Upload cover image to storage
+      let permanentCoverUrl = mixCoverImageUrl;
+      if (mixCoverImageUrl) {
+        console.log('🖼️ Current cover image URL (blob):', mixCoverImageUrl);
+        permanentCoverUrl = await uploadCoverImage(mixCoverImageUrl);
+        console.log('🖼️ Permanent cover URL:', permanentCoverUrl);
+      }
+
       // Calculate the total price in microSTX
       const totalPriceSTX = selectedOption === 'loop-only' ? loopOnlyPrice : loopPlusSourcesPrice;
       const totalPriceMicroSTX = Math.floor(totalPriceSTX * 1_000_000);
@@ -262,7 +456,7 @@ export default function PaymentModal({
       const newRemixData = {
         id: crypto.randomUUID(),
         title: mixTitle,
-        artist: 'You', // TODO: Get from profile
+        artist: artistName || walletAddress, // Use fetched artist name or wallet as fallback
         primary_uploader_wallet: walletAddress, // The wallet that owns this track in their store
         uploader_address: walletAddress, // Legacy field - required by database
 
@@ -277,8 +471,8 @@ export default function PaymentModal({
         sample_type: 'instrumentals',
 
         // Recording data
-        audio_url: recordingUrl, // TODO: Upload to storage
-        cover_image_url: mixCoverImageUrl, // TODO: Upload to storage
+        audio_url: permanentAudioUrl, // Uploaded to Supabase storage
+        cover_image_url: permanentCoverUrl, // Uploaded to Supabase storage
 
         // Stacks transaction
         stacks_tx_id: stacksTxId,

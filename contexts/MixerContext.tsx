@@ -208,8 +208,20 @@ export const MixerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       hasProductionSplits: !!(track.production_split_1_wallet)
     });
     setLoadedTracks(prev => {
-      if (prev.some(t => t.id === track.id)) return prev;
-      return [...prev, track];
+      // Check if track already exists
+      if (prev.some(t => t.id === track.id)) {
+        console.log('⚠️ Track already in loadedTracks, skipping duplicate');
+        return prev;
+      }
+
+      // Keep only the 2 most recent tracks (for 2 decks)
+      const updated = [...prev, track];
+      if (updated.length > 2) {
+        console.log('🗑️ More than 2 tracks loaded, removing oldest:', updated[0].title);
+        return updated.slice(-2); // Keep last 2 tracks
+      }
+
+      return updated;
     });
   }, []);
 
