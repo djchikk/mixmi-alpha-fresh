@@ -1969,29 +1969,40 @@ export default function IPTrackModal({
           <div className="flex justify-between">
             <span className="text-gray-400">License:</span>
             <span className="text-white">
-              {formData.content_type === 'full_song' 
+              {formData.content_type === 'full_song'
                 ? 'Download Only'
                 : formData.content_type === 'ep'
                 ? 'Download Only'
-                : (formData as any).license_selection === 'platform_download' 
-                  ? 'Remix + Download' 
-                  : 'Remix Only'}
+                : 'Platform Remix' + (formData.allow_downloads ? ' + Download' : ' Only')}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">Price:</span>
+            <span className="text-gray-400">
+              {formData.content_type === 'full_song' || formData.content_type === 'ep'
+                ? 'Download Price:'
+                : formData.allow_downloads
+                  ? 'Download Price:'
+                  : 'Remix Fee:'}
+            </span>
             <span className="text-white">
               {formData.content_type === 'full_song'
-                ? ((formData as any).download_price || (formData as any).price_stx || 2.5)
+                ? `${(formData as any).download_price_stx || (formData as any).download_price || 2.5} STX`
                 : formData.content_type === 'ep'
-                  ? (((formData as any).price_per_song || 2.5) * ((formData as any).ep_files?.length || 0)).toFixed(1)
+                  ? `${(((formData as any).price_per_song || 2.5) * ((formData as any).ep_files?.length || 0)).toFixed(1)} STX`
                 : formData.content_type === 'loop_pack'
-                  ? (((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || 0)).toFixed(1)
-                  : (formData as any).license_selection === 'platform_download' 
-                    ? ((formData as any).combined_price || 2.5)
-                    : ((formData as any).remix_price || 0.5)} STX
+                  ? `${(((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || 0)).toFixed(1)} STX (pack)`
+                  : formData.allow_downloads
+                    ? `${(formData as any).download_price_stx || 2.5} STX`
+                    : '1 STX per mix'}
             </span>
           </div>
+          {/* Show remix fee separately if download is also available */}
+          {(formData.content_type === 'loop' || formData.content_type === 'loop_pack') && formData.allow_downloads && (
+            <div className="flex justify-between">
+              <span className="text-gray-400">Remix Fee:</span>
+              <span className="text-white">1 STX per mix</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-gray-400">Audio:</span>
             <span className="text-white">

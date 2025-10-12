@@ -95,7 +95,10 @@ export interface IPTrack {
   agreed_to_terms?: boolean;
   
   // Pricing fields
-  price_stx?: number; // Price in STX
+  price_stx?: number; // Legacy combined price (kept for backward compatibility)
+  remix_price_stx?: number; // Price to use this loop in a remix (default 1 STX per loop, 0 for free)
+  download_price_stx?: number; // Price to download the audio file (NULL if downloads not available)
+  allow_downloads?: boolean; // Whether this track can be downloaded (separate from remix rights)
   
   // Composition Splits (up to 3 owners)
   composition_split_1_wallet: string;

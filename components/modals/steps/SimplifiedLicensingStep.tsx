@@ -216,180 +216,178 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
           </div>
         </div>
 
-        {/* Loop Pack Licensing Options - Same as individual loops */}
+        {/* Loop Pack Licensing Options - Checkboxes like individual loops */}
         <div className="space-y-4">
           <h4 className="text-gray-300 font-medium">Loop Pack Licensing Options</h4>
-          
-          {/* Remix Only for Pack */}
+
+          {/* Platform Remix - Always on for packs (1 STX per loop) */}
           <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
-                type="radio"
-                name="license_type"
-                value="platform_remix"
-                checked={formData.license_selection === 'platform_remix'}
-                onChange={() => {
-                  handleInputChange('license_selection', 'platform_remix');
-                  handleInputChange('allow_remixing', true);
-                  handleInputChange('allow_downloads', false);
-                }}
-                className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
+                type="checkbox"
+                checked={true}
+                disabled={true}
+                className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-300 font-medium">PACK REMIX ONLY</span>
-                  <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Most Common</span>
+                  <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
+                  <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
                 </div>
-                <p className="text-gray-500 text-sm mt-1">Buyers can remix all loops within MIXMI platform only</p>
-                <p className="text-gray-600 text-xs mt-1">Perfect for: Building remix community with your pack</p>
+                <p className="text-gray-500 text-sm mt-1">Buyers can use all loops in remixes on MIXMI</p>
+                <p className="text-gray-600 text-xs mt-1">You earn 1 STX each time a loop from this pack is used in a remix</p>
               </div>
             </label>
+
+            {/* Fixed remix price display */}
+            <div className="ml-8 p-3 bg-slate-900/50 rounded">
+              <div className="flex items-center gap-3">
+                <span className="text-gray-400 text-sm">Remix usage fee:</span>
+                <div className="flex items-center">
+                  <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded text-[#81E4F2] font-medium text-sm">
+                    1.0 STX per loop
+                  </div>
+                </div>
+                <span className="text-gray-500 text-xs">(Fixed price per loop used in remix)</span>
+              </div>
+            </div>
           </div>
 
-          {/* Remix + Download for Pack */}
+          {/* Optional Download - Checkbox for pack */}
           <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
-                type="radio"
-                name="license_type"
-                value="platform_download"
-                checked={formData.license_selection === 'platform_download'}
-                onChange={() => {
-                  handleInputChange('license_selection', 'platform_download');
-                  handleInputChange('allow_remixing', true);
-                  handleInputChange('allow_downloads', true);
+                type="checkbox"
+                checked={formData.allow_downloads || false}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  handleInputChange('allow_downloads', checked);
+                  if (!checked) {
+                    handleInputChange('download_price_stx', null);
+                  }
+                  // Remix price is always 1 STX per loop
+                  handleInputChange('remix_price_stx', 1.0);
                 }}
                 className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-300 font-medium">PACK REMIX + DOWNLOAD</span>
-                  <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">Premium</span>
+                  <span className="text-gray-300 font-medium">ALLOW PACK DOWNLOADS</span>
+                  <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">Optional</span>
                 </div>
-                <p className="text-gray-500 text-sm mt-1">Remix on platform + download all loops for external use</p>
+                <p className="text-gray-500 text-sm mt-1">Let buyers download all loops for external use (DAWs, production)</p>
                 <p className="text-gray-600 text-xs mt-1">Perfect for: Producer packs, stems, sample collections</p>
               </div>
             </label>
+
+            {/* Pack download price is already set above - just show info */}
+            {formData.allow_downloads && (
+              <div className="ml-8 p-3 bg-slate-900/50 rounded">
+                <div className="text-xs text-gray-500 bg-slate-800/50 p-2 rounded">
+                  💡 Download price for the entire pack is set above: {((formData.price_per_loop || 0.5) * (formData.loop_files?.length || 0)).toFixed(1)} STX
+                  <br />
+                  This is separate from the 1 STX per loop remix fee.
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     );
   }
 
-  // Individual Loops: Platform Remix vs Platform Remix + Download
+  // Individual Loops: Platform Remix (always on) + Optional Download
   return (
     <div className="space-y-6">
-      {/* License Type Selection - Radio Buttons */}
+      {/* License Type Selection - Checkboxes (not radio!) */}
       <div className="space-y-4">
-      
-      {/* Remix Only */}
+
+      {/* Platform Remix - Always checked, default 1 STX */}
       <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
-            type="radio"
-            name="license_type"
-            value="platform_remix"
-            checked={formData.license_selection === 'platform_remix'}
-            onChange={() => {
-              handleInputChange('license_selection', 'platform_remix');
-              handleInputChange('allow_remixing', true);
-              handleInputChange('allow_downloads', false);
-              if (!formData.remix_price) {
-                handleInputChange('remix_price', 0.5);
-              }
-            }}
-            className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
+            type="checkbox"
+            checked={true}
+            disabled={true}
+            className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
           />
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-gray-300 font-medium">REMIX ONLY</span>
-              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Most Common</span>
+              <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
+              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
             </div>
-            <p className="text-gray-500 text-sm mt-1">Others can remix within MIXMI platform only</p>
-            <p className="text-gray-600 text-xs mt-1">Perfect for: Building on-platform community</p>
+            <p className="text-gray-500 text-sm mt-1">Others can use this loop in remixes on MIXMI</p>
+            <p className="text-gray-600 text-xs mt-1">You'll earn 1 STX every time someone uses this loop in a remix</p>
           </div>
         </label>
-        
-        {/* Custom pricing for remix */}
-        {formData.license_selection === 'platform_remix' && (
-          <div className="ml-8 p-3 bg-slate-900/50 rounded">
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-sm">Remix price:</span>
-              <div className="flex items-center">
-                <input
-                  type="number"
-                  value={formData.remix_price || 0.5}
-                  onChange={(e) => {
-                    const price = parseFloat(e.target.value) || 0;
-                    handleInputChange('remix_price', price);
-                    handleInputChange('price_stx', price);
-                  }}
-                  className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
-                  placeholder="0.5"
-                  min="0"
-                  step="0.1"
-                />
-                <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+
+        {/* Fixed remix price display */}
+        <div className="ml-8 p-3 bg-slate-900/50 rounded">
+          <div className="flex items-center gap-3">
+            <span className="text-gray-400 text-sm">Remix usage fee:</span>
+            <div className="flex items-center">
+              <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded text-[#81E4F2] font-medium text-sm">
+                1.0 STX
               </div>
-              <span className="text-gray-500 text-xs">(Default: 0.5 STX, set 0 for free)</span>
             </div>
+            <span className="text-gray-500 text-xs">(Fixed price per remix)</span>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Remix + Download */}
+      {/* Optional Download - Checkbox with custom price */}
       <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
-            type="radio"
-            name="license_type"
-            value="platform_download"
-            checked={formData.license_selection === 'platform_download'}
-            onChange={() => {
-              handleInputChange('license_selection', 'platform_download');
-              handleInputChange('allow_remixing', true);
-              handleInputChange('allow_downloads', true);
-              if (!formData.combined_price) {
-                handleInputChange('combined_price', 2.5);
+            type="checkbox"
+            checked={formData.allow_downloads || false}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              handleInputChange('allow_downloads', checked);
+              if (checked && !formData.download_price_stx) {
+                handleInputChange('download_price_stx', 2.5);
+              } else if (!checked) {
+                handleInputChange('download_price_stx', null);
               }
+              // Always set remix price to 1 STX
+              handleInputChange('remix_price_stx', 1.0);
             }}
             className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
           />
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-gray-300 font-medium">REMIX + DOWNLOAD</span>
-              <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">Premium</span>
+              <span className="text-gray-300 font-medium">ALLOW DOWNLOADS</span>
+              <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">Optional</span>
             </div>
-            <p className="text-gray-500 text-sm mt-1">Includes remix rights AND download for external use</p>
-            <p className="text-gray-600 text-xs mt-1">Perfect for: Sample packs, loops, stems</p>
+            <p className="text-gray-500 text-sm mt-1">Let people download this loop for external use (DAWs, production)</p>
+            <p className="text-gray-600 text-xs mt-1">Perfect for: Sample packs, stems, producer tools</p>
           </div>
         </label>
-        
-        {/* Custom pricing for combined option */}
-        {formData.license_selection === 'platform_download' && (
+
+        {/* Custom pricing for downloads */}
+        {formData.allow_downloads && (
           <div className="ml-8 p-3 bg-slate-900/50 rounded">
             <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-sm">Combined price:</span>
+              <span className="text-gray-400 text-sm">Download price:</span>
               <div className="flex items-center">
                 <input
                   type="number"
-                  value={formData.combined_price || 2.5}
+                  value={formData.download_price_stx || 2.5}
                   onChange={(e) => {
                     const price = parseFloat(e.target.value) || 0;
-                    handleInputChange('combined_price', price);
-                    handleInputChange('price_stx', price);
+                    handleInputChange('download_price_stx', price);
                   }}
                   className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
                   placeholder="2.5"
-                  min="0"
+                  min="0.1"
                   step="0.1"
                 />
                 <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
               </div>
-              <span className="text-gray-500 text-xs">(Default: 2.5 STX)</span>
+              <span className="text-gray-500 text-xs">(Suggested: 2.5 STX)</span>
             </div>
             <div className="text-xs text-gray-500 bg-slate-800/50 p-2 rounded mt-2">
-              💡 Includes both remix rights + download access
+              💡 This is separate from the 1 STX remix fee. Download price is what people pay to get the audio file.
             </div>
           </div>
         )}
