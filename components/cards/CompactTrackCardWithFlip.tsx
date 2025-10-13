@@ -398,10 +398,42 @@ export default function CompactTrackCardWithFlip({
                     <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
                       {/* Buy Button OR Remix Icon (left) - compact */}
                       {(() => {
-                        // New pricing model: check download_price_stx first
-                        if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
-                          // Has new download price field - show buy button
-                          return track.download_price_stx === 0 ? (
+                        // Songs, EPs, and Loop Packs ALWAYS show download price (never mixer icon)
+                        if (track.content_type === 'full_song' || track.content_type === 'ep' || track.content_type === 'loop_pack') {
+                          // Check new download_price_stx field first
+                          if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
+                            return track.download_price_stx === 0 ? (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Free download - click to add to cart"
+                              >
+                                Free
+                              </button>
+                            ) : (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price in STX - click to add to cart"
+                              >
+                                {track.download_price_stx}
+                              </button>
+                            );
+                          }
+                          // Fallback to legacy price_stx
+                          if (track.price_stx) {
+                            return (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price - click to add to cart"
+                              >
+                                {track.price_stx}
+                              </button>
+                            );
+                          }
+                          // No price set - show as free
+                          return (
                             <button
                               onClick={handlePurchaseClick}
                               className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
@@ -409,20 +441,65 @@ export default function CompactTrackCardWithFlip({
                             >
                               Free
                             </button>
-                          ) : (
-                            <button
-                              onClick={handlePurchaseClick}
-                              className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                              title="Download price in STX - click to add to cart"
-                            >
-                              {track.download_price_stx}
-                            </button>
                           );
                         }
 
-                        // Legacy handling: check allow_downloads flag
-                        if (track.allow_downloads === false || track.remix_price_stx !== null) {
-                          // This is a remix-only loop (new model)
+                        // For LOOPS: Check if downloadable or remix-only
+                        if (track.content_type === 'loop') {
+                          // New pricing model: check download_price_stx first
+                          if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
+                            // Loop has download price - show buy button
+                            return track.download_price_stx === 0 ? (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Free download - click to add to cart"
+                              >
+                                Free
+                              </button>
+                            ) : (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price in STX - click to add to cart"
+                              >
+                                {track.download_price_stx}
+                              </button>
+                            );
+                          }
+
+                          // Check allow_downloads flag (explicit false = remix-only)
+                          if (track.allow_downloads === false) {
+                            // This is a remix-only loop - show mixer icon
+                            return (
+                              <div
+                                className="flex items-center justify-center py-0.5 px-2 bg-slate-700/50 rounded"
+                                title="1 STX per recorded remix"
+                              >
+                                <svg className="w-4 h-4 text-[#81E4F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="4" y="4" width="7" height="7" rx="1.5"/>
+                                  <rect x="13" y="4" width="7" height="7" rx="1.5"/>
+                                  <line x1="6" y1="17" x2="18" y2="17"/>
+                                  <line x1="12" y1="15" x2="12" y2="19"/>
+                                </svg>
+                              </div>
+                            );
+                          }
+
+                          // Legacy: check price_stx
+                          if (track.price_stx) {
+                            return (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price - click to add to cart"
+                              >
+                                {track.price_stx}
+                              </button>
+                            );
+                          }
+
+                          // Fallback for loops with no clear pricing: show mixer icon (assume remix-only)
                           return (
                             <div
                               className="flex items-center justify-center py-0.5 px-2 bg-slate-700/50 rounded"
@@ -438,33 +515,21 @@ export default function CompactTrackCardWithFlip({
                           );
                         }
 
-                        // Old legacy tracks with price_stx - show as download price
+                        // Fallback for unknown content types: check for price_stx
                         if (track.price_stx) {
                           return (
                             <button
                               onClick={handlePurchaseClick}
                               className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                              title="Legacy pricing - click to add to cart"
+                              title="Download price - click to add to cart"
                             >
                               {track.price_stx}
                             </button>
                           );
                         }
 
-                        // Fallback: no pricing info - show mixer icon
-                        return (
-                          <div
-                            className="flex items-center justify-center py-0.5 px-2 bg-slate-700/50 rounded"
-                            title="1 STX per recorded remix"
-                          >
-                            <svg className="w-4 h-4 text-[#81E4F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="4" y="4" width="7" height="7" rx="1.5"/>
-                              <rect x="13" y="4" width="7" height="7" rx="1.5"/>
-                              <line x1="6" y1="17" x2="18" y2="17"/>
-                              <line x1="12" y1="15" x2="12" y2="19"/>
-                            </svg>
-                          </div>
-                        );
+                        // Ultimate fallback: no price info
+                        return null;
                       })()}
 
                       {/* Content Type Badge (center) */}
