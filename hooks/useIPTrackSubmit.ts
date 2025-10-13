@@ -466,15 +466,23 @@ export function useIPTrackSubmit({
         open_to_commercial: formData.open_to_commercial,
         open_to_collaboration: formData.open_to_collaboration,
         // Removed agree_* fields - not in current database schema
-        
-        // Pricing - Different logic for full songs vs loops
-        price_stx: formData.content_type === 'full_song'
-          ? (formData.download_price || formData.price_stx) // Full songs use download price
-          : formData.license_selection === 'platform_download' 
-            ? formData.combined_price  // Loops with download option
-            : formData.remix_price,    // Loops with remix only
-        remix_price: formData.remix_price,
-        combined_price: formData.combined_price,
+
+        // NEW PRICING MODEL (separate remix and download pricing)
+        // Songs/EPs: Only download price (no remix)
+        // Loops: remix_price_stx (1 STX default) + optional download_price_stx
+        remix_price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
+          ? 0  // Songs/EPs can't be remixed
+          : 1.0, // Loops default to 1 STX per remix
+        download_price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
+          ? ((formData as any).download_price || formData.price_stx || 2.5) // Songs/EPs always have download price
+          : formData.allow_downloads
+            ? ((formData as any).download_price_stx || (formData as any).download_price || formData.combined_price || 2.5) // Loops with downloads enabled
+            : null, // Remix-only loops have no download price
+        price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
+          ? ((formData as any).download_price || formData.price_stx || 2.5) // Legacy: same as download price
+          : formData.allow_downloads
+            ? ((formData as any).download_price_stx || (formData as any).download_price || formData.combined_price || 2.5) // Legacy: download price if available
+            : 1.0, // Legacy: remix price if no downloads
         
         // Contact info
         commercial_contact: formData.commercial_contact,
