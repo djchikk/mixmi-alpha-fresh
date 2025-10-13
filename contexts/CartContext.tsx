@@ -11,7 +11,7 @@ export interface CartItem {
   id: string;
   title: string;
   artist: string;
-  price_stx: string;
+  price_stx: string; // Download price (uses download_price_stx from track, legacy price_stx as fallback)
   license?: string;
   primary_uploader_wallet?: string;
 }
@@ -74,12 +74,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Check if already in cart
     const exists = cart.some(item => item.id === track.id);
     if (!exists) {
-      console.log('🛒 Adding to cart:', { id: track.id, title: track.title, price_stx: track.price_stx });
+      // Use download_price_stx (new model) or fallback to price_stx (legacy)
+      const downloadPrice = track.download_price_stx ?? track.price_stx ?? 2.5;
+      console.log('🛒 Adding to cart:', {
+        id: track.id,
+        title: track.title,
+        download_price_stx: track.download_price_stx,
+        price_stx: track.price_stx,
+        finalPrice: downloadPrice
+      });
       const cartItem: CartItem = {
         id: track.id,
         title: track.title || track.name,
         artist: track.artist || 'Unknown Artist',
-        price_stx: track.price_stx?.toString() || '2.5',
+        price_stx: downloadPrice.toString(),
         license: track.license || 'Standard',
         primary_uploader_wallet: track.primary_uploader_wallet
       };

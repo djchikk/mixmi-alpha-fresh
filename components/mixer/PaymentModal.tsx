@@ -452,7 +452,32 @@ export default function PaymentModal({
         throw new Error('Cannot remix this content - maximum remix depth (2 generations) exceeded. This prevents contributor lists from becoming unmanageable.');
       }
 
+      // Calculate download pricing for Gen 1 remix
+      // Gen 1 remixes can be downloaded IF both source loops allow downloads
+      // Minimum download price = sum of both loop download prices
+      const loop1AllowsDownloads = loop1.allow_downloads === true;
+      const loop2AllowsDownloads = loop2.allow_downloads === true;
+      const bothLoopsAllowDownloads = loop1AllowsDownloads && loop2AllowsDownloads;
+
+      let remixDownloadPrice = null;
+      if (bothLoopsAllowDownloads) {
+        const loop1DownloadPrice = loop1.download_price_stx || 0;
+        const loop2DownloadPrice = loop2.download_price_stx || 0;
+        remixDownloadPrice = loop1DownloadPrice + loop2DownloadPrice;
+      }
+
+      console.log('💰 Gen 1 remix download pricing:', {
+        loop1AllowsDownloads,
+        loop2AllowsDownloads,
+        bothLoopsAllowDownloads,
+        loop1DownloadPrice: loop1.download_price_stx,
+        loop2DownloadPrice: loop2.download_price_stx,
+        remixDownloadPrice
+      });
+
       // Prepare the new remix track data with full split attribution
+      // NOTE: Use remixSplits.composition/production directly (NOT consolidated)
+      // to preserve remixer as separate entry even if same wallet appears in originals
       const newRemixData = {
         id: crypto.randomUUID(),
         title: mixTitle,
@@ -460,7 +485,12 @@ export default function PaymentModal({
         primary_uploader_wallet: walletAddress, // The wallet that owns this track in their store
         uploader_address: walletAddress, // Legacy field - required by database
 
-        // Remix depth tracking
+        // Gen 1 lineage tracking (new fields from migration)
+        generation: 1, // This is a first-generation remix
+        parent_track_1_id: sourceTrackIds[0] || null, // First source loop
+        parent_track_2_id: sourceTrackIds[1] || null, // Second source loop
+
+        // Legacy remix depth tracking (keep for backward compatibility)
         remix_depth: newRemixDepth,
         source_track_ids: sourceTrackIds,
 
@@ -477,28 +507,51 @@ export default function PaymentModal({
         // Stacks transaction
         stacks_tx_id: stacksTxId,
 
-        // IP Attribution - Composition (from CONSOLIDATED splits)
-        composition_split_1_wallet: consolidatedComposition[0]?.wallet,
-        composition_split_1_percentage: consolidatedComposition[0]?.percentage,
-        composition_split_2_wallet: consolidatedComposition[1]?.wallet,
-        composition_split_2_percentage: consolidatedComposition[1]?.percentage,
-        composition_split_3_wallet: consolidatedComposition[2]?.wallet,
-        composition_split_3_percentage: consolidatedComposition[2]?.percentage,
+        // IP Attribution - Composition (expanded to 7 splits, uses UNCONSOLIDATED splits)
+        composition_split_1_wallet: remixSplits.composition[0]?.wallet,
+        composition_split_1_percentage: remixSplits.composition[0]?.percentage,
+        composition_split_2_wallet: remixSplits.composition[1]?.wallet,
+        composition_split_2_percentage: remixSplits.composition[1]?.percentage,
+        composition_split_3_wallet: remixSplits.composition[2]?.wallet,
+        composition_split_3_percentage: remixSplits.composition[2]?.percentage,
+        composition_split_4_wallet: remixSplits.composition[3]?.wallet,
+        composition_split_4_percentage: remixSplits.composition[3]?.percentage,
+        composition_split_5_wallet: remixSplits.composition[4]?.wallet,
+        composition_split_5_percentage: remixSplits.composition[4]?.percentage,
+        composition_split_6_wallet: remixSplits.composition[5]?.wallet,
+        composition_split_6_percentage: remixSplits.composition[5]?.percentage,
+        composition_split_7_wallet: remixSplits.composition[6]?.wallet,
+        composition_split_7_percentage: remixSplits.composition[6]?.percentage,
 
-        // IP Attribution - Production (from CONSOLIDATED splits)
-        production_split_1_wallet: consolidatedProduction[0]?.wallet,
-        production_split_1_percentage: consolidatedProduction[0]?.percentage,
-        production_split_2_wallet: consolidatedProduction[1]?.wallet,
-        production_split_2_percentage: consolidatedProduction[1]?.percentage,
-        production_split_3_wallet: consolidatedProduction[2]?.wallet,
-        production_split_3_percentage: consolidatedProduction[2]?.percentage,
+        // IP Attribution - Production (expanded to 7 splits, uses UNCONSOLIDATED splits)
+        production_split_1_wallet: remixSplits.production[0]?.wallet,
+        production_split_1_percentage: remixSplits.production[0]?.percentage,
+        production_split_2_wallet: remixSplits.production[1]?.wallet,
+        production_split_2_percentage: remixSplits.production[1]?.percentage,
+        production_split_3_wallet: remixSplits.production[2]?.wallet,
+        production_split_3_percentage: remixSplits.production[2]?.percentage,
+        production_split_4_wallet: remixSplits.production[3]?.wallet,
+        production_split_4_percentage: remixSplits.production[3]?.percentage,
+        production_split_5_wallet: remixSplits.production[4]?.wallet,
+        production_split_5_percentage: remixSplits.production[4]?.percentage,
+        production_split_6_wallet: remixSplits.production[5]?.wallet,
+        production_split_6_percentage: remixSplits.production[5]?.percentage,
+        production_split_7_wallet: remixSplits.production[6]?.wallet,
+        production_split_7_percentage: remixSplits.production[6]?.percentage,
+
+        // New pricing model (from migration)
+        // Gen 1 remixes can be downloaded IF both source loops allow downloads
+        // Download price = sum of both loop download prices (minimum)
+        remix_price_stx: 1.0, // Fixed 1 STX per remix usage
+        allow_downloads: bothLoopsAllowDownloads, // Only if BOTH loops allow downloads
+        download_price_stx: remixDownloadPrice, // Sum of both loop prices, or null if not downloadable
+        price_stx: remixDownloadPrice || 1.0, // Legacy field - use download price if available, otherwise remix price
 
         // Additional metadata
         tags: ['remix', '8-bar', 'mixer'],
         description: `8-bar remix created in Mixmi Mixer from bars ${selectedSegment.start + 1} to ${selectedSegment.end}`,
-        license_type: 'remix_only', // Must be one of: remix_only, remix_external, custom
+        license_type: bothLoopsAllowDownloads ? 'remix_external' : 'remix_only', // remix_external if downloadable, remix_only if not
         allow_remixing: true,
-        price_stx: 1.0, // 1 STX per remix loop (matches source loop pricing)
 
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
