@@ -62,6 +62,9 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     remix_price: number;
     license_type: string;
     license_selection: string;
+    allow_downloads: boolean;
+    remix_price_stx: number;
+    download_price_stx: number | null;
   } | null>(null);
 
   // Audio playback state for individual loops
@@ -104,7 +107,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           production_split_2_percentage, production_split_2_wallet,
           production_split_3_percentage, production_split_3_wallet,
           uploader_address, primary_uploader_wallet, notes, price_stx, remix_price,
-          license_type, license_selection, source_track_ids
+          license_type, license_selection, source_track_ids,
+          allow_downloads, remix_price_stx, download_price_stx
         `)
         .eq('id', baseId)
         .single()
@@ -163,7 +167,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               price_stx: data.price_stx || 0,
               remix_price: data.remix_price || 0,
               license_type: data.license_type || '',
-              license_selection: data.license_selection || ''
+              license_selection: data.license_selection || '',
+              allow_downloads: data.allow_downloads || false,
+              remix_price_stx: data.remix_price_stx || 1.0,
+              download_price_stx: data.download_price_stx || null
             });
           }
         });
@@ -620,18 +627,34 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 <>
                   <div className="flex">
                     <span className="text-gray-500 w-24">Pack Price:</span>
-                    <span className="text-gray-300">{ipRights?.price_stx || track.price_stx} STX</span>
+                    <span className="text-gray-300">{ipRights?.download_price_stx || ipRights?.price_stx || track.price_stx} STX</span>
                   </div>
                   <div className="flex">
                     <span className="text-gray-500 w-24">Per Loop:</span>
-                    <span className="text-gray-300">{ipRights?.remix_price || '0.5'} STX each</span>
+                    <span className="text-gray-300">{ipRights?.remix_price_stx || ipRights?.remix_price || '1.0'} STX each remix</span>
                   </div>
                 </>
+              ) : track.content_type === 'loop' ? (
+                // Loops: Show different pricing based on allow_downloads
+                <>
+                  {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Download:</span>
+                      <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                    </div>
+                  ) : (
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Remix Fee:</span>
+                      <span className="text-gray-300">1 STX per mix</span>
+                    </div>
+                  )}
+                </>
               ) : (
-                ipRights?.price_stx && (
+                // Songs/EPs: Always show download price
+                (ipRights?.download_price_stx !== null || ipRights?.price_stx) && (
                   <div className="flex">
-                    <span className="text-gray-500 w-24">Price:</span>
-                    <span className="text-gray-300">{ipRights.price_stx} STX</span>
+                    <span className="text-gray-500 w-24">Download:</span>
+                    <span className="text-gray-300">{ipRights?.download_price_stx || ipRights?.price_stx} STX</span>
                   </div>
                 )
               )}
