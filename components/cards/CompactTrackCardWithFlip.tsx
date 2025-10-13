@@ -446,7 +446,20 @@ export default function CompactTrackCardWithFlip({
 
                         // For LOOPS: Check if downloadable or remix-only
                         if (track.content_type === 'loop') {
-                          // New pricing model: check download_price_stx first
+                          // PRIORITY 1: Check allow_downloads flag first (most reliable indicator)
+                          if (track.allow_downloads === false) {
+                            // This is a remix-only loop - show "MIX" badge
+                            return (
+                              <div
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                                title="1 STX per recorded remix"
+                              >
+                                MIX
+                              </div>
+                            );
+                          }
+
+                          // PRIORITY 2: Check if loop has download_price_stx (new model)
                           if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
                             // Loop has download price - show buy button
                             return track.download_price_stx === 0 ? (
@@ -468,26 +481,8 @@ export default function CompactTrackCardWithFlip({
                             );
                           }
 
-                          // Check allow_downloads flag (explicit false = remix-only)
-                          if (track.allow_downloads === false) {
-                            // This is a remix-only loop - show mixer icon
-                            return (
-                              <div
-                                className="flex items-center justify-center py-0.5 px-2 bg-slate-700/50 rounded"
-                                title="1 STX per recorded remix"
-                              >
-                                <svg className="w-4 h-4 text-[#81E4F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <rect x="4" y="4" width="7" height="7" rx="1.5"/>
-                                  <rect x="13" y="4" width="7" height="7" rx="1.5"/>
-                                  <line x1="6" y1="17" x2="18" y2="17"/>
-                                  <line x1="12" y1="15" x2="12" y2="19"/>
-                                </svg>
-                              </div>
-                            );
-                          }
-
-                          // Legacy: check price_stx
-                          if (track.price_stx) {
+                          // PRIORITY 3: Check allow_downloads === true with legacy price_stx
+                          if (track.allow_downloads === true && track.price_stx) {
                             return (
                               <button
                                 onClick={handlePurchaseClick}
@@ -499,18 +494,27 @@ export default function CompactTrackCardWithFlip({
                             );
                           }
 
-                          // Fallback for loops with no clear pricing: show mixer icon (assume remix-only)
+                          // PRIORITY 4: Legacy tracks with price_stx but no allow_downloads flag set
+                          // These are old tracks - assume downloadable
+                          if (track.price_stx && track.allow_downloads !== false) {
+                            return (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price - click to add to cart"
+                              >
+                                {track.price_stx}
+                              </button>
+                            );
+                          }
+
+                          // Fallback: no pricing info, assume remix-only
                           return (
                             <div
-                              className="flex items-center justify-center py-0.5 px-2 bg-slate-700/50 rounded"
+                              className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
                               title="1 STX per recorded remix"
                             >
-                              <svg className="w-4 h-4 text-[#81E4F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="4" y="4" width="7" height="7" rx="1.5"/>
-                                <rect x="13" y="4" width="7" height="7" rx="1.5"/>
-                                <line x1="6" y1="17" x2="18" y2="17"/>
-                                <line x1="12" y1="15" x2="12" y2="19"/>
-                              </svg>
+                              MIX
                             </div>
                           );
                         }
