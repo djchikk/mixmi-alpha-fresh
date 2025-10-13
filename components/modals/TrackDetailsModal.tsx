@@ -871,16 +871,6 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               </div>
             </div>
           </div>
-
-          {/* Notes */}
-          {ipRights && ipRights.notes && (
-            <div>
-              <Divider title="NOTES" />
-              <div className="text-xs text-gray-300">
-                {ipRights.notes}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>,
