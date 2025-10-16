@@ -160,10 +160,12 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
       };
       
       // Create individual loop record
+      // Use audio filename (without extension) as loop title for better UX
+      const loopTitle = file.name.replace(/\.[^/.]+$/, "") || `Loop ${i + 1}`;
       const loopData = {
         ...baseTrackData,
         id: crypto.randomUUID(),
-        title: `${(formData as any).pack_title || formData.title} - Loop ${i + 1}`,
+        title: loopTitle,
         content_type: 'loop', // Individual loops must be 'loop' type
         loop_category: 'pack',
         pack_id: packId,
@@ -221,13 +223,13 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
     // Explicitly inherit licensing from pack
     allow_downloads: baseTrackData.allow_downloads,
     // Use form pricing for loop packs with new pricing model
-    remix_price_stx: (formData as any).price_per_loop || 0.5, // Per loop remix price (shown on card)
+    remix_price_stx: 1.0, // Platform standard: 1 STX per loop remix
     download_price_stx: baseTrackData.allow_downloads
       ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Total pack download price
       : null, // Remix-only packs have no download price
     price_stx: baseTrackData.allow_downloads
-      ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Legacy: total pack price
-      : ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length, // Legacy: total remix cost
+      ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Legacy: total pack download price
+      : null, // Legacy: remix-only packs should show MIX badge (no price_stx)
     description: formData.description + ` (Loop Pack containing ${formData.loop_files!.length} loops)`,
   };
   

@@ -450,13 +450,13 @@ export default function CompactTrackCardWithFlip({
                         if (track.content_type === 'loop') {
                           // PRIORITY 1: Check allow_downloads flag first (most reliable indicator)
                           if (track.allow_downloads === false) {
-                            // This is a remix-only loop - show "MIX" badge
+                            // This is a remix-only loop - show "M" badge
                             return (
                               <div
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                                title="1 STX per recorded remix"
+                                title="Platform remix only - 1 STX per recorded remix"
                               >
-                                MIX
+                                M
                               </div>
                             );
                           }
@@ -514,21 +514,21 @@ export default function CompactTrackCardWithFlip({
                           return (
                             <div
                               className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                              title="1 STX per recorded remix"
+                              title="Platform remix only - 1 STX per recorded remix"
                             >
-                              MIX
+                              M
                             </div>
                           );
                         }
 
-                        // For MIXES: Always show "MIX" badge (mixes don't have downloads for MVP)
+                        // For MIXES: Always show "M" badge (mixes don't have downloads for MVP)
                         if (track.content_type === 'mix') {
                           return (
                             <div
                               className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                              title="1 STX per recorded remix"
+                              title="Platform remix only - 1 STX per recorded remix"
                             >
-                              MIX
+                              M
                             </div>
                           );
                         }
