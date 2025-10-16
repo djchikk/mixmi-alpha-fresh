@@ -8,6 +8,67 @@ This file provides guidance to Claude Code when working with the Mixmi Alpha Upl
 
 ## 🚀 **October 2025 Achievements**
 
+### **🧬 GEN 1 REMIX IP SPLIT SYSTEM COMPLETE! (October 15, 2025)**
+**MAJOR MILESTONE: Correct IP attribution for remix genealogy with comprehensive test coverage!**
+
+**Achievement:** Implemented and validated the complete Gen 1 remix IP split calculation and display system
+- **Business Model:** Remixer gets 20% commission when someone buys their remix (not when they create it)
+- **IP Attribution:** Each source loop contributes 50% to both composition and production pies
+- **Remixer Exclusion:** Remixer is NOT an IP holder - they're a reseller/distributor
+- **Status:** ✅ Calculations working, UI displaying correctly, all edge cases tested
+
+**Technical Implementation:**
+
+1. **Core Calculation Logic** (`lib/calculateRemixSplits.ts`)
+   - Each loop contributes 50% to remix composition and production pies
+   - Scales contributor percentages by 0.5 (e.g., 100% → 50% of remix)
+   - Consolidates duplicate wallets across composition and production
+   - Adjusts for rounding errors to ensure exactly 100% totals
+   - Returns separate splits for composition and production rights
+
+2. **UI Display** (`components/modals/TrackDetailsModal.tsx`)
+   - Shows IP splits grouped by source loop for clarity
+   - Displays scaling: "Creator: 100% → 50% of remix"
+   - Includes wallet addresses for transparency during alpha
+   - Clear visual separation between loops and remixer note
+   - Works for Gen 0 loops, Gen 1 remixes, songs, EPs, and loop packs
+
+3. **Comprehensive Test Suite** (`scripts/test-remix-splits.ts`)
+   - **Scenario 1:** Simple baseline (1 composer + 1 producer per loop) ✅
+   - **Scenario 2:** Multiple contributors (3 composers + 2 producers) ✅
+   - **Scenario 3:** Same person in multiple roles (consolidation) ✅
+   - **Scenario 4:** Rounding edge cases (33%, 51% splits) ✅
+   - All tests validate: 100% totals, proper scaling, consolidation, rounding
+   - Run with: `npm run test:remix-splits`
+
+**Key Insights Discovered:**
+
+- **Remixer Can Be Contributor:** If remixer contributed to a source loop, they appear in IP splits AND get commission - two separate payments for transparency
+- **Equal Splits Forced:** Simplified to auto-equal splits (no negotiation) to reduce complexity
+- **Payment Context Matters:**
+  - Creating remix: Remixer is BUYER (pays 1 STX, gets 0% commission)
+  - Someone downloads remix: Remixer is SELLER (gets 20% commission)
+
+**Files Changed:**
+- `lib/calculateRemixSplits.ts` - Complete rewrite of IP split calculation
+- `components/modals/TrackDetailsModal.tsx` - Grouped source loop display
+- `scripts/test-remix-splits.ts` - Automated test suite (4 scenarios)
+- `scripts/test-data-setup.sql` - Optional database test data
+- `scripts/test-data-cleanup.sql` - Test data removal
+- `scripts/TEST_SUITE_README.md` - Test documentation
+
+**Why This Matters:**
+- **Fair Attribution:** All original creators properly credited and compensated
+- **Transparent Math:** Visual display shows exactly how splits are calculated
+- **Edge Case Coverage:** Tested complex scenarios with multiple contributors
+- **Foundation for Gen 2+:** Clean baseline for future generation payment models
+
+**Next Steps:**
+- Simplify remix creation flow (1 STX flat fee, no download options)
+- Implement "remix as bookmark" model (pay to save/curate)
+- Design Heritage Pools for Gen 2+ payments
+- Build out creative genealogy visualization
+
 ### **🎉 MAINNET PAYMENT SPLITTER LIVE! (October 7, 2025)**
 **MAJOR BREAKTHROUGH: First successful music payment split on Stacks mainnet!**
 
