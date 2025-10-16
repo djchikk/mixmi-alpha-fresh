@@ -507,6 +507,10 @@ export default function PaymentModal({
         // Stacks transaction
         stacks_tx_id: stacksTxId,
 
+        // Payment tracking - mark as pending until verified on-chain
+        payment_status: 'pending',
+        payment_checked_at: null,
+
         // IP Attribution - Composition (expanded to 7 splits, uses UNCONSOLIDATED splits)
         composition_split_1_wallet: remixSplits.composition[0]?.wallet,
         composition_split_1_percentage: remixSplits.composition[0]?.percentage,

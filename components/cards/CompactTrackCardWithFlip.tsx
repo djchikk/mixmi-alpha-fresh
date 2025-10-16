@@ -521,6 +521,18 @@ export default function CompactTrackCardWithFlip({
                           );
                         }
 
+                        // For MIXES: Always show "MIX" badge (mixes don't have downloads for MVP)
+                        if (track.content_type === 'mix') {
+                          return (
+                            <div
+                              className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                              title="1 STX per recorded remix"
+                            >
+                              MIX
+                            </div>
+                          );
+                        }
+
                         // Fallback for unknown content types: check for price_stx
                         if (track.price_stx) {
                           return (

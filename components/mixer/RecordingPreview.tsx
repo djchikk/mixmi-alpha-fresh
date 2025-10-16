@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Download, X, ShoppingCart } from 'lucide-react';
 import RecordingWaveformDisplay from './RecordingWaveformDisplay';
 import PaymentModal from './PaymentModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface RecordingPreviewProps {
   recordingUrl: string;
@@ -26,9 +28,12 @@ export default function RecordingPreview({
   onClose,
   onSelectSegment
 }: RecordingPreviewProps) {
+  const { walletAddress } = useAuth();
+  const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<{ start: number; end: number }>({ start: 0, end: 8 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -225,10 +230,61 @@ export default function RecordingPreview({
           onClose={() => setShowPaymentModal(false)}
           onSuccess={() => {
             setShowPaymentModal(false);
-            onClose();
-            // TODO: Show success message and handle post-payment flow
+            setShowSuccessModal(true);
           }}
         />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center">
+          <div className="bg-slate-900 rounded-lg p-8 max-w-md w-full mx-4 border border-green-500/30">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              <h2 className="text-2xl font-bold text-white mb-2">Remix Saved!</h2>
+              <p className="text-gray-400 mb-6">
+                Your remix has been recorded and payment processed successfully.
+                It's now available in your creator store.
+              </p>
+
+              <div className="bg-slate-800 rounded-lg p-4 mb-6 border border-slate-700">
+                <p className="text-sm text-gray-300 mb-2">
+                  <span className="text-cyan-400">Note:</span> Your remix may take a moment to appear.
+                  You may need to refresh the page to see it.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    onClose();
+                    if (walletAddress) {
+                      router.push(`/store/${walletAddress}`);
+                    }
+                  }}
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  View My Store
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    onClose();
+                  }}
+                  className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
