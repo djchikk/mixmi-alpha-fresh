@@ -309,6 +309,40 @@ export default function RecordingWaveformDisplay({
     }
   };
 
+  // Auto-scroll to keep selection visible when zoomed and dragging
+  useEffect(() => {
+    if (!containerRef.current || !canvasRef.current || zoomLevel === 1 || !isDragging) return;
+
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    const containerWidth = container.clientWidth;
+    const canvasWidth = canvas.width;
+
+    // Calculate selection center position in pixels
+    const selectionCenter = ((selectionStart + selectionEnd) / 2 / totalBars) * canvasWidth;
+
+    // Scroll to center the selection
+    const scrollPos = Math.max(0, selectionCenter - containerWidth / 2);
+    container.scrollLeft = scrollPos;
+  }, [selectionStart, selectionEnd, isDragging, zoomLevel, totalBars]);
+
+  // Jump to selection start/end helpers
+  const jumpToSelectionStart = () => {
+    if (!containerRef.current || !canvasRef.current) return;
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    const startX = (selectionStart / totalBars) * canvas.width;
+    container.scrollLeft = Math.max(0, startX - 100); // Offset 100px for visibility
+  };
+
+  const jumpToSelectionEnd = () => {
+    if (!containerRef.current || !canvasRef.current) return;
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    const endX = (selectionEnd / totalBars) * canvas.width;
+    container.scrollLeft = Math.max(0, endX - container.clientWidth + 100);
+  };
+
   return (
     <div className="space-y-3">
       {/* Zoom controls */}
@@ -331,6 +365,27 @@ export default function RecordingWaveformDisplay({
           >
             Zoom In
           </button>
+
+          {/* Jump to selection buttons (only show when zoomed) */}
+          {zoomLevel > 1 && (
+            <>
+              <span className="text-slate-600 mx-1">|</span>
+              <button
+                onClick={jumpToSelectionStart}
+                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                title="Jump to selection start"
+              >
+                ← Start
+              </button>
+              <button
+                onClick={jumpToSelectionEnd}
+                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                title="Jump to selection end"
+              >
+                End →
+              </button>
+            </>
+          )}
         </div>
         <div className="text-xs text-gray-400">
           Drag handles to adjust length • Drag bracket to move • Min 4 bars
