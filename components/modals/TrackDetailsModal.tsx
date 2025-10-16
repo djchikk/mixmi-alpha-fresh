@@ -877,8 +877,6 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               <>
                 {/* Loop through each source track and display its contributors */}
                 {sourceTracks.map((sourceLoop, loopIndex) => {
-                  console.log(`🔍 Processing source loop ${loopIndex}:`, sourceLoop);
-
                   // Collect composition splits from this source loop
                   const compSplits = [];
                   if (sourceLoop.composition_split_1_wallet && sourceLoop.composition_split_1_percentage) {
@@ -891,8 +889,6 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                     compSplits.push({ wallet: sourceLoop.composition_split_3_wallet, percentage: sourceLoop.composition_split_3_percentage });
                   }
 
-                  console.log(`📊 Composition splits collected for loop ${loopIndex}:`, compSplits);
-
                   // Collect production splits from this source loop
                   const prodSplits = [];
                   if (sourceLoop.production_split_1_wallet && sourceLoop.production_split_1_percentage) {
@@ -904,8 +900,6 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   if (sourceLoop.production_split_3_wallet && sourceLoop.production_split_3_percentage) {
                     prodSplits.push({ wallet: sourceLoop.production_split_3_wallet, percentage: sourceLoop.production_split_3_percentage });
                   }
-
-                  console.log(`🎵 Production splits collected for loop ${loopIndex}:`, prodSplits);
 
                   return (
                     <div key={sourceLoop.id} className="mb-4">
