@@ -172,9 +172,16 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
         duration: audioResult.duration || null,
         bpm: audioResult.bpm || baseTrackData.bpm,
         cover_image_url: formData.cover_image_url, // Inherit pack cover image
+        // Explicitly inherit licensing and pricing from pack
+        allow_downloads: baseTrackData.allow_downloads,
+        remix_price_stx: 1.0, // Individual loops always 1 STX per remix
+        download_price_stx: baseTrackData.allow_downloads
+          ? ((formData as any).price_per_loop || 0.5) // Individual loop download price
+          : null, // Remix-only packs have no download price
       };
       
       console.log(`📊 Loop ${i + 1} data:`, loopData);
+      console.log(`✅ Loop ${i + 1} licensing: allow_downloads=${loopData.allow_downloads}, download_price_stx=${loopData.download_price_stx}`);
       
       const { data: loopResult, error: loopError } = await authSession.supabase
         .from('ip_tracks')
@@ -205,19 +212,27 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
     id: packId, // Use the same pack ID so individual loops can be found!
     title: (formData as any).pack_title || formData.title, // Use pack_title for loop packs
     content_type: 'loop_pack', // This will show on globe
-    loop_category: null, // Pack records don't need category  
+    loop_category: null, // Pack records don't need category
     pack_id: null, // Master pack record doesn't belong to a pack - IT IS the pack
     pack_position: null, // Master record has no position
     audio_url: firstLoopAudioUrl, // Use first loop's audio
     duration: null, // Pack duration could be sum of all loops, but null for now
     bpm: baseTrackData.bpm, // Use pack-level BPM from form
-    // Use form pricing for loop packs, not defaults
-    price_stx: ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length, // Total pack price
-    remix_price: (formData as any).price_per_loop || 0.5, // Per loop price
+    // Explicitly inherit licensing from pack
+    allow_downloads: baseTrackData.allow_downloads,
+    // Use form pricing for loop packs with new pricing model
+    remix_price_stx: (formData as any).price_per_loop || 0.5, // Per loop remix price (shown on card)
+    download_price_stx: baseTrackData.allow_downloads
+      ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Total pack download price
+      : null, // Remix-only packs have no download price
+    price_stx: baseTrackData.allow_downloads
+      ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Legacy: total pack price
+      : ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length, // Legacy: total remix cost
     description: formData.description + ` (Loop Pack containing ${formData.loop_files!.length} loops)`,
   };
   
   console.log('📊 Master pack record data:', masterPackRecord);
+  console.log(`✅ Master pack licensing: allow_downloads=${masterPackRecord.allow_downloads}, download_price_stx=${masterPackRecord.download_price_stx}`);
   console.log('🚀 ABOUT TO INSERT MASTER PACK RECORD...');
   
   const { data: masterResult, error: masterError } = await authSession.supabase

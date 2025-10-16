@@ -662,20 +662,33 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                       ? ipRights?.allow_downloads
                         ? 'Platform Remix + Download'
                         : 'Platform Remix Only'
-                      : ipRights?.license_selection === 'platform_download'
-                        ? 'Download Only'
-                        : 'Platform Remix Only'}
+                      : track.content_type === 'loop_pack'
+                        ? ipRights?.allow_downloads
+                          ? 'Platform Remix + Download'
+                          : 'Platform Remix Only'
+                        : ipRights?.license_selection === 'platform_download'
+                          ? 'Download Only'
+                          : 'Platform Remix Only'}
                 </span>
               </div>
               {track.content_type === 'loop_pack' ? (
                 <>
+                  {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                    // Downloadable pack: Show total download price
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Download:</span>
+                      <span className="text-gray-300">{ipRights.download_price_stx} STX (full pack)</span>
+                    </div>
+                  ) : (
+                    // Remix-only pack: Show per-loop remix price
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Remix Fee:</span>
+                      <span className="text-gray-300">1 STX per loop</span>
+                    </div>
+                  )}
                   <div className="flex">
-                    <span className="text-gray-500 w-24">Pack Price:</span>
-                    <span className="text-gray-300">{ipRights?.download_price_stx || ipRights?.price_stx || track.price_stx} STX</span>
-                  </div>
-                  <div className="flex">
-                    <span className="text-gray-500 w-24">Per Loop:</span>
-                    <span className="text-gray-300">{ipRights?.remix_price_stx || ipRights?.remix_price || '1.0'} STX each remix</span>
+                    <span className="text-gray-500 w-24">Loops:</span>
+                    <span className="text-gray-300">{packLoops.length || '?'} loops in pack</span>
                   </div>
                 </>
               ) : track.content_type === 'loop' ? (
