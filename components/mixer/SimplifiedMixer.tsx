@@ -52,7 +52,7 @@ interface RecordingState {
   isRecording: boolean;
   recordingStartTime: number | null; // AudioContext.currentTime when recording starts
   barsRecorded: number;
-  targetBars: number; // Changed from targetCycles to targetBars (max 80)
+  targetBars: number; // Safety limit (120 bars = ~15 min at 120 BPM)
   recordedUrl: string | null;
   recordedDuration: number | null;
   showPreview: boolean;
@@ -88,7 +88,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     isRecording: false,
     recordingStartTime: null,
     barsRecorded: 0,
-    targetBars: 40, // Default to 40 bars (5 cycles of 8 bars), max 80 bars
+    targetBars: 120, // Safety limit: auto-stop at 120 bars (~15 min at 120 BPM)
     recordedUrl: null,
     recordedDuration: null,
     showPreview: false
@@ -889,13 +889,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       // Calculate bars recorded using centralized AudioTiming utility
       const barsRecorded = Math.floor(AudioTiming.timeToBar(elapsedTime, mixerState.masterBPM));
 
-      // Auto-stop when we reach the target
+      // Safety auto-stop at 120 bars limit
       if (barsRecorded >= recordingState.targetBars) {
-        console.log(`🎙️ Reached ${recordingState.targetBars} bars, stopping recording`);
+        console.warn(`⚠️ Reached safety limit of ${recordingState.targetBars} bars, auto-stopping recording`);
         stopRecording();
       } else if (barsRecorded > recordingState.barsRecorded) {
         setRecordingState(prev => ({ ...prev, barsRecorded }));
-        console.log(`🎙️ Bar ${barsRecorded + 1} of ${recordingState.targetBars} recorded (${elapsedTime.toFixed(2)}s elapsed)`);
+        console.log(`🎙️ Bar ${barsRecorded + 1} recorded (${elapsedTime.toFixed(2)}s elapsed)`);
       }
     }, 100); // Check every 100ms
 
@@ -1163,7 +1163,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         <RecordingPreview
           recordingUrl={recordingState.recordedUrl}
           duration={recordingState.recordedDuration || 0}
-          bars={recordingState.targetBars} // Actual bars recorded (40-80 bars)
+          bars={recordingState.barsRecorded} // Actual bars recorded
           bpm={mixerState.masterBPM}
           deckATrack={mixerState.deckA.track}
           deckBTrack={mixerState.deckB.track}
