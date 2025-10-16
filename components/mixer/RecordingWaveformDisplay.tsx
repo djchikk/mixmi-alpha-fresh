@@ -91,8 +91,17 @@ export default function RecordingWaveformDisplay({
   const [selectionEnd, setSelectionEnd] = useState(8); // End bar (exclusive, so 8 means bars 0-7)
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<'start' | 'end' | 'move' | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1); // 1 = normal, 2 = 2x zoom, etc.
+  const [zoomLevel, setZoomLevel] = useState(1); // 1 = normal, up to 8x zoom
+  const [selectedLength, setSelectedLength] = useState(8); // Default 8 bars
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Adaptive quantization based on zoom level
+  const getQuantizeAmount = (zoom: number): number => {
+    if (zoom <= 2) return 0.25; // Beat-level (1/4 bar)
+    if (zoom <= 4) return 0.125; // Eighth-note (1/8 bar)
+    if (zoom <= 6) return 0.0625; // Sixteenth-note (1/16 bar)
+    return 0.03125; // Thirty-second note (1/32 bar) - maximum precision
+  };
 
   // Calculate timing
   const beatsPerBar = 4;
@@ -278,11 +287,10 @@ export default function RecordingWaveformDisplay({
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
 
-    // Quantize to beats (1/4 bar) instead of whole bars for precision
-    const beatsPerBar = 4;
-    const totalBeats = totalBars * beatsPerBar;
-    const beat = Math.max(0, Math.min(totalBeats, Math.floor((x / rect.width) * totalBeats)));
-    const bar = beat / beatsPerBar; // Can be fractional (e.g., 2.25 = Bar 2, Beat 3)
+    // Adaptive quantization based on zoom level
+    const quantize = getQuantizeAmount(zoomLevel);
+    const rawBar = (x / rect.width) * totalBars;
+    const bar = Math.round(rawBar / quantize) * quantize; // Snap to quantize grid
 
     if (dragType === 'start') {
       // Allow dragging start handle, minimum 4 bars selection
@@ -305,13 +313,17 @@ export default function RecordingWaveformDisplay({
     if (isDragging) {
       setIsDragging(false);
       setDragType(null);
+      // Update selected length to match actual selection
+      setSelectedLength(selectionEnd - selectionStart);
       onSelectSegment(selectionStart, selectionEnd);
     }
   };
 
-  // Auto-scroll to keep selection visible when zoomed and dragging
+  // Auto-scroll to keep selection visible when zoomed and dragging handles
+  // (but NOT when moving the bracket - that's confusing)
   useEffect(() => {
     if (!containerRef.current || !canvasRef.current || zoomLevel === 1 || !isDragging) return;
+    if (dragType === 'move') return; // Don't auto-scroll when moving bracket
 
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -324,7 +336,7 @@ export default function RecordingWaveformDisplay({
     // Scroll to center the selection
     const scrollPos = Math.max(0, selectionCenter - containerWidth / 2);
     container.scrollLeft = scrollPos;
-  }, [selectionStart, selectionEnd, isDragging, zoomLevel, totalBars]);
+  }, [selectionStart, selectionEnd, isDragging, zoomLevel, totalBars, dragType]);
 
   // Jump to selection start/end helpers
   const jumpToSelectionStart = () => {
@@ -343,6 +355,32 @@ export default function RecordingWaveformDisplay({
     container.scrollLeft = Math.max(0, endX - container.clientWidth + 100);
   };
 
+  // Update selection length and adjust end point accordingly
+  const updateSelectionLength = (length: number) => {
+    setSelectedLength(length);
+    const newEnd = Math.min(totalBars, selectionStart + length);
+    setSelectionEnd(newEnd);
+    onSelectSegment(selectionStart, newEnd);
+  };
+
+  // Nudge selection start and maintain the selected length
+  const nudgeStart = (direction: -1 | 1) => {
+    const quantize = getQuantizeAmount(zoomLevel);
+    const newStart = Math.max(0, Math.min(totalBars - selectedLength, selectionStart + (direction * quantize)));
+    const newEnd = Math.min(totalBars, newStart + selectedLength);
+    setSelectionStart(newStart);
+    setSelectionEnd(newEnd);
+    onSelectSegment(newStart, newEnd);
+  };
+
+  const nudgeEnd = (direction: -1 | 1) => {
+    const quantize = getQuantizeAmount(zoomLevel);
+    const newEnd = Math.max(selectionStart + 4, Math.min(totalBars, selectionEnd + (direction * quantize)));
+    setSelectionEnd(newEnd);
+    setSelectedLength(newEnd - selectionStart);
+    onSelectSegment(selectionStart, newEnd);
+  };
+
   return (
     <div className="space-y-3">
       {/* Zoom controls */}
@@ -359,8 +397,8 @@ export default function RecordingWaveformDisplay({
             {zoomLevel}x
           </span>
           <button
-            onClick={() => setZoomLevel(Math.min(4, zoomLevel + 0.5))}
-            disabled={zoomLevel >= 4}
+            onClick={() => setZoomLevel(Math.min(8, zoomLevel + 0.5))}
+            disabled={zoomLevel >= 8}
             className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded text-sm transition-colors"
           >
             Zoom In
@@ -392,6 +430,73 @@ export default function RecordingWaveformDisplay({
         </div>
       </div>
 
+      {/* Precision controls (only show when zoomed) */}
+      {zoomLevel > 1 && (
+        <div className="space-y-2">
+          {/* Length selector */}
+          <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2 border border-slate-700">
+            <span className="text-sm text-gray-400">Select Length:</span>
+            <div className="flex items-center gap-2">
+              {[4, 8, 16, 32, 64].filter(len => len <= totalBars).map(length => (
+                <button
+                  key={length}
+                  onClick={() => updateSelectionLength(length)}
+                  className={`px-3 py-1 rounded text-sm transition-colors ${
+                    selectedLength === length
+                      ? 'bg-cyan-500 text-white font-semibold'
+                      : 'bg-slate-700 hover:bg-slate-600 text-white'
+                  }`}
+                >
+                  {length} bars
+                </button>
+              ))}
+              {totalBars > 64 && (
+                <button
+                  onClick={() => updateSelectionLength(totalBars)}
+                  className={`px-3 py-1 rounded text-sm transition-colors ${
+                    selectedLength === totalBars
+                      ? 'bg-cyan-500 text-white font-semibold'
+                      : 'bg-slate-700 hover:bg-slate-600 text-white'
+                  }`}
+                >
+                  Max ({totalBars})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Nudge controls */}
+          <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2 border border-slate-700">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-400">Fine Tune Start:</span>
+              <button
+                onClick={() => nudgeStart(-1)}
+                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                title="Nudge start earlier"
+              >
+                ← Left
+              </button>
+              <button
+                onClick={() => nudgeStart(1)}
+                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                title="Nudge start later"
+              >
+                Right →
+              </button>
+            </div>
+
+            <div className="text-xs text-cyan-400 font-mono">
+              Snap: {
+                getQuantizeAmount(zoomLevel) === 0.25 ? '1/4 bar (beat)' :
+                getQuantizeAmount(zoomLevel) === 0.125 ? '1/8 bar' :
+                getQuantizeAmount(zoomLevel) === 0.0625 ? '1/16 bar' :
+                '1/32 bar'
+              }
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Scrollable canvas container */}
       <div
         ref={containerRef}
@@ -402,8 +507,13 @@ export default function RecordingWaveformDisplay({
           ref={canvasRef}
           width={800}
           height={150}
-          className="h-32 cursor-pointer"
-          style={{ minWidth: '100%' }}
+          className="h-32"
+          style={{
+            minWidth: '100%',
+            cursor: isDragging && dragType === 'move' ? 'grabbing' :
+                    isDragging ? 'ew-resize' :
+                    'pointer'
+          }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
