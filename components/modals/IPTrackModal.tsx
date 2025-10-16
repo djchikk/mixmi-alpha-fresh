@@ -1956,10 +1956,12 @@ export default function IPTrackModal({
                 <span className="text-gray-400">Loops in Pack:</span>
                 <span className="text-white">{(formData as any).loop_files?.length || 0} detected</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Price per Loop:</span>
-                <span className="text-white">{(formData as any).price_per_loop || 0.5} STX</span>
-              </div>
+              {formData.allow_downloads && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Price per Loop:</span>
+                  <span className="text-white">{(formData as any).price_per_loop || 0.5} STX</span>
+                </div>
+              )}
             </>
           )}
           <div className="flex justify-between">

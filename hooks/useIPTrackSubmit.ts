@@ -177,7 +177,7 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
         // Explicitly inherit licensing and pricing from pack
         allow_downloads: baseTrackData.allow_downloads,
         remix_price_stx: 1.0, // Individual loops always 1 STX per remix
-        download_price_stx: baseTrackData.allow_downloads
+        download_price_stx: baseTrackData.allow_downloads === true
           ? ((formData as any).price_per_loop || 0.5) // Individual loop download price
           : null, // Remix-only packs have no download price
       };
@@ -224,10 +224,10 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
     allow_downloads: baseTrackData.allow_downloads,
     // Use form pricing for loop packs with new pricing model
     remix_price_stx: 1.0, // Platform standard: 1 STX per loop remix
-    download_price_stx: baseTrackData.allow_downloads
+    download_price_stx: baseTrackData.allow_downloads === true
       ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Total pack download price
       : null, // Remix-only packs have no download price
-    price_stx: baseTrackData.allow_downloads
+    price_stx: baseTrackData.allow_downloads === true
       ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Legacy: total pack download price
       : null, // Legacy: remix-only packs should show MIX badge (no price_stx)
     description: formData.description + ` (Loop Pack containing ${formData.loop_files!.length} loops)`,
