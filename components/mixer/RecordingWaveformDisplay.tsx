@@ -382,24 +382,24 @@ export default function RecordingWaveformDisplay({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Zoom controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setZoomLevel(Math.max(1, zoomLevel - 0.5))}
             disabled={zoomLevel <= 1}
-            className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded text-sm transition-colors"
+            className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 disabled:bg-slate-800/30 disabled:text-slate-600 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
           >
             Zoom Out
           </button>
-          <span className="text-sm text-gray-400 min-w-[60px] text-center">
+          <span className="text-sm text-cyan-400 font-mono min-w-[60px] text-center font-semibold">
             {zoomLevel}x
           </span>
           <button
             onClick={() => setZoomLevel(Math.min(8, zoomLevel + 0.5))}
             disabled={zoomLevel >= 8}
-            className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded text-sm transition-colors"
+            className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 disabled:bg-slate-800/30 disabled:text-slate-600 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
           >
             Zoom In
           </button>
@@ -407,17 +407,17 @@ export default function RecordingWaveformDisplay({
           {/* Jump to selection buttons (only show when zoomed) */}
           {zoomLevel > 1 && (
             <>
-              <span className="text-slate-600 mx-1">|</span>
+              <span className="text-slate-700 mx-1">|</span>
               <button
                 onClick={jumpToSelectionStart}
-                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
                 title="Jump to selection start"
               >
                 ← Start
               </button>
               <button
                 onClick={jumpToSelectionEnd}
-                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
                 title="Jump to selection end"
               >
                 End →
@@ -425,67 +425,67 @@ export default function RecordingWaveformDisplay({
             </>
           )}
         </div>
-        <div className="text-xs text-gray-400">
-          Drag handles to adjust length • Drag bracket to move • Min 4 bars
+        <div className="text-xs text-gray-500">
+          Drag handles to adjust • Drag bracket to move • Min 4 bars
         </div>
       </div>
 
       {/* Precision controls (only show when zoomed) */}
       {zoomLevel > 1 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* Length selector */}
-          <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2 border border-slate-700">
-            <span className="text-sm text-gray-400">Select Length:</span>
+          <div className="flex items-center justify-between bg-slate-800/40 backdrop-blur-sm rounded-xl px-5 py-3 border border-slate-700/50">
+            <span className="text-sm text-gray-400 font-medium">Select Length:</span>
             <div className="flex items-center gap-2">
               {[4, 8, 16, 32, 64].filter(len => len <= totalBars).map(length => (
                 <button
                   key={length}
                   onClick={() => updateSelectionLength(length)}
-                  className={`px-3 py-1 rounded text-sm transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm transition-all font-medium ${
                     selectedLength === length
-                      ? 'bg-cyan-500 text-white font-semibold'
-                      : 'bg-slate-700 hover:bg-slate-600 text-white'
+                      ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/25'
+                      : 'bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white'
                   }`}
                 >
-                  {length} bars
+                  {length}
                 </button>
               ))}
               {totalBars > 64 && (
                 <button
                   onClick={() => updateSelectionLength(totalBars)}
-                  className={`px-3 py-1 rounded text-sm transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm transition-all font-medium ${
                     selectedLength === totalBars
-                      ? 'bg-cyan-500 text-white font-semibold'
-                      : 'bg-slate-700 hover:bg-slate-600 text-white'
+                      ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/25'
+                      : 'bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white'
                   }`}
                 >
-                  Max ({totalBars})
+                  Max
                 </button>
               )}
             </div>
           </div>
 
           {/* Nudge controls */}
-          <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2 border border-slate-700">
+          <div className="flex items-center justify-between bg-slate-800/40 backdrop-blur-sm rounded-xl px-5 py-3 border border-slate-700/50">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-400">Fine Tune Start:</span>
+              <span className="text-sm text-gray-400 font-medium">Fine Tune Start:</span>
               <button
                 onClick={() => nudgeStart(-1)}
-                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
                 title="Nudge start earlier"
               >
                 ← Left
               </button>
               <button
                 onClick={() => nudgeStart(1)}
-                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
                 title="Nudge start later"
               >
                 Right →
               </button>
             </div>
 
-            <div className="text-xs text-cyan-400 font-mono">
+            <div className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-3 py-1.5 rounded-lg border border-cyan-500/30">
               Snap: {
                 getQuantizeAmount(zoomLevel) === 0.25 ? '1/4 bar (beat)' :
                 getQuantizeAmount(zoomLevel) === 0.125 ? '1/8 bar' :
@@ -500,7 +500,7 @@ export default function RecordingWaveformDisplay({
       {/* Scrollable canvas container */}
       <div
         ref={containerRef}
-        className="overflow-x-auto bg-slate-900 rounded-lg"
+        className="overflow-x-auto bg-[#0f1419] rounded-xl border border-slate-700/30"
         style={{ maxWidth: '100%' }}
       >
         <canvas
@@ -521,8 +521,8 @@ export default function RecordingWaveformDisplay({
         />
       </div>
 
-      <div className="text-xs text-gray-400 text-center">
-        Total: {totalBars} bars recorded • Selected: bars {selectionStart + 1}-{selectionEnd} ({selectionEnd - selectionStart} bars)
+      <div className="text-xs text-gray-500 text-center font-mono">
+        Total: <span className="text-gray-400">{totalBars} bars</span> • Selected: <span className="text-cyan-400 font-semibold">bars {selectionStart + 1}-{selectionEnd}</span> ({selectionEnd - selectionStart} bars)
       </div>
     </div>
   );
