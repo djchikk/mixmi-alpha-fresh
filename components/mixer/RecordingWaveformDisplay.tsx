@@ -11,6 +11,73 @@ interface RecordingWaveformDisplayProps {
   onSelectSegment: (startBar: number, endBar: number) => void;
 }
 
+// Analyze frequency content and return color (Serato-style)
+const analyzeFrequencyColors = (audioBuffer: AudioBuffer, numPixels: number): string[] => {
+  const channelData = audioBuffer.getChannelData(0);
+  const sampleRate = audioBuffer.sampleRate;
+  const samplesPerPixel = Math.ceil(channelData.length / numPixels);
+
+  const colors: string[] = [];
+
+  for (let i = 0; i < numPixels; i++) {
+    const startSample = i * samplesPerPixel;
+    const endSample = Math.min(startSample + samplesPerPixel, channelData.length);
+    const chunk = channelData.slice(startSample, endSample);
+    const color = analyzeChunkFrequency(chunk, sampleRate);
+    colors.push(color);
+  }
+
+  return colors;
+};
+
+const analyzeChunkFrequency = (chunk: Float32Array, sampleRate: number): string => {
+  let zeroCrossings = 0;
+  let totalEnergy = 0;
+
+  for (let i = 1; i < chunk.length; i++) {
+    if ((chunk[i - 1] >= 0 && chunk[i] < 0) || (chunk[i - 1] < 0 && chunk[i] >= 0)) {
+      zeroCrossings++;
+    }
+    totalEnergy += chunk[i] * chunk[i];
+  }
+
+  if (totalEnergy === 0) return '#DC143C'; // Silence = bass color
+
+  const zcr = zeroCrossings / chunk.length;
+  const estimatedFreq = (zcr * sampleRate) / 2;
+
+  // Serato-style frequency classification
+  if (estimatedFreq < 250) {
+    // Bass (kick drums): Deep Red → Orange-Red
+    const ratio = Math.min(estimatedFreq / 250, 1);
+    return interpolateColor('#DC143C', '#FF4500', ratio);
+  } else if (estimatedFreq < 2000) {
+    // Mids (snares, vocals): Orange → Gold
+    const ratio = (estimatedFreq - 250) / (2000 - 250);
+    return interpolateColor('#FF8C42', '#FFD700', ratio);
+  } else {
+    // Highs (hi-hats, cymbals): Cyan → Blue
+    const ratio = Math.min((estimatedFreq - 2000) / 10000, 1);
+    return interpolateColor('#5DADE2', '#4A90E2', ratio);
+  }
+};
+
+const interpolateColor = (color1: string, color2: string, ratio: number): string => {
+  const r1 = parseInt(color1.substring(1, 3), 16);
+  const g1 = parseInt(color1.substring(3, 5), 16);
+  const b1 = parseInt(color1.substring(5, 7), 16);
+
+  const r2 = parseInt(color2.substring(1, 3), 16);
+  const g2 = parseInt(color2.substring(3, 5), 16);
+  const b2 = parseInt(color2.substring(5, 7), 16);
+
+  const r = Math.round(r1 + (r2 - r1) * ratio);
+  const g = Math.round(g1 + (g2 - g1) * ratio);
+  const b = Math.round(b1 + (b2 - b1) * ratio);
+
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
+
 export default function RecordingWaveformDisplay({
   audioBuffer,
   currentTime,
@@ -68,18 +135,23 @@ export default function RecordingWaveformDisplay({
       waveformData.push(max);
     }
 
-    // Draw waveform
+    // Draw waveform with Serato-style frequency coloring
     const centerY = height / 2;
-    ctx.strokeStyle = '#81E4F2';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
+
+    // Analyze frequency content for each pixel
+    const frequencyColors = analyzeFrequencyColors(audioBuffer, waveformData.length);
 
     for (let x = 0; x < waveformData.length; x++) {
       const amplitude = waveformData[x] * (height / 2 - 10);
+      const color = frequencyColors[x] || '#81E4F2'; // Fallback to cyan
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
       ctx.moveTo(x, centerY - amplitude);
       ctx.lineTo(x, centerY + amplitude);
+      ctx.stroke();
     }
-    ctx.stroke();
 
     // Draw bar lines
     ctx.strokeStyle = '#2d3748';

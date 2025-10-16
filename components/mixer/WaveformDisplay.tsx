@@ -207,19 +207,19 @@ const WaveformDisplay = memo(function WaveformDisplay({
     const zcr = zeroCrossings / chunk.length;
     const estimatedFreq = (zcr * sampleRate) / 2;
 
-    // Classify into frequency bands
+    // Classify into frequency bands (Serato-style professional color scheme)
     if (estimatedFreq < 250) {
-      // Bass frequencies (20-250Hz): Red/Orange
+      // Bass frequencies (20-250Hz): Deep Red to Orange-Red (kick drums, bass)
       const ratio = Math.min(estimatedFreq / 250, 1);
-      return interpolateColor('#FF6B6B', '#FF8866', ratio);
-    } else if (estimatedFreq < 4000) {
-      // Mid frequencies (250-4kHz): Amber/Gold
-      const ratio = (estimatedFreq - 250) / (4000 - 250);
-      return interpolateColor('#FFB366', '#FFD966', ratio);
+      return interpolateColor('#DC143C', '#FF4500', ratio); // Crimson → Orange-Red
+    } else if (estimatedFreq < 2000) {
+      // Mid frequencies (250-2kHz): Orange to Gold (snares, vocals, synths)
+      const ratio = (estimatedFreq - 250) / (2000 - 250);
+      return interpolateColor('#FF8C42', '#FFD700', ratio); // Warm Orange → Gold
     } else {
-      // High frequencies (4kHz+): Blue/Cyan
-      const ratio = Math.min((estimatedFreq - 4000) / 12000, 1);
-      return interpolateColor('#66B3FF', '#81E4F2', ratio);
+      // High frequencies (2kHz+): Cyan to Blue (hi-hats, cymbals, air)
+      const ratio = Math.min((estimatedFreq - 2000) / 10000, 1);
+      return interpolateColor('#5DADE2', '#4A90E2', ratio); // Cyan → Blue
     }
   };
 

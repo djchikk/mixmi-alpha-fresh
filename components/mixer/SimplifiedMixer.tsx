@@ -6,6 +6,7 @@ import { useMixerAudio } from '@/hooks/useMixerAudio';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { applyCrossfader, SimpleLoopSync, getAudioContext, getMasterGain } from '@/lib/mixerAudio';
+import { AudioTiming } from '@/lib/audioTiming';
 import SimplifiedDeck from './SimplifiedDeck';
 import WaveformDisplay from './WaveformDisplay';
 import CrossfaderControl from './CrossfaderControl';
@@ -49,9 +50,9 @@ interface SimplifiedMixerState {
 // Recording state
 interface RecordingState {
   isRecording: boolean;
-  recordingStartTime: number | null;
-  cyclesRecorded: number;
-  targetCycles: number;
+  recordingStartTime: number | null; // AudioContext.currentTime when recording starts
+  barsRecorded: number;
+  targetBars: number; // Changed from targetCycles to targetBars (max 80)
   recordedUrl: string | null;
   recordedDuration: number | null;
   showPreview: boolean;
@@ -86,8 +87,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const [recordingState, setRecordingState] = useState<RecordingState>({
     isRecording: false,
     recordingStartTime: null,
-    cyclesRecorded: 0,
-    targetCycles: 5, // Default to 5 cycles
+    barsRecorded: 0,
+    targetBars: 40, // Default to 40 bars (5 cycles of 8 bars), max 80 bars
     recordedUrl: null,
     recordedDuration: null,
     showPreview: false
@@ -767,6 +768,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       return;
     }
 
+    const audioContext = getAudioContext();
+    if (!audioContext) {
+      console.error('❌ No audio context available for recording');
+      return;
+    }
+
     // Clear previous recording
     recordedChunksRef.current = [];
 
@@ -774,6 +781,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     const mediaRecorder = new MediaRecorder(stream, {
       mimeType: 'audio/webm;codecs=opus'
     });
+
+    // Capture the start time from AudioContext for sample-accurate timing
+    const recordingStartTime = audioContext.currentTime;
 
     mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
@@ -786,13 +796,19 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
       const url = URL.createObjectURL(blob);
 
+      // Calculate actual duration using AudioContext time
+      const recordingEndTime = audioContext.currentTime;
+      const actualDuration = recordingEndTime - recordingStartTime;
+
       setRecordingState(prev => ({
         ...prev,
         isRecording: false,
         recordedUrl: url,
-        recordedDuration: (Date.now() - (prev.recordingStartTime || Date.now())) / 1000,
+        recordedDuration: actualDuration,
         showPreview: true
       }));
+
+      console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${AudioTiming.timeToBar(actualDuration, mixerState.masterBPM).toFixed(1)} bars)`);
     };
 
     mediaRecorder.start(100); // Collect data every 100ms
@@ -801,12 +817,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     setRecordingState(prev => ({
       ...prev,
       isRecording: true,
-      recordingStartTime: Date.now(),
-      cyclesRecorded: 0
+      recordingStartTime: recordingStartTime,
+      barsRecorded: 0
     }));
 
-    console.log('✅ Recording started');
-  }, [setupMixerRecording]);
+    console.log(`✅ Recording started at AudioContext time: ${recordingStartTime.toFixed(3)}s`);
+  }, [setupMixerRecording, mixerState.masterBPM]);
 
   const stopRecording = useCallback(() => {
     console.log('🎙️ Stopping recording...');
@@ -855,27 +871,36 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
   }, [recordingState.isRecording, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
 
-  // Monitor playback to count cycles and auto-stop recording
+  // Monitor playback to count bars and auto-stop recording at target (sample-accurate with AudioContext)
   useEffect(() => {
-    if (!recordingState.isRecording || !recordingState.recordingStartTime) return;
+    if (!recordingState.isRecording || recordingState.recordingStartTime === null) return;
 
-    const checkCycles = setInterval(() => {
-      const elapsed = (Date.now() - recordingState.recordingStartTime!) / 1000;
-      const secondsPerBar = 4 / (mixerState.masterBPM / 60);
-      const secondsPerCycle = secondsPerBar * 8; // 8-bar cycle
-      const cyclesRecorded = Math.floor(elapsed / secondsPerCycle);
+    const audioContext = getAudioContext();
+    if (!audioContext) {
+      console.error('❌ No audio context available for monitoring recording');
+      return;
+    }
 
-      if (cyclesRecorded >= recordingState.targetCycles) {
-        console.log(`🎙️ Reached ${recordingState.targetCycles} cycles, stopping recording`);
+    const checkBars = setInterval(() => {
+      // Use AudioContext.currentTime for sample-accurate timing (not Date.now()!)
+      const currentTime = audioContext.currentTime;
+      const elapsedTime = currentTime - recordingState.recordingStartTime!;
+
+      // Calculate bars recorded using centralized AudioTiming utility
+      const barsRecorded = Math.floor(AudioTiming.timeToBar(elapsedTime, mixerState.masterBPM));
+
+      // Auto-stop when we reach the target
+      if (barsRecorded >= recordingState.targetBars) {
+        console.log(`🎙️ Reached ${recordingState.targetBars} bars, stopping recording`);
         stopRecording();
-      } else if (cyclesRecorded > recordingState.cyclesRecorded) {
-        setRecordingState(prev => ({ ...prev, cyclesRecorded }));
-        console.log(`🎙️ Cycle ${cyclesRecorded + 1} of ${recordingState.targetCycles} recorded`);
+      } else if (barsRecorded > recordingState.barsRecorded) {
+        setRecordingState(prev => ({ ...prev, barsRecorded }));
+        console.log(`🎙️ Bar ${barsRecorded + 1} of ${recordingState.targetBars} recorded (${elapsedTime.toFixed(2)}s elapsed)`);
       }
-    }, 100);
+    }, 100); // Check every 100ms
 
-    return () => clearInterval(checkCycles);
-  }, [recordingState.isRecording, recordingState.recordingStartTime, recordingState.targetCycles, recordingState.cyclesRecorded, mixerState.masterBPM, stopRecording]);
+    return () => clearInterval(checkBars);
+  }, [recordingState.isRecording, recordingState.recordingStartTime, recordingState.targetBars, recordingState.barsRecorded, mixerState.masterBPM, stopRecording]);
 
   return (
     <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 mx-auto ${className}`} style={{ maxWidth: '1168px' }}>
@@ -1138,7 +1163,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         <RecordingPreview
           recordingUrl={recordingState.recordedUrl}
           duration={recordingState.recordedDuration || 0}
-          bars={recordingState.targetCycles * 8} // 5 cycles × 8 bars = 40 bars
+          bars={recordingState.targetBars} // Actual bars recorded (40-80 bars)
           bpm={mixerState.masterBPM}
           deckATrack={mixerState.deckA.track}
           deckBTrack={mixerState.deckB.track}
@@ -1148,7 +1173,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               showPreview: false,
               recordedUrl: null,
               recordedDuration: null,
-              cyclesRecorded: 0
+              barsRecorded: 0
             }));
             if (recordingState.recordedUrl) {
               URL.revokeObjectURL(recordingState.recordedUrl);
