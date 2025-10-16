@@ -242,13 +242,21 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
       supabase
         .from('ip_tracks')
-        .select('id, title, artist, primary_uploader_wallet')
+        .select(`
+          id, title, artist, primary_uploader_wallet,
+          composition_split_1_wallet, composition_split_1_percentage,
+          composition_split_2_wallet, composition_split_2_percentage,
+          composition_split_3_wallet, composition_split_3_percentage,
+          production_split_1_wallet, production_split_1_percentage,
+          production_split_2_wallet, production_split_2_percentage,
+          production_split_3_wallet, production_split_3_percentage
+        `)
         .in('id', sourceIds)
         .then(({ data, error }) => {
           if (error) {
             console.error('❌ Error fetching source tracks:', error);
           } else {
-            console.log('✅ Fetched source tracks:', data);
+            console.log('✅ Fetched source tracks with IP splits:', data);
             setSourceTracks(data || []);
           }
           setLoadingSourceTracks(false);
@@ -864,43 +872,132 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           <div>
             <Divider title="IP RIGHTS" />
 
-            {/* Composition Rights */}
-            <div className="mb-4">
-              <div className="text-gray-400 text-xs font-semibold mb-2">IDEA (Composition):</div>
-              <div className="space-y-1 text-xs pl-4">
-                {ipRights && ipRights.composition_splits.length > 0 ? (
-                  ipRights.composition_splits.map((split, index) => (
-                    <div key={index} className="flex items-center">
-                      <span className="text-gray-300">
-                        • Creator: {split.percentage}%
-                      </span>
-                      <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-gray-500">No composition splits defined</div>
-                )}
-              </div>
-            </div>
+            {/* For Remixes: Show IP splits grouped by source loop */}
+            {track.remix_depth && track.remix_depth > 0 && sourceTracks.length > 0 ? (
+              <>
+                {/* Loop through each source track and display its contributors */}
+                {sourceTracks.map((sourceLoop, loopIndex) => {
+                  // Collect composition splits from this source loop
+                  const compSplits = [];
+                  if (sourceLoop.composition_split_1_wallet && sourceLoop.composition_split_1_percentage) {
+                    compSplits.push({ wallet: sourceLoop.composition_split_1_wallet, percentage: sourceLoop.composition_split_1_percentage });
+                  }
+                  if (sourceLoop.composition_split_2_wallet && sourceLoop.composition_split_2_percentage) {
+                    compSplits.push({ wallet: sourceLoop.composition_split_2_wallet, percentage: sourceLoop.composition_split_2_percentage });
+                  }
+                  if (sourceLoop.composition_split_3_wallet && sourceLoop.composition_split_3_percentage) {
+                    compSplits.push({ wallet: sourceLoop.composition_split_3_wallet, percentage: sourceLoop.composition_split_3_percentage });
+                  }
 
-            {/* Production Rights */}
-            <div>
-              <div className="text-gray-400 text-xs font-semibold mb-2">IMPLEMENTATION (Recording):</div>
-              <div className="space-y-1 text-xs pl-4">
-                {ipRights && ipRights.production_splits.length > 0 ? (
-                  ipRights.production_splits.map((split, index) => (
-                    <div key={index} className="flex items-center">
-                      <span className="text-gray-300">
-                        • Creator: {split.percentage}%
-                      </span>
-                      <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
+                  // Collect production splits from this source loop
+                  const prodSplits = [];
+                  if (sourceLoop.production_split_1_wallet && sourceLoop.production_split_1_percentage) {
+                    prodSplits.push({ wallet: sourceLoop.production_split_1_wallet, percentage: sourceLoop.production_split_1_percentage });
+                  }
+                  if (sourceLoop.production_split_2_wallet && sourceLoop.production_split_2_percentage) {
+                    prodSplits.push({ wallet: sourceLoop.production_split_2_wallet, percentage: sourceLoop.production_split_2_percentage });
+                  }
+                  if (sourceLoop.production_split_3_wallet && sourceLoop.production_split_3_percentage) {
+                    prodSplits.push({ wallet: sourceLoop.production_split_3_wallet, percentage: sourceLoop.production_split_3_percentage });
+                  }
+
+                  return (
+                    <div key={sourceLoop.id} className="mb-4">
+                      {/* Source Loop Header */}
+                      <div className="text-cyan-400 text-xs font-semibold mb-2">
+                        From: {sourceLoop.title}
+                      </div>
+
+                      {/* Composition from this loop */}
+                      <div className="mb-3">
+                        <div className="text-gray-400 text-xs font-medium mb-1 pl-2">IDEA (Composition): contributes 50%</div>
+                        <div className="space-y-1 text-xs pl-4">
+                          {compSplits.length > 0 ? (
+                            compSplits.map((split, index) => (
+                              <div key={index} className="flex items-center">
+                                <span className="text-gray-300">
+                                  • Creator: {split.percentage}% → {Math.floor(split.percentage * 0.5)}% of remix
+                                </span>
+                                <span className="text-gray-500 ml-2 text-xs">[{formatWallet(split.wallet)}]</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-gray-500">No composition splits</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Production from this loop */}
+                      <div>
+                        <div className="text-gray-400 text-xs font-medium mb-1 pl-2">IMPLEMENTATION (Recording): contributes 50%</div>
+                        <div className="space-y-1 text-xs pl-4">
+                          {prodSplits.length > 0 ? (
+                            prodSplits.map((split, index) => (
+                              <div key={index} className="flex items-center">
+                                <span className="text-gray-300">
+                                  • Creator: {split.percentage}% → {Math.floor(split.percentage * 0.5)}% of remix
+                                </span>
+                                <span className="text-gray-500 ml-2 text-xs">[{formatWallet(split.wallet)}]</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-gray-500">No production splits</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-gray-500">No production splits defined</div>
-                )}
-              </div>
-            </div>
+                  );
+                })}
+
+                {/* Remixer Note */}
+                <div className="mt-4 p-2 bg-slate-800/50 rounded border border-gray-700">
+                  <div className="text-xs text-gray-400">
+                    <span className="font-semibold">Note:</span> Remixer ({track.artist}) receives 20% commission on sales, separate from IP ownership.
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* For Non-Remixes: Show standard IP splits */
+              <>
+                {/* Composition Rights */}
+                <div className="mb-4">
+                  <div className="text-gray-400 text-xs font-semibold mb-2">IDEA (Composition):</div>
+                  <div className="space-y-1 text-xs pl-4">
+                    {ipRights && ipRights.composition_splits.length > 0 ? (
+                      ipRights.composition_splits.map((split, index) => (
+                        <div key={index} className="flex items-center">
+                          <span className="text-gray-300">
+                            • Creator: {split.percentage}%
+                          </span>
+                          <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">No composition splits defined</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Production Rights */}
+                <div>
+                  <div className="text-gray-400 text-xs font-semibold mb-2">IMPLEMENTATION (Recording):</div>
+                  <div className="space-y-1 text-xs pl-4">
+                    {ipRights && ipRights.production_splits.length > 0 ? (
+                      ipRights.production_splits.map((split, index) => (
+                        <div key={index} className="flex items-center">
+                          <span className="text-gray-300">
+                            • Creator: {split.percentage}%
+                          </span>
+                          <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">No production splits defined</div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
