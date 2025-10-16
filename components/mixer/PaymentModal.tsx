@@ -816,9 +816,10 @@ export default function PaymentModal({
               </p>
               <ul className="mt-2 text-xs text-gray-400 space-y-1">
                 <li>• The 8-bar mix will be added to my creator store with automatic IP attribution</li>
-                <li>• Original creators will receive their designated splits</li>
-                <li>• I will receive 20% attribution as the remixer</li>
+                <li>• I am paying {loopOnlyPrice} STX to license these loops in my remix (1 STX per loop)</li>
+                <li>• Original creators receive their designated splits from this licensing fee</li>
                 <li>• I can remove the mix from my store at any time</li>
+                <li>• <span className="text-gray-500 italic">Future: When customers purchase my remix, I'll earn 20% commission</span></li>
                 {selectedOption === 'loop-plus-sources' && (
                   <li>• Source loops are for offline production use only per creator terms</li>
                 )}

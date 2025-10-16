@@ -64,10 +64,43 @@ This file provides guidance to Claude Code when working with the Mixmi Alpha Upl
 - **Foundation for Gen 2+:** Clean baseline for future generation payment models
 
 **Next Steps:**
-- Simplify remix creation flow (1 STX flat fee, no download options)
-- Implement "remix as bookmark" model (pay to save/curate)
+- ~~Simplify remix creation flow (1 STX flat fee, no download options)~~ ✅ **DONE! (Oct 16, 2025)**
+- Implement downstream remix sales (80/20 revenue split)
 - Design Heritage Pools for Gen 2+ payments
 - Build out creative genealogy visualization
+
+### **🎯 Downstream Remix Sales Implementation Plan (Coming Soon)**
+
+**Current State (Oct 16, 2025):**
+- ✅ **Recording a remix**: Remixer pays 1 STX per loop upfront to loop creators
+- ✅ **Payment flow**: Uses existing `music-payment-splitter-v3` contract for upfront licensing
+- ✅ **Remix pricing stored**: `download_price_stx` = sum of both loop download prices (if both allow downloads)
+- ❌ **NOT implemented**: Revenue split when someone BUYS the remix from remixer's store
+
+**What Needs Implementation:**
+When a customer purchases a Gen 1 remix download from a creator's store:
+- **80%** goes to original loop creators (split according to their composition/production splits)
+- **20%** goes to the remixer (the person who created the mix)
+
+**Technical Approach - Option B (API-based for Alpha):**
+1. **Purchase Flow**: Customer buys remix → payment goes to platform/escrow wallet
+2. **Backend API**: Calculate 80/20 split based on stored attribution data
+3. **Payout Distribution**: Use existing `music-payment-splitter-v3` contract to distribute funds
+4. **Benefits**: Simpler for alpha, uses existing payment verification infrastructure
+
+**Why Option B (not new smart contract):**
+- Already have payment verification infrastructure
+- Can iterate on split percentages without redeploying contracts
+- Easier to test and debug in alpha
+- Can upgrade to on-chain solution later if needed
+
+**Files to Modify:**
+- `/api/purchase-remix/route.ts` - New API endpoint for remix purchases
+- `components/cards/CompactTrackCardWithFlip.tsx` - Purchase handler for remixes
+- `lib/calculateRemixSplits.ts` - Add downstream sales split calculation
+- Database schema - May need `remix_sales` table for tracking/auditing
+
+**Status**: Documented for future implementation (post-alpha testing phase)
 
 ### **🎉 MAINNET PAYMENT SPLITTER LIVE! (October 7, 2025)**
 **MAJOR BREAKTHROUGH: First successful music payment split on Stacks mainnet!**
@@ -686,7 +719,7 @@ The `reference/full-app/` directory contains complete main Mixmi application cod
 
 **The reference code provides the blueprint for scaling from alpha uploader to complete music ecosystem!**
 
-## Next Priority Tasks (Updated Oct 5, 2025)
+## Next Priority Tasks (Updated Oct 16, 2025)
 1. **✅ System Performance** - Globe loading optimized to 17ms
 2. **✅ Image Architecture** - TrackCoverUploader and clean URL system working
 3. **✅ Location Accuracy** - Exact coordinate preservation implemented
@@ -697,11 +730,13 @@ The `reference/full-app/` directory contains complete main Mixmi application cod
 8. **✅ Shopping Cart to Header** - Cart moved from Crate to global Header (Oct 5, 2025)
 9. **✅ Payment Flow Disabled** - Prevented disaster of payments going to only first artist
 10. **✅ Welcome Page Accuracy** - Features correctly categorized as Live vs Coming Soon
-11. **🎯 Payment Splitting Smart Contracts** - Enable multi-artist revenue splitting (Clarity)
-12. **🎯 Hover Interaction UX** - Planned: Instant card popup on globe node hover
-13. **🎛️ Big Mixer Integration** - Professional mixer from reference code
-14. **🔄 Card System Unification** - Standardize all card components across contexts
-15. **🧹 Code Cleanup** - Remove debug statements and unused components
+11. **✅ Gen 1 Pricing Separation** - Remix fee (1 STX per loop) separated from download pricing
+12. **🎯 Downstream Remix Sales** - Implement 80/20 revenue split for remix downloads (API-based)
+13. **🎯 Payment Splitting Smart Contracts** - Enable multi-artist revenue splitting (Clarity)
+14. **🎯 Hover Interaction UX** - Planned: Instant card popup on globe node hover
+15. **🎛️ Big Mixer Integration** - Professional mixer from reference code
+16. **🔄 Card System Unification** - Standardize all card components across contexts
+17. **🧹 Code Cleanup** - Remove debug statements and unused components
 
 ## Admin Tool Architecture
 
