@@ -368,7 +368,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   const getGeneration = () => {
     if (track.content_type !== 'loop') return null;
     if (track.remix_depth === 0) return '🌱 Original Seed';
-    if (track.remix_depth && track.remix_depth > 0) return `Generation ${track.remix_depth}`;
+    if (track.remix_depth === 1) return '🌿 Generation 1';
+    if (track.remix_depth && track.remix_depth > 1) return `🌳 Generation ${track.remix_depth}`;
     return null;
   };
 

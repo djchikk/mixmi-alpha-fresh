@@ -394,6 +394,16 @@ export default function CompactTrackCardWithFlip({
                       </button>
                     )}
 
+                    {/* Payment Pending Warning - show if payment_status is 'pending' */}
+                    {(track as any).payment_status === 'pending' && (
+                      <div className="absolute bottom-10 left-2 right-2 bg-yellow-900/90 border border-yellow-600 rounded px-2 py-1 flex items-center gap-1.5">
+                        <svg className="w-3 h-3 text-yellow-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span className="text-yellow-200 text-[10px] leading-tight">Payment verifying...</span>
+                      </div>
+                    )}
+
                     {/* Bottom Section: Price/Remix Icon, Content Type Badge, BPM */}
                     <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
                       {/* Buy Button OR Remix Icon (left) - compact */}
@@ -536,11 +546,21 @@ export default function CompactTrackCardWithFlip({
                         return null;
                       })()}
 
-                      {/* Content Type Badge (center) */}
+                      {/* Content Type Badge (center) with generation indicators */}
                       <span className="text-xs font-mono font-medium text-white">
                         {track.content_type === 'ep' && 'EP'}
                         {track.content_type === 'loop_pack' && 'PACK'}
-                        {track.content_type === 'loop' && 'LOOP'}
+                        {track.content_type === 'loop' && (
+                          <>
+                            {track.generation === 0 || track.remix_depth === 0 ? (
+                              '🌱 LOOP'
+                            ) : track.generation === 1 || track.remix_depth === 1 ? (
+                              '🌿 REMIX'
+                            ) : (
+                              'LOOP'
+                            )}
+                          </>
+                        )}
                         {track.content_type === 'full_song' && 'SONG'}
                         {!track.content_type && 'TRACK'}
                       </span>
