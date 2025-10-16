@@ -166,7 +166,7 @@ export default function RecordingPreview({
               className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
             >
               {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              Loop Selected 8 Bars
+              Loop Selected ({selectedSegment.end - selectedSegment.start} Bars)
             </button>
 
             <button
@@ -181,7 +181,7 @@ export default function RecordingPreview({
 
         {/* Recording Waveform with Selection Bracket */}
         <div className="bg-slate-800 rounded-lg p-4 mb-4">
-          <h3 className="text-white font-semibold mb-3">Select Your 8 Bars</h3>
+          <h3 className="text-white font-semibold mb-3">Select Your Mix Section</h3>
           <RecordingWaveformDisplay
             audioBuffer={audioBuffer}
             currentTime={currentTime}

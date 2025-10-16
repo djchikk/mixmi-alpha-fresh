@@ -153,9 +153,9 @@ export default function RecordingWaveformDisplay({
       ctx.stroke();
     }
 
-    // Draw bar lines
-    ctx.strokeStyle = '#2d3748';
-    ctx.lineWidth = 1;
+    // Draw bar lines (brighter for better visibility)
+    ctx.strokeStyle = '#4A5568'; // Brighter gray (was #2d3748)
+    ctx.lineWidth = 2; // Thicker for bars
     for (let bar = 0; bar <= totalBars; bar++) {
       const x = (bar / totalBars) * width;
       ctx.beginPath();
@@ -165,9 +165,24 @@ export default function RecordingWaveformDisplay({
 
       // Bar numbers (every 8 bars for cycles)
       if (bar % 8 === 0 && bar < totalBars) {
-        ctx.fillStyle = '#718096';
-        ctx.font = '11px monospace';
-        ctx.fillText(`Cycle ${bar / 8 + 1}`, x + 3, 12);
+        ctx.fillStyle = '#9CA3AF'; // Brighter text
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText(`${bar + 1}`, x + 4, 14); // Show actual bar number
+      }
+    }
+
+    // Draw beat lines for precision (lighter, thinner)
+    ctx.strokeStyle = '#3A4556';
+    ctx.lineWidth = 1;
+    const beatsPerBar = 4;
+    const totalBeats = totalBars * beatsPerBar;
+    for (let beat = 0; beat <= totalBeats; beat++) {
+      if (beat % beatsPerBar !== 0) { // Skip bar lines (already drawn)
+        const x = (beat / totalBeats) * width;
+        ctx.beginPath();
+        ctx.moveTo(x, height * 0.3); // 50% height for beat markers
+        ctx.lineTo(x, height * 0.7);
+        ctx.stroke();
       }
     }
 
@@ -199,10 +214,11 @@ export default function RecordingWaveformDisplay({
     ctx.lineTo(selectionEndX, 10);
     ctx.stroke();
 
-    // Selection label
+    // Selection label (dynamic length)
+    const selectionLength = selectionEnd - selectionStart;
     ctx.fillStyle = '#81E4F2';
-    ctx.font = 'bold 12px monospace';
-    const labelText = `8 BARS (${selectionStart + 1}-${selectionEnd})`;
+    ctx.font = 'bold 13px monospace';
+    const labelText = `${selectionLength} BARS (${Math.floor(selectionStart) + 1}-${Math.floor(selectionEnd)})`;
     const labelX = selectionStartX + (selectionEndX - selectionStartX) / 2 - ctx.measureText(labelText).width / 2;
     ctx.fillText(labelText, labelX, 25);
 
@@ -269,12 +285,15 @@ export default function RecordingWaveformDisplay({
     const bar = beat / beatsPerBar; // Can be fractional (e.g., 2.25 = Bar 2, Beat 3)
 
     if (dragType === 'start') {
-      const newStart = Math.min(bar, selectionEnd - 8);
-      setSelectionStart(newStart);
+      // Allow dragging start handle, minimum 4 bars selection
+      const newStart = Math.min(bar, selectionEnd - 4);
+      setSelectionStart(Math.max(0, newStart));
     } else if (dragType === 'end') {
-      const newEnd = Math.max(bar, selectionStart + 8);
-      setSelectionEnd(newEnd);
+      // Allow dragging end handle, minimum 4 bars selection
+      const newEnd = Math.max(bar, selectionStart + 4);
+      setSelectionEnd(Math.min(totalBars, newEnd));
     } else if (dragType === 'move') {
+      // Move entire selection
       const selectionLength = selectionEnd - selectionStart;
       const newStart = Math.max(0, Math.min(totalBars - selectionLength, bar - selectionLength / 2));
       setSelectionStart(newStart);
@@ -314,7 +333,7 @@ export default function RecordingWaveformDisplay({
           </button>
         </div>
         <div className="text-xs text-gray-400">
-          Drag the bracket to select which 8 bars to save
+          Drag handles to adjust length • Drag bracket to move • Min 4 bars
         </div>
       </div>
 
