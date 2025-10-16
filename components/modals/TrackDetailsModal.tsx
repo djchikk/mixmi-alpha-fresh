@@ -361,15 +361,19 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     if (track.content_type === 'full_song') return 'Song';
     if (track.content_type === 'ep') return 'EP';
     if (track.content_type === 'loop') return '8-Bar Loop';
+    if (track.content_type === 'mix') return 'Mix';
     if (track.content_type === 'loop_pack') return 'Loop Pack';
     return 'Track';
   };
 
   const getGeneration = () => {
-    if (track.content_type !== 'loop') return null;
+    // Only show generation for loops and mixes (not songs, EPs, etc.)
+    if (track.content_type !== 'loop' && track.content_type !== 'mix') return null;
+
     if (track.remix_depth === 0) return '🌱 Original Seed';
     if (track.remix_depth === 1) return '🌿 Generation 1';
-    if (track.remix_depth && track.remix_depth > 1) return `🌳 Generation ${track.remix_depth}`;
+    if (track.remix_depth === 2) return '🌳 Generation 2';
+    if (track.remix_depth && track.remix_depth > 2) return `🌳 Generation ${track.remix_depth}`;
     return null;
   };
 

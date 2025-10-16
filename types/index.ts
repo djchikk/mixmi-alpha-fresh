@@ -79,7 +79,7 @@ export interface IPTrack {
   description?: string;
   tell_us_more?: string; // New field for additional context
   tags: string[];
-  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep';
+  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix';
   loop_category?: string; // Only for loops: 'vocals', 'beats', 'instrumentals', 'field_recording', or custom
   sample_type: string; // Legacy field - will be replaced by content_type + loop_category
   bpm?: number; // Beats per minute - optional for full songs, essential for loops
@@ -164,7 +164,8 @@ export const CONTENT_TYPES = [
   'full_song',
   'loop',
   'loop_pack',
-  'ep'
+  'ep',
+  'mix'
 ] as const;
 
 export type ContentType = typeof CONTENT_TYPES[number];

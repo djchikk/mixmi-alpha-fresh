@@ -547,9 +547,22 @@ export default function CompactTrackCardWithFlip({
                             {track.generation === 0 || track.remix_depth === 0 ? (
                               '🌱 LOOP'
                             ) : track.generation === 1 || track.remix_depth === 1 ? (
-                              '🌿 REMIX'
+                              '🌿 LOOP'
+                            ) : track.generation === 2 || track.remix_depth === 2 ? (
+                              '🌳 LOOP'
                             ) : (
                               'LOOP'
+                            )}
+                          </>
+                        )}
+                        {track.content_type === 'mix' && (
+                          <>
+                            {track.generation === 1 || track.remix_depth === 1 ? (
+                              '🌿 MIX'
+                            ) : track.generation === 2 || track.remix_depth === 2 ? (
+                              '🌳 MIX'
+                            ) : (
+                              'MIX'
                             )}
                           </>
                         )}
