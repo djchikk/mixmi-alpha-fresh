@@ -103,9 +103,17 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           composition_split_1_percentage, composition_split_1_wallet,
           composition_split_2_percentage, composition_split_2_wallet,
           composition_split_3_percentage, composition_split_3_wallet,
+          composition_split_4_percentage, composition_split_4_wallet,
+          composition_split_5_percentage, composition_split_5_wallet,
+          composition_split_6_percentage, composition_split_6_wallet,
+          composition_split_7_percentage, composition_split_7_wallet,
           production_split_1_percentage, production_split_1_wallet,
           production_split_2_percentage, production_split_2_wallet,
           production_split_3_percentage, production_split_3_wallet,
+          production_split_4_percentage, production_split_4_wallet,
+          production_split_5_percentage, production_split_5_wallet,
+          production_split_6_percentage, production_split_6_wallet,
+          production_split_7_percentage, production_split_7_wallet,
           uploader_address, primary_uploader_wallet, notes, price_stx, remix_price,
           license_type, license_selection, source_track_ids,
           allow_downloads, remix_price_stx, download_price_stx
@@ -209,17 +217,38 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
   // Fetch source tracks for remixes
   useEffect(() => {
-    if (isOpen && track.remix_depth && track.remix_depth > 0 && track.source_track_ids && track.source_track_ids.length > 0) {
+    const isRemix = track.remix_depth && track.remix_depth > 0;
+    const hasLegacyIds = track.source_track_ids && track.source_track_ids.length > 0;
+    const hasNewIds = track.parent_track_1_id || track.parent_track_2_id;
+
+    if (isOpen && isRemix && (hasLegacyIds || hasNewIds)) {
       setLoadingSourceTracks(true);
+
+      // Build list of source track IDs from either legacy or new fields
+      let sourceIds: string[] = [];
+      if (hasLegacyIds) {
+        sourceIds = track.source_track_ids;
+      } else if (hasNewIds) {
+        // Use new parent fields
+        if (track.parent_track_1_id) sourceIds.push(track.parent_track_1_id);
+        if (track.parent_track_2_id) sourceIds.push(track.parent_track_2_id);
+      }
+
+      console.log('🔍 Fetching source tracks for remix:', {
+        trackId: track.id,
+        remixDepth: track.remix_depth,
+        sourceIds
+      });
 
       supabase
         .from('ip_tracks')
         .select('id, title, artist, primary_uploader_wallet')
-        .in('id', track.source_track_ids)
+        .in('id', sourceIds)
         .then(({ data, error }) => {
           if (error) {
             console.error('❌ Error fetching source tracks:', error);
           } else {
+            console.log('✅ Fetched source tracks:', data);
             setSourceTracks(data || []);
           }
           setLoadingSourceTracks(false);
@@ -227,7 +256,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     } else {
       setSourceTracks([]);
     }
-  }, [isOpen, track.remix_depth, track.source_track_ids]);
+  }, [isOpen, track.remix_depth, track.source_track_ids, track.parent_track_1_id, track.parent_track_2_id]);
 
   // Handle ESC key
   useEffect(() => {
@@ -843,7 +872,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   ipRights.composition_splits.map((split, index) => (
                     <div key={index} className="flex items-center">
                       <span className="text-gray-300">
-                        • {index === 0 && track.remix_depth && track.remix_depth > 0 ? 'Remixer' : 'Creator'}: {split.percentage}%
+                        • Creator: {split.percentage}%
                       </span>
                       <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
                     </div>
@@ -862,7 +891,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   ipRights.production_splits.map((split, index) => (
                     <div key={index} className="flex items-center">
                       <span className="text-gray-300">
-                        • {index === 0 && track.remix_depth && track.remix_depth > 0 ? 'Remixer' : 'Creator'}: {split.percentage}%
+                        • Creator: {split.percentage}%
                       </span>
                       <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
                     </div>
