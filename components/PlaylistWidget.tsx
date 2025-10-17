@@ -38,6 +38,14 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
   // Load playlist from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Clear old playlist data on first load (one-time migration)
+      const migrationKey = 'playlist-widget-cleared-v1';
+      if (!localStorage.getItem(migrationKey)) {
+        localStorage.removeItem('playlist-widget');
+        localStorage.setItem(migrationKey, 'true');
+        console.log('🎵 Playlist: Cleared old playlist data');
+      }
+
       const saved = localStorage.getItem('playlist-widget');
       if (saved) {
         try {
