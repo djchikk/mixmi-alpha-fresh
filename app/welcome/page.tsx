@@ -121,8 +121,24 @@ export default function Welcome() {
                 <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
                   <span className="text-[#81E4F2] text-lg mt-0.5">🎚️</span>
                   <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Professional Mixer</h3>
-                    <p className="text-[#a8b2c3]">Dual decks with sync, loop length controls and FX</p>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Professional Mixer with Recording</h3>
+                    <p className="text-[#a8b2c3]">Dual decks with sync, FX, and 8-bar recording - save your remixes to your store</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">💰</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">STX Payments & Smart Contracts</h3>
+                    <p className="text-[#a8b2c3]">Buy and sell with real on-chain transactions - automatic payment splits for all collaborators</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">🔗</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Remix Tracking & Lineage</h3>
+                    <p className="text-[#a8b2c3]">Every remix traces its parent loops - Gen 0 loops and Gen 1 remixes with full attribution</p>
                   </div>
                 </div>
 
@@ -130,7 +146,7 @@ export default function Welcome() {
                   <span className="text-[#81E4F2] text-lg mt-0.5">🏪</span>
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">Creator Stores</h3>
-                    <p className="text-[#a8b2c3]">Your own music marketplace for loops, loop packs, songs and EPs</p>
+                    <p className="text-[#a8b2c3]">Your own music marketplace for loops, loop packs, songs, EPs, and remixes</p>
                   </div>
                 </div>
 
@@ -138,7 +154,7 @@ export default function Welcome() {
                   <span className="text-[#81E4F2] text-lg mt-0.5">👤</span>
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">Artist Profiles</h3>
-                    <p className="text-[#a8b2c3]">Customizable showcases for creators</p>
+                    <p className="text-[#a8b2c3]">Customizable showcases for creators with social links and bio</p>
                   </div>
                 </div>
 
@@ -146,7 +162,7 @@ export default function Welcome() {
                   <span className="text-[#81E4F2] text-lg mt-0.5">📻</span>
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">Playlist Streaming & Radio</h3>
-                    <p className="text-[#a8b2c3]">Curate and broadcast continuous mixes</p>
+                    <p className="text-[#a8b2c3]">Curate and broadcast continuous mixes from any creator's store</p>
                   </div>
                 </div>
               </div>
@@ -225,34 +241,34 @@ export default function Welcome() {
             <div className="max-w-3xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">💰</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Purchasing & Payments</h3>
-                    <p className="text-[#a8b2c3]">Buy and sell with STX - real value, on-chain transactions</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">💸</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Revenue Splitting Smart Contracts</h3>
-                    <p className="text-[#a8b2c3]">Automatic payment splits for collaborators</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">🔗</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Remix Tracking</h3>
-                    <p className="text-[#a8b2c3]">Trace the lineage of every remix and derivative</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg md:col-span-2">
                   <span className="text-[#9772F4] text-lg mt-0.5">🎖️</span>
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">On-Chain Certification</h3>
-                    <p className="text-[#a8b2c3]">Permanent proof of ownership for uploaded content</p>
+                    <p className="text-[#a8b2c3]">Downloadable certificates with permanent proof of ownership and splits</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">🎵</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Gen 2 Remixes</h3>
+                    <p className="text-[#a8b2c3]">Remix the remixes - deeper collaboration trees with managed attribution</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">🎧</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Live Radio Integrations</h3>
+                    <p className="text-[#a8b2c3]">Partner stations streaming directly through the globe</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">🌟</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Production Content Migration</h3>
+                    <p className="text-[#a8b2c3]">Test content will be replaced with curated professional loops and tracks</p>
                   </div>
                 </div>
               </div>
