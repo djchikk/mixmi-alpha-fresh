@@ -924,12 +924,24 @@ export default function HomePage() {
         isRadioVisible={isRadioVisible}
       />
 
-      {/* Unified Container - Mixer and Widgets with 24px spacing */}
-      {(isMixerVisible || isPlaylistVisible || isRadioVisible) && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-6">
-          {isPlaylistVisible && <PlaylistWidget />}
-          {isMixerVisible && <SimplifiedMixerCompact />}
-          {isRadioVisible && <RadioWidget />}
+      {/* Playlist Widget - Fixed left position (24px left of mixer edge) */}
+      {isPlaylistVisible && (
+        <div className="fixed bottom-20 z-30" style={{ right: 'calc(50% + 324px)' }}>
+          <PlaylistWidget />
+        </div>
+      )}
+
+      {/* Tiny Mixer - Always centered */}
+      {isMixerVisible && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
+          <SimplifiedMixerCompact />
+        </div>
+      )}
+
+      {/* Radio Widget - Fixed right position (24px right of center) */}
+      {isRadioVisible && (
+        <div className="fixed bottom-20 z-30" style={{ left: 'calc(50% + 324px)' }}>
+          <RadioWidget />
         </div>
       )}
 
