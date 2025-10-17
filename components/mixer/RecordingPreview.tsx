@@ -43,6 +43,7 @@ export default function RecordingPreview({
   const nextLoopTimeRef = useRef<number>(0);
   const loopStartTimeRef = useRef<number>(0);
   const loopEndTimeRef = useRef<number>(0);
+  const audioPlaybackStartRef = useRef<number>(0); // Track when playback started in AudioContext time
 
   useEffect(() => {
     // Create audio element for preview
@@ -91,6 +92,41 @@ export default function RecordingPreview({
       // Don't close the shared AudioContext
     };
   }, [recordingUrl]);
+
+  // Update loop boundaries when selection changes while looping
+  useEffect(() => {
+    if (!isPlaying || !audioContextRef.current || !audioRef.current) return;
+
+    // Calculate new loop boundaries
+    const beatsPerBar = 4;
+    const beatsPerSecond = bpm / 60;
+    const secondsPerBar = beatsPerBar / beatsPerSecond;
+    const startTime = selectedSegment.start * secondsPerBar;
+    const endTime = selectedSegment.end * secondsPerBar;
+
+    console.log(`🔄 Loop boundaries updated while playing:`, {
+      selectedSegment,
+      startTime: startTime.toFixed(3),
+      endTime: endTime.toFixed(3),
+      currentAudioTime: audioRef.current.currentTime.toFixed(3)
+    });
+
+    // Update refs
+    loopStartTimeRef.current = startTime;
+    loopEndTimeRef.current = endTime;
+
+    // Jump to new start position immediately
+    audioRef.current.currentTime = startTime;
+
+    // Reset playback start time reference
+    audioPlaybackStartRef.current = audioContextRef.current.currentTime;
+
+    // Recalculate next loop time relative to new playback start
+    const loopDuration = endTime - startTime;
+    nextLoopTimeRef.current = audioPlaybackStartRef.current + loopDuration;
+
+    console.log(`✅ Jumped to new loop start: ${startTime.toFixed(3)}s, next loop at: ${nextLoopTimeRef.current.toFixed(3)}s (AudioContext time)`);
+  }, [selectedSegment, bpm, isPlaying]);
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
@@ -160,19 +196,28 @@ export default function RecordingPreview({
       loopStartTimeRef.current = startTime;
       loopEndTimeRef.current = endTime;
 
-      // Start playback from selection start
+      // Set audio position and play
       audioRef.current.currentTime = startTime;
       audioRef.current.play();
       setIsPlaying(true);
 
-      // Initialize lookahead scheduler
+      // Track when playback started in AudioContext time
+      audioPlaybackStartRef.current = audioContextRef.current.currentTime;
+
+      // Initialize lookahead scheduler - schedule next loop relative to playback start
       const loopDuration = endTime - startTime;
-      nextLoopTimeRef.current = audioContextRef.current.currentTime + loopDuration;
+      nextLoopTimeRef.current = audioPlaybackStartRef.current + loopDuration;
 
       // Start the precise scheduler
       schedulerRef.current = window.setTimeout(scheduleLoop, 25);
 
-      console.log(`🔄 Starting precise loop: ${startTime.toFixed(3)}s - ${endTime.toFixed(3)}s (${loopDuration.toFixed(3)}s)`);
+      console.log(`🔄 Starting precise loop:`, {
+        startTime: startTime.toFixed(3) + 's',
+        endTime: endTime.toFixed(3) + 's',
+        loopDuration: loopDuration.toFixed(3) + 's',
+        playbackStartAudioContextTime: audioPlaybackStartRef.current.toFixed(3) + 's',
+        nextLoopTime: nextLoopTimeRef.current.toFixed(3) + 's (AudioContext)'
+      });
     }
   };
 
