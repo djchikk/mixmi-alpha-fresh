@@ -931,16 +931,16 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Playlist Widget - Positioned in lower-left corner above Crate */}
+      {/* Playlist Widget - Positioned near mixer (left side) */}
       {isPlaylistVisible && (
-        <div className="fixed bottom-20 left-6 z-30">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30" style={{ marginLeft: '-280px' }}>
           <PlaylistWidget />
         </div>
       )}
 
-      {/* Radio Widget - Positioned above Crate (right side, aligned with mixer) */}
+      {/* Radio Widget - Positioned near mixer (right side) */}
       {isRadioVisible && (
-        <div className="fixed bottom-20 right-6 z-30">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30" style={{ marginLeft: '280px' }}>
           <RadioWidget />
         </div>
       )}
