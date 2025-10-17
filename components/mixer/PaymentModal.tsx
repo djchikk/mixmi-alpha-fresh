@@ -11,6 +11,7 @@ import { openContractCall } from '@stacks/connect';
 import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from '@stacks/transactions';
 import { calculateRemixSplits } from '@/lib/calculateRemixSplits';
 import { SupabaseAuthBridge } from '@/lib/auth/supabase-auth-bridge';
+import { toast } from 'sonner';
 
 interface TrackInfo {
   id: string;
@@ -67,7 +68,6 @@ export default function PaymentModal({
         if (!error && data) {
           // Set profile image if available
           if (data.avatar_url) {
-            console.log('🖼️ Fetched profile image for remix cover:', data.avatar_url);
             setProfileImageUrl(data.avatar_url);
           }
 
@@ -79,7 +79,6 @@ export default function PaymentModal({
             name = data.username;
           }
 
-          console.log('👤 Setting artist name for remix:', name);
           setArtistName(name);
         } else {
           // Fallback to wallet address if no profile found
@@ -165,18 +164,10 @@ export default function PaymentModal({
   // Helper function to upload remix audio to Supabase storage
   const uploadRemixAudio = async (blobUrl: string): Promise<string> => {
     try {
-      console.log('📤 Uploading remix audio to storage...');
-
       // Convert blob URL to File
       const timestamp = Date.now();
       const filename = `remix_${timestamp}.webm`;
       const audioFile = await blobUrlToFile(blobUrl, filename);
-
-      console.log('📦 Audio file created:', {
-        name: audioFile.name,
-        size: audioFile.size,
-        type: audioFile.type
-      });
 
       if (!walletAddress) {
         throw new Error('Wallet address is required for upload');
@@ -192,8 +183,6 @@ export default function PaymentModal({
       // Generate storage path
       const audioPath = `${walletAddress}/audio/remixes/${timestamp}_${filename}`;
 
-      console.log('📂 Uploading to path:', audioPath);
-
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await authSession.supabase.storage
         .from('user-content')
@@ -204,23 +193,17 @@ export default function PaymentModal({
         });
 
       if (uploadError) {
-        console.error('❌ Upload error:', uploadError);
         throw uploadError;
       }
-
-      console.log('✅ Upload successful:', uploadData);
 
       // Get public URL
       const { data: urlData } = authSession.supabase.storage
         .from('user-content')
         .getPublicUrl(audioPath);
 
-      const publicUrl = urlData.publicUrl;
-      console.log('🔗 Public URL obtained:', publicUrl);
-
-      return publicUrl;
+      return urlData.publicUrl;
     } catch (error) {
-      console.error('❌ Failed to upload remix audio:', error);
+      console.error('Failed to upload remix audio:', error);
       throw new Error('Failed to upload remix audio to storage');
     }
   };
@@ -228,18 +211,10 @@ export default function PaymentModal({
   // Helper function to upload cover image to Supabase storage
   const uploadCoverImage = async (blobUrl: string): Promise<string> => {
     try {
-      console.log('📤 Uploading cover image to storage...');
-
       // Convert blob URL to File
       const timestamp = Date.now();
       const filename = `remix_cover_${timestamp}.png`;
       const imageFile = await blobUrlToFile(blobUrl, filename);
-
-      console.log('📦 Image file created:', {
-        name: imageFile.name,
-        size: imageFile.size,
-        type: imageFile.type
-      });
 
       if (!walletAddress) {
         throw new Error('Wallet address is required for upload');
@@ -255,8 +230,6 @@ export default function PaymentModal({
       // Generate storage path
       const imagePath = `${walletAddress}/images/remixes/${timestamp}_${filename}`;
 
-      console.log('📂 Uploading to path:', imagePath);
-
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await authSession.supabase.storage
         .from('user-content')
@@ -267,30 +240,24 @@ export default function PaymentModal({
         });
 
       if (uploadError) {
-        console.error('❌ Upload error:', uploadError);
         throw uploadError;
       }
-
-      console.log('✅ Upload successful:', uploadData);
 
       // Get public URL
       const { data: urlData } = authSession.supabase.storage
         .from('user-content')
         .getPublicUrl(imagePath);
 
-      const publicUrl = urlData.publicUrl;
-      console.log('🔗 Public URL obtained:', publicUrl);
-
-      return publicUrl;
+      return urlData.publicUrl;
     } catch (error) {
-      console.error('❌ Failed to upload cover image:', error);
+      console.error('Failed to upload cover image:', error);
       throw new Error('Failed to upload cover image to storage');
     }
   };
 
   const handlePayment = async () => {
     if (!agreedToTerms) {
-      alert('Please agree to the licensing terms');
+      toast.error('Please agree to the licensing terms');
       return;
     }
 
@@ -303,30 +270,17 @@ export default function PaymentModal({
 
     try {
       // Upload audio to storage before payment
-      console.log('🎵 Current recording URL (blob):', recordingUrl);
       const permanentAudioUrl = await uploadRemixAudio(recordingUrl);
-      console.log('🎵 Permanent audio URL:', permanentAudioUrl);
 
       // Upload cover image to storage
       let permanentCoverUrl = mixCoverImageUrl;
       if (mixCoverImageUrl) {
-        console.log('🖼️ Current cover image URL (blob):', mixCoverImageUrl);
         permanentCoverUrl = await uploadCoverImage(mixCoverImageUrl);
-        console.log('🖼️ Permanent cover URL:', permanentCoverUrl);
       }
 
       // Calculate the total price in microSTX
       const totalPriceSTX = selectedOption === 'loop-only' ? loopOnlyPrice : loopPlusSourcesPrice;
       const totalPriceMicroSTX = Math.floor(totalPriceSTX * 1_000_000);
-
-      console.log('💰 Processing payment...', {
-        option: selectedOption,
-        priceSTX: totalPriceSTX,
-        priceMicroSTX: totalPriceMicroSTX,
-        segment: selectedSegment,
-        deckA: deckATrack?.title,
-        deckB: deckBTrack?.title
-      });
 
       // Calculate remix splits (80/20 formula)
       // We need to use loadedTracks instead of deckATrack/deckBTrack because
@@ -334,25 +288,11 @@ export default function PaymentModal({
       const loop1 = loadedTracks[0] || {};
       const loop2 = loadedTracks[1] || {};
 
-      console.log('🎵 Source loops for split calculation:', {
-        loop1Title: loop1.title || 'Not found',
-        loop2Title: loop2.title || 'Not found',
-        loop1HasSplits: !!(loop1.composition_split_1_wallet),
-        loop2HasSplits: !!(loop2.composition_split_1_wallet)
-      });
-
       const remixSplits = calculateRemixSplits(
         loop1,
         loop2,
         walletAddress!
       );
-
-      console.log('📊 Remix splits calculated:', {
-        composition: remixSplits.composition,
-        production: remixSplits.production,
-        totalComposition: remixSplits.totalComposition,
-        totalProduction: remixSplits.totalProduction
-      });
 
       // Consolidate duplicate wallets in splits
       const consolidateSplits = (splits: Array<{ wallet: string; percentage: number }>) => {
@@ -369,11 +309,6 @@ export default function PaymentModal({
 
       const consolidatedComposition = consolidateSplits(remixSplits.composition);
       const consolidatedProduction = consolidateSplits(remixSplits.production);
-
-      console.log('🔄 Consolidated splits:', {
-        composition: consolidatedComposition,
-        production: consolidatedProduction
-      });
 
       // Convert CONSOLIDATED splits to Clarity values
       const compositionCV = listCV(
@@ -397,15 +332,11 @@ export default function PaymentModal({
       // Call smart contract for payment
       let stacksTxId: string | null = null;
 
-      console.log('🔐 About to call openContractCall...');
-      console.log('🔐 openContractCall function exists?', typeof openContractCall);
-
       await new Promise<void>((resolve, reject) => {
-        console.log('🔐 Inside Promise, calling openContractCall now...');
         try {
           openContractCall({
-            network: 'mainnet',
-            contractAddress: 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN',
+            network: process.env.NEXT_PUBLIC_STACKS_NETWORK as 'mainnet' | 'testnet' || 'mainnet',
+            contractAddress: process.env.NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT || 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN',
             contractName: 'music-payment-splitter-v3',
             functionName: 'split-track-payment',
             functionArgs: [
@@ -415,18 +346,15 @@ export default function PaymentModal({
             ],
             postConditionMode: PostConditionMode.Allow,
             onFinish: (data) => {
-              console.log('✅ Payment transaction completed:', data.txId);
-              console.log('✅ Full transaction data:', data);
               stacksTxId = data.txId;
               resolve();
             },
             onCancel: () => {
-              console.log('❌ Payment cancelled by user');
               reject(new Error('Payment cancelled'));
             }
           });
         } catch (error) {
-          console.error('❌ openContractCall error:', error);
+          console.error('Contract call error:', error);
           reject(error);
         }
       });
@@ -439,13 +367,6 @@ export default function PaymentModal({
       const maxDepth = Math.max(...loadedTracks.map(t => t.remix_depth || 0), 0);
       const newRemixDepth = maxDepth + 1;
       const sourceTrackIds = loadedTracks.map(t => t.id);
-
-      console.log('🧬 Calculating remix depth:', {
-        loadedTracks: loadedTracks.length,
-        maxDepth,
-        newRemixDepth,
-        sourceTrackIds
-      });
 
       // LIMIT: Maximum remix depth of 2 to prevent contributor explosion
       if (newRemixDepth > 2) {
@@ -465,15 +386,6 @@ export default function PaymentModal({
         const loop2DownloadPrice = loop2.download_price_stx || 0;
         remixDownloadPrice = loop1DownloadPrice + loop2DownloadPrice;
       }
-
-      console.log('💰 Gen 1 remix download pricing:', {
-        loop1AllowsDownloads,
-        loop2AllowsDownloads,
-        bothLoopsAllowDownloads,
-        loop1DownloadPrice: loop1.download_price_stx,
-        loop2DownloadPrice: loop2.download_price_stx,
-        remixDownloadPrice
-      });
 
       // Prepare the new remix track data with full split attribution
       // NOTE: Use remixSplits.composition/production directly (NOT consolidated)
@@ -561,8 +473,6 @@ export default function PaymentModal({
         updated_at: new Date().toISOString()
       };
 
-      console.log('💾 Attempting to save remix data:', JSON.stringify(newRemixData, null, 2));
-
       // Save to database
       const { data, error } = await supabase
         .from('ip_tracks')
@@ -571,25 +481,11 @@ export default function PaymentModal({
         .single();
 
       if (error) {
-        console.error('❌ Database save error:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          fullError: error
-        });
+        console.error('Database save error:', error);
         throw new Error(`Failed to save remix to database: ${error.message || 'Unknown error'}`);
       }
 
-      console.log('✅ Remix saved successfully:', {
-        id: data.id,
-        title: data.title,
-        remix_depth: data.remix_depth,
-        source_track_ids: data.source_track_ids
-      });
-
       // Generate certificate for the remix
-      console.log('🎓 Generating certificate for remix...');
 
       const certificateData = {
         id: data.id,
@@ -620,17 +516,14 @@ export default function PaymentModal({
 
       // Generate certificate asynchronously
       CertificateService.generateAndStoreCertificate(certificateData)
-        .then(result => {
-          console.log('✅ Certificate generated for remix:', result);
-        })
         .catch(error => {
-          console.error('❌ Certificate generation failed:', error);
+          console.error('Certificate generation failed:', error);
           // Don't block on certificate failure
         });
       
       onSuccess();
     } catch (error: any) {
-      console.error('💥 Payment/save failed:', error);
+      console.error('Payment/save failed:', error);
 
       // Provide specific error messages
       let errorMessage = 'Failed to save your remix. Please try again.';
@@ -643,7 +536,7 @@ export default function PaymentModal({
         errorMessage = 'Database error. Please contact support if this persists.';
       }
 
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }

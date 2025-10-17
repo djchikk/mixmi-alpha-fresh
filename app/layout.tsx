@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter as Geist, Roboto_Mono as Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import { Toaster } from "sonner";
 // No Crate component needed for alpha version
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

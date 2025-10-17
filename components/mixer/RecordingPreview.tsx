@@ -76,7 +76,6 @@ export default function RecordingPreview({
         const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
         setAudioBuffer(decodedBuffer);
-        console.log('🔄 Audio buffer loaded for precise looping');
       } catch (error) {
         console.error('Failed to load audio buffer:', error);
       }
@@ -104,13 +103,6 @@ export default function RecordingPreview({
     const startTime = selectedSegment.start * secondsPerBar;
     const endTime = selectedSegment.end * secondsPerBar;
 
-    console.log(`🔄 Loop boundaries updated while playing:`, {
-      selectedSegment,
-      startTime: startTime.toFixed(3),
-      endTime: endTime.toFixed(3),
-      currentAudioTime: audioRef.current.currentTime.toFixed(3)
-    });
-
     // Update refs
     loopStartTimeRef.current = startTime;
     loopEndTimeRef.current = endTime;
@@ -124,8 +116,6 @@ export default function RecordingPreview({
     // Recalculate next loop time relative to new playback start
     const loopDuration = endTime - startTime;
     nextLoopTimeRef.current = audioPlaybackStartRef.current + loopDuration;
-
-    console.log(`✅ Jumped to new loop start: ${startTime.toFixed(3)}s, next loop at: ${nextLoopTimeRef.current.toFixed(3)}s (AudioContext time)`);
   }, [selectedSegment, bpm, isPlaying]);
 
   const handlePlayPause = () => {
@@ -155,7 +145,6 @@ export default function RecordingPreview({
       setTimeout(() => {
         if (audioRef.current && isPlaying) {
           audioRef.current.currentTime = loopStartTimeRef.current;
-          console.log(`🔄 Loop reset: ${audioRef.current.currentTime.toFixed(3)}s → ${loopStartTimeRef.current.toFixed(3)}s`);
         }
       }, (loopResetTime - currentTime) * 1000);
 
@@ -210,14 +199,6 @@ export default function RecordingPreview({
 
       // Start the precise scheduler
       schedulerRef.current = window.setTimeout(scheduleLoop, 25);
-
-      console.log(`🔄 Starting precise loop:`, {
-        startTime: startTime.toFixed(3) + 's',
-        endTime: endTime.toFixed(3) + 's',
-        loopDuration: loopDuration.toFixed(3) + 's',
-        playbackStartAudioContextTime: audioPlaybackStartRef.current.toFixed(3) + 's',
-        nextLoopTime: nextLoopTimeRef.current.toFixed(3) + 's (AudioContext)'
-      });
     }
   };
 
