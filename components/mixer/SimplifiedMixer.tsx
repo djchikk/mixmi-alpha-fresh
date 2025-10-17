@@ -3,7 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Track } from './types';
 import { useMixerAudio } from '@/hooks/useMixerAudio';
-import { applyCrossfader, SimpleLoopSync, getAudioContext } from '@/lib/mixerAudio';
+import { useMixer } from '@/contexts/MixerContext';
+import { supabase } from '@/lib/supabase';
+import { applyCrossfader, SimpleLoopSync, getAudioContext, getMasterGain } from '@/lib/mixerAudio';
+import { AudioTiming } from '@/lib/audioTiming';
 import SimplifiedDeck from './SimplifiedDeck';
 import WaveformDisplay from './WaveformDisplay';
 import CrossfaderControl from './CrossfaderControl';
@@ -11,6 +14,7 @@ import MasterTransportControls from './MasterTransportControls';
 import LoopControls from './LoopControls';
 import FXComponent from './FXComponent';
 import DeckCrate from './DeckCrate';
+import RecordingPreview from './RecordingPreview';
 
 interface SimplifiedMixerProps {
   className?: string;
@@ -43,6 +47,17 @@ interface SimplifiedMixerState {
   syncActive: boolean;
 }
 
+// Recording state
+interface RecordingState {
+  isRecording: boolean;
+  recordingStartTime: number | null; // AudioContext.currentTime when recording starts
+  barsRecorded: number;
+  targetBars: number; // Safety limit (120 bars = ~15 min at 120 BPM)
+  recordedUrl: string | null;
+  recordedDuration: number | null;
+  showPreview: boolean;
+}
+
 export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps) {
   // Initialize simplified mixer state
   const [mixerState, setMixerState] = useState<SimplifiedMixerState>({
@@ -67,6 +82,20 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Sync engine reference
   const syncEngineRef = React.useRef<SimpleLoopSync | null>(null);
+
+  // Recording state and refs
+  const [recordingState, setRecordingState] = useState<RecordingState>({
+    isRecording: false,
+    recordingStartTime: null,
+    barsRecorded: 0,
+    targetBars: 120, // Safety limit: auto-stop at 120 bars (~15 min at 120 BPM)
+    recordedUrl: null,
+    recordedDuration: null,
+    showPreview: false
+  });
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = React.useRef<Blob[]>([]);
+  const mixerDestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
 
   // Responsive waveform width based on breakpoints
   const [waveformWidth, setWaveformWidth] = useState(700);
@@ -102,6 +131,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     cleanupDeckAudio,
     loadAudioForDeck
   } = useMixerAudio();
+
+  // Use the mixer context for loaded tracks
+  const { addLoadedTrack, clearLoadedTracks } = useMixer();
 
   // Initialize audio on mount
   useEffect(() => {
@@ -147,6 +179,31 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (!track.audioUrl) {
       console.error('❌ Track missing audioUrl:', track);
       return;
+    }
+
+    // Fetch full track data including attribution splits
+    // We'll replace the existing Deck A track in loadedTracks
+    try {
+      const { data, error } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('id', track.id)
+        .single();
+
+      if (!error && data) {
+        // Add full IPTrack data to loadedTracks for remix split calculations
+        // Note: addLoadedTrack already checks for duplicates by ID
+        addLoadedTrack(data as any);
+        console.log(`📊 Deck A track loaded with full data:`, {
+          id: data.id,
+          title: data.title,
+          remix_depth: data.remix_depth || 0,
+          hasCompositionSplits: !!(data.composition_split_1_wallet),
+          hasProductionSplits: !!(data.production_split_1_wallet)
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch full track data:', error);
     }
 
     // Check if sync is active before loading
@@ -295,6 +352,29 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (!track.audioUrl) {
       console.error('❌ Track missing audioUrl:', track);
       return;
+    }
+
+    // Fetch full track data including attribution splits
+    try {
+      const { data, error } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('id', track.id)
+        .single();
+
+      if (!error && data) {
+        // Add full IPTrack data to loadedTracks for remix split calculations
+        addLoadedTrack(data as any);
+        console.log(`📊 Track loaded with full data:`, {
+          id: data.id,
+          title: data.title,
+          remix_depth: data.remix_depth || 0,
+          hasCompositionSplits: !!(data.composition_split_1_wallet),
+          hasProductionSplits: !!(data.production_split_1_wallet)
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch full track data:', error);
     }
 
     // Check if sync is active before loading
@@ -626,7 +706,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   const handleLoopPositionChange = (deck: 'A' | 'B', position: number) => {
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
-    
+
     setMixerState(prev => ({
       ...prev,
       [deckKey]: {
@@ -634,13 +714,193 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         loopPosition: position
       }
     }));
-    
+
     // Update audio controls
     const audioControls = mixerState[deckKey].audioControls;
     if (audioControls && audioControls.setLoopPosition) {
       audioControls.setLoopPosition(position);
     }
   };
+
+  // Recording handlers
+  const setupMixerRecording = useCallback(() => {
+    const audioContext = getAudioContext();
+    if (!audioContext) {
+      console.error('❌ No audio context available');
+      return null;
+    }
+
+    // Create mixer destination node if it doesn't exist
+    if (!mixerDestinationRef.current) {
+      mixerDestinationRef.current = audioContext.createMediaStreamDestination();
+      console.log('🎙️ Created MediaStreamDestination for recording');
+    }
+
+    // CRITICAL: Connect to the MASTER gain node to capture everything
+    // This captures the final mix AFTER crossfader, FX, loop controls, etc.
+    const masterGain = getMasterGain();
+    if (masterGain) {
+      try {
+        // Disconnect previous connection if exists
+        masterGain.disconnect(mixerDestinationRef.current);
+      } catch (e) {
+        // Not connected yet, that's fine
+      }
+
+      // Connect master to recording destination
+      masterGain.connect(mixerDestinationRef.current);
+      console.log('✅ Master gain connected to recording destination');
+      console.log('🎚️ Recording will capture: Crossfader ✓ FX ✓ Loop Controls ✓ Master Volume ✓');
+    } else {
+      console.error('❌ Master gain node not available');
+      return null;
+    }
+
+    return mixerDestinationRef.current.stream;
+  }, []);
+
+  const startRecording = useCallback(() => {
+    console.log('🎙️ Starting mixer recording...');
+
+    const stream = setupMixerRecording();
+    if (!stream) {
+      console.error('❌ Failed to setup mixer recording');
+      return;
+    }
+
+    const audioContext = getAudioContext();
+    if (!audioContext) {
+      console.error('❌ No audio context available for recording');
+      return;
+    }
+
+    // Clear previous recording
+    recordedChunksRef.current = [];
+
+    // Create MediaRecorder
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus'
+    });
+
+    // Capture the start time from AudioContext for sample-accurate timing
+    const recordingStartTime = audioContext.currentTime;
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      console.log('🎙️ Recording stopped, processing audio...');
+      const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+
+      // Calculate actual duration using AudioContext time
+      const recordingEndTime = audioContext.currentTime;
+      const actualDuration = recordingEndTime - recordingStartTime;
+
+      setRecordingState(prev => ({
+        ...prev,
+        isRecording: false,
+        recordedUrl: url,
+        recordedDuration: actualDuration,
+        showPreview: true
+      }));
+
+      console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${AudioTiming.timeToBar(actualDuration, mixerState.masterBPM).toFixed(1)} bars)`);
+    };
+
+    mediaRecorder.start(100); // Collect data every 100ms
+    mediaRecorderRef.current = mediaRecorder;
+
+    setRecordingState(prev => ({
+      ...prev,
+      isRecording: true,
+      recordingStartTime: recordingStartTime,
+      barsRecorded: 0
+    }));
+
+    console.log(`✅ Recording started at AudioContext time: ${recordingStartTime.toFixed(3)}s`);
+  }, [setupMixerRecording, mixerState.masterBPM]);
+
+  const stopRecording = useCallback(() => {
+    console.log('🎙️ Stopping recording...');
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+
+    // Stop mixer playback when recording stops
+    if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
+      mixerState.deckA.audioControls.pause();
+    }
+    if (mixerState.deckB.playing && mixerState.deckB.audioControls) {
+      mixerState.deckB.audioControls.pause();
+    }
+
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, playing: false },
+      deckB: { ...prev.deckB, playing: false }
+    }));
+
+    console.log('⏸️ Mixer playback stopped');
+  }, [mixerState]);
+
+  const handleRecordToggle = useCallback(() => {
+    if (recordingState.isRecording) {
+      stopRecording();
+    } else {
+      // Ensure both decks are loaded
+      if (!mixerState.deckA.track || !mixerState.deckB.track) {
+        console.warn('⚠️ Both decks must have tracks loaded to record');
+        return;
+      }
+
+      // Start playback if not already playing
+      if (!mixerState.deckA.playing) {
+        handleDeckAPlayPause();
+      }
+      if (!mixerState.deckB.playing) {
+        handleDeckBPlayPause();
+      }
+
+      // Start recording
+      setTimeout(() => startRecording(), 100); // Small delay to ensure playback starts
+    }
+  }, [recordingState.isRecording, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
+
+  // Monitor playback to count bars and auto-stop recording at target (sample-accurate with AudioContext)
+  useEffect(() => {
+    if (!recordingState.isRecording || recordingState.recordingStartTime === null) return;
+
+    const audioContext = getAudioContext();
+    if (!audioContext) {
+      console.error('❌ No audio context available for monitoring recording');
+      return;
+    }
+
+    const checkBars = setInterval(() => {
+      // Use AudioContext.currentTime for sample-accurate timing (not Date.now()!)
+      const currentTime = audioContext.currentTime;
+      const elapsedTime = currentTime - recordingState.recordingStartTime!;
+
+      // Calculate bars recorded using centralized AudioTiming utility
+      const barsRecorded = Math.floor(AudioTiming.timeToBar(elapsedTime, mixerState.masterBPM));
+
+      // Safety auto-stop at 120 bars limit
+      if (barsRecorded >= recordingState.targetBars) {
+        console.warn(`⚠️ Reached safety limit of ${recordingState.targetBars} bars, auto-stopping recording`);
+        stopRecording();
+      } else if (barsRecorded > recordingState.barsRecorded) {
+        setRecordingState(prev => ({ ...prev, barsRecorded }));
+        console.log(`🎙️ Bar ${barsRecorded + 1} recorded (${elapsedTime.toFixed(2)}s elapsed)`);
+      }
+    }, 100); // Check every 100ms
+
+    return () => clearInterval(checkBars);
+  }, [recordingState.isRecording, recordingState.recordingStartTime, recordingState.targetBars, recordingState.barsRecorded, mixerState.masterBPM, stopRecording]);
 
   return (
     <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 mx-auto ${className}`} style={{ maxWidth: '1168px' }}>
@@ -720,11 +980,11 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             deckBPlaying={mixerState.deckB.playing}
             deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
             syncActive={mixerState.syncActive}
-            recordingRemix={false}
+            recordingRemix={recordingState.isRecording}
             onMasterPlay={handleMasterPlay}
             onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
             onMasterStop={handleMasterStop}
-            onRecordToggle={() => {}}
+            onRecordToggle={handleRecordToggle}
             onSyncToggle={handleSync}
             onMasterSyncReset={handleMasterSyncReset}
           />
@@ -897,6 +1157,37 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           )}
         </div>
       </div>
+
+      {/* Recording Preview Modal */}
+      {recordingState.showPreview && recordingState.recordedUrl && (
+        <RecordingPreview
+          recordingUrl={recordingState.recordedUrl}
+          duration={recordingState.recordedDuration || 0}
+          bars={recordingState.barsRecorded} // Actual bars recorded
+          bpm={mixerState.masterBPM}
+          deckATrack={mixerState.deckA.track}
+          deckBTrack={mixerState.deckB.track}
+          onClose={() => {
+            setRecordingState(prev => ({
+              ...prev,
+              showPreview: false,
+              recordedUrl: null,
+              recordedDuration: null,
+              barsRecorded: 0
+            }));
+            if (recordingState.recordedUrl) {
+              URL.revokeObjectURL(recordingState.recordedUrl);
+            }
+          }}
+          onSave={(selectedSegment) => {
+            console.log('💾 Save remix with segment:', selectedSegment);
+            // TODO: Implement save remix flow with payment
+          }}
+          onSelectSegment={(start, end) => {
+            console.log('📍 Selected segment:', { start, end });
+          }}
+        />
+      )}
     </div>
   );
 }

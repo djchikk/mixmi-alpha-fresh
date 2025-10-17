@@ -20,16 +20,16 @@ interface LoadedTrackInfo {
 interface MixerContextType {
   // Track loading state
   pendingTrackLoads: PendingTrackLoad[];
-  
+
   // Collection Bar (separate from deck crates)
   collection: Track[];
-  
+
   // Deck Crate management (2x2 grids in mixer)
   deckACrate: Track[];
   deckBCrate: Track[];
-  
-  // Loaded tracks in mixer (for remix depth tracking)
-  loadedTracks: LoadedTrackInfo[];
+
+  // Loaded tracks in mixer (full IPTrack data for remix split calculations)
+  loadedTracks: IPTrack[];
   
   // Actions
   loadTrackToDeck: (ipTrack: IPTrack, deck: 'A' | 'B') => void;
@@ -43,7 +43,7 @@ interface MixerContextType {
   clearPendingLoads: () => void;
   
   // Remix depth tracking
-  addLoadedTrack: (track: LoadedTrackInfo) => void;
+  addLoadedTrack: (track: IPTrack) => void;
   removeLoadedTrack: (trackId: string) => void;
   clearLoadedTracks: () => void;
   
@@ -91,8 +91,8 @@ export const MixerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [deckACrate, setDeckACrate] = useState<Track[]>([]);
   const [deckBCrate, setDeckBCrate] = useState<Track[]>([]);
   
-  // Loaded tracks state for remix depth tracking
-  const [loadedTracks, setLoadedTracks] = useState<LoadedTrackInfo[]>([]);
+  // Loaded tracks state - full IPTrack data for remix split calculations
+  const [loadedTracks, setLoadedTracks] = useState<IPTrack[]>([]);
 
   // Load from localStorage on hydration
   useEffect(() => {
@@ -200,10 +200,28 @@ export const MixerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setPendingTrackLoads([]);
   }, []);
 
-  const addLoadedTrack = useCallback((track: LoadedTrackInfo) => {
+  const addLoadedTrack = useCallback((track: IPTrack) => {
+    console.log('➕ Adding full IPTrack to loadedTracks:', {
+      id: track.id,
+      title: track.title,
+      hasCompositionSplits: !!(track.composition_split_1_wallet),
+      hasProductionSplits: !!(track.production_split_1_wallet)
+    });
     setLoadedTracks(prev => {
-      if (prev.some(t => t.id === track.id)) return prev;
-      return [...prev, track];
+      // Check if track already exists
+      if (prev.some(t => t.id === track.id)) {
+        console.log('⚠️ Track already in loadedTracks, skipping duplicate');
+        return prev;
+      }
+
+      // Keep only the 2 most recent tracks (for 2 decks)
+      const updated = [...prev, track];
+      if (updated.length > 2) {
+        console.log('🗑️ More than 2 tracks loaded, removing oldest:', updated[0].title);
+        return updated.slice(-2); // Keep last 2 tracks
+      }
+
+      return updated;
     });
   }, []);
 

@@ -157,7 +157,7 @@ export default function HomePage() {
         .select('*')
         .eq('content_type', 'loop')
         .in('title', ['Test Disco', 'test loop audio upload'])
-        .is('deleted_at', null);
+        .is('deleted_at', null); // Already has deleted_at filter ✓
 
       if (!mixerError && mixerTracks && mixerTracks.length >= 2) {
         const testDisco = mixerTracks.find(t => t.title === 'Test Disco');
@@ -182,7 +182,7 @@ export default function HomePage() {
         .from('ip_tracks')
         .select('*')
         .in('content_type', ['loop', 'full_song'])
-        .is('deleted_at', null)
+        .is('deleted_at', null) // Already has deleted_at filter ✓
         .limit(100);
 
       if (!playlistError && playlistTracks && playlistTracks.length > 0) {
@@ -200,7 +200,7 @@ export default function HomePage() {
         .from('ip_tracks')
         .select('*')
         .in('content_type', ['loop', 'full_song'])
-        .is('deleted_at', null)
+        .is('deleted_at', null) // Already has deleted_at filter ✓
         .limit(50);
 
       if (!radioError && radioTracks && radioTracks.length > 0) {
@@ -217,7 +217,7 @@ export default function HomePage() {
         .from('ip_tracks')
         .select('*')
         .in('content_type', ['loop', 'full_song'])
-        .is('deleted_at', null)
+        .is('deleted_at', null) // Already has deleted_at filter ✓
         .limit(100);
 
       if (!crateError && crateTracks && crateTracks.length > 0) {

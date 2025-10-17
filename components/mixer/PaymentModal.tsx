@@ -7,6 +7,10 @@ import { generateMixCoverImage } from '@/lib/generateMixCoverImage';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { CertificateService } from '@/lib/certificate-service';
+import { openContractCall } from '@stacks/connect';
+import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from '@stacks/transactions';
+import { calculateRemixSplits } from '@/lib/calculateRemixSplits';
+import { SupabaseAuthBridge } from '@/lib/auth/supabase-auth-bridge';
 
 interface TrackInfo {
   id: string;
@@ -37,13 +41,61 @@ export default function PaymentModal({
   onClose,
   onSuccess
 }: PaymentModalProps) {
-  const { isAuthenticated, connect, walletAddress } = useAuth();
+  const { isAuthenticated, connectWallet, walletAddress } = useAuth();
   const { loadedTracks } = useMixer();
   const [selectedOption, setSelectedOption] = useState<'loop-only' | 'loop-plus-sources'>('loop-only');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sourceLoopsAvailable, setSourceLoopsAvailable] = useState(false);
   const [mixCoverImageUrl, setMixCoverImageUrl] = useState<string | null>(null);
+  const [mixTitle, setMixTitle] = useState(`${deckATrack?.title || 'Track A'} x ${deckBTrack?.title || 'Track B'} Mix`);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [artistName, setArtistName] = useState<string>('');
+
+  // Fetch user's profile data (image and name)
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!walletAddress) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('avatar_url, display_name, username')
+          .eq('wallet_address', walletAddress)
+          .single();
+
+        if (!error && data) {
+          // Set profile image if available
+          if (data.avatar_url) {
+            console.log('🖼️ Fetched profile image for remix cover:', data.avatar_url);
+            setProfileImageUrl(data.avatar_url);
+          }
+
+          // Set artist name - priority: display_name > username > wallet address
+          let name = walletAddress;
+          if (data.display_name && data.display_name !== 'New User') {
+            name = data.display_name;
+          } else if (data.username) {
+            name = data.username;
+          }
+
+          console.log('👤 Setting artist name for remix:', name);
+          setArtistName(name);
+        } else {
+          // Fallback to wallet address if no profile found
+          setArtistName(walletAddress);
+        }
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+        // Fallback to wallet address on error
+        if (walletAddress) {
+          setArtistName(walletAddress);
+        }
+      }
+    };
+
+    fetchProfileData();
+  }, [walletAddress]);
 
   // Check if source loops are available for offline use
   useEffect(() => {
@@ -52,33 +104,33 @@ export default function PaymentModal({
     setSourceLoopsAvailable(deckAAllows && deckBAllows);
   }, [deckATrack, deckBTrack]);
 
-  // Generate mix cover image
+  // Generate mix cover image (regenerate when profile image is loaded)
   useEffect(() => {
     const generateCoverImage = async () => {
       if (!deckATrack?.imageUrl || !deckBTrack?.imageUrl) return;
-      
+
       try {
         const blob = await generateMixCoverImage(
           deckATrack.imageUrl,
-          deckBTrack.imageUrl
-          // TODO: Add profile image URL when available
+          deckBTrack.imageUrl,
+          profileImageUrl || undefined // Pass profile image if available
         );
-        
+
         const url = URL.createObjectURL(blob);
         setMixCoverImageUrl(url);
       } catch (error) {
         console.error('Failed to generate mix cover image:', error);
       }
     };
-    
+
     generateCoverImage();
-    
+
     return () => {
       if (mixCoverImageUrl) {
         URL.revokeObjectURL(mixCoverImageUrl);
       }
     };
-  }, [deckATrack?.imageUrl, deckBTrack?.imageUrl]);
+  }, [deckATrack?.imageUrl, deckBTrack?.imageUrl, profileImageUrl]);
 
   // Calculate pricing based on source track prices
   const calculatePrices = () => {
@@ -103,6 +155,139 @@ export default function PaymentModal({
   
   const { loopOnlyPrice, loopPlusSourcesPrice } = calculatePrices();
 
+  // Helper function to convert blob URL to File object
+  const blobUrlToFile = async (blobUrl: string, filename: string): Promise<File> => {
+    const response = await fetch(blobUrl);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: blob.type });
+  };
+
+  // Helper function to upload remix audio to Supabase storage
+  const uploadRemixAudio = async (blobUrl: string): Promise<string> => {
+    try {
+      console.log('📤 Uploading remix audio to storage...');
+
+      // Convert blob URL to File
+      const timestamp = Date.now();
+      const filename = `remix_${timestamp}.webm`;
+      const audioFile = await blobUrlToFile(blobUrl, filename);
+
+      console.log('📦 Audio file created:', {
+        name: audioFile.name,
+        size: audioFile.size,
+        type: audioFile.type
+      });
+
+      if (!walletAddress) {
+        throw new Error('Wallet address is required for upload');
+      }
+
+      // Create authenticated session
+      const authSession = await SupabaseAuthBridge.createWalletSession(walletAddress);
+
+      if (!authSession?.supabase) {
+        throw new Error('Failed to create authenticated session for upload');
+      }
+
+      // Generate storage path
+      const audioPath = `${walletAddress}/audio/remixes/${timestamp}_${filename}`;
+
+      console.log('📂 Uploading to path:', audioPath);
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await authSession.supabase.storage
+        .from('user-content')
+        .upload(audioPath, audioFile, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: audioFile.type
+        });
+
+      if (uploadError) {
+        console.error('❌ Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ Upload successful:', uploadData);
+
+      // Get public URL
+      const { data: urlData } = authSession.supabase.storage
+        .from('user-content')
+        .getPublicUrl(audioPath);
+
+      const publicUrl = urlData.publicUrl;
+      console.log('🔗 Public URL obtained:', publicUrl);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Failed to upload remix audio:', error);
+      throw new Error('Failed to upload remix audio to storage');
+    }
+  };
+
+  // Helper function to upload cover image to Supabase storage
+  const uploadCoverImage = async (blobUrl: string): Promise<string> => {
+    try {
+      console.log('📤 Uploading cover image to storage...');
+
+      // Convert blob URL to File
+      const timestamp = Date.now();
+      const filename = `remix_cover_${timestamp}.png`;
+      const imageFile = await blobUrlToFile(blobUrl, filename);
+
+      console.log('📦 Image file created:', {
+        name: imageFile.name,
+        size: imageFile.size,
+        type: imageFile.type
+      });
+
+      if (!walletAddress) {
+        throw new Error('Wallet address is required for upload');
+      }
+
+      // Create authenticated session
+      const authSession = await SupabaseAuthBridge.createWalletSession(walletAddress);
+
+      if (!authSession?.supabase) {
+        throw new Error('Failed to create authenticated session for upload');
+      }
+
+      // Generate storage path
+      const imagePath = `${walletAddress}/images/remixes/${timestamp}_${filename}`;
+
+      console.log('📂 Uploading to path:', imagePath);
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await authSession.supabase.storage
+        .from('user-content')
+        .upload(imagePath, imageFile, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: imageFile.type
+        });
+
+      if (uploadError) {
+        console.error('❌ Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ Upload successful:', uploadData);
+
+      // Get public URL
+      const { data: urlData } = authSession.supabase.storage
+        .from('user-content')
+        .getPublicUrl(imagePath);
+
+      const publicUrl = urlData.publicUrl;
+      console.log('🔗 Public URL obtained:', publicUrl);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Failed to upload cover image:', error);
+      throw new Error('Failed to upload cover image to storage');
+    }
+  };
+
   const handlePayment = async () => {
     if (!agreedToTerms) {
       alert('Please agree to the licensing terms');
@@ -110,23 +295,145 @@ export default function PaymentModal({
     }
 
     if (!isAuthenticated || !walletAddress) {
-      await connect();
+      await connectWallet();
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      // TODO: Implement actual Stacks payment transaction
-      console.log('Processing payment...', {
+      // Upload audio to storage before payment
+      console.log('🎵 Current recording URL (blob):', recordingUrl);
+      const permanentAudioUrl = await uploadRemixAudio(recordingUrl);
+      console.log('🎵 Permanent audio URL:', permanentAudioUrl);
+
+      // Upload cover image to storage
+      let permanentCoverUrl = mixCoverImageUrl;
+      if (mixCoverImageUrl) {
+        console.log('🖼️ Current cover image URL (blob):', mixCoverImageUrl);
+        permanentCoverUrl = await uploadCoverImage(mixCoverImageUrl);
+        console.log('🖼️ Permanent cover URL:', permanentCoverUrl);
+      }
+
+      // Calculate the total price in microSTX
+      const totalPriceSTX = selectedOption === 'loop-only' ? loopOnlyPrice : loopPlusSourcesPrice;
+      const totalPriceMicroSTX = Math.floor(totalPriceSTX * 1_000_000);
+
+      console.log('💰 Processing payment...', {
         option: selectedOption,
-        price: selectedOption === 'loop-only' ? loopOnlyPrice : loopPlusSourcesPrice,
-        segment: selectedSegment
+        priceSTX: totalPriceSTX,
+        priceMicroSTX: totalPriceMicroSTX,
+        segment: selectedSegment,
+        deckA: deckATrack?.title,
+        deckB: deckBTrack?.title
       });
 
-      // Simulate payment processing (replace with actual Stacks transaction)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const stacksTxId = 'simulated-tx-' + Date.now(); // TODO: Get real tx ID from Stacks
+      // Calculate remix splits (80/20 formula)
+      // We need to use loadedTracks instead of deckATrack/deckBTrack because
+      // deckATrack/deckBTrack only have basic info, not the full attribution splits
+      const loop1 = loadedTracks[0] || {};
+      const loop2 = loadedTracks[1] || {};
+
+      console.log('🎵 Source loops for split calculation:', {
+        loop1Title: loop1.title || 'Not found',
+        loop2Title: loop2.title || 'Not found',
+        loop1HasSplits: !!(loop1.composition_split_1_wallet),
+        loop2HasSplits: !!(loop2.composition_split_1_wallet)
+      });
+
+      const remixSplits = calculateRemixSplits(
+        loop1,
+        loop2,
+        walletAddress!
+      );
+
+      console.log('📊 Remix splits calculated:', {
+        composition: remixSplits.composition,
+        production: remixSplits.production,
+        totalComposition: remixSplits.totalComposition,
+        totalProduction: remixSplits.totalProduction
+      });
+
+      // Consolidate duplicate wallets in splits
+      const consolidateSplits = (splits: Array<{ wallet: string; percentage: number }>) => {
+        const walletMap = new Map<string, number>();
+        splits.forEach(split => {
+          const current = walletMap.get(split.wallet) || 0;
+          walletMap.set(split.wallet, current + split.percentage);
+        });
+        return Array.from(walletMap.entries()).map(([wallet, percentage]) => ({
+          wallet,
+          percentage
+        }));
+      };
+
+      const consolidatedComposition = consolidateSplits(remixSplits.composition);
+      const consolidatedProduction = consolidateSplits(remixSplits.production);
+
+      console.log('🔄 Consolidated splits:', {
+        composition: consolidatedComposition,
+        production: consolidatedProduction
+      });
+
+      // Convert CONSOLIDATED splits to Clarity values
+      const compositionCV = listCV(
+        consolidatedComposition.map(split =>
+          tupleCV({
+            wallet: standardPrincipalCV(split.wallet),
+            percentage: uintCV(split.percentage)
+          })
+        )
+      );
+
+      const productionCV = listCV(
+        consolidatedProduction.map(split =>
+          tupleCV({
+            wallet: standardPrincipalCV(split.wallet),
+            percentage: uintCV(split.percentage)
+          })
+        )
+      );
+
+      // Call smart contract for payment
+      let stacksTxId: string | null = null;
+
+      console.log('🔐 About to call openContractCall...');
+      console.log('🔐 openContractCall function exists?', typeof openContractCall);
+
+      await new Promise<void>((resolve, reject) => {
+        console.log('🔐 Inside Promise, calling openContractCall now...');
+        try {
+          openContractCall({
+            network: 'mainnet',
+            contractAddress: 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN',
+            contractName: 'music-payment-splitter-v3',
+            functionName: 'split-track-payment',
+            functionArgs: [
+              uintCV(totalPriceMicroSTX),
+              compositionCV,
+              productionCV
+            ],
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data) => {
+              console.log('✅ Payment transaction completed:', data.txId);
+              console.log('✅ Full transaction data:', data);
+              stacksTxId = data.txId;
+              resolve();
+            },
+            onCancel: () => {
+              console.log('❌ Payment cancelled by user');
+              reject(new Error('Payment cancelled'));
+            }
+          });
+        } catch (error) {
+          console.error('❌ openContractCall error:', error);
+          reject(error);
+        }
+      });
+
+      if (!stacksTxId) {
+        throw new Error('Payment transaction failed - no transaction ID received');
+      }
 
       // Calculate remix depth from loaded tracks
       const maxDepth = Math.max(...loadedTracks.map(t => t.remix_depth || 0), 0);
@@ -140,44 +447,121 @@ export default function PaymentModal({
         sourceTrackIds
       });
 
-      // Prepare the new remix track data
+      // LIMIT: Maximum remix depth of 2 to prevent contributor explosion
+      if (newRemixDepth > 2) {
+        throw new Error('Cannot remix this content - maximum remix depth (2 generations) exceeded. This prevents contributor lists from becoming unmanageable.');
+      }
+
+      // Calculate download pricing for Gen 1 remix
+      // Gen 1 remixes can be downloaded IF both source loops allow downloads
+      // Minimum download price = sum of both loop download prices
+      const loop1AllowsDownloads = loop1.allow_downloads === true;
+      const loop2AllowsDownloads = loop2.allow_downloads === true;
+      const bothLoopsAllowDownloads = loop1AllowsDownloads && loop2AllowsDownloads;
+
+      let remixDownloadPrice = null;
+      if (bothLoopsAllowDownloads) {
+        const loop1DownloadPrice = loop1.download_price_stx || 0;
+        const loop2DownloadPrice = loop2.download_price_stx || 0;
+        remixDownloadPrice = loop1DownloadPrice + loop2DownloadPrice;
+      }
+
+      console.log('💰 Gen 1 remix download pricing:', {
+        loop1AllowsDownloads,
+        loop2AllowsDownloads,
+        bothLoopsAllowDownloads,
+        loop1DownloadPrice: loop1.download_price_stx,
+        loop2DownloadPrice: loop2.download_price_stx,
+        remixDownloadPrice
+      });
+
+      // Prepare the new remix track data with full split attribution
+      // NOTE: Use remixSplits.composition/production directly (NOT consolidated)
+      // to preserve remixer as separate entry even if same wallet appears in originals
       const newRemixData = {
         id: crypto.randomUUID(),
-        title: `${deckATrack?.title || 'Track A'} x ${deckBTrack?.title || 'Track B'} Mix`,
-        artist: 'You', // TODO: Get from profile
-        primary_uploader_wallet: walletAddress,
-        
-        // Remix depth tracking
+        title: mixTitle,
+        artist: artistName || walletAddress, // Use fetched artist name or wallet as fallback
+        primary_uploader_wallet: walletAddress, // The wallet that owns this track in their store
+        uploader_address: walletAddress, // Legacy field - required by database
+
+        // Gen 1 lineage tracking (new fields from migration)
+        generation: 1, // This is a first-generation remix
+        parent_track_1_id: sourceTrackIds[0] || null, // First source loop
+        parent_track_2_id: sourceTrackIds[1] || null, // Second source loop
+
+        // Legacy remix depth tracking (keep for backward compatibility)
         remix_depth: newRemixDepth,
         source_track_ids: sourceTrackIds,
-        
+
         // Mix metadata
         bpm: bpm,
         content_type: 'loop',
         loop_category: 'remix',
         sample_type: 'instrumentals',
-        
+
         // Recording data
-        audio_url: recordingUrl, // TODO: Upload to storage
-        cover_image_url: mixCoverImageUrl, // TODO: Upload to storage
-        
+        audio_url: permanentAudioUrl, // Uploaded to Supabase storage
+        cover_image_url: permanentCoverUrl, // Uploaded to Supabase storage
+
         // Stacks transaction
         stacks_tx_id: stacksTxId,
-        
-        // IP Attribution (20% for remixer, rest distributed)
-        composition_split_1_wallet: walletAddress,
-        composition_split_1_percentage: 20, // Remixer gets 20%
-        
+
+        // Payment tracking - mark as pending until verified on-chain
+        payment_status: 'pending',
+        payment_checked_at: null,
+
+        // IP Attribution - Composition (expanded to 7 splits, uses UNCONSOLIDATED splits)
+        composition_split_1_wallet: remixSplits.composition[0]?.wallet,
+        composition_split_1_percentage: remixSplits.composition[0]?.percentage,
+        composition_split_2_wallet: remixSplits.composition[1]?.wallet,
+        composition_split_2_percentage: remixSplits.composition[1]?.percentage,
+        composition_split_3_wallet: remixSplits.composition[2]?.wallet,
+        composition_split_3_percentage: remixSplits.composition[2]?.percentage,
+        composition_split_4_wallet: remixSplits.composition[3]?.wallet,
+        composition_split_4_percentage: remixSplits.composition[3]?.percentage,
+        composition_split_5_wallet: remixSplits.composition[4]?.wallet,
+        composition_split_5_percentage: remixSplits.composition[4]?.percentage,
+        composition_split_6_wallet: remixSplits.composition[5]?.wallet,
+        composition_split_6_percentage: remixSplits.composition[5]?.percentage,
+        composition_split_7_wallet: remixSplits.composition[6]?.wallet,
+        composition_split_7_percentage: remixSplits.composition[6]?.percentage,
+
+        // IP Attribution - Production (expanded to 7 splits, uses UNCONSOLIDATED splits)
+        production_split_1_wallet: remixSplits.production[0]?.wallet,
+        production_split_1_percentage: remixSplits.production[0]?.percentage,
+        production_split_2_wallet: remixSplits.production[1]?.wallet,
+        production_split_2_percentage: remixSplits.production[1]?.percentage,
+        production_split_3_wallet: remixSplits.production[2]?.wallet,
+        production_split_3_percentage: remixSplits.production[2]?.percentage,
+        production_split_4_wallet: remixSplits.production[3]?.wallet,
+        production_split_4_percentage: remixSplits.production[3]?.percentage,
+        production_split_5_wallet: remixSplits.production[4]?.wallet,
+        production_split_5_percentage: remixSplits.production[4]?.percentage,
+        production_split_6_wallet: remixSplits.production[5]?.wallet,
+        production_split_6_percentage: remixSplits.production[5]?.percentage,
+        production_split_7_wallet: remixSplits.production[6]?.wallet,
+        production_split_7_percentage: remixSplits.production[6]?.percentage,
+
+        // New pricing model (from migration)
+        // Gen 1 remixes can be downloaded IF both source loops allow downloads
+        // Download price = sum of both loop download prices (minimum)
+        remix_price_stx: 1.0, // Fixed 1 STX per remix usage
+        allow_downloads: bothLoopsAllowDownloads, // Only if BOTH loops allow downloads
+        download_price_stx: remixDownloadPrice, // Sum of both loop prices, or null if not downloadable
+        price_stx: remixDownloadPrice || 1.0, // Legacy field - use download price if available, otherwise remix price
+
         // Additional metadata
         tags: ['remix', '8-bar', 'mixer'],
         description: `8-bar remix created in Mixmi Mixer from bars ${selectedSegment.start + 1} to ${selectedSegment.end}`,
-        license_type: 'RMX',
+        license_type: bothLoopsAllowDownloads ? 'remix_external' : 'remix_only', // remix_external if downloadable, remix_only if not
         allow_remixing: true,
-        price_stx: 2.5,
-        
+
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
+      console.log('💾 Attempting to save remix data:', JSON.stringify(newRemixData, null, 2));
 
       // Save to database
       const { data, error } = await supabase
@@ -187,8 +571,14 @@ export default function PaymentModal({
         .single();
 
       if (error) {
-        console.error('Failed to save remix:', error);
-        throw new Error('Failed to save remix to database');
+        console.error('❌ Database save error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        throw new Error(`Failed to save remix to database: ${error.message || 'Unknown error'}`);
       }
 
       console.log('✅ Remix saved successfully:', {
@@ -200,7 +590,7 @@ export default function PaymentModal({
 
       // Generate certificate for the remix
       console.log('🎓 Generating certificate for remix...');
-      
+
       const certificateData = {
         id: data.id,
         title: data.title,
@@ -210,15 +600,16 @@ export default function PaymentModal({
         key: undefined,
         tags: data.tags || [],
         description: data.description,
-        composition_splits: [
-          {
-            name: 'Remixer',
-            wallet: walletAddress,
-            percentage: 20
-          }
-          // TODO: Add original artist splits
-        ],
-        production_splits: [],
+        composition_splits: consolidatedComposition.map((split, index) => ({
+          name: index === 0 ? 'Remixer' : `Contributor ${index}`,
+          wallet: split.wallet,
+          percentage: split.percentage
+        })),
+        production_splits: consolidatedProduction.map((split, index) => ({
+          name: `Producer ${index + 1}`,
+          wallet: split.wallet,
+          percentage: split.percentage
+        })),
         license_type: data.license_type || 'RMX',
         price_stx: data.price_stx,
         stacksTxId: stacksTxId,
@@ -238,9 +629,21 @@ export default function PaymentModal({
         });
       
       onSuccess();
-    } catch (error) {
-      console.error('Payment/save failed:', error);
-      alert('Failed to save your remix. Please try again.');
+    } catch (error: any) {
+      console.error('💥 Payment/save failed:', error);
+
+      // Provide specific error messages
+      let errorMessage = 'Failed to save your remix. Please try again.';
+
+      if (error.message === 'Payment cancelled') {
+        errorMessage = 'Payment was cancelled. Your remix was not saved.';
+      } else if (error.message?.includes('transaction')) {
+        errorMessage = 'Payment transaction failed. Please check your wallet and try again.';
+      } else if (error.message?.includes('database')) {
+        errorMessage = 'Database error. Please contact support if this persists.';
+      }
+
+      alert(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -259,25 +662,39 @@ export default function PaymentModal({
           </button>
         </div>
 
+        {/* Mix title input */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Mix Title
+          </label>
+          <input
+            type="text"
+            value={mixTitle}
+            onChange={(e) => setMixTitle(e.target.value)}
+            className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+            placeholder="Enter a title for your remix..."
+          />
+        </div>
+
         {/* Selected segment info and preview */}
         <div className="flex gap-4 mb-6">
           {/* Mix cover image preview */}
           {mixCoverImageUrl && (
             <div className="flex-shrink-0">
-              <img 
-                src={mixCoverImageUrl} 
-                alt="Mix cover" 
+              <img
+                src={mixCoverImageUrl}
+                alt="Mix cover"
                 className="w-32 h-32 rounded-lg object-cover border border-slate-700"
               />
               <p className="text-xs text-gray-500 mt-1 text-center">Auto-generated</p>
             </div>
           )}
-          
+
           {/* Segment info */}
           <div className="flex-1 bg-slate-800 rounded-lg p-4">
             <p className="text-gray-400 text-sm mb-1">Selected Segment</p>
             <p className="text-white font-semibold mb-2">
-              Bars {selectedSegment.start + 1} to {selectedSegment.end} 
+              Bars {selectedSegment.start + 1} to {selectedSegment.end}
               ({selectedSegment.end - selectedSegment.start} bars at {bpm} BPM)
             </p>
             <p className="text-xs text-gray-500">
@@ -399,9 +816,10 @@ export default function PaymentModal({
               </p>
               <ul className="mt-2 text-xs text-gray-400 space-y-1">
                 <li>• The 8-bar mix will be added to my creator store with automatic IP attribution</li>
-                <li>• Original creators will receive their designated splits</li>
-                <li>• I will receive 20% attribution as the remixer</li>
+                <li>• I am paying {loopOnlyPrice} STX to license these loops in my remix (1 STX per loop)</li>
+                <li>• Original creators receive their designated splits from this licensing fee</li>
                 <li>• I can remove the mix from my store at any time</li>
+                <li>• <span className="text-gray-500 italic">Future: When customers purchase my remix, I'll earn 20% commission</span></li>
                 {selectedOption === 'loop-plus-sources' && (
                   <li>• Source loops are for offline production use only per creator terms</li>
                 )}

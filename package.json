@@ -6,7 +6,8 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:remix-splits": "npx ts-node --project scripts/tsconfig.json scripts/test-remix-splits.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -33,6 +34,7 @@
     "@react-three/drei": "^9.105.6",
     "@react-three/fiber": "^8.15.19",
     "@stacks/auth": "^7.0.5",
+    "@stacks/blockchain-api-client": "^8.13.1",
     "@stacks/common": "7.0.2",
     "@stacks/connect": "^8.1.7",
     "@stacks/network": "^7.0.2",
@@ -72,13 +74,14 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@types/node": "20.17.30",
+    "@types/node": "^20.17.30",
     "@types/react": "18.3.20",
     "@types/react-dom": "^18",
     "@types/uuid": "^9.0.8",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.35",
     "tailwindcss": "3.4.1",
+    "ts-node": "^10.9.2",
     "typescript": "5.8.2"
   }
 }

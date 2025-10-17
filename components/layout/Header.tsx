@@ -427,11 +427,11 @@ export default function Header() {
                       Clear
                     </button>
                     <button
-                      disabled={true}
-                      className="flex-1 px-3 py-2 bg-[#1E293B] text-gray-500 rounded text-xs cursor-not-allowed opacity-60"
-                      title="Payment splitting smart contracts coming soon"
+                      onClick={purchaseAll}
+                      className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
+                      title="Purchase all items in cart"
                     >
-                      Payments Coming Soon
+                      Purchase All ({cartTotal.toFixed(2)} STX)
                     </button>
                   </div>
                 </div>
@@ -469,6 +469,14 @@ export default function Header() {
                 <p className="text-xs text-gray-300">Amount: {cartTotal.toFixed(2)} STX</p>
                 <p className="text-xs text-gray-300 mt-1">Items: {cart.length}</p>
               </div>
+              <button
+                onClick={() => {
+                  setShowPurchaseModal(false);
+                }}
+                className="mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           )}
 

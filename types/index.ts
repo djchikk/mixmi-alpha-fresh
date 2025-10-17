@@ -79,7 +79,7 @@ export interface IPTrack {
   description?: string;
   tell_us_more?: string; // New field for additional context
   tags: string[];
-  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep';
+  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix';
   loop_category?: string; // Only for loops: 'vocals', 'beats', 'instrumentals', 'field_recording', or custom
   sample_type: string; // Legacy field - will be replaced by content_type + loop_category
   bpm?: number; // Beats per minute - optional for full songs, essential for loops
@@ -95,7 +95,10 @@ export interface IPTrack {
   agreed_to_terms?: boolean;
   
   // Pricing fields
-  price_stx?: number; // Price in STX
+  price_stx?: number; // Legacy combined price (kept for backward compatibility)
+  remix_price_stx?: number; // Price to use this loop in a remix (default 1 STX per loop, 0 for free)
+  download_price_stx?: number; // Price to download the audio file (NULL if downloads not available)
+  allow_downloads?: boolean; // Whether this track can be downloaded (separate from remix rights)
   
   // Composition Splits (up to 3 owners)
   composition_split_1_wallet: string;
@@ -161,7 +164,8 @@ export const CONTENT_TYPES = [
   'full_song',
   'loop',
   'loop_pack',
-  'ep'
+  'ep',
+  'mix'
 ] as const;
 
 export type ContentType = typeof CONTENT_TYPES[number];

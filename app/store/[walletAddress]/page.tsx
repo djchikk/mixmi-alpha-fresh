@@ -44,6 +44,7 @@ export default function CreatorStorePage() {
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [visibleCards, setVisibleCards] = useState(0);
   const [waveLoadingActive, setWaveLoadingActive] = useState(false);
+  const [failedRemixCount, setFailedRemixCount] = useState(0);
 
   // Check if viewing own store
   const isOwnStore = isAuthenticated && walletAddress === actualWalletAddress;
@@ -130,29 +131,30 @@ export default function CreatorStorePage() {
 
       setIsLoading(true);
       try {
-        const [countResult, dataResult] = await Promise.all([
-          supabase
-            .from('ip_tracks')
-            .select('*', { count: 'exact', head: true })
-            .eq('primary_uploader_wallet', actualWalletAddress)
-            .is('deleted_at', null),
-          supabase
-            .from('ip_tracks')
-            .select('*')
-            .eq('primary_uploader_wallet', actualWalletAddress)
-            .is('deleted_at', null)
-            .order('created_at', { ascending: false })
-            .range(0, ITEMS_PER_PAGE - 1)
-        ]);
+        // Fetch all tracks (including failed ones)
+        const { data: allTracks, error: fetchError } = await supabase
+          .from('ip_tracks')
+          .select('*')
+          .eq('primary_uploader_wallet', actualWalletAddress)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
 
-        setTotalCount(countResult.count || 0);
-
-        if (dataResult.error) {
-          console.error('Error fetching tracks:', dataResult.error);
+        if (fetchError) {
+          console.error('Error fetching tracks:', fetchError);
           setTracks([]);
+          setTotalCount(0);
+          setFailedRemixCount(0);
         } else {
-          const trackData = dataResult.data || [];
+          const trackData = allTracks || [];
+
+          // TODO: Implement payment status filtering
+          // Currently showing all tracks. Need to filter out tracks with payment_status='failed'
+          // after confirming the filtering logic doesn't accidentally hide legitimate content.
+          // Related files: /api/verify-remix-payments/route.ts (cleanup API exists and works)
+          // Migration: /supabase/migrations/add_payment_status.sql (already applied)
           setTracks(trackData);
+          setTotalCount(trackData.length);
+          setFailedRemixCount(0);
 
           // Use first track's data as fallback if profile not customized
           if (trackData.length > 0) {
@@ -533,6 +535,31 @@ export default function CreatorStorePage() {
             )}
           </div>
         </div>
+
+        {/* TODO: Re-enable after implementing payment status filtering */}
+        {/* Failed Payment Notification - Only show to owner */}
+        {false && isOwnStore && failedRemixCount > 0 && (
+          <div className="mb-6 p-4 bg-yellow-900/20 border-2 border-yellow-600/50 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-yellow-200 font-semibold mb-1">
+                  {failedRemixCount} Remix{failedRemixCount > 1 ? 'es' : ''} Hidden Due to Payment Failure
+                </h3>
+                <p className="text-yellow-300/80 text-sm leading-relaxed">
+                  {failedRemixCount > 1 ? 'These remixes were' : 'This remix was'} not saved because the payment transaction failed.
+                  This can happen if your wallet had insufficient funds when recording.
+                  {failedRemixCount > 1 ? ' These items have' : ' This item has'} been automatically hidden from your store.
+                </p>
+                <p className="text-yellow-300/60 text-xs mt-2">
+                  To record a new remix, make sure your wallet has enough STX to cover the licensing fees.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex justify-center py-20">

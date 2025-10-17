@@ -394,22 +394,265 @@ export default function CompactTrackCardWithFlip({
                       </button>
                     )}
 
-                    {/* Bottom Section: Price, Content Type Badge, BPM */}
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
-                      {/* Buy Button (left) - compact */}
-                      <button
-                        onClick={handlePurchaseClick}
-                        className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                        title="Price in STX - click to add to cart"
-                      >
-                        {track.price_stx}
-                      </button>
+                    {/* Payment Pending Warning - REMOVED: No longer needed for simplified payment model */}
 
-                      {/* Content Type Badge (center) */}
+                    {/* Bottom Section: Price/Remix Icon, Content Type Badge, BPM */}
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
+                      {/* Buy Button OR Remix Icon (left) - compact */}
+                      {(() => {
+                        // Songs and EPs ALWAYS show download price (never mixer icon)
+                        if (track.content_type === 'full_song' || track.content_type === 'ep') {
+                          // Check new download_price_stx field first
+                          if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
+                            return track.download_price_stx === 0 ? (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Free download - click to add to cart"
+                              >
+                                Free
+                              </button>
+                            ) : (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price in STX - click to add to cart"
+                              >
+                                {track.download_price_stx}
+                              </button>
+                            );
+                          }
+                          // Fallback to legacy price_stx
+                          if (track.price_stx) {
+                            return (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price - click to add to cart"
+                              >
+                                {track.price_stx}
+                              </button>
+                            );
+                          }
+                          // No price set - show as free
+                          return (
+                            <button
+                              onClick={handlePurchaseClick}
+                              className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                              title="Free download - click to add to cart"
+                            >
+                              Free
+                            </button>
+                          );
+                        }
+
+                        // Loop Packs: Check if downloadable or remix-only (same logic as individual loops)
+                        if (track.content_type === 'loop_pack') {
+                          // PRIORITY 1: Check allow_downloads flag first (most reliable indicator)
+                          if (track.allow_downloads === false) {
+                            // This is a remix-only pack - show "M" badge
+                            return (
+                              <div
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                                title="Platform remix only - 1 STX per loop used in remix"
+                              >
+                                M
+                              </div>
+                            );
+                          }
+
+                          // PRIORITY 2: Check if pack has download_price_stx (new model)
+                          if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
+                            // Pack has download price - show buy button
+                            return track.download_price_stx === 0 ? (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Free download - click to add to cart"
+                              >
+                                Free
+                              </button>
+                            ) : (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download full pack - click to add to cart"
+                              >
+                                {track.download_price_stx}
+                              </button>
+                            );
+                          }
+
+                          // PRIORITY 3: Check allow_downloads === true with legacy price_stx
+                          if (track.allow_downloads === true && track.price_stx) {
+                            return (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download full pack - click to add to cart"
+                              >
+                                {track.price_stx}
+                              </button>
+                            );
+                          }
+
+                          // PRIORITY 4: Legacy packs with price_stx but no allow_downloads flag set
+                          // These are old tracks - assume downloadable
+                          if (track.price_stx && track.allow_downloads !== false) {
+                            return (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download full pack - click to add to cart"
+                              >
+                                {track.price_stx}
+                              </button>
+                            );
+                          }
+
+                          // Fallback: no pricing info, assume remix-only
+                          return (
+                            <div
+                              className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                              title="Platform remix only - 1 STX per loop used in remix"
+                            >
+                              M
+                            </div>
+                          );
+                        }
+
+                        // For LOOPS: Check if downloadable or remix-only
+                        if (track.content_type === 'loop') {
+                          // PRIORITY 1: Check allow_downloads flag first (most reliable indicator)
+                          if (track.allow_downloads === false) {
+                            // This is a remix-only loop - show "M" badge
+                            return (
+                              <div
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                                title="Platform remix only - 1 STX per recorded remix"
+                              >
+                                M
+                              </div>
+                            );
+                          }
+
+                          // PRIORITY 2: Check if loop has download_price_stx (new model)
+                          if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
+                            // Loop has download price - show buy button
+                            return track.download_price_stx === 0 ? (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Free download - click to add to cart"
+                              >
+                                Free
+                              </button>
+                            ) : (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price in STX - click to add to cart"
+                              >
+                                {track.download_price_stx}
+                              </button>
+                            );
+                          }
+
+                          // PRIORITY 3: Check allow_downloads === true with legacy price_stx
+                          if (track.allow_downloads === true && track.price_stx) {
+                            return (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price - click to add to cart"
+                              >
+                                {track.price_stx}
+                              </button>
+                            );
+                          }
+
+                          // PRIORITY 4: Legacy tracks with price_stx but no allow_downloads flag set
+                          // These are old tracks - assume downloadable
+                          if (track.price_stx && track.allow_downloads !== false) {
+                            return (
+                              <button
+                                onClick={handlePurchaseClick}
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                                title="Download price - click to add to cart"
+                              >
+                                {track.price_stx}
+                              </button>
+                            );
+                          }
+
+                          // Fallback: no pricing info, assume remix-only
+                          return (
+                            <div
+                              className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                              title="Platform remix only - 1 STX per recorded remix"
+                            >
+                              M
+                            </div>
+                          );
+                        }
+
+                        // For MIXES: Always show "M" badge (mixes don't have downloads for MVP)
+                        if (track.content_type === 'mix') {
+                          return (
+                            <div
+                              className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                              title="Platform remix only - 1 STX per recorded remix"
+                            >
+                              M
+                            </div>
+                          );
+                        }
+
+                        // Fallback for unknown content types: check for price_stx
+                        if (track.price_stx) {
+                          return (
+                            <button
+                              onClick={handlePurchaseClick}
+                              className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                              title="Download price - click to add to cart"
+                            >
+                              {track.price_stx}
+                            </button>
+                          );
+                        }
+
+                        // Ultimate fallback: no price info
+                        return null;
+                      })()}
+
+                      {/* Content Type Badge (center) with generation indicators */}
                       <span className="text-xs font-mono font-medium text-white">
                         {track.content_type === 'ep' && 'EP'}
                         {track.content_type === 'loop_pack' && 'PACK'}
-                        {track.content_type === 'loop' && 'LOOP'}
+                        {track.content_type === 'loop' && (
+                          <>
+                            {track.generation === 0 || track.remix_depth === 0 ? (
+                              '🌱 LOOP'
+                            ) : track.generation === 1 || track.remix_depth === 1 ? (
+                              '🌿 LOOP'
+                            ) : track.generation === 2 || track.remix_depth === 2 ? (
+                              '🌳 LOOP'
+                            ) : (
+                              'LOOP'
+                            )}
+                          </>
+                        )}
+                        {track.content_type === 'mix' && (
+                          <>
+                            {track.generation === 1 || track.remix_depth === 1 ? (
+                              '🌿 MIX'
+                            ) : track.generation === 2 || track.remix_depth === 2 ? (
+                              '🌳 MIX'
+                            ) : (
+                              'MIX'
+                            )}
+                          </>
+                        )}
                         {track.content_type === 'full_song' && 'SONG'}
                         {!track.content_type && 'TRACK'}
                       </span>

@@ -52,16 +52,19 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   const [packLoops, setPackLoops] = useState<IPTrack[]>([]);
   const [loadingLoops, setLoadingLoops] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
+  const [sourceTracks, setSourceTracks] = useState<IPTrack[]>([]);
+  const [loadingSourceTracks, setLoadingSourceTracks] = useState(false);
   const [ipRights, setIPRights] = useState<{
-    composition_split: number;
-    composition_wallet: string;
-    production_split: number;
-    production_wallet: string;
+    composition_splits: Array<{ percentage: number; wallet: string }>;
+    production_splits: Array<{ percentage: number; wallet: string }>;
     notes: string;
     price_stx: number;
     remix_price: number;
     license_type: string;
     license_selection: string;
+    allow_downloads: boolean;
+    remix_price_stx: number;
+    download_price_stx: number | null;
   } | null>(null);
 
   // Audio playback state for individual loops
@@ -96,7 +99,25 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       
       supabase
         .from('ip_tracks')
-        .select('composition_split_1_percentage, composition_split_1_wallet, production_split_1_percentage, production_split_1_wallet, uploader_address, primary_uploader_wallet, notes, price_stx, remix_price, license_type, license_selection, primary_location, location_lat, location_lng, locations')
+        .select(`
+          composition_split_1_percentage, composition_split_1_wallet,
+          composition_split_2_percentage, composition_split_2_wallet,
+          composition_split_3_percentage, composition_split_3_wallet,
+          composition_split_4_percentage, composition_split_4_wallet,
+          composition_split_5_percentage, composition_split_5_wallet,
+          composition_split_6_percentage, composition_split_6_wallet,
+          composition_split_7_percentage, composition_split_7_wallet,
+          production_split_1_percentage, production_split_1_wallet,
+          production_split_2_percentage, production_split_2_wallet,
+          production_split_3_percentage, production_split_3_wallet,
+          production_split_4_percentage, production_split_4_wallet,
+          production_split_5_percentage, production_split_5_wallet,
+          production_split_6_percentage, production_split_6_wallet,
+          production_split_7_percentage, production_split_7_wallet,
+          uploader_address, primary_uploader_wallet, notes, price_stx, remix_price,
+          license_type, license_selection, source_track_ids,
+          allow_downloads, remix_price_stx, download_price_stx
+        `)
         .eq('id', baseId)
         .single()
         .then(({ data, error }) => {
@@ -104,21 +125,60 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             console.error('❌ Error fetching IP rights:', error);
           } else {
             console.log('✅ IP rights from database:', data);
-            console.log('🔍 PRICING DEBUG:', {
-              price_stx: data.price_stx,
-              remix_price: data.remix_price,
-              license_type: data.license_type
-            });
+
+            // Collect all composition splits
+            const compositionSplits = [];
+            if (data.composition_split_1_wallet && data.composition_split_1_percentage) {
+              compositionSplits.push({
+                percentage: data.composition_split_1_percentage,
+                wallet: data.composition_split_1_wallet
+              });
+            }
+            if (data.composition_split_2_wallet && data.composition_split_2_percentage) {
+              compositionSplits.push({
+                percentage: data.composition_split_2_percentage,
+                wallet: data.composition_split_2_wallet
+              });
+            }
+            if (data.composition_split_3_wallet && data.composition_split_3_percentage) {
+              compositionSplits.push({
+                percentage: data.composition_split_3_percentage,
+                wallet: data.composition_split_3_wallet
+              });
+            }
+
+            // Collect all production splits
+            const productionSplits = [];
+            if (data.production_split_1_wallet && data.production_split_1_percentage) {
+              productionSplits.push({
+                percentage: data.production_split_1_percentage,
+                wallet: data.production_split_1_wallet
+              });
+            }
+            if (data.production_split_2_wallet && data.production_split_2_percentage) {
+              productionSplits.push({
+                percentage: data.production_split_2_percentage,
+                wallet: data.production_split_2_wallet
+              });
+            }
+            if (data.production_split_3_wallet && data.production_split_3_percentage) {
+              productionSplits.push({
+                percentage: data.production_split_3_percentage,
+                wallet: data.production_split_3_wallet
+              });
+            }
+
             setIPRights({
-              composition_split: data.composition_split_1_percentage || 0,
-              composition_wallet: data.composition_split_1_wallet || data.uploader_address || data.primary_uploader_wallet || '',
-              production_split: data.production_split_1_percentage || 0,
-              production_wallet: data.production_split_1_wallet || data.uploader_address || data.primary_uploader_wallet || '',
+              composition_splits: compositionSplits,
+              production_splits: productionSplits,
               notes: data.notes || '',
               price_stx: data.price_stx || 0,
               remix_price: data.remix_price || 0,
               license_type: data.license_type || '',
-              license_selection: data.license_selection || ''
+              license_selection: data.license_selection || '',
+              allow_downloads: data.allow_downloads || false,
+              remix_price_stx: data.remix_price_stx || 1.0,
+              download_price_stx: data.download_price_stx || null
             });
           }
         });
@@ -129,13 +189,13 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   useEffect(() => {
     if (isOpen && (track.content_type === 'loop_pack' || track.content_type === 'ep') && track.id) {
       setLoadingLoops(true);
-      
+
       // For loop packs and EPs, use the track's own ID to find individual items
       const packId = track.pack_id || track.id.split('-loc-')[0]; // Remove location suffix if present
-      
+
       // Determine what content type to fetch
       const contentType = track.content_type === 'loop_pack' ? 'loop' : 'full_song';
-      
+
       supabase
         .from('ip_tracks')
         .select('*')
@@ -154,6 +214,57 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       setPackLoops([]);
     }
   }, [isOpen, track.content_type, track.pack_id]);
+
+  // Fetch source tracks for remixes
+  useEffect(() => {
+    const isRemix = track.remix_depth && track.remix_depth > 0;
+    const hasLegacyIds = track.source_track_ids && track.source_track_ids.length > 0;
+    const hasNewIds = track.parent_track_1_id || track.parent_track_2_id;
+
+    if (isOpen && isRemix && (hasLegacyIds || hasNewIds)) {
+      setLoadingSourceTracks(true);
+
+      // Build list of source track IDs from either legacy or new fields
+      let sourceIds: string[] = [];
+      if (hasLegacyIds) {
+        sourceIds = track.source_track_ids;
+      } else if (hasNewIds) {
+        // Use new parent fields
+        if (track.parent_track_1_id) sourceIds.push(track.parent_track_1_id);
+        if (track.parent_track_2_id) sourceIds.push(track.parent_track_2_id);
+      }
+
+      console.log('🔍 Fetching source tracks for remix:', {
+        trackId: track.id,
+        remixDepth: track.remix_depth,
+        sourceIds
+      });
+
+      supabase
+        .from('ip_tracks')
+        .select(`
+          id, title, artist, primary_uploader_wallet,
+          composition_split_1_wallet, composition_split_1_percentage,
+          composition_split_2_wallet, composition_split_2_percentage,
+          composition_split_3_wallet, composition_split_3_percentage,
+          production_split_1_wallet, production_split_1_percentage,
+          production_split_2_wallet, production_split_2_percentage,
+          production_split_3_wallet, production_split_3_percentage
+        `)
+        .in('id', sourceIds)
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('❌ Error fetching source tracks:', error);
+          } else {
+            console.log('✅ Fetched source tracks with IP splits:', data);
+            setSourceTracks(data || []);
+          }
+          setLoadingSourceTracks(false);
+        });
+    } else {
+      setSourceTracks([]);
+    }
+  }, [isOpen, track.remix_depth, track.source_track_ids, track.parent_track_1_id, track.parent_track_2_id]);
 
   // Handle ESC key
   useEffect(() => {
@@ -250,14 +361,19 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     if (track.content_type === 'full_song') return 'Song';
     if (track.content_type === 'ep') return 'EP';
     if (track.content_type === 'loop') return '8-Bar Loop';
+    if (track.content_type === 'mix') return 'Mix';
     if (track.content_type === 'loop_pack') return 'Loop Pack';
     return 'Track';
   };
 
   const getGeneration = () => {
-    if (track.content_type !== 'loop') return null;
+    // Only show generation for loops and mixes (not songs, EPs, etc.)
+    if (track.content_type !== 'loop' && track.content_type !== 'mix') return null;
+
     if (track.remix_depth === 0) return '🌱 Original Seed';
-    if (track.remix_depth && track.remix_depth > 0) return `Generation ${track.remix_depth}`;
+    if (track.remix_depth === 1) return '🌿 Generation 1';
+    if (track.remix_depth === 2) return '🌳 Generation 2';
+    if (track.remix_depth && track.remix_depth > 2) return `🌳 Generation ${track.remix_depth}`;
     return null;
   };
 
@@ -540,31 +656,62 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               <div className="flex">
                 <span className="text-gray-500 w-24">License:</span>
                 <span className="text-gray-300">
-                  {ipRights?.license_selection === 'platform_download'
+                  {track.content_type === 'full_song' || track.content_type === 'ep'
                     ? 'Download Only'
-                    : ipRights?.license_selection === 'platform_remix'
-                      ? 'Platform Remix Only'  
-                      : ipRights?.license_type === 'remix_external'
-                        ? 'Remix + Download'
-                        : 'Platform Remix Only'}
+                    : track.content_type === 'loop'
+                      ? ipRights?.allow_downloads
+                        ? 'Platform Remix + Download'
+                        : 'Platform Remix Only'
+                      : track.content_type === 'loop_pack'
+                        ? ipRights?.allow_downloads
+                          ? 'Platform Remix + Download'
+                          : 'Platform Remix Only'
+                        : ipRights?.license_selection === 'platform_download'
+                          ? 'Download Only'
+                          : 'Platform Remix Only'}
                 </span>
               </div>
               {track.content_type === 'loop_pack' ? (
                 <>
+                  {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                    // Downloadable pack: Show total download price
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Download:</span>
+                      <span className="text-gray-300">{ipRights.download_price_stx} STX (full pack)</span>
+                    </div>
+                  ) : (
+                    // Remix-only pack: Show per-loop remix price
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Remix Fee:</span>
+                      <span className="text-gray-300">1 STX per loop</span>
+                    </div>
+                  )}
                   <div className="flex">
-                    <span className="text-gray-500 w-24">Pack Price:</span>
-                    <span className="text-gray-300">{ipRights?.price_stx || track.price_stx} STX</span>
-                  </div>
-                  <div className="flex">
-                    <span className="text-gray-500 w-24">Per Loop:</span>
-                    <span className="text-gray-300">{ipRights?.remix_price || '0.5'} STX each</span>
+                    <span className="text-gray-500 w-24">Loops:</span>
+                    <span className="text-gray-300">{packLoops.length || '?'} loops in pack</span>
                   </div>
                 </>
+              ) : track.content_type === 'loop' ? (
+                // Loops: Show different pricing based on allow_downloads
+                <>
+                  {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Download:</span>
+                      <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                    </div>
+                  ) : (
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Remix Fee:</span>
+                      <span className="text-gray-300">1 STX per mix</span>
+                    </div>
+                  )}
+                </>
               ) : (
-                ipRights?.price_stx && (
+                // Songs/EPs: Always show download price
+                (ipRights?.download_price_stx !== null || ipRights?.price_stx) && (
                   <div className="flex">
-                    <span className="text-gray-500 w-24">Price:</span>
-                    <span className="text-gray-300">{ipRights.price_stx} STX</span>
+                    <span className="text-gray-500 w-24">Download:</span>
+                    <span className="text-gray-300">{ipRights?.download_price_stx || ipRights?.price_stx} STX</span>
                   </div>
                 )
               )}
@@ -596,7 +743,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 <span className="text-gray-300">{track.title}</span>
               </div>
               <div className="flex">
-                <span className="text-gray-500 w-24">Artist:</span>
+                <span className="text-gray-500 w-24">{track.remix_depth && track.remix_depth > 0 ? 'Remixer:' : 'Artist:'}</span>
                 <span className="text-gray-300">{track.artist}</span>
               </div>
               <div className="flex">
@@ -611,6 +758,50 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               )}
             </div>
           </div>
+
+          {/* Source Tracks - For Remixes Only */}
+          {track.remix_depth && track.remix_depth > 0 && (
+            <div>
+              <Divider title="SOURCE TRACKS" />
+              {loadingSourceTracks ? (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div className="animate-spin rounded-full h-3 w-3 border border-gray-500 border-t-transparent"></div>
+                  Loading source tracks...
+                </div>
+              ) : sourceTracks.length > 0 ? (
+                <div className="space-y-2">
+                  {sourceTracks.map((sourceTrack, index) => (
+                    <div
+                      key={sourceTrack.id}
+                      className="flex items-center gap-2 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-gray-300 text-xs font-medium truncate">
+                          {sourceTrack.title}
+                        </div>
+                        <div className="text-gray-500 text-xs truncate">
+                          by {sourceTrack.artist}
+                        </div>
+                      </div>
+                      {sourceTrack.primary_uploader_wallet && (
+                        <Link
+                          href={`/store/${sourceTrack.primary_uploader_wallet}`}
+                          className="flex-shrink-0 px-2 py-1 bg-cyan-600 hover:bg-cyan-700 text-white text-xs rounded transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500">
+                  No source tracks found
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Tags (including location tags) */}
           {track.tags && track.tags.length > 0 && (
@@ -698,65 +889,134 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           {/* IP Rights */}
           <div>
             <Divider title="IP RIGHTS" />
-            
-            {/* Composition Rights */}
-            <div className="mb-4">
-              <div className="text-gray-400 text-xs font-semibold mb-2">IDEA (Composition):</div>
-              <div className="space-y-1 text-xs pl-4">
-                {(() => {
-                  const compositionSplits = [];
-                  // Use directly fetched IP rights data from database
-                  if (ipRights && ipRights.composition_split > 0) {
-                    compositionSplits.push({
-                      percentage: ipRights.composition_split,
-                      wallet: ipRights.composition_wallet
-                    });
-                  }
-                  
-                  return compositionSplits.map((split, index) => (
-                    <div key={index} className="flex items-center">
-                      <span className="text-gray-300">• Creator: {split.percentage}%</span>
-                      <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
 
-            {/* Production Rights */}
-            <div>
-              <div className="text-gray-400 text-xs font-semibold mb-2">IMPLEMENTATION (Recording):</div>
-              <div className="space-y-1 text-xs pl-4">
-                {(() => {
-                  const productionSplits = [];
-                  // Use directly fetched IP rights data from database
-                  if (ipRights && ipRights.production_split > 0) {
-                    productionSplits.push({
-                      percentage: ipRights.production_split,
-                      wallet: ipRights.production_wallet
-                    });
+            {/* For Remixes: Show IP splits grouped by source loop */}
+            {track.remix_depth && track.remix_depth > 0 && sourceTracks.length > 0 ? (
+              <>
+                {/* Loop through each source track and display its contributors */}
+                {sourceTracks.map((sourceLoop, loopIndex) => {
+                  // Collect composition splits from this source loop
+                  const compSplits = [];
+                  if (sourceLoop.composition_split_1_wallet && sourceLoop.composition_split_1_percentage) {
+                    compSplits.push({ wallet: sourceLoop.composition_split_1_wallet, percentage: sourceLoop.composition_split_1_percentage });
                   }
-                  
-                  return productionSplits.map((split, index) => (
-                    <div key={index} className="flex items-center">
-                      <span className="text-gray-300">• Creator: {split.percentage}%</span>
-                      <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
+                  if (sourceLoop.composition_split_2_wallet && sourceLoop.composition_split_2_percentage) {
+                    compSplits.push({ wallet: sourceLoop.composition_split_2_wallet, percentage: sourceLoop.composition_split_2_percentage });
+                  }
+                  if (sourceLoop.composition_split_3_wallet && sourceLoop.composition_split_3_percentage) {
+                    compSplits.push({ wallet: sourceLoop.composition_split_3_wallet, percentage: sourceLoop.composition_split_3_percentage });
+                  }
+
+                  // Collect production splits from this source loop
+                  const prodSplits = [];
+                  if (sourceLoop.production_split_1_wallet && sourceLoop.production_split_1_percentage) {
+                    prodSplits.push({ wallet: sourceLoop.production_split_1_wallet, percentage: sourceLoop.production_split_1_percentage });
+                  }
+                  if (sourceLoop.production_split_2_wallet && sourceLoop.production_split_2_percentage) {
+                    prodSplits.push({ wallet: sourceLoop.production_split_2_wallet, percentage: sourceLoop.production_split_2_percentage });
+                  }
+                  if (sourceLoop.production_split_3_wallet && sourceLoop.production_split_3_percentage) {
+                    prodSplits.push({ wallet: sourceLoop.production_split_3_wallet, percentage: sourceLoop.production_split_3_percentage });
+                  }
+
+                  return (
+                    <div key={sourceLoop.id} className="mb-4">
+                      {/* Source Loop Header */}
+                      <div className="text-cyan-400 text-xs font-semibold mb-2">
+                        From: {sourceLoop.title}
+                      </div>
+
+                      {/* Composition from this loop */}
+                      <div className="mb-3">
+                        <div className="text-gray-400 text-xs font-medium mb-1 pl-2">IDEA (Composition): contributes 50%</div>
+                        <div className="space-y-1 text-xs pl-4">
+                          {compSplits.length > 0 ? (
+                            compSplits.map((split, index) => (
+                              <div key={index} className="flex items-center">
+                                <span className="text-gray-300">
+                                  • Creator: {split.percentage}% → {Math.floor(split.percentage * 0.5)}% of remix
+                                </span>
+                                <span className="text-gray-500 ml-2 text-xs">[{formatWallet(split.wallet)}]</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-gray-500">No composition splits</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Production from this loop */}
+                      <div>
+                        <div className="text-gray-400 text-xs font-medium mb-1 pl-2">IMPLEMENTATION (Recording): contributes 50%</div>
+                        <div className="space-y-1 text-xs pl-4">
+                          {prodSplits.length > 0 ? (
+                            prodSplits.map((split, index) => (
+                              <div key={index} className="flex items-center">
+                                <span className="text-gray-300">
+                                  • Creator: {split.percentage}% → {Math.floor(split.percentage * 0.5)}% of remix
+                                </span>
+                                <span className="text-gray-500 ml-2 text-xs">[{formatWallet(split.wallet)}]</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-gray-500">No production splits</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  ));
-                })()}
-              </div>
-            </div>
+                  );
+                })}
+
+                {/* Remixer Note */}
+                <div className="mt-4 p-2 bg-slate-800/50 rounded border border-gray-700">
+                  <div className="text-xs text-gray-400">
+                    <span className="font-semibold">Note:</span> Remixer ({track.artist}) receives 20% commission on sales, separate from IP ownership.
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* For Non-Remixes: Show standard IP splits */
+              <>
+                {/* Composition Rights */}
+                <div className="mb-4">
+                  <div className="text-gray-400 text-xs font-semibold mb-2">IDEA (Composition):</div>
+                  <div className="space-y-1 text-xs pl-4">
+                    {ipRights && ipRights.composition_splits.length > 0 ? (
+                      ipRights.composition_splits.map((split, index) => (
+                        <div key={index} className="flex items-center">
+                          <span className="text-gray-300">
+                            • Creator: {split.percentage}%
+                          </span>
+                          <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">No composition splits defined</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Production Rights */}
+                <div>
+                  <div className="text-gray-400 text-xs font-semibold mb-2">IMPLEMENTATION (Recording):</div>
+                  <div className="space-y-1 text-xs pl-4">
+                    {ipRights && ipRights.production_splits.length > 0 ? (
+                      ipRights.production_splits.map((split, index) => (
+                        <div key={index} className="flex items-center">
+                          <span className="text-gray-300">
+                            • Creator: {split.percentage}%
+                          </span>
+                          <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">No production splits defined</div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-
-          {/* Notes */}
-          {ipRights && ipRights.notes && (
-            <div>
-              <Divider title="NOTES" />
-              <div className="text-xs text-gray-300">
-                {ipRights.notes}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>,

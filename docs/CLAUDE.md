@@ -8,6 +8,133 @@ This file provides guidance to Claude Code when working with the Mixmi Alpha Upl
 
 ## 🚀 **October 2025 Achievements**
 
+### **🧬 GEN 1 REMIX IP SPLIT SYSTEM COMPLETE! (October 15, 2025)**
+**MAJOR MILESTONE: Correct IP attribution for remix genealogy with comprehensive test coverage!**
+
+**Achievement:** Implemented and validated the complete Gen 1 remix IP split calculation and display system
+- **Business Model:** Remixer gets 20% commission when someone buys their remix (not when they create it)
+- **IP Attribution:** Each source loop contributes 50% to both composition and production pies
+- **Remixer Exclusion:** Remixer is NOT an IP holder - they're a reseller/distributor
+- **Status:** ✅ Calculations working, UI displaying correctly, all edge cases tested
+
+**Technical Implementation:**
+
+1. **Core Calculation Logic** (`lib/calculateRemixSplits.ts`)
+   - Each loop contributes 50% to remix composition and production pies
+   - Scales contributor percentages by 0.5 (e.g., 100% → 50% of remix)
+   - Consolidates duplicate wallets across composition and production
+   - Adjusts for rounding errors to ensure exactly 100% totals
+   - Returns separate splits for composition and production rights
+
+2. **UI Display** (`components/modals/TrackDetailsModal.tsx`)
+   - Shows IP splits grouped by source loop for clarity
+   - Displays scaling: "Creator: 100% → 50% of remix"
+   - Includes wallet addresses for transparency during alpha
+   - Clear visual separation between loops and remixer note
+   - Works for Gen 0 loops, Gen 1 remixes, songs, EPs, and loop packs
+
+3. **Comprehensive Test Suite** (`scripts/test-remix-splits.ts`)
+   - **Scenario 1:** Simple baseline (1 composer + 1 producer per loop) ✅
+   - **Scenario 2:** Multiple contributors (3 composers + 2 producers) ✅
+   - **Scenario 3:** Same person in multiple roles (consolidation) ✅
+   - **Scenario 4:** Rounding edge cases (33%, 51% splits) ✅
+   - All tests validate: 100% totals, proper scaling, consolidation, rounding
+   - Run with: `npm run test:remix-splits`
+
+**Key Insights Discovered:**
+
+- **Remixer Can Be Contributor:** If remixer contributed to a source loop, they appear in IP splits AND get commission - two separate payments for transparency
+- **Equal Splits Forced:** Simplified to auto-equal splits (no negotiation) to reduce complexity
+- **Payment Context Matters:**
+  - Creating remix: Remixer is BUYER (pays 1 STX, gets 0% commission)
+  - Someone downloads remix: Remixer is SELLER (gets 20% commission)
+
+**Files Changed:**
+- `lib/calculateRemixSplits.ts` - Complete rewrite of IP split calculation
+- `components/modals/TrackDetailsModal.tsx` - Grouped source loop display
+- `scripts/test-remix-splits.ts` - Automated test suite (4 scenarios)
+- `scripts/test-data-setup.sql` - Optional database test data
+- `scripts/test-data-cleanup.sql` - Test data removal
+- `scripts/TEST_SUITE_README.md` - Test documentation
+
+**Why This Matters:**
+- **Fair Attribution:** All original creators properly credited and compensated
+- **Transparent Math:** Visual display shows exactly how splits are calculated
+- **Edge Case Coverage:** Tested complex scenarios with multiple contributors
+- **Foundation for Gen 2+:** Clean baseline for future generation payment models
+
+**Next Steps:**
+- ~~Simplify remix creation flow (1 STX flat fee, no download options)~~ ✅ **DONE! (Oct 16, 2025)**
+- Implement downstream remix sales (80/20 revenue split)
+- Design Heritage Pools for Gen 2+ payments
+- Build out creative genealogy visualization
+
+### **🎯 Downstream Remix Sales Implementation Plan (Coming Soon)**
+
+**Current State (Oct 16, 2025):**
+- ✅ **Recording a remix**: Remixer pays 1 STX per loop upfront to loop creators
+- ✅ **Payment flow**: Uses existing `music-payment-splitter-v3` contract for upfront licensing
+- ✅ **Remix pricing stored**: `download_price_stx` = sum of both loop download prices (if both allow downloads)
+- ❌ **NOT implemented**: Revenue split when someone BUYS the remix from remixer's store
+
+**What Needs Implementation:**
+When a customer purchases a Gen 1 remix download from a creator's store:
+- **80%** goes to original loop creators (split according to their composition/production splits)
+- **20%** goes to the remixer (the person who created the mix)
+
+**Technical Approach - Option B (API-based for Alpha):**
+1. **Purchase Flow**: Customer buys remix → payment goes to platform/escrow wallet
+2. **Backend API**: Calculate 80/20 split based on stored attribution data
+3. **Payout Distribution**: Use existing `music-payment-splitter-v3` contract to distribute funds
+4. **Benefits**: Simpler for alpha, uses existing payment verification infrastructure
+
+**Why Option B (not new smart contract):**
+- Already have payment verification infrastructure
+- Can iterate on split percentages without redeploying contracts
+- Easier to test and debug in alpha
+- Can upgrade to on-chain solution later if needed
+
+**Files to Modify:**
+- `/api/purchase-remix/route.ts` - New API endpoint for remix purchases
+- `components/cards/CompactTrackCardWithFlip.tsx` - Purchase handler for remixes
+- `lib/calculateRemixSplits.ts` - Add downstream sales split calculation
+- Database schema - May need `remix_sales` table for tracking/auditing
+
+**Status**: Documented for future implementation (post-alpha testing phase)
+
+### **🎉 MAINNET PAYMENT SPLITTER LIVE! (October 7, 2025)**
+**MAJOR BREAKTHROUGH: First successful music payment split on Stacks mainnet!**
+
+**Achievement:** Deployed v3 payment splitting smart contract to mainnet with successful real-money transactions
+- **Contract:** `SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN.music-payment-splitter-v3`
+- **First Transaction:** 2 STX perfectly split to 3 artists (0.6 + 0.4 + 1.0 STX)
+- **Status:** ✅ Production-ready, live, and working with 100% accuracy
+
+**Technical Breakthroughs:**
+1. **Escrow Pattern:** Contract receives STX first, then distributes (v3 architecture)
+2. **PostConditionMode.Allow:** Enables multi-recipient transfers without complex post-conditions
+3. **Cart Integration:** Shopping cart now uses smart contract for automatic payment splitting
+4. **Batch Support:** Supports up to 50 contributors per category for cart aggregation
+5. **Real-World Testing:** Validated with actual mainnet STX and multiple artist wallets
+
+**Key Files Changed:**
+- `contracts/music-payment-splitter.clar` - V3 implementation with escrow pattern
+- `contexts/CartContext.tsx` - Integrated v3 contract with PostConditionMode.Allow
+- `deployments/default.mainnet-plan.yaml` - Mainnet deployment configuration
+- `docs/MAINNET-DEPLOYMENT-GUIDE.md` - Complete deployment documentation
+
+**Why This Matters:**
+- **Fair Compensation:** Automatic revenue splitting ensures all contributors get paid instantly
+- **No Middleman:** Direct blockchain payments, no platform holds funds
+- **Transparency:** Every split is verifiable on-chain
+- **Scalability:** Supports complex collaborations with many contributors
+
+**Resources:**
+- [Mainnet Deployment Guide](/docs/MAINNET-DEPLOYMENT-GUIDE.md)
+- [Payment Splitting Guide](/docs/PAYMENT-SPLITTING-GUIDE.md)
+- [Contract README](/contracts/mixmi-payment-splitter/README.md)
+- [Explorer](https://explorer.hiro.so/txid/0xd06bbc3488a4249083378ff8288b62a12e695d11ffc46077017138745ff49c39?chain=mainnet)
+
 ### **Shopping Cart Moved to Header (October 5, 2025)**
 - **Cart Relocation**: Moved shopping cart from Crate component to Header (top-right position)
 - **Global State Management**: Created CartContext for app-wide cart functionality
@@ -592,7 +719,7 @@ The `reference/full-app/` directory contains complete main Mixmi application cod
 
 **The reference code provides the blueprint for scaling from alpha uploader to complete music ecosystem!**
 
-## Next Priority Tasks (Updated Oct 5, 2025)
+## Next Priority Tasks (Updated Oct 16, 2025)
 1. **✅ System Performance** - Globe loading optimized to 17ms
 2. **✅ Image Architecture** - TrackCoverUploader and clean URL system working
 3. **✅ Location Accuracy** - Exact coordinate preservation implemented
@@ -603,11 +730,13 @@ The `reference/full-app/` directory contains complete main Mixmi application cod
 8. **✅ Shopping Cart to Header** - Cart moved from Crate to global Header (Oct 5, 2025)
 9. **✅ Payment Flow Disabled** - Prevented disaster of payments going to only first artist
 10. **✅ Welcome Page Accuracy** - Features correctly categorized as Live vs Coming Soon
-11. **🎯 Payment Splitting Smart Contracts** - Enable multi-artist revenue splitting (Clarity)
-12. **🎯 Hover Interaction UX** - Planned: Instant card popup on globe node hover
-13. **🎛️ Big Mixer Integration** - Professional mixer from reference code
-14. **🔄 Card System Unification** - Standardize all card components across contexts
-15. **🧹 Code Cleanup** - Remove debug statements and unused components
+11. **✅ Gen 1 Pricing Separation** - Remix fee (1 STX per loop) separated from download pricing
+12. **🎯 Downstream Remix Sales** - Implement 80/20 revenue split for remix downloads (API-based)
+13. **🎯 Payment Splitting Smart Contracts** - Enable multi-artist revenue splitting (Clarity)
+14. **🎯 Hover Interaction UX** - Planned: Instant card popup on globe node hover
+15. **🎛️ Big Mixer Integration** - Professional mixer from reference code
+16. **🔄 Card System Unification** - Standardize all card components across contexts
+17. **🧹 Code Cleanup** - Remove debug statements and unused components
 
 ## Admin Tool Architecture
 

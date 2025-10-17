@@ -160,10 +160,12 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
       };
       
       // Create individual loop record
+      // Use audio filename (without extension) as loop title for better UX
+      const loopTitle = file.name.replace(/\.[^/.]+$/, "") || `Loop ${i + 1}`;
       const loopData = {
         ...baseTrackData,
         id: crypto.randomUUID(),
-        title: `${(formData as any).pack_title || formData.title} - Loop ${i + 1}`,
+        title: loopTitle,
         content_type: 'loop', // Individual loops must be 'loop' type
         loop_category: 'pack',
         pack_id: packId,
@@ -172,9 +174,16 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
         duration: audioResult.duration || null,
         bpm: audioResult.bpm || baseTrackData.bpm,
         cover_image_url: formData.cover_image_url, // Inherit pack cover image
+        // Explicitly inherit licensing and pricing from pack
+        allow_downloads: baseTrackData.allow_downloads,
+        remix_price_stx: 1.0, // Individual loops always 1 STX per remix
+        download_price_stx: baseTrackData.allow_downloads === true
+          ? ((formData as any).price_per_loop || 0.5) // Individual loop download price
+          : null, // Remix-only packs have no download price
       };
       
       console.log(`📊 Loop ${i + 1} data:`, loopData);
+      console.log(`✅ Loop ${i + 1} licensing: allow_downloads=${loopData.allow_downloads}, download_price_stx=${loopData.download_price_stx}`);
       
       const { data: loopResult, error: loopError } = await authSession.supabase
         .from('ip_tracks')
@@ -205,19 +214,27 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
     id: packId, // Use the same pack ID so individual loops can be found!
     title: (formData as any).pack_title || formData.title, // Use pack_title for loop packs
     content_type: 'loop_pack', // This will show on globe
-    loop_category: null, // Pack records don't need category  
+    loop_category: null, // Pack records don't need category
     pack_id: null, // Master pack record doesn't belong to a pack - IT IS the pack
     pack_position: null, // Master record has no position
     audio_url: firstLoopAudioUrl, // Use first loop's audio
     duration: null, // Pack duration could be sum of all loops, but null for now
     bpm: baseTrackData.bpm, // Use pack-level BPM from form
-    // Use form pricing for loop packs, not defaults
-    price_stx: ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length, // Total pack price
-    remix_price: (formData as any).price_per_loop || 0.5, // Per loop price
+    // Explicitly inherit licensing from pack
+    allow_downloads: baseTrackData.allow_downloads,
+    // Use form pricing for loop packs with new pricing model
+    remix_price_stx: 1.0, // Platform standard: 1 STX per loop remix
+    download_price_stx: baseTrackData.allow_downloads === true
+      ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Total pack download price
+      : null, // Remix-only packs have no download price
+    price_stx: baseTrackData.allow_downloads === true
+      ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Legacy: total pack download price
+      : null, // Legacy: remix-only packs should show MIX badge (no price_stx)
     description: formData.description + ` (Loop Pack containing ${formData.loop_files!.length} loops)`,
   };
   
   console.log('📊 Master pack record data:', masterPackRecord);
+  console.log(`✅ Master pack licensing: allow_downloads=${masterPackRecord.allow_downloads}, download_price_stx=${masterPackRecord.download_price_stx}`);
   console.log('🚀 ABOUT TO INSERT MASTER PACK RECORD...');
   
   const { data: masterResult, error: masterError } = await authSession.supabase
@@ -466,15 +483,23 @@ export function useIPTrackSubmit({
         open_to_commercial: formData.open_to_commercial,
         open_to_collaboration: formData.open_to_collaboration,
         // Removed agree_* fields - not in current database schema
-        
-        // Pricing - Different logic for full songs vs loops
-        price_stx: formData.content_type === 'full_song'
-          ? (formData.download_price || formData.price_stx) // Full songs use download price
-          : formData.license_selection === 'platform_download' 
-            ? formData.combined_price  // Loops with download option
-            : formData.remix_price,    // Loops with remix only
-        remix_price: formData.remix_price,
-        combined_price: formData.combined_price,
+
+        // NEW PRICING MODEL (separate remix and download pricing)
+        // Songs/EPs: Only download price (no remix)
+        // Loops: remix_price_stx (1 STX default) + optional download_price_stx
+        remix_price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
+          ? 0  // Songs/EPs can't be remixed
+          : 1.0, // Loops default to 1 STX per remix
+        download_price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
+          ? ((formData as any).download_price || formData.price_stx || 2.5) // Songs/EPs always have download price
+          : formData.allow_downloads
+            ? ((formData as any).download_price_stx || (formData as any).download_price || formData.combined_price || 2.5) // Loops with downloads enabled
+            : null, // Remix-only loops have no download price
+        price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
+          ? ((formData as any).download_price || formData.price_stx || 2.5) // Legacy: same as download price
+          : formData.allow_downloads
+            ? ((formData as any).download_price_stx || (formData as any).download_price || formData.combined_price || 2.5) // Legacy: download price if available
+            : 1.0, // Legacy: remix price if no downloads
         
         // Contact info
         commercial_contact: formData.commercial_contact,
