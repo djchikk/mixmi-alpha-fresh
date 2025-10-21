@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
@@ -27,24 +27,9 @@ export function latLngToVector3(lat: number, lng: number, radius: number): THREE
 
 export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNode, hoveredNode, backgroundMode = false }: GlobeProps) {
   const globeRef = useRef<THREE.Group>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Fade in on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 100); // Small delay to ensure DOM is ready
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
-    <div
-      className="w-full h-full transition-opacity duration-[2000ms] ease-out"
-      style={{
-        minHeight: '600px',
-        opacity: isVisible ? 1 : 0
-      }}
-    >
+    <div className="w-full h-full" style={{ minHeight: '600px' }}>
       <Canvas
         camera={{ 
           position: [0, 0, 2.5], 
