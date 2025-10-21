@@ -443,7 +443,7 @@ export default function Crate({ className = '' }: CrateProps) {
             fontSize: '14px',
             fontStyle: 'italic'
           }}>
-            Your crate is your persistent collection — drag content here from anywhere in Mixmi
+            Your persistent collection — drag content here from anywhere, then drag to mixer decks
           </div>
         ) : (
           // Track list
