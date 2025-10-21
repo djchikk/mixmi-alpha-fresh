@@ -24,14 +24,7 @@ const GlobeTrackCard = dynamic(() => import('@/components/cards/GlobeTrackCard')
 // Dynamically import Globe to avoid SSR issues with Three.js
 const Globe = dynamic(() => import('@/components/globe/Globe'), {
   ssr: false,
-  loading: () => (
-    <div className="w-full h-[600px] flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-        <p className="text-gray-400">Loading globe...</p>
-      </div>
-    </div>
-  )
+  loading: () => null // No loading spinner - tagline animation handles this
 });
 
 
@@ -290,11 +283,11 @@ export default function HomePage() {
     loadTracks();
   }, []);
 
-  // Tagline animation - fade out after 4 seconds
+  // Tagline animation - fade out after 8 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowTagline(false);
-    }, 4000); // Hold for 3 seconds + 1 second fade
+    }, 8000); // Slower, more relaxed timing
 
     return () => clearTimeout(timer);
   }, []);
@@ -328,17 +321,17 @@ export default function HomePage() {
 
   const handleNodeHover = (node: TrackNode | null) => {
     setHoveredNode(node);
-    
-    // Show cluster info or track title instead of random tags
+
+    // Immediately show the card on hover (no more two-stage process)
     if (node) {
-      if (isClusterNode(node)) {
-        const locationName = node.location || 'This location';
-        setHoveredNodeTags([`${node.clusterCount} tracks in ${locationName}`]);
-      } else {
-        // Show track title for individual tracks
-        setHoveredNodeTags([node.title || 'Track']);
-      }
+      setSelectedNode(node);
+      setCarouselPage(0); // Reset pagination for clusters
+
+      // Clear tags since card is now showing
+      setHoveredNodeTags(null);
+      setSelectedNodeTags(null);
     } else {
+      // When unhover, don't clear the selected node - let user dismiss it manually
       setHoveredNodeTags(null);
     }
   };
@@ -486,12 +479,12 @@ export default function HomePage() {
       {/* Full viewport container with starry background */}
       <div className="fixed inset-0 top-[64px] bottom-0 bg-gradient-to-br from-[#151C2A] to-[#101726]">
         {/* Search component - upper left */}
-        <GlobeSearch 
+        <GlobeSearch
           nodes={globeNodes}
           onPlayPreview={handlePlayPreview}
           playingTrackId={playingTrackId}
         />
-        
+
         {/* Globe fills entire container */}
         <div className="w-full h-full relative">
           <Globe
@@ -502,37 +495,75 @@ export default function HomePage() {
             hoveredNode={hoveredNode}
           />
 
-          {/* Tagline overlay - fades in, holds, then fades out */}
+          {/* Tagline overlay - sequential fade animation */}
           {showTagline && (
             <div
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              className="absolute left-0 right-0 flex items-center justify-center pointer-events-none gap-4"
               style={{
-                animation: 'taglineFade 4s ease-in-out forwards'
+                top: '50%',
+                transform: 'translateY(-50%)'
               }}
             >
-              <h1
-                className="text-white font-bold tracking-wide"
+              <span
+                className="font-bold tracking-wide"
                 style={{
                   fontSize: 'clamp(2rem, 5vw, 4rem)',
                   textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-                  fontFamily: 'var(--font-geist-sans)'
+                  fontFamily: 'var(--font-geist-sans)',
+                  color: '#F6F6F6',
+                  animation: 'wordFadeSequence1 8s ease-in-out forwards'
                 }}
               >
-                discover • mix • create
-              </h1>
+                discover
+              </span>
+              <span
+                className="font-bold"
+                style={{
+                  fontSize: 'clamp(2rem, 5vw, 4rem)',
+                  color: '#F6F6F6',
+                  opacity: 0.6
+                }}
+              >
+                •
+              </span>
+              <span
+                className="font-bold tracking-wide"
+                style={{
+                  fontSize: 'clamp(2rem, 5vw, 4rem)',
+                  textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+                  fontFamily: 'var(--font-geist-sans)',
+                  color: '#F6F6F6',
+                  animation: 'wordFadeSequence2 8s ease-in-out forwards'
+                }}
+              >
+                mix
+              </span>
+              <span
+                className="font-bold"
+                style={{
+                  fontSize: 'clamp(2rem, 5vw, 4rem)',
+                  color: '#F6F6F6',
+                  opacity: 0.6
+                }}
+              >
+                •
+              </span>
+              <span
+                className="font-bold tracking-wide"
+                style={{
+                  fontSize: 'clamp(2rem, 5vw, 4rem)',
+                  textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+                  fontFamily: 'var(--font-geist-sans)',
+                  color: '#F6F6F6',
+                  animation: 'wordFadeSequence3 8s ease-in-out forwards'
+                }}
+              >
+                create
+              </span>
             </div>
           )}
 
-          {/* Loading overlay when tracks are being fetched */}
-          {isLoadingTracks && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-[#101726]/80 backdrop-blur-sm rounded-lg p-6 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#81E4F2] mx-auto mb-3"></div>
-                <p className="text-white text-sm font-medium">Loading tracks and vibes</p>
-                <p className="text-gray-400 text-xs mt-1">Discovering music from around the world</p>
-              </div>
-            </div>
-          )}
+          {/* Loading overlay removed - sequential tagline animation serves this purpose */}
         </div>
 
         {/* Comparison Cards */}
@@ -704,74 +735,15 @@ export default function HomePage() {
           )}
 
 
-        {/* Hover Tags - Position shifts when card is selected */}
-        {hoveredNodeTags && (
-          <div 
-            className="fixed flex flex-wrap gap-1 justify-center pointer-events-none"
-            style={{ 
-              bottom: 'calc(50% + 90px)', // Position from bottom to push tags up as they wrap
-              left: selectedNode ? 'calc(50% + 150px)' : '50%', // Offset to right when card is selected
-              transform: 'translateX(-50%)',
-              width: '160px', // Match card width
-              maxWidth: '160px',
-              zIndex: 150,
-              opacity: 1,
-              transition: 'all 300ms ease-in-out'
-            }}
-          >
-            {hoveredNodeTags.map((tag, index) => (
-              <span
-                key={index}
-                className="bg-white/10 px-2 py-1 rounded text-xs text-gray-300 inline-block"
-                style={{
-                  backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Tags removed - card shows all info on hover now */}
         
-        {/* Selected Node Tags - Persists above the selected card */}
-        {selectedNodeTags && selectedNode && (
-          <div 
-            className="fixed flex flex-wrap gap-1 justify-center pointer-events-none"
-            style={{ 
-              bottom: 'calc(50% + 90px)', // Position from bottom to push tags up as they wrap
-              left: '50%', 
-              transform: 'translateX(-50%)',
-              width: '160px', // Match card width
-              maxWidth: '160px',
-              zIndex: 201, // Above the card
-              opacity: 1,
-              transition: 'all 300ms ease-in-out'
-            }}
-          >
-            {selectedNodeTags.map((tag, index) => (
-              <span
-                key={index}
-                className="bg-white/20 px-2 py-1 rounded text-xs text-gray-100 inline-block"
-                style={{
-                  backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-        
-        {/* Globe Track Card or Cluster Cards - Shows when a node is clicked */}
+        {/* Globe Track Card or Cluster Cards - Shows when a node is hovered */}
         {selectedNode && (
-          <div 
+          <div
             className="fixed bg-[#101726]/95 backdrop-blur-sm rounded-lg pt-2 px-2 pb-1 border border-[#1E293B] shadow-xl animate-scale-in"
-            style={{ 
-              top: '50%', 
-              left: '50%', 
+            style={{
+              top: '50%',
+              left: '50%',
               transform: 'translate(-50%, -50%)',
               zIndex: 250,
               maxHeight: '80vh',

@@ -28,17 +28,75 @@
     opacity: 0;
     transform: translateY(10px) scale(0.98);
   }
-  15% {
+  10% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-  85% {
+  80% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
   100% {
     opacity: 0;
     transform: translateY(-10px) scale(0.98);
+  }
+}
+
+/* Sequential word fade animations */
+@keyframes wordFadeSequence1 {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  8% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  20% {
+    opacity: 0.4;
+  }
+  80% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes wordFadeSequence2 {
+  0%, 15% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  23% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 0.4;
+  }
+  80% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes wordFadeSequence3 {
+  0%, 30% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  38% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50%, 80% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
