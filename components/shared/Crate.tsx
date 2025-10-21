@@ -74,7 +74,7 @@ export default function Crate({ className = '' }: CrateProps) {
   const router = useRouter();
   const pathname = usePathname();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { collection, addTrackToCollection, removeTrackFromCollection } = useMixer();
+  const { collection, addTrackToCollection, removeTrackFromCollection, clearCollection } = useMixer();
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -140,11 +140,17 @@ export default function Crate({ className = '' }: CrateProps) {
       }
     };
 
+    (window as any).clearCollection = () => {
+      console.log('🗑️ Crate: Clearing all tracks from collection');
+      clearCollection();
+    };
+
     return () => {
       delete (window as any).addToCollection;
       delete (window as any).removeFromCollection;
+      delete (window as any).clearCollection;
     };
-  }, [collection, addTrackToCollection, removeTrackFromCollection]);
+  }, [collection, addTrackToCollection, removeTrackFromCollection, clearCollection]);
 
   // Handle track preview
   const handleTrackClick = (track: any) => {

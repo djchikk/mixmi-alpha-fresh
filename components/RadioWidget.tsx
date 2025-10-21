@@ -254,7 +254,7 @@ export default function RadioWidget() {
     }
   }, [volume]);
 
-  // Expose loadRadioTrack globally for FILL button
+  // Expose loadRadioTrack and clearRadio globally for FILL/RESET buttons
   useEffect(() => {
     (window as any).loadRadioTrack = (track: any) => {
       console.log('📻 Radio: Loading track from FILL:', track.title);
@@ -269,8 +269,21 @@ export default function RadioWidget() {
       }
     };
 
+    (window as any).clearRadio = () => {
+      console.log('🗑️ Radio: Clearing current track');
+      setIsPlaying(false);
+      setCurrentTrack(null);
+      setPlayedTracks(new Set());
+      shouldAutoPlayRef.current = false;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
+
     return () => {
       delete (window as any).loadRadioTrack;
+      delete (window as any).clearRadio;
     };
   }, [volume]);
 

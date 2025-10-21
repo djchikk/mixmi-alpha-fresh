@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } from "@/lib/globe/simpleCluster";
 import Crate from "@/components/shared/Crate";
 import WidgetLauncher from "@/components/WidgetLauncher";
+import ResetConfirmModal from "@/components/modals/ResetConfirmModal";
 
 
 // Dynamically import GlobeTrackCard to avoid SSR issues
@@ -79,6 +80,10 @@ export default function HomePage() {
   const [isMixerVisible, setIsMixerVisible] = useState(true);
   const [isPlaylistVisible, setIsPlaylistVisible] = useState(false);
   const [isRadioVisible, setIsRadioVisible] = useState(false);
+
+  // Fill/Reset state
+  const [isFilled, setIsFilled] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // Handle comparison track from collection bar
   const handleComparisonTrack = (track: any) => {
@@ -242,8 +247,64 @@ export default function HomePage() {
       }
 
       console.log('✅ FILL: All widgets populated!');
+      setIsFilled(true);
     } catch (error) {
       console.error('❌ FILL: Error populating widgets:', error);
+    }
+  };
+
+  // Reset all widgets and crate
+  const handleResetWidgets = () => {
+    try {
+      console.log('🔄 RESET: Clearing all widgets and crate...');
+
+      // Clear mixer decks
+      if (typeof window !== 'undefined' && (window as any).clearMixerDecks) {
+        (window as any).clearMixerDecks();
+        console.log('🎛️ RESET: Cleared mixer decks');
+      }
+
+      // Clear playlist
+      if (typeof window !== 'undefined' && (window as any).clearPlaylist) {
+        (window as any).clearPlaylist();
+        console.log('📝 RESET: Cleared playlist');
+      }
+
+      // Clear radio
+      if (typeof window !== 'undefined' && (window as any).clearRadio) {
+        (window as any).clearRadio();
+        console.log('📻 RESET: Cleared radio');
+      }
+
+      // Clear crate (all tracks)
+      if (typeof window !== 'undefined' && (window as any).clearCollection) {
+        (window as any).clearCollection();
+        console.log('📦 RESET: Cleared crate');
+      }
+
+      // Clear center track card
+      setCenterTrackCard(null);
+
+      // Clear fill tracking
+      setFillAddedTrackIds(new Set());
+
+      // Reset filled state
+      setIsFilled(false);
+
+      console.log('✅ RESET: All widgets and crate cleared!');
+    } catch (error) {
+      console.error('❌ RESET: Error clearing widgets:', error);
+    }
+  };
+
+  // Handle fill/reset button click
+  const handleFillResetClick = () => {
+    if (isFilled) {
+      // Show confirmation modal for reset
+      setShowResetModal(true);
+    } else {
+      // Fill widgets
+      handleFillWidgets();
     }
   };
 
@@ -921,10 +982,18 @@ export default function HomePage() {
         onMixClick={() => setIsMixerVisible(!isMixerVisible)}
         onPlayClick={() => setIsPlaylistVisible(!isPlaylistVisible)}
         onRadioClick={() => setIsRadioVisible(!isRadioVisible)}
-        onFillClick={handleFillWidgets}
+        onFillClick={handleFillResetClick}
         isMixerVisible={isMixerVisible}
         isPlaylistVisible={isPlaylistVisible}
         isRadioVisible={isRadioVisible}
+        isFilled={isFilled}
+      />
+
+      {/* Reset Confirmation Modal */}
+      <ResetConfirmModal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={handleResetWidgets}
       />
 
       {/* Playlist Widget - Fixed left position (24px left of mixer edge) */}

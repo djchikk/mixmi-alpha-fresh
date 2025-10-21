@@ -561,7 +561,7 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
     }
   };
 
-  // Expose loadMixerTracks method for FILL button
+  // Expose loadMixerTracks and clearMixerDecks methods
   useEffect(() => {
     (window as any).loadMixerTracks = async (trackA: any, trackB: any) => {
       console.log('🎛️ Mixer: Loading tracks from FILL:', trackA.title, '&', trackB.title);
@@ -595,8 +595,16 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
       }
     };
 
+    // Clear both mixer decks
+    (window as any).clearMixerDecks = () => {
+      console.log('🗑️ Mixer: Clearing both decks');
+      clearDeckA();
+      clearDeckB();
+    };
+
     return () => {
       delete (window as any).loadMixerTracks;
+      delete (window as any).clearMixerDecks;
     };
   }, []);
 

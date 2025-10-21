@@ -10,6 +10,7 @@ interface WidgetLauncherProps {
   isMixerVisible: boolean;
   isPlaylistVisible: boolean;
   isRadioVisible: boolean;
+  isFilled: boolean;
 }
 
 export default function WidgetLauncher({
@@ -19,7 +20,8 @@ export default function WidgetLauncher({
   onFillClick,
   isMixerVisible,
   isPlaylistVisible,
-  isRadioVisible
+  isRadioVisible,
+  isFilled
 }: WidgetLauncherProps) {
   return (
     <div
@@ -94,10 +96,10 @@ export default function WidgetLauncher({
           <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Radio</span>
         </button>
 
-        {/* Fill Button */}
+        {/* Fill/Reset Button */}
         <button
           onClick={onFillClick}
-          className="group transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
+          className="group transition-all flex items-center justify-center font-mono text-sm relative overflow-hidden"
           style={{
             width: '64px',
             height: '64px',
@@ -106,13 +108,22 @@ export default function WidgetLauncher({
           }}
         >
           <div
-            className="absolute inset-0 transition-opacity duration-300"
+            className="absolute inset-0 transition-all duration-300"
             style={{
-              background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
-              opacity: 0.65,
+              background: isFilled
+                ? 'radial-gradient(circle at center, #FFFFFF 0%, #FFB8A3 30%, #FF6B6B 100%)'
+                : 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
+              opacity: isFilled ? 1 : 0.65,
             }}
           />
-          <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Fill</span>
+          <span
+            className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            style={{
+              color: isFilled ? '#FF3333' : '#FFFFFF'
+            }}
+          >
+            {isFilled ? 'Reset' : 'Fill'}
+          </span>
         </button>
       </div>
     </div>

@@ -35,6 +35,7 @@ interface MixerContextType {
   loadTrackToDeck: (ipTrack: IPTrack, deck: 'A' | 'B') => void;
   addTrackToCollection: (ipTrack: IPTrack) => void;
   removeTrackFromCollection: (index: number) => void;
+  clearCollection: () => void;
   addTrackToCrate: (ipTrack: IPTrack, deck: 'A' | 'B') => void;
   loadTrackFromCrate: (crateIndex: number, deck: 'A' | 'B') => void;
   removeTrackFromCrate: (crateIndex: number, deck: 'A' | 'B') => void;
@@ -161,6 +162,13 @@ export const MixerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCollection(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  const clearCollection = useCallback(() => {
+    setCollection([]);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('mixer-collection');
+    }
+  }, []);
+
   const addTrackToCrate = useCallback((ipTrack: IPTrack, deck: 'A' | 'B') => {
     const track = convertIPTrackToMixerTrack(ipTrack);
     const setCrate = deck === 'A' ? setDeckACrate : setDeckBCrate;
@@ -243,6 +251,7 @@ export const MixerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       loadTrackToDeck,
       addTrackToCollection,
       removeTrackFromCollection,
+      clearCollection,
       addTrackToCrate,
       loadTrackFromCrate,
       removeTrackFromCrate,

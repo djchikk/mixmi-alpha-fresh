@@ -266,7 +266,7 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
 
   const currentTrack = playlist[currentIndex];
 
-  // Expose fillPlaylist method for FILL button
+  // Expose fillPlaylist and clearPlaylist methods for FILL/RESET buttons
   useEffect(() => {
     (window as any).fillPlaylist = (tracks: any[]) => {
       console.log('🎵 Playlist: Filling with', tracks.length, 'tracks from FILL');
@@ -291,8 +291,23 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
       });
     };
 
+    (window as any).clearPlaylist = () => {
+      console.log('🗑️ Playlist: Clearing all tracks');
+      setPlaylist([]);
+      setCurrentIndex(-1);
+      setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('playlist-widget');
+      }
+    };
+
     return () => {
       delete (window as any).fillPlaylist;
+      delete (window as any).clearPlaylist;
     };
   }, []);
 
