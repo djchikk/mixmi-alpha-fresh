@@ -392,12 +392,12 @@ export default function GlobeSearch({
                   {/* Action buttons */}
                   <div className="flex items-center gap-1 ml-2">
                     {/* Drag Handle - appears on hover */}
-                    <div 
+                    <div
                       className="
                         p-1 opacity-0 group-hover:opacity-100
                         hover:bg-[#252a3a] rounded transition-all cursor-grab
                       "
-                      title="Drag to Crate, Cart, or Mixer Decks"
+                      title="Drag to Crate or Mixer Decks"
                     >
                       <GripVertical className="w-3 h-3 text-gray-200 hover:text-white" />
                     </div>
