@@ -20,8 +20,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mixmi Alpha Uploader",
-  description: "Loop Pack Upload System for Alpha Content Migration",
+  title: "mixmi",
+  description: "mixmi — discover and mix music from everywhere",
+  metadataBase: new URL('https://www.mixmi.app'),
+  openGraph: {
+    title: "mixmi",
+    description: "mixmi — discover and mix music from everywhere",
+    url: "https://www.mixmi.app",
+    siteName: "mixmi",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "mixmi — discover and mix music from everywhere",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "mixmi",
+    description: "mixmi — discover and mix music from everywhere",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
