@@ -500,7 +500,7 @@ export default function HomePage() {
             <div
               className="absolute left-0 right-0 flex items-center justify-center pointer-events-none gap-4"
               style={{
-                top: '50%',
+                top: '45%',
                 transform: 'translateY(-50%)'
               }}
             >
