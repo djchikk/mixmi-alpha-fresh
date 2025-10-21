@@ -23,6 +23,25 @@
   }
 }
 
+@keyframes taglineFade {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }

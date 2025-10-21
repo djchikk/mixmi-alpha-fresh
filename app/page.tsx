@@ -68,6 +68,7 @@ export default function HomePage() {
   const [originalNodes, setOriginalNodes] = useState<TrackNode[]>(fallbackGlobeNodes); // Keep original for toggling
   const [isLoadingTracks, setIsLoadingTracks] = useState(true);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const [showTagline, setShowTagline] = useState(true);
   // Simple location-based clustering enabled (much more performant than old aggregation)
   const isClusteringEnabled = true;
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
@@ -288,6 +289,15 @@ export default function HomePage() {
   useEffect(() => {
     loadTracks();
   }, []);
+
+  // Tagline animation - fade out after 4 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowTagline(false);
+    }, 4000); // Hold for 3 seconds + 1 second fade
+
+    return () => clearTimeout(timer);
+  }, []);
   
 
   const handleNodeClick = (node: TrackNode) => {
@@ -491,7 +501,28 @@ export default function HomePage() {
             selectedNode={selectedNode}
             hoveredNode={hoveredNode}
           />
-          
+
+          {/* Tagline overlay - fades in, holds, then fades out */}
+          {showTagline && (
+            <div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              style={{
+                animation: 'taglineFade 4s ease-in-out forwards'
+              }}
+            >
+              <h1
+                className="text-white font-bold tracking-wide"
+                style={{
+                  fontSize: 'clamp(2rem, 5vw, 4rem)',
+                  textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+                  fontFamily: 'var(--font-geist-sans)'
+                }}
+              >
+                discover • mix • create
+              </h1>
+            </div>
+          )}
+
           {/* Loading overlay when tracks are being fetched */}
           {isLoadingTracks && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
