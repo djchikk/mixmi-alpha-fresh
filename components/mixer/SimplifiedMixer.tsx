@@ -666,6 +666,48 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
   };
 
+  // Clear deck handlers
+  const handleClearDeckA = async () => {
+    console.log('🗑️ Clearing Deck A');
+    await cleanupDeckAudio(mixerState.deckA.audioControls, 'Deck A');
+    setMixerState(prev => ({
+      ...prev,
+      deckA: {
+        ...prev.deckA,
+        track: null,
+        playing: false,
+        audioState: undefined,
+        audioControls: undefined,
+        loopPosition: 0
+      }
+    }));
+  };
+
+  const handleClearDeckB = async () => {
+    console.log('🗑️ Clearing Deck B');
+    await cleanupDeckAudio(mixerState.deckB.audioControls, 'Deck B');
+    setMixerState(prev => ({
+      ...prev,
+      deckB: {
+        ...prev.deckB,
+        track: null,
+        playing: false,
+        audioState: undefined,
+        audioControls: undefined,
+        loopPosition: 0
+      }
+    }));
+  };
+
+  // Add to cart handler
+  const handleAddToCart = (track: Track) => {
+    console.log('🛒 Adding track to cart:', track);
+    // Use global cart function if available
+    if ((window as any).addToCart) {
+      (window as any).addToCart(track);
+    }
+  };
+
   // Loop control handlers
   const handleLoopToggle = (deck: 'A' | 'B') => {
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
@@ -912,7 +954,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           <SimplifiedDeck
             currentTrack={mixerState.deckA.track}
             isPlaying={mixerState.deckA.playing}
+            isLoading={mixerState.deckA.loading}
             onTrackDrop={loadTrackToDeckA}
+            onClearDeck={handleClearDeckA}
+            onAddToCart={handleAddToCart}
             deck="A"
             trackInfoPosition="none"
           />
@@ -1016,7 +1061,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           <SimplifiedDeck
             currentTrack={mixerState.deckB.track}
             isPlaying={mixerState.deckB.playing}
+            isLoading={mixerState.deckB.loading}
             onTrackDrop={loadTrackToDeckB}
+            onClearDeck={handleClearDeckB}
+            onAddToCart={handleAddToCart}
             deck="B"
             trackInfoPosition="none"
           />

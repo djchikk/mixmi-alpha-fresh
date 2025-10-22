@@ -5,10 +5,14 @@ import { useDrop } from 'react-dnd';
 import { Track } from './types';
 import { useToast } from '@/contexts/ToastContext';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
+import InfoIcon from '@/components/shared/InfoIcon';
+import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
+import { IPTrack } from '@/types';
 
 interface SimplifiedDeckProps {
   currentTrack: Track | null;
   isPlaying: boolean;
+  isLoading?: boolean;
   onTrackDrop?: (track: Track) => void;
   onClearDeck?: () => void;
   onAddToCart?: (track: Track) => void;
@@ -20,6 +24,7 @@ interface SimplifiedDeckProps {
 export default function SimplifiedDeck({
   currentTrack,
   isPlaying,
+  isLoading = false,
   onTrackDrop,
   onClearDeck,
   onAddToCart,
@@ -31,6 +36,7 @@ export default function SimplifiedDeck({
   const [isNewTrackLoaded, setIsNewTrackLoaded] = useState(false);
   const [previousTrackId, setPreviousTrackId] = useState(currentTrack?.id);
   const [isHovered, setIsHovered] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   // Drop functionality for collection tracks
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
@@ -88,6 +94,47 @@ export default function SimplifiedDeck({
     }
   }, [currentTrack?.id, previousTrackId]);
 
+  // Handle clear/dismiss click
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onClearDeck) {
+      onClearDeck();
+    }
+  };
+
+  // Handle cart click
+  const handleCartClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (currentTrack && onAddToCart) {
+      onAddToCart(currentTrack);
+    }
+  };
+
+  // Handle info click
+  const handleInfoClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowModal(true);
+  };
+
+  // Convert Track to IPTrack for TrackDetailsModal
+  const convertToIPTrack = (track: Track): IPTrack => {
+    return {
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      bpm: track.bpm,
+      audio_url: track.audioUrl || '',
+      cover_image_url: track.imageUrl || track.cover_image_url || '',
+      content_type: track.content_type || 'loop',
+      primary_uploader_wallet: track.primary_uploader_wallet,
+      price_stx: track.price_stx,
+      download_price_stx: track.download_price_stx,
+      allow_downloads: track.allow_downloads,
+      created_at: track.created_at || new Date().toISOString(),
+      updated_at: track.updated_at || new Date().toISOString()
+    } as IPTrack;
+  };
+
   return (
     <div className={`flex ${trackInfoPosition === 'left' ? 'flex-row-reverse' : trackInfoPosition === 'right' ? 'flex-row' : 'flex-col'} ${trackInfoPosition === 'bottom' ? '' : 'items-center'} ${trackInfoPosition === 'bottom' ? '' : 'gap-4'} ${className}`}>
       <div
@@ -105,12 +152,106 @@ export default function SimplifiedDeck({
           {currentTrack ? (
             <>
               <img
-                src={getOptimizedTrackImage(currentTrack, 256)}
+                src={getOptimizedTrackImage({ ...currentTrack, imageUrl: currentTrack.cover_image_url || currentTrack.imageUrl }, 480)}
                 alt={currentTrack.title}
               />
 
-              {/* Subtle dark overlay */}
+              {/* Subtle dark overlay - always visible */}
               <div className="absolute inset-0 bg-black opacity-20 pointer-events-none"></div>
+
+              {/* Hover overlay - darker */}
+              {isHovered && (
+                <div className="absolute inset-0 bg-black bg-opacity-60 pointer-events-none"></div>
+              )}
+
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-30">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                </div>
+              )}
+
+              {/* Hover overlay - shows controls on hover */}
+              {isHovered && (
+                <>
+                  {/* Info Icon - Left side */}
+                  <div className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10">
+                    <InfoIcon
+                      size="md"
+                      onClick={handleInfoClick}
+                      title="View track details"
+                      className="text-white hover:text-white"
+                    />
+                  </div>
+
+                  {/* Dismiss/Clear Button - Top right */}
+                  {onClearDeck && (
+                    <button
+                      onClick={handleClear}
+                      title="Clear deck"
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-900/50 hover:bg-red-600 rounded flex items-center justify-center transition-all border border-red-700 hover:border-red-500 z-10"
+                    >
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* Price/Cart Button - Bottom left */}
+                  {onAddToCart && (
+                    <div className="absolute bottom-2 left-2 z-10">
+                  {(() => {
+                    // Check download_price_stx first (new model)
+                    if (currentTrack.download_price_stx !== null && currentTrack.download_price_stx !== undefined) {
+                      return currentTrack.download_price_stx === 0 ? (
+                        <button
+                          onClick={handleCartClick}
+                          className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                          title="Free - click to add to cart"
+                        >
+                          Free
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleCartClick}
+                          className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                          title="Add to cart"
+                        >
+                          {currentTrack.download_price_stx}
+                        </button>
+                      );
+                    }
+                    // Fallback to legacy price_stx
+                    if (currentTrack.price_stx) {
+                      return (
+                        <button
+                          onClick={handleCartClick}
+                          className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
+                          title="Add to cart"
+                        >
+                          {currentTrack.price_stx}
+                        </button>
+                      );
+                    }
+                    // Remix-only badge
+                    return (
+                      <div
+                        className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                        title="Platform remix only - 1 STX per recorded remix"
+                      >
+                        M
+                      </div>
+                    );
+                  })()}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* BPM Badge - Bottom right (always visible) */}
+              <div className="absolute bottom-2 right-2 bg-black/60 px-2 py-0.5 rounded text-white font-mono font-bold text-sm z-10">
+                {currentTrack.bpm}
+              </div>
             </>
           ) : (
             <div className="deck-empty">
@@ -225,6 +366,15 @@ export default function SimplifiedDeck({
           box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
         }
       `}</style>
+
+      {/* Track Details Modal */}
+      {currentTrack && (
+        <TrackDetailsModal
+          track={convertToIPTrack(currentTrack)}
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 }

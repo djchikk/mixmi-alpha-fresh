@@ -57,26 +57,18 @@ const MixerContext = createContext<MixerContextType | undefined>(undefined);
 
 // Helper function to convert IPTrack to mixer Track format
 const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
-  console.log('🔄 Converting IPTrack to mixer Track:', ipTrack);
-  console.log('📷 Image field check:', {
-    cover_image_url: ipTrack.cover_image_url,
-    image_url: (ipTrack as any).image_url,
-    imageUrl: (ipTrack as any).imageUrl
-  });
-  console.log('🎨 Content type check:', {
-    original: ipTrack.content_type,
-    willBecome: ipTrack.content_type === 'loop' ? 'loop' : 'full_song'
-  });
-  
   return {
     id: ipTrack.id,
     title: ipTrack.title,
     artist: ipTrack.artist || (ipTrack as any).artist_name || 'Unknown Artist', // Handle both artist and artist_name
     imageUrl: ipTrack.cover_image_url || (ipTrack as any).imageUrl || '', // Prefer original cover_image_url for better quality
+    cover_image_url: ipTrack.cover_image_url, // CRITICAL: Preserve original cover_image_url for high-res display
     bpm: ipTrack.bpm || 120,
     audioUrl: (ipTrack as any).audioUrl || ipTrack.audio_url, // Handle both audioUrl and audio_url
     content_type: ipTrack.content_type || 'loop', // Preserve original content type!
     price_stx: ipTrack.price_stx, // Preserve price for cart functionality
+    download_price_stx: ipTrack.download_price_stx, // Preserve new pricing model
+    allow_downloads: ipTrack.allow_downloads, // Preserve download permission
     primary_uploader_wallet: ipTrack.primary_uploader_wallet // Preserve for linking to creator store
   };
 };

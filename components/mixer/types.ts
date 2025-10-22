@@ -5,11 +5,16 @@ export interface Track {
   title: string;
   artist: string;
   imageUrl: string;
+  cover_image_url?: string; // CRITICAL: Original full-res cover image URL for high-quality display
   bpm: number;
   audioUrl?: string;
-  content_type?: 'loop' | 'full_song'; // Added to maintain content type for UI
-  price_stx?: number; // Price in STX for purchase
+  content_type?: 'loop' | 'full_song' | 'loop_pack' | 'ep' | 'mix'; // Extended content types
+  price_stx?: number; // Legacy price in STX
+  download_price_stx?: number; // New pricing model for downloads
+  allow_downloads?: boolean; // Download permission flag
   primary_uploader_wallet?: string; // For linking to creator's store
+  created_at?: string; // For IPTrack conversion compatibility
+  updated_at?: string; // For IPTrack conversion compatibility
 }
 
 export interface FXState {

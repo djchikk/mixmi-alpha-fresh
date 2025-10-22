@@ -145,11 +145,11 @@ export default function CompactTrackCardWithFlip({
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
-      // Optimize image for crate (64px) when dragging
+      // Preserve original cover_image_url for high-res, optimize imageUrl for crate display
       const optimizedTrack = {
         ...track,
         imageUrl: getOptimizedTrackImage(track, 64),
-        cover_image_url: getOptimizedTrackImage(track, 64),
+        cover_image_url: track.cover_image_url, // CRITICAL: Keep original high-res URL
         // Ensure we have audioUrl for mixer compatibility
         audioUrl: track.audio_url
       };
@@ -700,7 +700,7 @@ export default function CompactTrackCardWithFlip({
                         track: {
                           ...loop,
                           imageUrl: getOptimizedTrackImage(loop, 64),
-                          cover_image_url: getOptimizedTrackImage(loop, 64),
+                          cover_image_url: loop.cover_image_url, // CRITICAL: Keep original high-res URL
                           audioUrl: loop.audio_url
                         }
                       }),

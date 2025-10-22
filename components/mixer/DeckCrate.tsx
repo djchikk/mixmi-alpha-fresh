@@ -100,18 +100,18 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
     drop: (item: { track: Track; sourceDeck?: string; sourceIndex: number }) => {
       // Don't drop on the same crate it came from (only for CRATE_TRACK)
       if (item.sourceDeck && item.sourceDeck === deck) return;
-      
-      // Convert track format if needed
+
+      // Convert track format if needed - CRITICAL: Preserve cover_image_url for high-res
       const trackToAdd = {
         id: item.track.id,
         title: item.track.title,
         artist: item.track.artist,
-        cover_image_url: item.track.imageUrl,
+        cover_image_url: item.track.cover_image_url || item.track.imageUrl, // Use original high-res URL
         audio_url: item.track.audioUrl,
         bpm: item.track.bpm,
         content_type: 'loop' as const
       };
-      
+
       // Add to this crate (displacing last if full)
       addTrackToCrate(trackToAdd as any, deck);
     },
