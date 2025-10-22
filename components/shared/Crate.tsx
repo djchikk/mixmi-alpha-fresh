@@ -35,7 +35,6 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'COLLECTION_TRACK',
     item: () => {
-      console.log('🎪 Crate track being dragged:', track);
       return {
         track: {
           id: track.id,

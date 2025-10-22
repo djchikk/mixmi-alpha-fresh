@@ -104,15 +104,10 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'DECK_TRACK'], // Accept deck tracks too!
     drop: (item: { track: Track; sourceDeck?: string; sourceIndex: number; sourceType?: string }) => {
-      console.log(`📦 Crate ${deck} received drop:`, { sourceType: item.sourceType, sourceDeck: item.sourceDeck, track: item.track.title });
-
       // Only block drops from the same CRATE (not from deck)
       if (item.sourceType === 'crate' && item.sourceDeck === deck) {
-        console.log(`🚫 Blocked: Can't drop track from crate ${deck} back onto same crate`);
         return;
       }
-
-      console.log(`✅ Accepting drop from ${item.sourceType || 'unknown'} to crate ${deck}`);
 
       // Convert track format if needed - CRITICAL: Preserve cover_image_url for high-res
       const trackToAdd = {
@@ -129,7 +124,6 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
       addTrackToCrate(trackToAdd as any, deck);
     },
     canDrop: (item) => {
-      console.log(`🔍 Crate ${deck} canDrop check:`, { type: item, accepts: ['CRATE_TRACK', 'COLLECTION_TRACK', 'DECK_TRACK'] });
       return true;
     },
     collect: (monitor) => ({

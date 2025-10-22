@@ -87,10 +87,8 @@ export default function SimplifiedDeck({
     type: 'DECK_TRACK', // Use different type to distinguish from crate tracks
     item: () => {
       if (!currentTrack) {
-        console.log(`❌ Deck ${deck}: Cannot drag - no track loaded`);
         return null;
       }
-      console.log(`🎵 Dragging track from Deck ${deck}:`, currentTrack.title);
       return {
         track: currentTrack,
         sourceDeck: deck,
@@ -100,9 +98,7 @@ export default function SimplifiedDeck({
     },
     canDrag: () => {
       // Can only drag if there's a track loaded and it's not currently playing
-      const canDrag = !!currentTrack && !isPlaying;
-      console.log(`🔍 Deck ${deck} canDrag check:`, { hasTrack: !!currentTrack, isPlaying, canDrag });
-      return canDrag;
+      return !!currentTrack && !isPlaying;
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
