@@ -1053,11 +1053,11 @@ export class MixerAudioEngine {
       analyzerNode.smoothingTimeConstant = 0.8;
       console.log(`🎛️ Deck ${deckId} analyzer node created:`, analyzerNode);
 
-      // Connect audio graph: source → lo-cut → hi-cut → filter → gain → analyzer → master
+      // Connect audio graph: source → lo-cut → hi-cut → gain → analyzer → master
+      // Note: filterNode is kept in state for legacy setFilterValue, but FX has its own filters
       source.connect(loCutNode);
       loCutNode.connect(hiCutNode);
-      hiCutNode.connect(filterNode);
-      filterNode.connect(gainNode);
+      hiCutNode.connect(gainNode); // Skip filterNode - FX will insert between hiCutNode and gain
       gainNode.connect(analyzerNode);
       analyzerNode.connect(this.masterGain!);
 
@@ -1231,14 +1231,18 @@ export class MixerAudioEngine {
         setHiCut: (enabled: boolean) => {
           const now = audioContext.currentTime;
           if (enabled) {
-            // Cut frequencies above 8kHz with gentle slope
+            // Cut frequencies above 2kHz - VERY noticeable, DJ-style
             hiCutNode.frequency.cancelScheduledValues(now);
-            hiCutNode.frequency.setTargetAtTime(8000, now, 0.015);
-            console.log(`🎛️ Deck ${deckId} HI-CUT enabled (removing highs above 8kHz)`);
+            hiCutNode.frequency.setTargetAtTime(2000, now, 0.015);
+            hiCutNode.Q.cancelScheduledValues(now);
+            hiCutNode.Q.setTargetAtTime(1.5, now, 0.015); // Steeper slope for more dramatic effect
+            console.log(`🎛️ Deck ${deckId} HI-CUT enabled (removing highs above 2kHz - muffled/warm sound)`);
           } else {
             // Restore full range
             hiCutNode.frequency.cancelScheduledValues(now);
             hiCutNode.frequency.setTargetAtTime(20000, now, 0.015);
+            hiCutNode.Q.cancelScheduledValues(now);
+            hiCutNode.Q.setTargetAtTime(0.7, now, 0.015);
             console.log(`🎛️ Deck ${deckId} HI-CUT disabled (full range)`);
           }
         },
@@ -1247,14 +1251,18 @@ export class MixerAudioEngine {
         setLoCut: (enabled: boolean) => {
           const now = audioContext.currentTime;
           if (enabled) {
-            // Cut frequencies below 200Hz with gentle slope
+            // Cut frequencies below 500Hz - VERY noticeable, removes most bass/kick
             loCutNode.frequency.cancelScheduledValues(now);
-            loCutNode.frequency.setTargetAtTime(200, now, 0.015);
-            console.log(`🎛️ Deck ${deckId} LO-CUT enabled (removing lows below 200Hz)`);
+            loCutNode.frequency.setTargetAtTime(500, now, 0.015);
+            loCutNode.Q.cancelScheduledValues(now);
+            loCutNode.Q.setTargetAtTime(1.5, now, 0.015); // Steeper slope for more dramatic effect
+            console.log(`🎛️ Deck ${deckId} LO-CUT enabled (removing lows below 500Hz - thin/tinny sound)`);
           } else {
             // Restore full range
             loCutNode.frequency.cancelScheduledValues(now);
             loCutNode.frequency.setTargetAtTime(20, now, 0.015);
+            loCutNode.Q.cancelScheduledValues(now);
+            loCutNode.Q.setTargetAtTime(0.7, now, 0.015);
             console.log(`🎛️ Deck ${deckId} LO-CUT disabled (full range)`);
           }
         },

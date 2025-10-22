@@ -579,7 +579,7 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
 
   // 🎛️ NEW: EQ button handlers
   const toggleHiCut = useCallback(() => {
-    if (!audioControls || !audioControls.setHiCut) {
+    if (!audioControls?.setHiCut) {
       console.warn(`🎛️ ${deckId} HI-CUT: audioControls not available`);
       return;
     }
@@ -587,11 +587,10 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
     const newState = !hiCutActive;
     setHiCutActive(newState);
     audioControls.setHiCut(newState);
-    console.log(`🎛️ ${deckId} HI-CUT toggled to:`, newState);
   }, [audioControls, hiCutActive, deckId]);
 
   const toggleLoCut = useCallback(() => {
-    if (!audioControls || !audioControls.setLoCut) {
+    if (!audioControls?.setLoCut) {
       console.warn(`🎛️ ${deckId} LO-CUT: audioControls not available`);
       return;
     }
@@ -599,7 +598,6 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
     const newState = !loCutActive;
     setLoCutActive(newState);
     audioControls.setLoCut(newState);
-    console.log(`🎛️ ${deckId} LO-CUT toggled to:`, newState);
   }, [audioControls, loCutActive, deckId]);
 
   const initXYPad = useCallback(() => {
@@ -904,14 +902,14 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
           <button
             className={`eq-btn hi-cut ${hiCutActive ? 'active' : ''}`}
             onClick={toggleHiCut}
-            title="High Cut - Remove high frequencies (above 8kHz)"
+            title="High Cut - Remove highs above 2kHz (warm/muffled sound)"
           >
             <span className="eq-btn-label">HI CUT</span>
           </button>
           <button
             className={`eq-btn lo-cut ${loCutActive ? 'active' : ''}`}
             onClick={toggleLoCut}
-            title="Low Cut - Remove low frequencies (below 200Hz)"
+            title="Low Cut - Remove lows below 500Hz (thin/no bass sound)"
           >
             <span className="eq-btn-label">LO CUT</span>
           </button>

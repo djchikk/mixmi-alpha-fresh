@@ -326,15 +326,16 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
               try {
                 // Disconnect existing connections
-                audioState.filterNode.disconnect();
+                audioState.hiCutNode.disconnect();
                 audioState.gainNode.disconnect();
 
-                // Reconnect audio routing through FX: filter → FX → gain → analyzer
-                audioState.filterNode.connect(fxInput);
+                // Reconnect audio routing through FX: EQ → FX → gain → analyzer
+                // This keeps the EQ nodes (loCutNode → hiCutNode) in the chain!
+                audioState.hiCutNode.connect(fxInput);
                 fxOutput.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
 
-                console.log('🎛️ Deck A FX connected to audio chain successfully');
+                console.log('🎛️ Deck A FX connected to audio chain successfully (EQ preserved)');
 
                 // Reset FX to defaults for new track
                 if ((deckAFXRef.current as any).resetToDefaults) {
@@ -344,18 +345,18 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 return true;
               } catch (error) {
                 console.error('🎛️ Failed to connect Deck A FX:', error);
-                // Fall back to direct connection
-                audioState.filterNode.connect(audioState.gainNode);
+                // Fall back to direct connection (preserving EQ)
+                audioState.hiCutNode.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
                 return false;
               }
             }
           }
 
-          // FX not ready, use direct connection and retry
+          // FX not ready, use direct connection and retry (preserving EQ)
           try {
-            audioState.filterNode.disconnect();
-            audioState.filterNode.connect(audioState.gainNode);
+            audioState.hiCutNode.disconnect();
+            audioState.hiCutNode.connect(audioState.gainNode);
             audioState.gainNode.connect(audioState.analyzerNode);
           } catch (e) {
             // Ignore if already connected
@@ -496,15 +497,16 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
               try {
                 // Disconnect existing connections
-                audioState.filterNode.disconnect();
+                audioState.hiCutNode.disconnect();
                 audioState.gainNode.disconnect();
 
-                // Reconnect audio routing through FX: filter → FX → gain → analyzer
-                audioState.filterNode.connect(fxInput);
+                // Reconnect audio routing through FX: EQ → FX → gain → analyzer
+                // This keeps the EQ nodes (loCutNode → hiCutNode) in the chain!
+                audioState.hiCutNode.connect(fxInput);
                 fxOutput.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
 
-                console.log('🎛️ Deck B FX connected to audio chain successfully');
+                console.log('🎛️ Deck B FX connected to audio chain successfully (EQ preserved)');
 
                 // Reset FX to defaults for new track
                 if ((deckBFXRef.current as any).resetToDefaults) {
@@ -514,18 +516,18 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 return true;
               } catch (error) {
                 console.error('🎛️ Failed to connect Deck B FX:', error);
-                // Fall back to direct connection
-                audioState.filterNode.connect(audioState.gainNode);
+                // Fall back to direct connection (preserving EQ)
+                audioState.hiCutNode.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
                 return false;
               }
             }
           }
 
-          // FX not ready, use direct connection and retry
+          // FX not ready, use direct connection and retry (preserving EQ)
           try {
-            audioState.filterNode.disconnect();
-            audioState.filterNode.connect(audioState.gainNode);
+            audioState.hiCutNode.disconnect();
+            audioState.hiCutNode.connect(audioState.gainNode);
             audioState.gainNode.connect(audioState.analyzerNode);
           } catch (e) {
             // Ignore if already connected
