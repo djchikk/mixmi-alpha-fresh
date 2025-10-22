@@ -166,10 +166,6 @@ export default function MixerPage({ onExit }: MixerPageProps) {
     initializeAudio();
     // Navigation cleanup hook handles all cleanup
   }, []); // Only run once on mount
-  
-  // Track audioInitialized changes
-  useEffect(() => {
-  }, [audioInitialized]);
 
   // Track loading functions with audio integration
   const loadTrackToDeckA = async (track: Track) => {
