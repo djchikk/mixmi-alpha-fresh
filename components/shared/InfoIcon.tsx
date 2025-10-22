@@ -20,11 +20,11 @@ export default function InfoIcon({
       container: 'w-4 h-4'
     },
     md: { // For 160px store cards
-      text: 'text-base',
-      container: 'w-5 h-5'
+      text: 'text-lg',
+      container: 'w-6 h-6'
     },
     lg: { // For 280px modal cards
-      text: 'text-xl',
+      text: 'text-2xl',
       container: 'w-8 h-8'
     }
   };
@@ -40,7 +40,8 @@ export default function InfoIcon({
         items-center
         justify-center
         transition-all
-        hover:scale-110
+        duration-200
+        hover:scale-125
         group
         ${className}
       `}
@@ -50,8 +51,8 @@ export default function InfoIcon({
         cursor: onClick ? 'pointer' : 'default'
       }}
     >
-      <span className={`${config.text} font-bold select-none leading-none transition-colors`}>
-        i
+      <span className={`${config.text} select-none leading-none transition-all duration-200`}>
+        ℹ️
       </span>
     </button>
   );
