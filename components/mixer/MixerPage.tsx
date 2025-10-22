@@ -262,43 +262,32 @@ export default function MixerPage({ onExit }: MixerPageProps) {
 
         // Connect FX if available (with retry for timing issues)
         const connectFX = (retryCount = 0) => {
-          console.log(`🎛️ Attempting to connect Deck A FX (attempt ${retryCount + 1})`);
-          
           if (deckAFXRef.current) {
             const hasAudioInput = !!(deckAFXRef.current as any).audioInput;
             const hasAudioOutput = !!(deckAFXRef.current as any).audioOutput;
-            console.log(`🎛️ Deck A FX state - ref: true, audioInput: ${hasAudioInput}, audioOutput: ${hasAudioOutput}`);
-            
+
             if (hasAudioInput && hasAudioOutput) {
               const fxInput = (deckAFXRef.current as any).audioInput as GainNode;
               const fxOutput = (deckAFXRef.current as any).audioOutput as GainNode;
-              console.log(`🎛️ FX nodes found for Deck A - input:`, fxInput, 'output:', fxOutput);
-              
+
               try {
                 // Disconnect existing connections
-                console.log('🎛️ Disconnecting existing audio connections for FX insertion');
                 audioState.filterNode.disconnect();
                 audioState.gainNode.disconnect();
-                
+
                 // Reconnect audio routing through FX: filter → FX → gain → analyzer
-                console.log('🎛️ Connecting: filterNode → FX input');
                 audioState.filterNode.connect(fxInput);
-                console.log('🎛️ Connecting: FX output → gainNode');
                 fxOutput.connect(audioState.gainNode);
-                console.log('🎛️ Connecting: gainNode → analyzerNode');
                 audioState.gainNode.connect(audioState.analyzerNode);
-                
-                console.log('🎛️ Deck A FX connected to audio chain successfully');
-                console.log('🎛️ Full audio path: source → filter → FX → gain → analyzer → masterGain → destination');
-                
+
                 // Reset FX to defaults for new track
                 if ((deckAFXRef.current as any).resetToDefaults) {
                   (deckAFXRef.current as any).resetToDefaults();
                 }
-                
+
                 return true;
               } catch (error) {
-                console.error('🎛️ Failed to connect Deck A FX:', error);
+                console.error('Failed to connect Deck A FX:', error);
                 // Fall back to direct connection
                 audioState.filterNode.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
@@ -306,9 +295,8 @@ export default function MixerPage({ onExit }: MixerPageProps) {
               }
             }
           }
-          
+
           // FX not ready, use direct connection and retry
-          console.log('🎛️ Deck A FX not ready, using direct connection');
           try {
             audioState.filterNode.disconnect();
             audioState.filterNode.connect(audioState.gainNode);
@@ -316,7 +304,7 @@ export default function MixerPage({ onExit }: MixerPageProps) {
           } catch (e) {
             // Ignore if already connected
           }
-          
+
           // Retry up to 10 times with exponential backoff
           if (retryCount < 10) {
             setTimeout(() => {
@@ -469,43 +457,32 @@ export default function MixerPage({ onExit }: MixerPageProps) {
         
         // Connect FX if available (with retry for timing issues)
         const connectFX = (retryCount = 0) => {
-          console.log(`🎛️ Attempting to connect Deck B FX (attempt ${retryCount + 1})`);
-          
           if (deckBFXRef.current) {
             const hasAudioInput = !!(deckBFXRef.current as any).audioInput;
             const hasAudioOutput = !!(deckBFXRef.current as any).audioOutput;
-            console.log(`🎛️ Deck B FX state - ref: true, audioInput: ${hasAudioInput}, audioOutput: ${hasAudioOutput}`);
-            
+
             if (hasAudioInput && hasAudioOutput) {
               const fxInput = (deckBFXRef.current as any).audioInput as GainNode;
               const fxOutput = (deckBFXRef.current as any).audioOutput as GainNode;
-              console.log(`🎛️ FX nodes found for Deck B - input:`, fxInput, 'output:', fxOutput);
-              
+
               try {
                 // Disconnect existing connections
-                console.log('🎛️ Disconnecting existing audio connections for FX insertion');
                 audioState.filterNode.disconnect();
                 audioState.gainNode.disconnect();
-                
+
                 // Reconnect audio routing through FX: filter → FX → gain → analyzer
-                console.log('🎛️ Connecting: filterNode → FX input');
                 audioState.filterNode.connect(fxInput);
-                console.log('🎛️ Connecting: FX output → gainNode');
                 fxOutput.connect(audioState.gainNode);
-                console.log('🎛️ Connecting: gainNode → analyzerNode');
                 audioState.gainNode.connect(audioState.analyzerNode);
-                
-                console.log('🎛️ Deck B FX connected to audio chain successfully');
-                console.log('🎛️ Full audio path: source → filter → FX → gain → analyzer → masterGain → destination');
-                
+
                 // Reset FX to defaults for new track
                 if ((deckBFXRef.current as any).resetToDefaults) {
                   (deckBFXRef.current as any).resetToDefaults();
                 }
-                
+
                 return true;
               } catch (error) {
-                console.error('🎛️ Failed to connect Deck B FX:', error);
+                console.error('Failed to connect Deck B FX:', error);
                 // Fall back to direct connection
                 audioState.filterNode.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
@@ -513,9 +490,8 @@ export default function MixerPage({ onExit }: MixerPageProps) {
               }
             }
           }
-          
+
           // FX not ready, use direct connection and retry
-          console.log('🎛️ Deck B FX not ready, using direct connection');
           try {
             audioState.filterNode.disconnect();
             audioState.filterNode.connect(audioState.gainNode);
@@ -523,7 +499,7 @@ export default function MixerPage({ onExit }: MixerPageProps) {
           } catch (e) {
             // Ignore if already connected
           }
-          
+
           // Retry up to 10 times with exponential backoff
           if (retryCount < 10) {
             setTimeout(() => {
@@ -662,12 +638,7 @@ export default function MixerPage({ onExit }: MixerPageProps) {
     
     // 🎵 ENHANCED: Always show current master BPM when playing, last known when stopped
     const displayBPM = deckAPlaying && deckABPM ? mixerState.masterBPM : lastKnownMasterBPM;
-    
-    // 🎵 DEBUG: Simple logging to track BPM accuracy
-    if (deckAPlaying) {
-      console.log(`🎛️ BPM DISPLAY: Showing ${displayBPM} BPM (masterState: ${mixerState.masterBPM}, track: ${deckABPM})`);
-    }
-    
+
     return displayBPM;
   };
 
@@ -813,76 +784,55 @@ export default function MixerPage({ onExit }: MixerPageProps) {
     const currentMasterBPM = mixerState.masterBPM;
     const trackBPM = mixerState.deckA.track?.bpm;
     const isPlaying = mixerState.deckA.playing || mixerState.deckB.playing;
-    
+
     let newBPM = currentMasterBPM + delta;
-    
+
     // 🎯 MC CLAUDE'S SMART CONSTRAINTS: ±10% while playing, unlimited when stopped
     if (isPlaying && trackBPM) {
       const tenPercentRange = trackBPM * 0.1;
       const minAllowed = trackBPM - tenPercentRange;
       const maxAllowed = trackBPM + tenPercentRange;
-      
+
       // Constrain to ±10% of original track BPM while playing
       newBPM = Math.max(minAllowed, Math.min(maxAllowed, newBPM));
-      
-      console.log(`🎛️ BPM CONSTRAINT: Playing mode - limited to ${minAllowed.toFixed(1)}-${maxAllowed.toFixed(1)} BPM (±10% of ${trackBPM})`);
     } else {
       // Full range when stopped (60-200 BPM)
       newBPM = Math.max(60, Math.min(200, newBPM));
-      
-      if (!isPlaying) {
-        console.log(`🎛️ BPM FREEDOM: Stopped mode - full range available (60-200 BPM)`);
-      }
     }
-    
-    console.log(`🎛️ BPM CHANGE DEBUG:`, {
-      currentMasterBPM,
-      trackBPM,
-      delta,
-      newBPM,
-      deckAPlaying: mixerState.deckA.playing
-    });
-    
-    // Simple approach: let sync handle BPM changes without frequent resets
-    
+
     // Update master BPM state
     setMixerState(prev => ({
       ...prev,
       masterBPM: newBPM
     }));
-    
+
     // 🎵 NEW: Update last known master BPM when manual BPM changes
     setLastKnownMasterBPM(newBPM);
-    
+
     // 🎵 PROFESSIONAL FEATURE: Apply real-time tempo adjustment to playing deck
     if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
       // Calculate playback rate to achieve target BPM
       const originalBPM = mixerState.deckA.track?.bpm || 120;
       const playbackRate = newBPM / originalBPM;
-      
+
       // 🔄 FIXED: Update both playback rate AND looper BPM for smooth looping
       mixerState.deckA.audioControls.setPlaybackRate(playbackRate);
       mixerState.deckA.audioControls.setBPM(newBPM); // This updates PreciseLooper calculations!
-      
+
       // 🎯 SYNC FIX: Also update audioState BPM so sync engine can track it
       if (mixerState.deckA.audioState) {
         mixerState.deckA.audioState.bpm = newBPM;
       }
-      
-      console.log(`🎵 REAL-TIME BPM: Deck A tempo adjusted from ${originalBPM} to ${newBPM} BPM (rate: ${playbackRate.toFixed(3)}x, looper updated)`);
     }
-    
+
     // Update sync engine if active
     if (mixerState.syncActive && syncEngineRef.current) {
-      console.log('🔄 SYNC: Updating Deck B to follow new master tempo');
       try {
         syncEngineRef.current.updateMasterBPM(newBPM);
       } catch (error) {
-        console.warn('⚠️ SYNC: Failed to update master BPM:', error);
+        console.warn('Failed to update sync engine master BPM:', error);
       }
     }
-    
-    console.log(`🎵 Updated master BPM to: ${newBPM} (${mixerState.deckA.playing ? 'applied to playing deck' : 'ready for next play'})`);
   };
 
   // 🔄 AUTO-SYNC: If sync is enabled and both decks are now playing, apply sync
@@ -1064,15 +1014,12 @@ export default function MixerPage({ onExit }: MixerPageProps) {
     console.log(`✅ SYNC: State updated - syncActive: ${newSyncState}`);
   }, [mixerState.syncActive, mixerState.deckA, mixerState.deckB, applySyncNow]);
 
-  // Additional handlers  
+  // Additional handlers
   const handleDeckALoopChange = useCallback((length: number) => {
-    console.log(`🔄 LOOP CHANGE: Deck A loop length changed to ${length} bars`);
-    
-    // Simple approach: just update the loop length
     if (mixerState.deckA.audioControls) {
       mixerState.deckA.audioControls.setLoopLength(length);
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckA: { ...prev.deckA, loop: length }
@@ -1080,13 +1027,10 @@ export default function MixerPage({ onExit }: MixerPageProps) {
   }, [mixerState.deckA.audioControls]);
 
   const handleDeckBLoopChange = useCallback((length: number) => {
-    console.log(`🔄 LOOP CHANGE: Deck B loop length changed to ${length} bars`);
-    
-    // Simple approach: just update the loop length
     if (mixerState.deckB.audioControls) {
       mixerState.deckB.audioControls.setLoopLength(length);
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckB: { ...prev.deckB, loop: length }
@@ -1095,12 +1039,11 @@ export default function MixerPage({ onExit }: MixerPageProps) {
 
   const handleDeckALoopToggle = useCallback(() => {
     const newLoopEnabled = !mixerState.deckA.loopEnabled;
-    console.log(`🔄 LOOP TOGGLE: Deck A loop ${newLoopEnabled ? 'ENABLED' : 'DISABLED'}`);
-    
+
     if (mixerState.deckA.audioControls) {
       mixerState.deckA.audioControls.setLoopEnabled(newLoopEnabled);
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckA: { ...prev.deckA, loopEnabled: newLoopEnabled }
@@ -1109,12 +1052,11 @@ export default function MixerPage({ onExit }: MixerPageProps) {
 
   const handleDeckBLoopToggle = useCallback(() => {
     const newLoopEnabled = !mixerState.deckB.loopEnabled;
-    console.log(`🔄 LOOP TOGGLE: Deck B loop ${newLoopEnabled ? 'ENABLED' : 'DISABLED'}`);
-    
+
     if (mixerState.deckB.audioControls) {
       mixerState.deckB.audioControls.setLoopEnabled(newLoopEnabled);
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckB: { ...prev.deckB, loopEnabled: newLoopEnabled }
@@ -1122,12 +1064,10 @@ export default function MixerPage({ onExit }: MixerPageProps) {
   }, [mixerState.deckB.loopEnabled, mixerState.deckB.audioControls]);
 
   const handleDeckALoopPositionChange = useCallback((position: number) => {
-    console.log(`🎯 POSITION: Deck A loop position changed to bar ${position}`);
-    
     if (mixerState.deckA.audioControls) {
       mixerState.deckA.audioControls.setLoopPosition(position);
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckA: { ...prev.deckA, loopPosition: position }
@@ -1135,12 +1075,10 @@ export default function MixerPage({ onExit }: MixerPageProps) {
   }, [mixerState.deckA.audioControls]);
 
   const handleDeckBLoopPositionChange = useCallback((position: number) => {
-    console.log(`🎯 POSITION: Deck B loop position changed to bar ${position}`);
-    
     if (mixerState.deckB.audioControls) {
       mixerState.deckB.audioControls.setLoopPosition(position);
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckB: { ...prev.deckB, loopPosition: position }
@@ -1149,13 +1087,12 @@ export default function MixerPage({ onExit }: MixerPageProps) {
 
   const handleDeckAFXChange = useCallback((newFX: Partial<FXState>) => {
     const { audioControls } = mixerState.deckA;
-    
+
     if (audioControls && newFX.filterValue !== undefined) {
       const filterValue = (newFX.filterValue - 50) / 50;
       audioControls.setFilterValue(filterValue);
-      console.log(`🎛️ Deck A filter: ${newFX.filterValue}% (${filterValue.toFixed(2)})`);
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckA: { ...prev.deckA, fx: { ...prev.deckA.fx, ...newFX } }
@@ -1164,13 +1101,12 @@ export default function MixerPage({ onExit }: MixerPageProps) {
 
   const handleDeckBFXChange = (newFX: Partial<FXState>) => {
     const { audioControls } = mixerState.deckB;
-    
+
     if (audioControls && newFX.filterValue !== undefined) {
       const filterValue = (newFX.filterValue - 50) / 50;
       audioControls.setFilterValue(filterValue);
-      console.log(`🎛️ Deck B filter: ${newFX.filterValue}% (${filterValue.toFixed(2)})`);
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckB: { ...prev.deckB, fx: { ...prev.deckB.fx, ...newFX } }
@@ -1182,9 +1118,8 @@ export default function MixerPage({ onExit }: MixerPageProps) {
     if (deckA && deckB) {
       const normalizedPosition = position / 100;
       applyCrossfader(deckA, deckB, normalizedPosition);
-      console.log(`🎚️ Crossfader: ${position}%`);
     }
-    
+
     setMixerState(prev => ({ ...prev, crossfaderPosition: position }));
   }, []);
 
