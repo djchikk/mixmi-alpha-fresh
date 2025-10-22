@@ -12,6 +12,8 @@ export interface MixerAudioState {
   source: MediaElementAudioSourceNode;
   gainNode: GainNode;
   filterNode: BiquadFilterNode;
+  hiCutNode: BiquadFilterNode; // 🎛️ NEW: High-cut EQ (low-pass filter)
+  loCutNode: BiquadFilterNode; // 🎛️ NEW: Low-cut EQ (high-pass filter)
   analyzerNode: AnalyserNode;
   isLoaded: boolean;
   isPlaying: boolean;
@@ -935,6 +937,8 @@ export interface MixerAudioControls {
   setLoopLength: (bars: number) => void; // 🔄 NEW: Update loop length
   setLoopEnabled: (enabled: boolean) => void; // 🔄 NEW: Enable/disable looping
   setLoopPosition: (position: number) => void; // 🎯 NEW: Set loop start position
+  setHiCut: (enabled: boolean) => void; // 🎛️ NEW: Enable/disable high-cut EQ
+  setLoCut: (enabled: boolean) => void; // 🎛️ NEW: Enable/disable low-cut EQ
   cleanup: () => void;
 }
 
@@ -1025,6 +1029,8 @@ export class MixerAudioEngine {
       const source = audioContext.createMediaElementSource(audio);
       const gainNode = audioContext.createGain();
       const filterNode = audioContext.createBiquadFilter();
+      const hiCutNode = audioContext.createBiquadFilter();
+      const loCutNode = audioContext.createBiquadFilter();
       const analyzerNode = audioContext.createAnalyser();
 
       // Configure filter node for DJ-style filtering
@@ -1032,13 +1038,25 @@ export class MixerAudioEngine {
       filterNode.frequency.value = 20000; // Full frequency range initially
       filterNode.Q.value = 1;
 
+      // Configure EQ nodes - Hi-Cut (low-pass filter to remove highs)
+      hiCutNode.type = 'lowpass';
+      hiCutNode.frequency.value = 20000; // Full range initially (bypassed)
+      hiCutNode.Q.value = 0.7; // Gentle slope
+
+      // Configure EQ nodes - Lo-Cut (high-pass filter to remove lows)
+      loCutNode.type = 'highpass';
+      loCutNode.frequency.value = 20; // Full range initially (bypassed)
+      loCutNode.Q.value = 0.7; // Gentle slope
+
       // Configure analyzer for waveform visualization
       analyzerNode.fftSize = 2048;
       analyzerNode.smoothingTimeConstant = 0.8;
       console.log(`🎛️ Deck ${deckId} analyzer node created:`, analyzerNode);
 
-      // Connect audio graph: source → filter → gain → analyzer → master
-      source.connect(filterNode);
+      // Connect audio graph: source → lo-cut → hi-cut → filter → gain → analyzer → master
+      source.connect(loCutNode);
+      loCutNode.connect(hiCutNode);
+      hiCutNode.connect(filterNode);
       filterNode.connect(gainNode);
       gainNode.connect(analyzerNode);
       analyzerNode.connect(this.masterGain!);
@@ -1050,6 +1068,8 @@ export class MixerAudioEngine {
         source,
         gainNode,
         filterNode,
+        hiCutNode,
+        loCutNode,
         analyzerNode,
         isLoaded: true,
         isPlaying: false,
@@ -1205,6 +1225,38 @@ export class MixerAudioEngine {
             state.preciseLooper.setLoopPosition(position);
           }
           console.log(`🎯 Deck ${deckId} loop position set to bar ${position}`);
+        },
+
+        // 🎛️ NEW: High-cut EQ control (removes high frequencies)
+        setHiCut: (enabled: boolean) => {
+          const now = audioContext.currentTime;
+          if (enabled) {
+            // Cut frequencies above 8kHz with gentle slope
+            hiCutNode.frequency.cancelScheduledValues(now);
+            hiCutNode.frequency.setTargetAtTime(8000, now, 0.015);
+            console.log(`🎛️ Deck ${deckId} HI-CUT enabled (removing highs above 8kHz)`);
+          } else {
+            // Restore full range
+            hiCutNode.frequency.cancelScheduledValues(now);
+            hiCutNode.frequency.setTargetAtTime(20000, now, 0.015);
+            console.log(`🎛️ Deck ${deckId} HI-CUT disabled (full range)`);
+          }
+        },
+
+        // 🎛️ NEW: Low-cut EQ control (removes low frequencies)
+        setLoCut: (enabled: boolean) => {
+          const now = audioContext.currentTime;
+          if (enabled) {
+            // Cut frequencies below 200Hz with gentle slope
+            loCutNode.frequency.cancelScheduledValues(now);
+            loCutNode.frequency.setTargetAtTime(200, now, 0.015);
+            console.log(`🎛️ Deck ${deckId} LO-CUT enabled (removing lows below 200Hz)`);
+          } else {
+            // Restore full range
+            loCutNode.frequency.cancelScheduledValues(now);
+            loCutNode.frequency.setTargetAtTime(20, now, 0.015);
+            console.log(`🎛️ Deck ${deckId} LO-CUT disabled (full range)`);
+          }
         },
 
         cleanup: () => {

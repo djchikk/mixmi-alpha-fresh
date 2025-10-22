@@ -1169,6 +1169,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               ref={deckAFXRef}
               audioContext={getAudioContext()}
               deckId="deckA"
+              audioControls={mixerState.deckA.audioControls}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-500">
@@ -1286,6 +1287,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               ref={deckBFXRef}
               audioContext={getAudioContext()}
               deckId="deckB"
+              audioControls={mixerState.deckB.audioControls}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-500">

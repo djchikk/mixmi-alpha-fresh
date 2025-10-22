@@ -487,22 +487,28 @@ class FXChain {
 interface FXComponentProps {
   audioContext: AudioContext | null;
   deckId: 'deckA' | 'deckB';
+  audioControls?: any; // 🎛️ NEW: Audio controls for EQ
 }
 
 // ========================================
 // FX COMPONENT
 // ========================================
-const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps>(({ 
-  audioContext, 
-  deckId
+const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps>(({
+  audioContext,
+  deckId,
+  audioControls
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fxChainRef = useRef<FXChain | null>(null);
   const currentEffectRef = useRef<'filter' | 'delay'>('filter');
   const updatePositionRef = useRef<((e: { clientX: number; clientY: number }) => void) | null>(null);
-  
+
   // Add state for current effect to trigger UI updates
   const [currentEffect, setCurrentEffect] = useState<'filter' | 'delay'>('filter');
+
+  // 🎛️ NEW: Track EQ button states
+  const [hiCutActive, setHiCutActive] = useState(false);
+  const [loCutActive, setLoCutActive] = useState(false);
 
   // Track renders for debugging
   useEffect(() => {
@@ -551,25 +557,50 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
     console.log('🎛️ togglePower called');
     const effect = button.dataset.effect as 'filter' | 'delay';
     console.log('🎛️ Effect:', effect, 'FXChain:', !!fxChainRef.current, 'Container:', !!containerRef.current);
-    
+
     if (!effect || !fxChainRef.current || !containerRef.current) {
       console.log('🎛️ togglePower early return - missing requirements');
       return;
     }
-    
+
     button.classList.toggle('active');
     const isActive = button.classList.contains('active');
     console.log(`🎛️ ${deckId} ${effect} power toggled to:`, isActive);
-    
+
     // Update effects chain
     fxChainRef.current.bypassEffect(effect, !isActive);
-    
+
     // If this is the currently selected effect, update XY pad
     if (effect === currentEffectRef.current) {
       const xyPad = containerRef.current.querySelector('.xy-pad');
       xyPad?.classList.toggle('bypassed', !isActive);
     }
   }, []);
+
+  // 🎛️ NEW: EQ button handlers
+  const toggleHiCut = useCallback(() => {
+    if (!audioControls || !audioControls.setHiCut) {
+      console.warn(`🎛️ ${deckId} HI-CUT: audioControls not available`);
+      return;
+    }
+
+    const newState = !hiCutActive;
+    setHiCutActive(newState);
+    audioControls.setHiCut(newState);
+    console.log(`🎛️ ${deckId} HI-CUT toggled to:`, newState);
+  }, [audioControls, hiCutActive, deckId]);
+
+  const toggleLoCut = useCallback(() => {
+    if (!audioControls || !audioControls.setLoCut) {
+      console.warn(`🎛️ ${deckId} LO-CUT: audioControls not available`);
+      return;
+    }
+
+    const newState = !loCutActive;
+    setLoCutActive(newState);
+    audioControls.setLoCut(newState);
+    console.log(`🎛️ ${deckId} LO-CUT toggled to:`, newState);
+  }, [audioControls, loCutActive, deckId]);
 
   const initXYPad = useCallback(() => {
     if (!containerRef.current) return;
@@ -866,6 +897,27 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
         </div>
       </div>
 
+      {/* EQ Section */}
+      <div className="eq-section">
+        <div className="eq-label">EQ</div>
+        <div className="eq-controls">
+          <button
+            className={`eq-btn hi-cut ${hiCutActive ? 'active' : ''}`}
+            onClick={toggleHiCut}
+            title="High Cut - Remove high frequencies (above 8kHz)"
+          >
+            <span className="eq-btn-label">HI CUT</span>
+          </button>
+          <button
+            className={`eq-btn lo-cut ${loCutActive ? 'active' : ''}`}
+            onClick={toggleLoCut}
+            title="Low Cut - Remove low frequencies (below 200Hz)"
+          >
+            <span className="eq-btn-label">LO CUT</span>
+          </button>
+        </div>
+      </div>
+
       <style jsx>{`
         /* Main FX Panel */
         .fx-panel {
@@ -1099,6 +1151,76 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
 
         .xy-pad.bypassed .xy-position {
           opacity: 0.3;
+        }
+
+        /* EQ Section */
+        .eq-section {
+          padding: 12px 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .eq-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 8px;
+          font-weight: 600;
+          text-align: center;
+        }
+
+        .eq-controls {
+          display: flex;
+          gap: 8px;
+        }
+
+        .eq-btn {
+          flex: 1;
+          padding: 8px 4px;
+          background: rgba(0, 0, 0, 0.4);
+          border: 2px solid rgba(255, 255, 255, 0.15);
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .eq-btn:hover {
+          background: rgba(0, 0, 0, 0.6);
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .eq-btn-label {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: rgba(255, 255, 255, 0.6);
+          display: block;
+          text-align: center;
+        }
+
+        /* Hi-Cut (Orange glow when active) */
+        .eq-btn.hi-cut.active {
+          border-color: #FF9500;
+          box-shadow: 0 0 12px rgba(255, 149, 0, 0.4), inset 0 0 8px rgba(255, 149, 0, 0.2);
+          background: rgba(255, 149, 0, 0.1);
+        }
+
+        .eq-btn.hi-cut.active .eq-btn-label {
+          color: #FFB340;
+        }
+
+        /* Lo-Cut (Purple glow when active) */
+        .eq-btn.lo-cut.active {
+          border-color: #A855F7;
+          box-shadow: 0 0 12px rgba(168, 85, 247, 0.4), inset 0 0 8px rgba(168, 85, 247, 0.2);
+          background: rgba(168, 85, 247, 0.1);
+        }
+
+        .eq-btn.lo-cut.active .eq-btn-label {
+          color: #C084FC;
         }
 
       `}</style>
