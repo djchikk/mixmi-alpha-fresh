@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { Track } from './types';
 import { useMixer } from '@/contexts/MixerContext';
+import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 
 interface DeckCrateProps {
   deck: 'A' | 'B';
@@ -62,8 +63,8 @@ function DraggableTrack({
       title={`${track.title} by ${track.artist}\nLeft click: Audition (20s preview)\nRight click: Remove from crate\nDrag: Load to any deck`}
     >
       <div className="crate-track-content">
-        <img 
-          src={track.imageUrl} 
+        <img
+          src={getOptimizedTrackImage({ ...track, imageUrl: track.cover_image_url || track.imageUrl }, 128)}
           alt={track.title}
           className="crate-track-image"
           draggable={false} // Prevent native image drag
