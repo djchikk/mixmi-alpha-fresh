@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useDrop } from 'react-dnd';
+import { useDrop, useDrag } from 'react-dnd';
 import { Track } from './types';
 import { useToast } from '@/contexts/ToastContext';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
@@ -82,6 +82,29 @@ export default function SimplifiedDeck({
     }),
   }), [onTrackDrop, deck, showToast]);
 
+  // Drag functionality - make deck track draggable to crate
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'DECK_TRACK', // Use different type to distinguish from crate tracks
+    item: () => {
+      if (!currentTrack) {
+        return null;
+      }
+      return {
+        track: currentTrack,
+        sourceDeck: deck,
+        sourceIndex: 0,
+        sourceType: 'deck' // Mark as coming from deck, not crate
+      };
+    },
+    canDrag: () => {
+      // Can only drag if there's a track loaded and it's not currently playing
+      return !!currentTrack && !isPlaying;
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [currentTrack, deck, isPlaying]);
+
   // Fetch username for the track's primary uploader wallet
   useEffect(() => {
     const fetchUsername = async () => {
@@ -161,15 +184,20 @@ export default function SimplifiedDeck({
   return (
     <div className={`flex ${trackInfoPosition === 'left' ? 'flex-row-reverse' : trackInfoPosition === 'right' ? 'flex-row' : 'flex-col'} ${trackInfoPosition === 'bottom' ? '' : 'items-center'} ${trackInfoPosition === 'bottom' ? '' : 'gap-4'} ${className}`}>
       <div
-        ref={drop as any}
         className="relative flex-shrink-0"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         <div
-          className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop ? 'drop-target' : ''}`}
+          ref={(node) => {
+            drag(node);
+            drop(node);
+          }}
+          className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop ? 'drop-target' : ''} ${isDragging ? 'dragging' : ''}`}
           style={{
-            border: isOver && canDrop ? '3px solid #00FF88' : undefined
+            border: isOver && canDrop ? '3px solid #00FF88' : undefined,
+            opacity: isDragging ? 0.5 : 1,
+            cursor: currentTrack && !isPlaying ? 'grab' : isDragging ? 'grabbing' : 'default'
           }}
         >
           {currentTrack ? (
@@ -337,45 +365,52 @@ export default function SimplifiedDeck({
           cursor: pointer;
           box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
         }
-        
+
         .carousel-track img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
-        
+
         .carousel-track.current {
           position: relative;
           z-index: 2;
           border: 2px solid transparent;
         }
-        
+
         .carousel-track.current.has-track {
           border: 2px solid #81E4F2;
           animation: softGlow 4s ease-in-out infinite;
         }
-        
+
         .carousel-track.current.new-track-loaded {
           border-color: #81E4F2 !important;
         }
-        
+
+        .carousel-track.current.dragging {
+          transform: rotate(3deg) scale(1.05);
+          box-shadow: 0 8px 24px rgba(129, 228, 242, 0.5);
+          border-color: #81E4F2 !important;
+          z-index: 1000;
+        }
+
         @keyframes softGlow {
-          0%, 100% { 
+          0%, 100% {
             box-shadow: 0 0 6px rgba(129, 228, 242, 0.3);
             border-color: #81E4F2;
             opacity: 0.85;
           }
-          50% { 
+          50% {
             box-shadow: 0 0 16px rgba(129, 228, 242, 0.5);
             border-color: #93E8F4;
             opacity: 1;
           }
         }
-        
+
         .carousel-track.current.playing {
           border-color: #81E4F2 !important;
         }
-        
+
         .deck-empty {
           width: 100%;
           height: 100%;
@@ -389,14 +424,14 @@ export default function SimplifiedDeck({
           font-weight: 500;
           position: relative;
         }
-        
+
         .deck-empty-icon {
           font-size: 28px;
           color: #475569;
           margin-bottom: 6px;
           opacity: 0.8;
         }
-        
+
         .deck-empty-text {
           color: #64748B;
           font-size: 12px;
@@ -404,7 +439,7 @@ export default function SimplifiedDeck({
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
-        
+
         .carousel-track.drop-target {
           transform: scale(1.05);
           border-color: #00FF88 !important;
