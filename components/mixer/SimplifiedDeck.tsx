@@ -299,8 +299,9 @@ export default function SimplifiedDeck({
           {currentTrack.primary_uploader_wallet ? (
             <Link
               href={username ? `/store/${username}` : `/store/${currentTrack.primary_uploader_wallet}`}
-              className="text-white text-sm font-bold truncate hover:text-[#81E4F2] transition-colors block"
+              className="text-white text-sm font-bold truncate hover:text-[#81E4F2] transition-colors block cursor-pointer"
               onClick={(e) => e.stopPropagation()}
+              style={{ pointerEvents: 'auto' }}
             >
               {currentTrack.title} - {currentTrack.bpm}
             </Link>
@@ -312,8 +313,9 @@ export default function SimplifiedDeck({
           {currentTrack.primary_uploader_wallet ? (
             <Link
               href={username ? `/profile/${username}` : `/profile/${currentTrack.primary_uploader_wallet}`}
-              className="text-slate-400 text-xs truncate hover:text-[#81E4F2] transition-colors block"
+              className="text-slate-400 text-xs truncate hover:text-[#81E4F2] transition-colors block cursor-pointer"
               onClick={(e) => e.stopPropagation()}
+              style={{ pointerEvents: 'auto' }}
             >
               by {currentTrack.artist} →
             </Link>
