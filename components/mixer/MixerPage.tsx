@@ -118,9 +118,7 @@ export default function MixerPage({ onExit }: MixerPageProps) {
   
   // Initialize mixer state with persistence
   const [mixerState, setMixerState] = useState<MixerState>(() => {
-    // TEMPORARY: Disable localStorage to test audio issue
-    return getDefaultMixerState();
-    // return loadMixerState() || getDefaultMixerState();
+    return loadMixerState() || getDefaultMixerState();
   });
 
   // 🎵 NEW: Remember last known master BPM to display when stopped
@@ -597,8 +595,7 @@ export default function MixerPage({ onExit }: MixerPageProps) {
 
   // Auto-save mixer state to localStorage whenever it changes
   useEffect(() => {
-    // TEMPORARY: Disable auto-save for debugging (silent)
-    // saveMixerState(mixerState);
+    saveMixerState(mixerState);
   }, [mixerState]);
 
   // 🎨 NEW: Real-time current time tracking for waveform playback position
