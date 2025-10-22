@@ -25,21 +25,26 @@ interface DraggableTrackProps {
   onTrackRightClick: (e: React.MouseEvent, index: number) => void;
 }
 
-function DraggableTrack({ 
-  track, 
-  index, 
-  deck, 
-  isCurrentTrack, 
-  showOverflow, 
+function DraggableTrack({
+  track,
+  index,
+  deck,
+  isCurrentTrack,
+  showOverflow,
   crateLength,
   playingTrack,
-  onTrackClick, 
-  onTrackRightClick 
+  onTrackClick,
+  onTrackRightClick
 }: DraggableTrackProps) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'CRATE_TRACK',
     item: () => {
-      return { track, sourceDeck: deck, sourceIndex: index };
+      return {
+        track,
+        sourceDeck: deck,
+        sourceIndex: index,
+        sourceType: 'crate' // Mark as coming from crate
+      };
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
@@ -97,10 +102,17 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
   
   // Set up drop zone for the crate
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: ['CRATE_TRACK', 'COLLECTION_TRACK'],
-    drop: (item: { track: Track; sourceDeck?: string; sourceIndex: number }) => {
-      // Don't drop on the same crate it came from (only for CRATE_TRACK)
-      if (item.sourceDeck && item.sourceDeck === deck) return;
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'DECK_TRACK'], // Accept deck tracks too!
+    drop: (item: { track: Track; sourceDeck?: string; sourceIndex: number; sourceType?: string }) => {
+      console.log(`📦 Crate ${deck} received drop:`, { sourceType: item.sourceType, sourceDeck: item.sourceDeck, track: item.track.title });
+
+      // Only block drops from the same CRATE (not from deck)
+      if (item.sourceType === 'crate' && item.sourceDeck === deck) {
+        console.log(`🚫 Blocked: Can't drop track from crate ${deck} back onto same crate`);
+        return;
+      }
+
+      console.log(`✅ Accepting drop from ${item.sourceType || 'unknown'} to crate ${deck}`);
 
       // Convert track format if needed - CRITICAL: Preserve cover_image_url for high-res
       const trackToAdd = {
@@ -115,6 +127,10 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
 
       // Add to this crate (displacing last if full)
       addTrackToCrate(trackToAdd as any, deck);
+    },
+    canDrop: (item) => {
+      console.log(`🔍 Crate ${deck} canDrop check:`, { type: item, accepts: ['CRATE_TRACK', 'COLLECTION_TRACK', 'DECK_TRACK'] });
+      return true;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -265,15 +281,10 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
   }
 
   return (
-    <div 
-      ref={drop} 
-      className={`deck-crate deck-crate-${deck.toLowerCase()} ${className}`} 
-      style={{ 
-        position: 'relative',
-        ...(isOver && { 
-          borderColor: '#81E4F2',
-          backgroundColor: 'rgba(129, 228, 242, 0.1)'
-        })
+    <div
+      className={`deck-crate deck-crate-${deck.toLowerCase()} ${className}`}
+      style={{
+        position: 'relative'
       }}>
       {/* Loading overlay */}
       {loading && (
@@ -313,12 +324,21 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
       )}
       
       {/* No header when crate has tracks - cleaner look */}
-      <div className="crate-tracks">
+      <div
+        ref={drop}
+        className="crate-tracks"
+        style={{
+          ...(isOver && canDrop && {
+            backgroundColor: 'rgba(129, 228, 242, 0.15)',
+            outline: '2px solid #81E4F2'
+          })
+        }}
+      >
         {Array.from({ length: 4 }, (_, index) => {
           const track = crate[index];
           const isCurrentTrack = track && currentTrack?.id === track.id;
           const showOverflow = index === 3 && crate.length > 4;
-          
+
           if (!track) {
             return (
               <div key={`empty-${index}`} className="crate-track empty">
@@ -326,7 +346,7 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
               </div>
             );
           }
-          
+
           return (
             <DraggableTrack
               key={`${track.id}-${index}`}
@@ -459,6 +479,7 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
           background: rgba(15, 23, 42, 0.3);
           border: 1px dashed rgba(71, 85, 105, 0.3);
           opacity: 0.5;
+          pointer-events: none; /* Allow drops to pass through empty slots */
         }
         
         /* Beautiful dotted-line empty state */
