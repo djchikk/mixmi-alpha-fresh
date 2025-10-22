@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Track } from './types';
 import { useMixerAudio } from '@/hooks/useMixerAudio';
 import { useMixer } from '@/contexts/MixerContext';
@@ -100,6 +101,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Responsive waveform width based on breakpoints
   const [waveformWidth, setWaveformWidth] = useState(700);
 
+  // Username state for linking to creator pages
+  const [deckAUsername, setDeckAUsername] = useState<string | null>(null);
+  const [deckBUsername, setDeckBUsername] = useState<string | null>(null);
+
   useEffect(() => {
     const updateWaveformWidth = () => {
       const width = window.innerWidth;
@@ -118,6 +123,46 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     window.addEventListener('resize', updateWaveformWidth);
     return () => window.removeEventListener('resize', updateWaveformWidth);
   }, []);
+
+  // Fetch username for Deck A track
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (!mixerState.deckA.track?.primary_uploader_wallet) {
+        setDeckAUsername(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('wallet_address', mixerState.deckA.track.primary_uploader_wallet)
+        .single();
+
+      setDeckAUsername(data?.username || null);
+    };
+
+    fetchUsername();
+  }, [mixerState.deckA.track?.primary_uploader_wallet]);
+
+  // Fetch username for Deck B track
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (!mixerState.deckB.track?.primary_uploader_wallet) {
+        setDeckBUsername(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('wallet_address', mixerState.deckB.track.primary_uploader_wallet)
+        .single();
+
+      setDeckBUsername(data?.username || null);
+    };
+
+    fetchUsername();
+  }, [mixerState.deckB.track?.primary_uploader_wallet]);
 
   // FX Component refs
   const deckAFXRef = React.useRef<HTMLDivElement>(null);
@@ -966,12 +1011,34 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           <div className="flex flex-col gap-8 items-start max-w-[140px]">
             {mixerState.deckA.track && (
               <div className="text-left w-full">
-                <div className="text-slate-300 text-sm font-bold truncate">
-                  {mixerState.deckA.track.title} - {mixerState.deckA.track.bpm}
-                </div>
-                <div className="text-slate-400 text-xs truncate">
-                  by {mixerState.deckA.track.artist}
-                </div>
+                {mixerState.deckA.track.primary_uploader_wallet ? (
+                  <Link
+                    href={deckAUsername ? `/store/${deckAUsername}` : `/store/${mixerState.deckA.track.primary_uploader_wallet}`}
+                    className="text-slate-300 text-sm font-bold truncate hover:text-[#81E4F2] transition-colors block cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    {mixerState.deckA.track.title} - {mixerState.deckA.track.bpm}
+                  </Link>
+                ) : (
+                  <div className="text-slate-300 text-sm font-bold truncate">
+                    {mixerState.deckA.track.title} - {mixerState.deckA.track.bpm}
+                  </div>
+                )}
+                {mixerState.deckA.track.primary_uploader_wallet ? (
+                  <Link
+                    href={deckAUsername ? `/profile/${deckAUsername}` : `/profile/${mixerState.deckA.track.primary_uploader_wallet}`}
+                    className="text-slate-400 text-xs truncate hover:text-[#81E4F2] transition-colors block cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    by {mixerState.deckA.track.artist} →
+                  </Link>
+                ) : (
+                  <div className="text-slate-400 text-xs truncate">
+                    by {mixerState.deckA.track.artist}
+                  </div>
+                )}
               </div>
             )}
             <LoopControls
@@ -1041,12 +1108,34 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           <div className="flex flex-col gap-8 items-start max-w-[140px]">
             {mixerState.deckB.track && (
               <div className="text-left w-full">
-                <div className="text-slate-300 text-sm font-bold truncate">
-                  {mixerState.deckB.track.title} - {mixerState.deckB.track.bpm}
-                </div>
-                <div className="text-slate-400 text-xs truncate">
-                  by {mixerState.deckB.track.artist}
-                </div>
+                {mixerState.deckB.track.primary_uploader_wallet ? (
+                  <Link
+                    href={deckBUsername ? `/store/${deckBUsername}` : `/store/${mixerState.deckB.track.primary_uploader_wallet}`}
+                    className="text-slate-300 text-sm font-bold truncate hover:text-[#81E4F2] transition-colors block cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    {mixerState.deckB.track.title} - {mixerState.deckB.track.bpm}
+                  </Link>
+                ) : (
+                  <div className="text-slate-300 text-sm font-bold truncate">
+                    {mixerState.deckB.track.title} - {mixerState.deckB.track.bpm}
+                  </div>
+                )}
+                {mixerState.deckB.track.primary_uploader_wallet ? (
+                  <Link
+                    href={deckBUsername ? `/profile/${deckBUsername}` : `/profile/${mixerState.deckB.track.primary_uploader_wallet}`}
+                    className="text-slate-400 text-xs truncate hover:text-[#81E4F2] transition-colors block cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    by {mixerState.deckB.track.artist} →
+                  </Link>
+                ) : (
+                  <div className="text-slate-400 text-xs truncate">
+                    by {mixerState.deckB.track.artist}
+                  </div>
+                )}
               </div>
             )}
             <LoopControls
