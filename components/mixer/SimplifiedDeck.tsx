@@ -8,6 +8,8 @@ import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import InfoIcon from '@/components/shared/InfoIcon';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import { IPTrack } from '@/types';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 interface SimplifiedDeckProps {
   currentTrack: Track | null;
@@ -37,6 +39,7 @@ export default function SimplifiedDeck({
   const [previousTrackId, setPreviousTrackId] = useState(currentTrack?.id);
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
 
   // Drop functionality for collection tracks
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
@@ -79,17 +82,37 @@ export default function SimplifiedDeck({
     }),
   }), [onTrackDrop, deck, showToast]);
 
+  // Fetch username for the track's primary uploader wallet
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (!currentTrack?.primary_uploader_wallet) {
+        setUsername(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('wallet_address', currentTrack.primary_uploader_wallet)
+        .single();
+
+      setUsername(data?.username || null);
+    };
+
+    fetchUsername();
+  }, [currentTrack?.primary_uploader_wallet]);
+
   // Detect when a new track is loaded
   useEffect(() => {
     if (currentTrack && currentTrack.id !== previousTrackId) {
       setIsNewTrackLoaded(true);
       setPreviousTrackId(currentTrack.id);
-      
+
       // Reset the animation after a short duration
       const timeout = setTimeout(() => {
         setIsNewTrackLoaded(false);
       }, 1000);
-      
+
       return () => clearTimeout(timeout);
     }
   }, [currentTrack?.id, previousTrackId]);
@@ -273,12 +296,32 @@ export default function SimplifiedDeck({
       {/* Track Info Display */}
       {currentTrack && trackInfoPosition !== 'none' && (
         <div className={`max-w-[140px] ${trackInfoPosition === 'bottom' ? 'mt-2 text-center' : ''} ${trackInfoPosition === 'left' ? 'text-left' : trackInfoPosition === 'right' ? 'text-left' : 'text-center'}`}>
-          <div className="text-white text-sm font-bold truncate">
-            {currentTrack.title} - {currentTrack.bpm}
-          </div>
-          <div className="text-slate-400 text-xs truncate">
-            by {currentTrack.artist} →
-          </div>
+          {currentTrack.primary_uploader_wallet ? (
+            <Link
+              href={username ? `/store/${username}` : `/store/${currentTrack.primary_uploader_wallet}`}
+              className="text-white text-sm font-bold truncate hover:text-[#81E4F2] transition-colors block"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {currentTrack.title} - {currentTrack.bpm}
+            </Link>
+          ) : (
+            <div className="text-white text-sm font-bold truncate">
+              {currentTrack.title} - {currentTrack.bpm}
+            </div>
+          )}
+          {currentTrack.primary_uploader_wallet ? (
+            <Link
+              href={username ? `/profile/${username}` : `/profile/${currentTrack.primary_uploader_wallet}`}
+              className="text-slate-400 text-xs truncate hover:text-[#81E4F2] transition-colors block"
+              onClick={(e) => e.stopPropagation()}
+            >
+              by {currentTrack.artist} →
+            </Link>
+          ) : (
+            <div className="text-slate-400 text-xs truncate">
+              by {currentTrack.artist} →
+            </div>
+          )}
         </div>
       )}
 
