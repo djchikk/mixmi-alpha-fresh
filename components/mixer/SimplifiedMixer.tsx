@@ -1788,13 +1788,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           width: 20px;
           height: 8px;
           background: #1e293b;
-          border: 2px solid #81E4F2;
+          border: 2px solid rgba(129, 228, 242, 0.5);
           border-radius: 3px;
           cursor: grab;
           box-shadow:
-            0 0 8px rgba(129, 228, 242, 0.5),
+            0 0 6px rgba(129, 228, 242, 0.3),
             0 2px 4px rgba(0, 0, 0, 0.4),
-            inset 0 0 0 1px rgba(129, 228, 242, 0.2);
+            inset 0 0 0 1px rgba(129, 228, 242, 0.15);
           transition: all 0.15s ease;
           position: relative;
         }
@@ -1821,13 +1821,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           width: 20px;
           height: 8px;
           background: #1e293b;
-          border: 2px solid #81E4F2;
+          border: 2px solid rgba(129, 228, 242, 0.5);
           border-radius: 3px;
           cursor: grab;
           box-shadow:
-            0 0 8px rgba(129, 228, 242, 0.5),
+            0 0 6px rgba(129, 228, 242, 0.3),
             0 2px 4px rgba(0, 0, 0, 0.4),
-            inset 0 0 0 1px rgba(129, 228, 242, 0.2);
+            inset 0 0 0 1px rgba(129, 228, 242, 0.15);
           transition: all 0.15s ease;
         }
 
