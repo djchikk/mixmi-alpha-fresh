@@ -32,7 +32,7 @@ interface SimplifiedMixerState {
     loopEnabled: boolean;
     loopLength: number;
     loopPosition: number;
-    boostEnabled: boolean;
+    boostLevel: number; // 0=off, 1=gentle (cyan), 2=aggressive (orange)
   };
   deckB: {
     track: Track | null;
@@ -43,7 +43,7 @@ interface SimplifiedMixerState {
     loopEnabled: boolean;
     loopLength: number;
     loopPosition: number;
-    boostEnabled: boolean;
+    boostLevel: number; // 0=off, 1=gentle (cyan), 2=aggressive (orange)
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -70,7 +70,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       loopEnabled: true,
       loopLength: 8,
       loopPosition: 0,
-      boostEnabled: false
+      boostLevel: 0 // 0=off, 1=gentle, 2=aggressive
     },
     deckB: {
       track: null,
@@ -78,7 +78,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       loopEnabled: true,
       loopLength: 8,
       loopPosition: 0,
-      boostEnabled: false
+      boostLevel: 0 // 0=off, 1=gentle, 2=aggressive
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -900,23 +900,24 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
   };
 
-  // Boost toggle handlers
+  // Boost toggle handlers - Progressive: 0 (off) → 1 (gentle/cyan) → 2 (aggressive/orange) → 0
   const handleBoostToggle = (deck: 'A' | 'B') => {
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
-    const newBoostEnabled = !mixerState[deckKey].boostEnabled;
+    const currentLevel = mixerState[deckKey].boostLevel;
+    const newLevel = (currentLevel + 1) % 3; // Cycle through 0, 1, 2
 
     setMixerState(prev => ({
       ...prev,
       [deckKey]: {
         ...prev[deckKey],
-        boostEnabled: newBoostEnabled
+        boostLevel: newLevel
       }
     }));
 
     // Update audio controls
     const audioControls = mixerState[deckKey].audioControls;
     if (audioControls && audioControls.setBoost) {
-      audioControls.setBoost(newBoostEnabled);
+      audioControls.setBoost(newLevel);
     }
   };
 
@@ -1068,6 +1069,93 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       setTimeout(() => startRecording(), 100); // Small delay to ensure playback starts
     }
   }, [recordingState.isRecording, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
+
+  // Keyboard shortcuts for mixer control
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if user is typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      switch (key) {
+        case ' ':
+          // Space: Master play/pause
+          e.preventDefault();
+          handleMasterPlayAfterCountIn();
+          break;
+
+        case 'a':
+          // A: Toggle Deck A play/pause
+          e.preventDefault();
+          handleDeckAPlayPause();
+          break;
+
+        case 'b':
+          // B: Toggle Deck B play/pause
+          e.preventDefault();
+          handleDeckBPlayPause();
+          break;
+
+        case 'arrowleft':
+          // Left arrow: Move crossfader left (towards A)
+          e.preventDefault();
+          handleCrossfaderChange(Math.max(0, mixerState.crossfaderPosition - 5));
+          break;
+
+        case 'arrowright':
+          // Right arrow: Move crossfader right (towards B)
+          e.preventDefault();
+          handleCrossfaderChange(Math.min(100, mixerState.crossfaderPosition + 5));
+          break;
+
+        case '1':
+        case '2':
+        case '4':
+        case '8':
+          // Number keys: Set loop length for both decks
+          e.preventDefault();
+          const length = parseInt(key);
+          handleLoopLengthChange('A', length);
+          handleLoopLengthChange('B', length);
+          console.log(`⌨️ Loop length set to ${length} bars`);
+          break;
+
+        case 's':
+          // S: Toggle sync
+          e.preventDefault();
+          handleSync();
+          break;
+
+        case 'r':
+          // R: Toggle recording
+          e.preventDefault();
+          handleRecordToggle();
+          break;
+
+        case 'escape':
+          // Escape: Return to start
+          e.preventDefault();
+          handleReturnToStart();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [
+    mixerState.crossfaderPosition,
+    handleDeckAPlayPause,
+    handleDeckBPlayPause,
+    handleMasterPlayAfterCountIn,
+    handleCrossfaderChange,
+    handleLoopLengthChange,
+    handleSync,
+    handleRecordToggle,
+    handleReturnToStart
+  ]);
 
   // Monitor playback to count bars and auto-stop recording at target (sample-accurate with AudioContext)
   useEffect(() => {
@@ -1422,21 +1510,31 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
           {/* Crossfader with Deck Controls */}
           <div className="flex justify-center items-center gap-6" style={{ marginTop: '52px' }}>
-            {/* Deck A Boost Button */}
+            {/* TODO: BOOST feature - needs refinement, commented out for now
             <button
               onClick={() => handleBoostToggle('A')}
               disabled={!mixerState.deckA.track}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all uppercase tracking-wider ${
-                mixerState.deckA.boostEnabled
+                mixerState.deckA.boostLevel === 2
+                  ? 'bg-orange-500 border-2 border-orange-500 text-white hover:bg-orange-600 active:bg-orange-700'
+                  : mixerState.deckA.boostLevel === 1
                   ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 active:bg-[#81E4F2]/90'
                   : mixerState.deckA.track
                   ? 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white'
                   : 'bg-black border-2 border-slate-700 text-slate-600 cursor-not-allowed'
               }`}
-              title={mixerState.deckA.boostEnabled ? 'Boost ON' : 'Boost OFF'}
+              style={{ minWidth: '72px' }}
+              title={
+                mixerState.deckA.boostLevel === 2
+                  ? 'BOOST+ (Aggressive) - Click for OFF'
+                  : mixerState.deckA.boostLevel === 1
+                  ? 'BOOST (Gentle) - Click for BOOST+'
+                  : 'Boost OFF - Click for BOOST'
+              }
             >
-              BOOST
+              {mixerState.deckA.boostLevel === 2 ? 'BOOST+' : 'BOOST'}
             </button>
+            */}
 
             {/* Deck A Play/Pause */}
             <button
@@ -1493,21 +1591,31 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               )}
             </button>
 
-            {/* Deck B Boost Button */}
+            {/* TODO: BOOST feature - needs refinement, commented out for now
             <button
               onClick={() => handleBoostToggle('B')}
               disabled={!mixerState.deckB.track}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all uppercase tracking-wider ${
-                mixerState.deckB.boostEnabled
+                mixerState.deckB.boostLevel === 2
+                  ? 'bg-orange-500 border-2 border-orange-500 text-white hover:bg-orange-600 active:bg-orange-700'
+                  : mixerState.deckB.boostLevel === 1
                   ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 active:bg-[#81E4F2]/90'
                   : mixerState.deckB.track
                   ? 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white'
                   : 'bg-black border-2 border-slate-700 text-slate-600 cursor-not-allowed'
               }`}
-              title={mixerState.deckB.boostEnabled ? 'Boost ON' : 'Boost OFF'}
+              style={{ minWidth: '72px' }}
+              title={
+                mixerState.deckB.boostLevel === 2
+                  ? 'BOOST+ (Aggressive) - Click for OFF'
+                  : mixerState.deckB.boostLevel === 1
+                  ? 'BOOST (Gentle) - Click for BOOST+'
+                  : 'Boost OFF - Click for BOOST'
+              }
             >
-              BOOST
+              {mixerState.deckB.boostLevel === 2 ? 'BOOST+' : 'BOOST'}
             </button>
+            */}
           </div>
         </div>
 

@@ -940,7 +940,7 @@ export interface MixerAudioControls {
   setLoopPosition: (position: number) => void; // 🎯 Set loop start position
   setHiCut: (enabled: boolean) => void; // 🎛️ Enable/disable high-cut EQ
   setLoCut: (enabled: boolean) => void; // 🎛️ Enable/disable low-cut EQ
-  setBoost: (enabled: boolean) => void; // 🎚️ Enable/disable boost/compressor
+  setBoost: (level: number) => void; // 🎚️ Set boost level (0=off, 1=gentle, 2=aggressive)
   cleanup: () => void;
 }
 
@@ -1281,29 +1281,52 @@ export class MixerAudioEngine {
           }
         },
 
-        // 🎚️ Boost/Compressor control with true bypass
-        setBoost: (enabled: boolean) => {
+        // 🎚️ Boost/Compressor control with progressive levels
+        setBoost: (level: number) => {
           const now = audioContext.currentTime;
           const fadeTime = 0.01; // 10ms crossfade to avoid clicks
 
-          if (enabled) {
-            // Switch to EFFECT path (compressor ON)
-            compressorBypass.gain.setValueAtTime(compressorBypass.gain.value, now);
-            compressorBypass.gain.linearRampToValueAtTime(0.0, now + fadeTime);
+          // Cancel any previous automations to prevent conflicts
+          compressorBypass.gain.cancelScheduledValues(now);
+          compressorEffect.gain.cancelScheduledValues(now);
 
-            compressorEffect.gain.setValueAtTime(compressorEffect.gain.value, now);
-            compressorEffect.gain.linearRampToValueAtTime(1.0, now + fadeTime);
-
-            console.log(`🎚️ Deck ${deckId} BOOST enabled (compressor active)`);
-          } else {
-            // Switch to BYPASS path (compressor OFF)
+          if (level === 0) {
+            // Level 0: OFF - Switch to BYPASS path
             compressorBypass.gain.setValueAtTime(compressorBypass.gain.value, now);
             compressorBypass.gain.linearRampToValueAtTime(1.0, now + fadeTime);
 
             compressorEffect.gain.setValueAtTime(compressorEffect.gain.value, now);
             compressorEffect.gain.linearRampToValueAtTime(0.0, now + fadeTime);
 
-            console.log(`🎚️ Deck ${deckId} BOOST disabled (bypass active)`);
+            console.log(`🎚️ Deck ${deckId} BOOST disabled (bypass: ${compressorBypass.gain.value} → 1.0, effect: ${compressorEffect.gain.value} → 0.0)`);
+          } else if (level === 1) {
+            // Level 1: GENTLE - Transparent leveling for mastered tracks
+            compressorNode.threshold.setValueAtTime(-24, now);
+            compressorNode.knee.setValueAtTime(30, now);
+            compressorNode.ratio.setValueAtTime(3, now);
+
+            // Switch to EFFECT path
+            compressorBypass.gain.setValueAtTime(compressorBypass.gain.value, now);
+            compressorBypass.gain.linearRampToValueAtTime(0.0, now + fadeTime);
+
+            compressorEffect.gain.setValueAtTime(compressorEffect.gain.value, now);
+            compressorEffect.gain.linearRampToValueAtTime(1.0, now + fadeTime);
+
+            console.log(`🎚️ Deck ${deckId} BOOST (gentle) enabled: -24dB threshold, 3:1 ratio (bypass: ${compressorBypass.gain.value} → 0.0, effect: ${compressorEffect.gain.value} → 1.0)`);
+          } else if (level === 2) {
+            // Level 2: AGGRESSIVE - Strong leveling for quiet recordings
+            compressorNode.threshold.setValueAtTime(-18, now);
+            compressorNode.knee.setValueAtTime(20, now);
+            compressorNode.ratio.setValueAtTime(6, now);
+
+            // Switch to EFFECT path
+            compressorBypass.gain.setValueAtTime(compressorBypass.gain.value, now);
+            compressorBypass.gain.linearRampToValueAtTime(0.0, now + fadeTime);
+
+            compressorEffect.gain.setValueAtTime(compressorEffect.gain.value, now);
+            compressorEffect.gain.linearRampToValueAtTime(1.0, now + fadeTime);
+
+            console.log(`🎚️ Deck ${deckId} BOOST+ (aggressive) enabled: -18dB threshold, 6:1 ratio (bypass: ${compressorBypass.gain.value} → 0.0, effect: ${compressorEffect.gain.value} → 1.0)`);
           }
         },
 
