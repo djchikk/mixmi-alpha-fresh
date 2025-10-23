@@ -883,6 +883,16 @@ export default function HomePage() {
               <div>
                 <div className="text-center mb-2">
                   <h3 className="text-white text-sm font-bold">{selectedNode.title}</h3>
+                  {/* Null Island special message */}
+                  {(selectedNode.location?.includes('Null Island') || selectedNode.tracks?.[0]?.location?.includes('Null Island')) && (
+                    <div className="mt-3 mx-auto max-w-md px-4 py-3 bg-gradient-to-r from-cyan-900/40 to-pink-900/40 border border-cyan-500/30 rounded-lg">
+                      <p className="text-xs text-cyan-200 leading-relaxed">
+                        <span className="font-semibold">🏝️ Welcome to Null Island!</span> These tracks sailed here because they were uploaded without location tags.
+                        Some artists choose this as a badge of freedom from spatial coordinates, while others might want to
+                        <span className="text-pink-300"> add a location tag</span> to plant their flag somewhere specific on the globe.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-2" style={{ maxWidth: '80vw' }}>
                   {selectedNode.tracks.slice(0, 8 + (carouselPage * 8)).map((track, index) => (
