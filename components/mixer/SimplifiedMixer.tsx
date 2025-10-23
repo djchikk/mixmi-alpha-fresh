@@ -16,6 +16,8 @@ import LoopControls from './LoopControls';
 import FXComponent from './FXComponent';
 import DeckCrate from './DeckCrate';
 import RecordingPreview from './RecordingPreview';
+import * as Dialog from '@radix-ui/react-dialog';
+import { Keyboard } from 'lucide-react';
 
 interface SimplifiedMixerProps {
   className?: string;
@@ -108,6 +110,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Username state for linking to creator pages
   const [deckAUsername, setDeckAUsername] = useState<string | null>(null);
   const [deckBUsername, setDeckBUsername] = useState<string | null>(null);
+
+  // Keyboard shortcuts modal state
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
   useEffect(() => {
     const updateWaveformWidth = () => {
@@ -1081,6 +1086,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       const key = e.key.toLowerCase();
 
       switch (key) {
+        case '?':
+          // ?: Show keyboard shortcuts
+          e.preventDefault();
+          setShowKeyboardShortcuts(true);
+          break;
+
         case ' ':
           // Space: Master play/pause
           e.preventDefault();
@@ -1191,8 +1202,98 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   return (
     <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 mx-auto ${className}`} style={{ maxWidth: '1168px' }}>
 
+      {/* Keyboard Shortcuts Modal */}
+      <Dialog.Root open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-lg p-6 shadow-2xl border border-slate-600 z-50 max-w-md w-full">
+            <Dialog.Title className="text-xl font-bold text-slate-200 mb-4 flex items-center gap-2">
+              <Keyboard size={20} className="text-[#81E4F2]" />
+              Keyboard Shortcuts
+            </Dialog.Title>
+
+            <div className="space-y-3 text-sm">
+              {/* Transport Controls */}
+              <div>
+                <div className="text-xs text-[#81E4F2] font-bold uppercase tracking-wider mb-2">Transport</div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span>Master Play/Pause</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">Space</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Deck A Play/Pause</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">A</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Deck B Play/Pause</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">B</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Return to Start</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">Esc</kbd>
+                  </div>
+                </div>
+              </div>
+
+              {/* Crossfader */}
+              <div>
+                <div className="text-xs text-[#81E4F2] font-bold uppercase tracking-wider mb-2">Crossfader</div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span>Move Left (towards A)</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">←</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Move Right (towards B)</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">→</kbd>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loop Controls */}
+              <div>
+                <div className="text-xs text-[#81E4F2] font-bold uppercase tracking-wider mb-2">Loop Length</div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span>Set 1, 2, 4, or 8 bars</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">1</kbd>
+                      <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">2</kbd>
+                      <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">4</kbd>
+                      <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">8</kbd>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Controls */}
+              <div>
+                <div className="text-xs text-[#81E4F2] font-bold uppercase tracking-wider mb-2">Other</div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span>Toggle Sync</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">S</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Toggle Recording</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">R</kbd>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Dialog.Close asChild>
+              <button className="mt-6 w-full px-4 py-2 bg-[#81E4F2] text-slate-900 rounded-lg font-bold hover:bg-[#81E4F2]/80 transition-all">
+                Got it!
+              </button>
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
       {/* Top Section - Decks, Crates, and BPM */}
-      <div className="flex justify-center items-end mb-8" style={{ gap: waveformWidth >= 700 ? '48px' : waveformWidth >= 600 ? '32px' : waveformWidth >= 500 ? '16px' : '8px' }}>
+      <div className="flex justify-center items-end mb-3" style={{ gap: waveformWidth >= 700 ? '48px' : waveformWidth >= 600 ? '32px' : waveformWidth >= 500 ? '16px' : '8px' }}>
         {/* Left: Volume A + Deck A + Loop Controls + Track Info */}
         <div className="flex gap-4 items-center">
           {/* Deck A Controls */}
@@ -1325,24 +1426,35 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             </div>
           </div>
 
-          {/* Transport Controls */}
-          <MasterTransportControls
-            variant="simplified"
-            deckALoaded={!!mixerState.deckA.track}
-            deckBLoaded={!!mixerState.deckB.track}
-            deckAPlaying={mixerState.deckA.playing}
-            deckBPlaying={mixerState.deckB.playing}
-            deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
-            syncActive={mixerState.syncActive}
-            recordingRemix={recordingState.isRecording}
-            onMasterPlay={handleMasterPlay}
-            onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
-            onMasterStop={handleMasterStop}
-            onReturnToStart={handleReturnToStart}
-            onRecordToggle={handleRecordToggle}
-            onSyncToggle={handleSync}
-            onMasterSyncReset={handleMasterSyncReset}
-          />
+          {/* Transport Controls with Keyboard Shortcut */}
+          <div className="flex flex-col items-center">
+            <MasterTransportControls
+              variant="simplified"
+              deckALoaded={!!mixerState.deckA.track}
+              deckBLoaded={!!mixerState.deckB.track}
+              deckAPlaying={mixerState.deckA.playing}
+              deckBPlaying={mixerState.deckB.playing}
+              deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
+              syncActive={mixerState.syncActive}
+              recordingRemix={recordingState.isRecording}
+              onMasterPlay={handleMasterPlay}
+              onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
+              onMasterStop={handleMasterStop}
+              onReturnToStart={handleReturnToStart}
+              onRecordToggle={handleRecordToggle}
+              onSyncToggle={handleSync}
+              onMasterSyncReset={handleMasterSyncReset}
+            />
+
+            {/* Keyboard Shortcuts Button */}
+            <button
+              onClick={() => setShowKeyboardShortcuts(true)}
+              className="mt-1 w-8 h-8 rounded-full bg-transparent hover:bg-slate-700/30 text-slate-500 hover:text-[#81E4F2] flex items-center justify-center transition-all"
+              title="Keyboard Shortcuts (?)"
+            >
+              <Keyboard size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Right: Loop Controls + Track Info + Deck B */}
