@@ -996,8 +996,35 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
       {/* Top Section - Decks, Crates, and BPM */}
       <div className="flex justify-center items-end mb-8" style={{ gap: waveformWidth >= 700 ? '48px' : waveformWidth >= 600 ? '32px' : waveformWidth >= 500 ? '16px' : '8px' }}>
-        {/* Left: Deck A + Loop Controls + Track Info */}
+        {/* Left: Volume A + Deck A + Loop Controls + Track Info */}
         <div className="flex gap-4 items-center">
+          {/* Deck A Volume Slider */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Vol</div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              defaultValue="100"
+              onChange={(e) => {
+                const volume = parseInt(e.target.value) / 100;
+                mixerState.deckA.audioControls?.setVolume(volume);
+              }}
+              className="volume-slider"
+              style={{
+                width: '120px',
+                writingMode: 'vertical-lr',
+                direction: 'rtl',
+                appearance: 'none',
+                background: 'linear-gradient(to top, rgba(129, 228, 242, 0.3) 0%, rgba(129, 228, 242, 0.1) 100%)',
+                borderRadius: '4px',
+                outline: 'none',
+                border: '1px solid rgba(129, 228, 242, 0.2)'
+              }}
+            />
+            <div className="text-[10px] text-slate-500 font-mono">A</div>
+          </div>
+
           <SimplifiedDeck
             currentTrack={mixerState.deckA.track}
             isPlaying={mixerState.deckA.playing}
@@ -1159,6 +1186,33 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             deck="B"
             trackInfoPosition="none"
           />
+
+          {/* Deck B Volume Slider */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Vol</div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              defaultValue="100"
+              onChange={(e) => {
+                const volume = parseInt(e.target.value) / 100;
+                mixerState.deckB.audioControls?.setVolume(volume);
+              }}
+              className="volume-slider"
+              style={{
+                width: '120px',
+                writingMode: 'vertical-lr',
+                direction: 'rtl',
+                appearance: 'none',
+                background: 'linear-gradient(to top, rgba(129, 228, 242, 0.3) 0%, rgba(129, 228, 242, 0.1) 100%)',
+                borderRadius: '4px',
+                outline: 'none',
+                border: '1px solid rgba(129, 228, 242, 0.2)'
+              }}
+            />
+            <div className="text-[10px] text-slate-500 font-mono">B</div>
+          </div>
         </div>
       </div>
 
@@ -1329,6 +1383,53 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           }}
         />
       )}
+
+      {/* Volume Slider Styling */}
+      <style jsx global>{`
+        .volume-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 32px;
+          height: 12px;
+          background: linear-gradient(135deg, rgba(129, 228, 242, 0.9) 0%, rgba(129, 228, 242, 0.7) 100%);
+          border: 1px solid rgba(129, 228, 242, 0.8);
+          border-radius: 2px;
+          cursor: pointer;
+          box-shadow: 0 0 8px rgba(129, 228, 242, 0.3);
+          transition: all 0.15s ease;
+        }
+
+        .volume-slider::-webkit-slider-thumb:hover {
+          background: linear-gradient(135deg, rgba(129, 228, 242, 1) 0%, rgba(129, 228, 242, 0.9) 100%);
+          box-shadow: 0 0 12px rgba(129, 228, 242, 0.5);
+          transform: scaleX(1.1);
+        }
+
+        .volume-slider::-webkit-slider-thumb:active {
+          box-shadow: 0 0 16px rgba(129, 228, 242, 0.7);
+        }
+
+        .volume-slider::-moz-range-thumb {
+          width: 32px;
+          height: 12px;
+          background: linear-gradient(135deg, rgba(129, 228, 242, 0.9) 0%, rgba(129, 228, 242, 0.7) 100%);
+          border: 1px solid rgba(129, 228, 242, 0.8);
+          border-radius: 2px;
+          cursor: pointer;
+          box-shadow: 0 0 8px rgba(129, 228, 242, 0.3);
+          transition: all 0.15s ease;
+        }
+
+        .volume-slider::-moz-range-thumb:hover {
+          background: linear-gradient(135deg, rgba(129, 228, 242, 1) 0%, rgba(129, 228, 242, 0.9) 100%);
+          box-shadow: 0 0 12px rgba(129, 228, 242, 0.5);
+          transform: scaleX(1.1);
+        }
+
+        .volume-slider::-moz-range-thumb:active {
+          box-shadow: 0 0 16px rgba(129, 228, 242, 0.7);
+        }
+      `}</style>
     </div>
   );
 }
