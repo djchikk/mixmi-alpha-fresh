@@ -1302,6 +1302,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               audioContext={getAudioContext()}
               deckId="deckA"
               audioControls={mixerState.deckA.audioControls}
+              masterBPM={mixerState.masterBPM}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-500">
@@ -1420,6 +1421,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               audioContext={getAudioContext()}
               deckId="deckB"
               audioControls={mixerState.deckB.audioControls}
+              masterBPM={mixerState.masterBPM}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-500">
