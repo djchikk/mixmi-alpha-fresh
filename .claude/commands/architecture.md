@@ -5,7 +5,8 @@ You are working on **Mixmi**, a professional music creation platform with blockc
 ## Core Architecture Documents
 Read these files to understand the complete system:
 - `/docs/CLAUDE.md` - Complete project overview with October 2025 achievements
-- `/docs/INFINITE-REMIX-ARCHITECTURE-PROMPT.md` - Remix economics and smart contract architecture
+- `/docs/REMIX-SYSTEM-AUTHORITATIVE.md` - **AUTHORITATIVE** remix IP and payment guide (Oct 2025)
+- `/docs/INFINITE-REMIX-ARCHITECTURE-PROMPT.md` - Original remix planning context (historical)
 
 ## Current System Status (Auto-Updated)
 
