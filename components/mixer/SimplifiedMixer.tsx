@@ -653,13 +653,54 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (mixerState.deckB.audioControls) {
       mixerState.deckB.audioControls.stop();
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckA: { ...prev.deckA, playing: false },
       deckB: { ...prev.deckB, playing: false }
     }));
   };
+
+  const handleReturnToStart = useCallback(async () => {
+    const wasPlaying = mixerState.deckA.playing || mixerState.deckB.playing;
+
+    // Stop both decks and reset to beginning
+    if (mixerState.deckA.audioControls) {
+      mixerState.deckA.audioControls.stop();
+    }
+    if (mixerState.deckB.audioControls) {
+      mixerState.deckB.audioControls.stop();
+    }
+
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, playing: false },
+      deckB: { ...prev.deckB, playing: false }
+    }));
+
+    // If was playing, restart playback immediately
+    if (wasPlaying) {
+      // Small delay to ensure stop completes
+      setTimeout(async () => {
+        if (mixerState.deckA.audioControls && mixerState.deckA.track) {
+          await mixerState.deckA.audioControls.play();
+          setMixerState(prev => ({
+            ...prev,
+            deckA: { ...prev.deckA, playing: true }
+          }));
+        }
+        if (mixerState.deckB.audioControls && mixerState.deckB.track) {
+          await mixerState.deckB.audioControls.play();
+          setMixerState(prev => ({
+            ...prev,
+            deckB: { ...prev.deckB, playing: true }
+          }));
+        }
+      }, 100);
+    }
+
+    console.log(`🔄 Return to start - ${wasPlaying ? 'restarting playback' : 'staying paused'}`);
+  }, [mixerState]);
 
   // Sync toggle
   const handleSync = useCallback(async () => {
@@ -1011,7 +1052,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Vol</div>
               <div className="relative flex flex-col items-center">
                 {/* Tick marks */}
-                <div className="absolute left-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
+                <div className="absolute left-[-12px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
                   <span>10</span>
                   <span>8</span>
                   <span>6</span>
@@ -1031,12 +1072,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                   className="volume-fader"
                   style={{
                     height: '140px',
-                    width: '16px',
+                    width: '10px',
                     writingMode: 'vertical-lr',
                     direction: 'rtl',
                     appearance: 'none',
                     background: 'rgba(0, 0, 0, 0.6)',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     outline: 'none',
                     border: '1px solid rgba(129, 228, 242, 0.3)',
                     padding: '4px 0'
@@ -1147,6 +1188,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             onMasterPlay={handleMasterPlay}
             onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
             onMasterStop={handleMasterStop}
+            onReturnToStart={handleReturnToStart}
             onRecordToggle={handleRecordToggle}
             onSyncToggle={handleSync}
             onMasterSyncReset={handleMasterSyncReset}
@@ -1216,7 +1258,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Vol</div>
               <div className="relative flex flex-col items-center">
                 {/* Tick marks */}
-                <div className="absolute right-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
+                <div className="absolute right-[-12px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
                   <span>10</span>
                   <span>8</span>
                   <span>6</span>
@@ -1236,12 +1278,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                   className="volume-fader"
                   style={{
                     height: '140px',
-                    width: '16px',
+                    width: '10px',
                     writingMode: 'vertical-lr',
                     direction: 'rtl',
                     appearance: 'none',
                     background: 'rgba(0, 0, 0, 0.6)',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     outline: 'none',
                     border: '1px solid rgba(129, 228, 242, 0.3)',
                     padding: '4px 0'
@@ -1429,63 +1471,68 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         .volume-fader::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 24px;
-          height: 10px;
-          background: linear-gradient(180deg, #81E4F2 0%, #60C5D4 100%);
-          border: 1px solid rgba(129, 228, 242, 0.9);
-          border-radius: 2px;
+          width: 20px;
+          height: 8px;
+          background: #1e293b;
+          border: 2px solid #81E4F2;
+          border-radius: 3px;
           cursor: grab;
           box-shadow:
-            0 0 8px rgba(129, 228, 242, 0.4),
-            0 2px 4px rgba(0, 0, 0, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            0 0 8px rgba(129, 228, 242, 0.5),
+            0 2px 4px rgba(0, 0, 0, 0.4),
+            inset 0 0 0 1px rgba(129, 228, 242, 0.2);
           transition: all 0.15s ease;
+          position: relative;
         }
 
         .volume-fader::-webkit-slider-thumb:hover {
-          background: linear-gradient(180deg, #A0EDF9 0%, #81E4F2 100%);
+          background: #2d3e56;
+          border-color: #A0EDF9;
           box-shadow:
-            0 0 12px rgba(129, 228, 242, 0.6),
+            0 0 12px rgba(129, 228, 242, 0.7),
             0 2px 6px rgba(0, 0, 0, 0.4),
-            inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            inset 0 0 0 1px rgba(129, 228, 242, 0.3);
         }
 
         .volume-fader::-webkit-slider-thumb:active {
           cursor: grabbing;
+          background: #1e293b;
           box-shadow:
-            0 0 16px rgba(129, 228, 242, 0.8),
+            0 0 16px rgba(129, 228, 242, 0.9),
             0 1px 2px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            inset 0 0 0 1px rgba(129, 228, 242, 0.4);
         }
 
         .volume-fader::-moz-range-thumb {
-          width: 24px;
-          height: 10px;
-          background: linear-gradient(180deg, #81E4F2 0%, #60C5D4 100%);
-          border: 1px solid rgba(129, 228, 242, 0.9);
-          border-radius: 2px;
+          width: 20px;
+          height: 8px;
+          background: #1e293b;
+          border: 2px solid #81E4F2;
+          border-radius: 3px;
           cursor: grab;
           box-shadow:
-            0 0 8px rgba(129, 228, 242, 0.4),
-            0 2px 4px rgba(0, 0, 0, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            0 0 8px rgba(129, 228, 242, 0.5),
+            0 2px 4px rgba(0, 0, 0, 0.4),
+            inset 0 0 0 1px rgba(129, 228, 242, 0.2);
           transition: all 0.15s ease;
         }
 
         .volume-fader::-moz-range-thumb:hover {
-          background: linear-gradient(180deg, #A0EDF9 0%, #81E4F2 100%);
+          background: #2d3e56;
+          border-color: #A0EDF9;
           box-shadow:
-            0 0 12px rgba(129, 228, 242, 0.6),
+            0 0 12px rgba(129, 228, 242, 0.7),
             0 2px 6px rgba(0, 0, 0, 0.4),
-            inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            inset 0 0 0 1px rgba(129, 228, 242, 0.3);
         }
 
         .volume-fader::-moz-range-thumb:active {
           cursor: grabbing;
+          background: #1e293b;
           box-shadow:
-            0 0 16px rgba(129, 228, 242, 0.8),
+            0 0 16px rgba(129, 228, 242, 0.9),
             0 1px 2px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            inset 0 0 0 1px rgba(129, 228, 242, 0.4);
         }
       `}</style>
     </div>
