@@ -83,11 +83,32 @@ Playlist: Loop packs/EPs auto-unpack on drop
 - Content Filter: **8-bar loops only**
 - Workflow: Professional production environment
 
-**Widget System:**
-- Tiny Mixer: Open on page load
-- Playlist Widget: Hidden until launched
-- Radio Widget: Hidden until launched
-- Widget Launcher: Right-side buttons control visibility
+**Widget Launcher (Globe Page Right Side):**
+Four vertical buttons stacked on right side of globe page:
+
+1. **Mix Button (Top)** - Purple gradient
+   - Toggles: Tiny Mixer visibility (open/collapsed)
+   - Default: Tiny Mixer open on page load
+
+2. **Play Button** - Orange gradient
+   - Toggles: Playlist Widget visibility (on/off)
+   - Position: Playlist appears left of Tiny Mixer
+   - Default: Hidden until launched
+
+3. **Radio Button** - Yellow gradient
+   - Toggles: Radio Widget visibility (on/off)
+   - Behavior: Randomly plays tracks from database when play pressed
+   - Default: Hidden until launched
+
+4. **Fill/Reset Button (Bottom)** - Green/Red gradient
+   - **FILL mode (green)**: Randomly populates:
+     - Tiny Mixer decks
+     - Crate collection
+     - Playlist widget
+   - **RESET mode (red)**: After fill, button turns red
+     - Clears ALL content from globe page widgets
+     - Warning modal: Confirms before clearing
+     - Returns to FILL mode after reset
 
 **Crate (Persistent Bottom Bar):**
 - Context-aware behavior per page
