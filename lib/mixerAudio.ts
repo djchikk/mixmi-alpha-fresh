@@ -942,7 +942,7 @@ export interface MixerAudioControls {
   setLoopPosition: (position: number) => void; // 🎯 Set loop start position
   setHiCut: (enabled: boolean) => void; // 🎛️ Enable/disable high-cut EQ
   setLoCut: (enabled: boolean) => void; // 🎛️ Enable/disable low-cut EQ
-  setPitch: (semitones: number) => void; // 🎚️ NEW: Set pitch shift in semitones (±8)
+  setPitch: (semitones: number) => void; // 🎚️ NEW: Set pitch shift in semitones (±4)
   cleanup: () => void;
 }
 
@@ -1046,10 +1046,13 @@ export class MixerAudioEngine {
       loCutNode.frequency.value = 20; // Full range initially (bypassed)
       loCutNode.Q.value = 0.7; // Gentle slope
 
-      // 🎚️ Create pitch shift chain using Tone.js
+      // 🎚️ Create pitch shift chain using Tone.js with true bypass
       let pitchShiftInput: GainNode;
       let pitchShiftOutput: GainNode;
       let pitchShiftNode: Tone.PitchShift;
+      let pitchBypassGain: GainNode; // Direct bypass path
+      let pitchEffectGain: GainNode; // Effect path
+      let pitchShiftEnabled = false; // Track bypass state
 
       try {
         // Set Tone to use our existing AudioContext
@@ -1062,26 +1065,41 @@ export class MixerAudioEngine {
         // Create Tone.js PitchShift node with optimized settings
         pitchShiftNode = new Tone.PitchShift({
           pitch: 0, // Start at 0 semitones (no shift)
-          windowSize: 0.1, // Smaller window = better performance, slight quality trade-off
+          windowSize: 0.2, // Larger window = better quality, especially for downward shifts
           delayTime: 0, // Minimize latency
           feedback: 0, // No feedback for cleaner sound
-          wet: 1.0 // CRITICAL: Ensure 100% wet signal (full effect)
+          wet: 1 // CRITICAL: Ensure 100% wet signal (full effect)
         });
 
         // Create native gain nodes for interfacing with Tone.js
         pitchShiftInput = audioContext.createGain();
         pitchShiftOutput = audioContext.createGain();
 
-        // Use Tone.connect for better compatibility between native and Tone.js nodes
-        Tone.connect(pitchShiftInput, pitchShiftNode);
+        // Create true bypass routing with gain nodes
+        pitchBypassGain = audioContext.createGain();
+        pitchEffectGain = audioContext.createGain();
+
+        // Set initial state: BYPASS (pitch at 0)
+        pitchBypassGain.gain.value = 1.0; // Bypass path active
+        pitchEffectGain.gain.value = 0.0; // Effect path muted
+
+        // Connect bypass path: input → bypass → output (direct, no processing)
+        pitchShiftInput.connect(pitchBypassGain);
+        pitchBypassGain.connect(pitchShiftOutput);
+
+        // Connect effect path: input → effectGain → PitchShift → output
+        pitchShiftInput.connect(pitchEffectGain);
+        Tone.connect(pitchEffectGain, pitchShiftNode);
         Tone.connect(pitchShiftNode, pitchShiftOutput);
 
-        console.log(`🎚️ Deck ${deckId} pitch shift node created: ${pitchShiftNode.pitch} semitones, wet: ${pitchShiftNode.wet.value}`);
+        console.log(`🎚️ Deck ${deckId} pitch shift node created with TRUE BYPASS (bypass active)`);
       } catch (error) {
         console.error(`🎚️ Deck ${deckId} Failed to create pitch shift node:`, error);
         // Fallback: create simple bypass nodes
         pitchShiftInput = audioContext.createGain();
         pitchShiftOutput = audioContext.createGain();
+        pitchBypassGain = audioContext.createGain();
+        pitchEffectGain = audioContext.createGain();
         // Create a dummy pitch shift object that just passes through
         pitchShiftNode = {
           pitch: 0,
@@ -1308,13 +1326,45 @@ export class MixerAudioEngine {
           }
         },
 
-        // 🎚️ NEW: Pitch shift control (independent of tempo)
+        // 🎚️ NEW: Pitch shift control with TRUE BYPASS (independent of tempo)
         setPitch: (semitones: number) => {
-          // Clamp to ±8 semitones for performance and musicality
-          const clampedPitch = Math.max(-8, Math.min(8, semitones));
+          // Clamp to ±4 semitones for better quality and performance
+          const clampedPitch = Math.max(-4, Math.min(4, semitones));
 
           try {
-            if (pitchShiftNode && typeof pitchShiftNode.pitch !== 'undefined') {
+            // TRUE BYPASS: Switch between direct and effect paths
+            const shouldBypass = clampedPitch === 0;
+
+            if (shouldBypass !== !pitchShiftEnabled) {
+              // State change needed
+              const now = audioContext.currentTime;
+              const fadeTime = 0.01; // 10ms crossfade to avoid clicks
+
+              if (shouldBypass) {
+                // Switch to BYPASS (direct path)
+                pitchBypassGain.gain.setValueAtTime(pitchBypassGain.gain.value, now);
+                pitchBypassGain.gain.linearRampToValueAtTime(1.0, now + fadeTime);
+
+                pitchEffectGain.gain.setValueAtTime(pitchEffectGain.gain.value, now);
+                pitchEffectGain.gain.linearRampToValueAtTime(0.0, now + fadeTime);
+
+                pitchShiftEnabled = false;
+                console.log(`🎚️ Deck ${deckId} BYPASS ACTIVE (no processing, pure audio)`);
+              } else {
+                // Switch to EFFECT (pitch shift path)
+                pitchBypassGain.gain.setValueAtTime(pitchBypassGain.gain.value, now);
+                pitchBypassGain.gain.linearRampToValueAtTime(0.0, now + fadeTime);
+
+                pitchEffectGain.gain.setValueAtTime(pitchEffectGain.gain.value, now);
+                pitchEffectGain.gain.linearRampToValueAtTime(1.0, now + fadeTime);
+
+                pitchShiftEnabled = true;
+                console.log(`🎚️ Deck ${deckId} PITCH SHIFT ACTIVE`);
+              }
+            }
+
+            // Update pitch value (only matters when effect is active)
+            if (pitchShiftNode && typeof pitchShiftNode.pitch !== 'undefined' && !shouldBypass) {
               // Use .value for more precise control if available
               if (typeof pitchShiftNode.pitch === 'object' && 'value' in pitchShiftNode.pitch) {
                 pitchShiftNode.pitch.value = clampedPitch;
@@ -1322,9 +1372,7 @@ export class MixerAudioEngine {
                 pitchShiftNode.pitch = clampedPitch;
               }
 
-              console.log(`🎚️ Deck ${deckId} pitch: ${clampedPitch >= 0 ? '+' : ''}${clampedPitch} semitones (wet: ${pitchShiftNode.wet.value})`);
-            } else {
-              console.warn(`🎚️ Deck ${deckId} pitch shift not available (bypass mode)`);
+              console.log(`🎚️ Deck ${deckId} pitch: ${clampedPitch >= 0 ? '+' : ''}${clampedPitch} semitones`);
             }
           } catch (error) {
             console.error(`🎚️ Deck ${deckId} pitch shift error:`, error);
@@ -1359,6 +1407,8 @@ export class MixerAudioEngine {
             loCutNode.disconnect();
             hiCutNode.disconnect();
             pitchShiftInput.disconnect();
+            pitchBypassGain.disconnect();
+            pitchEffectGain.disconnect();
             pitchShiftNode.disconnect();
             pitchShiftOutput.disconnect();
             gainNode.disconnect();

@@ -84,6 +84,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Sync engine reference
   const syncEngineRef = React.useRef<SimpleLoopSync | null>(null);
 
+  // Pitch control state with snap-to-zero
+  const [pitchA, setPitchA] = useState<number>(0);
+  const [pitchB, setPitchB] = useState<number>(0);
+
   // Recording state and refs
   const [recordingState, setRecordingState] = useState<RecordingState>({
     isRecording: false,
@@ -1051,20 +1055,36 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Pitch</div>
               <div className="relative flex flex-col items-center">
                 <div className="absolute left-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
-                  <span>+8</span>
                   <span>+4</span>
+                  <span>+2</span>
                   <span>0</span>
+                  <span>-2</span>
                   <span>-4</span>
-                  <span>-8</span>
                 </div>
+                {/* Zero indicator light */}
+                <div
+                  className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-all duration-150"
+                  style={{
+                    backgroundColor: pitchA === 0 ? '#81e4f2' : 'rgba(129, 228, 242, 0.15)',
+                    boxShadow: pitchA === 0 ? '0 0 8px rgba(129, 228, 242, 0.8)' : 'none'
+                  }}
+                />
                 <input
                   type="range"
-                  min="-8"
-                  max="8"
+                  min="-4"
+                  max="4"
                   step="0.1"
-                  defaultValue="0"
+                  value={pitchA}
                   onChange={(e) => {
-                    const semitones = parseFloat(e.target.value);
+                    let semitones = parseFloat(e.target.value);
+
+                    // Snap to zero if within threshold
+                    const snapThreshold = 0.15;
+                    if (Math.abs(semitones) < snapThreshold) {
+                      semitones = 0;
+                    }
+
+                    setPitchA(semitones);
                     mixerState.deckA.audioControls?.setPitch(semitones);
                   }}
                   className="volume-fader"
@@ -1255,20 +1275,36 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Pitch</div>
               <div className="relative flex flex-col items-center">
                 <div className="absolute right-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
-                  <span>+8</span>
                   <span>+4</span>
+                  <span>+2</span>
                   <span>0</span>
+                  <span>-2</span>
                   <span>-4</span>
-                  <span>-8</span>
                 </div>
+                {/* Zero indicator light */}
+                <div
+                  className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-all duration-150"
+                  style={{
+                    backgroundColor: pitchB === 0 ? '#81e4f2' : 'rgba(129, 228, 242, 0.15)',
+                    boxShadow: pitchB === 0 ? '0 0 8px rgba(129, 228, 242, 0.8)' : 'none'
+                  }}
+                />
                 <input
                   type="range"
-                  min="-8"
-                  max="8"
+                  min="-4"
+                  max="4"
                   step="0.1"
-                  defaultValue="0"
+                  value={pitchB}
                   onChange={(e) => {
-                    const semitones = parseFloat(e.target.value);
+                    let semitones = parseFloat(e.target.value);
+
+                    // Snap to zero if within threshold
+                    const snapThreshold = 0.15;
+                    if (Math.abs(semitones) < snapThreshold) {
+                      semitones = 0;
+                    }
+
+                    setPitchB(semitones);
                     mixerState.deckB.audioControls?.setPitch(semitones);
                   }}
                   className="volume-fader"
