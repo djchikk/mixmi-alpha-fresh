@@ -766,12 +766,18 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // BPM change handler
   const handleBPMChange = (delta: number) => {
     const newBPM = Math.max(60, Math.min(200, mixerState.masterBPM + delta));
-    
+
     setMixerState(prev => ({
       ...prev,
       masterBPM: newBPM
     }));
-    
+
+    // Notify sync engine of BPM change if sync is active
+    if (syncEngineRef.current && mixerState.syncActive) {
+      console.log(`🎵 Notifying sync engine of BPM change: ${mixerState.masterBPM} → ${newBPM}`);
+      syncEngineRef.current.updateMasterBPM(newBPM);
+    }
+
     // Apply to playing deck
     if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
       const originalBPM = mixerState.deckA.track?.bpm || 120;
