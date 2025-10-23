@@ -102,9 +102,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     syncActive: false
   });
 
-  // Sync engine reference
-  const syncEngineRef = React.useRef<SimpleLoopSync | null>(null);
-
   // Recording state and refs
   const [recordingState, setRecordingState] = useState<RecordingState>({
     isRecording: false,
@@ -204,9 +201,11 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const {
     audioInitialized,
     crossfaderGainRef,
+    syncEngineRef,
     initializeAudio,
     cleanupDeckAudio,
-    loadAudioForDeck
+    loadAudioForDeck,
+    resetSyncState
   } = useMixerAudio();
 
   // Use the mixer context for loaded tracks
@@ -342,13 +341,17 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     return false;
   }, []);
 
-  // Cleanup all FX retry timeouts on unmount
+  // Cleanup all FX retry timeouts and sync engine on unmount
   useEffect(() => {
     return () => {
+      // Clear FX retry timeouts
       fxRetryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
       fxRetryTimeoutsRef.current.clear();
+
+      // Reset sync engine state
+      resetSyncState();
     };
-  }, []);
+  }, [resetSyncState]);
 
   // Load track to Deck A
   const loadTrackToDeckA = async (track: Track) => {
@@ -410,9 +413,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       await cleanupDeckAudio(mixerState.deckA.audioControls, 'Deck A');
 
       // Disable sync engine if it was active and reset Deck B
-      if (syncWasActive && syncEngineRef.current) {
-        syncEngineRef.current.disableSync();
-        syncEngineRef.current = null;
+      if (syncWasActive) {
+        resetSyncState();
 
         // Reset Deck B to clean state (playback rate + loop position)
         if (mixerState.deckB.audioState?.audio && mixerState.deckB.audioControls) {
@@ -523,9 +525,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       await cleanupDeckAudio(mixerState.deckB.audioControls, 'Deck B');
 
       // Disable sync engine if it was active and reset Deck A
-      if (syncWasActive && syncEngineRef.current) {
-        syncEngineRef.current.disableSync();
-        syncEngineRef.current = null;
+      if (syncWasActive) {
+        resetSyncState();
 
         // Reset Deck A to clean state (playback rate + loop position)
         if (mixerState.deckA.audioState?.audio && mixerState.deckA.audioControls) {
@@ -732,10 +733,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       );
 
       await syncEngineRef.current.enableSync();
-    } else if (!newSyncState && syncEngineRef.current) {
-      // Disable sync
-      syncEngineRef.current.disableSync();
-      syncEngineRef.current = null;
+    } else if (!newSyncState) {
+      // Disable sync using shared cleanup method
+      resetSyncState();
     }
     
     setMixerState(prev => ({ ...prev, syncActive: newSyncState }));
