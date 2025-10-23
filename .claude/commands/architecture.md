@@ -93,9 +93,12 @@ Playlist: Loop packs/EPs auto-unpack on drop
 - Individual tracks: 64px thumbnails, draggable
 - Cart integration: Add to cart from hover overlay
 
-**Globe Track Cards:**
+**Globe Track Cards (and All Content Cards):**
 - Trigger: Hover over globe nodes
 - Draggable to: Mixer decks, Crate, Playlist
+- Shopping cart icon: Click to add to cart (all cards)
+- Track name link: Click → Navigate to Creator store where track lives
+- Artist name link: Click → Navigate to artist profile page
 - Info icon: Opens TrackDetailsModal with full metadata
 - Loop packs/EPs: Chevron unfolds individual tracks
 - Individual tracks: Draggable from unfolded view
@@ -114,6 +117,23 @@ Playlist: Loop packs/EPs auto-unpack on drop
 - View mode: Public browsing
 - Edit mode: When user authenticated and viewing own profile/store
 - Full CRUD: Content management when authenticated
+
+**Artist Profile Page (Extensive Features):**
+- Auto-created: When alpha user uploads with invite code
+  - Placeholder profile: Uses uploaded content image + artist name
+  - Editable later by user
+- Profile sections (show/hide controls):
+  - **Shop Section**: ShopCards (one hardwired to Creator store link)
+  - **Gallery**: Image-focused display
+  - **Spotlighting**: Link cards to anywhere
+  - **Media Embeds**: Embedded content support
+  - **Rotating Sticker**: User-chosen animated sticker at bottom
+
+**Creator Store (Auto-Setup):**
+- Auto-created: When user uploads content
+- Store name: Pulled from artist profile
+- Content: Automatically displays all uploaded tracks
+- Edit mode: Full content management when authenticated
 
 ## Content Type Handling
 
