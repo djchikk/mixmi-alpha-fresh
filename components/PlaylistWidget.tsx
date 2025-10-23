@@ -48,6 +48,7 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
           console.log('🎵 PlaylistWidget: Parsed data:', data);
           setPlaylist(data.playlist || []);
           setCurrentIndex(data.currentIndex ?? -1);
+          setIsCollapsed(data.isCollapsed ?? false); // Load collapsed state, default to expanded
           console.log('✅ Playlist: Loaded', data.playlist?.length || 0, 'tracks from localStorage');
         } catch (e) {
           console.error('❌ Error loading playlist:', e);
@@ -71,12 +72,13 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
     if (typeof window !== 'undefined') {
       const data = {
         playlist,
-        currentIndex
+        currentIndex,
+        isCollapsed
       };
       localStorage.setItem('playlist-widget', JSON.stringify(data));
-      console.log('💾 Playlist: Saved to localStorage -', playlist.length, 'tracks');
+      console.log('💾 Playlist: Saved to localStorage -', playlist.length, 'tracks, collapsed:', isCollapsed);
     }
-  }, [playlist, currentIndex, hasLoadedFromStorage]);
+  }, [playlist, currentIndex, isCollapsed, hasLoadedFromStorage]);
 
   // Helper to fetch pack tracks
   const fetchPackTracks = async (packTrack: any): Promise<IPTrack[]> => {
@@ -480,21 +482,36 @@ interface PlaylistItemProps {
 }
 
 const PlaylistItem: React.FC<PlaylistItemProps> = ({ track, index, isPlaying, onRemove, onPlay, moveTrack }) => {
-  // Drag for reordering within playlist
+  // Drag for both reordering within playlist AND dragging to external targets (Crate, Mixer)
   const [{ isDragging }, drag] = useDrag({
-    type: 'PLAYLIST_ITEM',
-    item: { index },
+    type: 'COLLECTION_TRACK',
+    item: () => ({
+      track: {
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        imageUrl: track.imageUrl,
+        audioUrl: track.audioUrl,
+        bpm: track.bpm,
+        content_type: track.content_type,
+        price_stx: track.price_stx,
+        primary_uploader_wallet: track.primary_uploader_wallet
+      },
+      sourceIndex: index,
+      fromPlaylist: true // Flag to identify playlist items for reordering
+    }),
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging()
     })
   });
 
   const [, drop] = useDrop({
-    accept: 'PLAYLIST_ITEM',
-    hover: (item: { index: number }) => {
-      if (item.index !== index) {
-        moveTrack(item.index, index);
-        item.index = index;
+    accept: 'COLLECTION_TRACK',
+    hover: (item: { track?: any; sourceIndex?: number; fromPlaylist?: boolean }) => {
+      // Only reorder if it's from the same playlist and has a valid index
+      if (item.fromPlaylist && item.sourceIndex !== undefined && item.sourceIndex !== index) {
+        moveTrack(item.sourceIndex, index);
+        item.sourceIndex = index;
       }
     }
   });
