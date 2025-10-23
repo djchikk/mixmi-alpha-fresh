@@ -2,28 +2,33 @@
 // Extends the proven audio foundation for professional DJ mixing capabilities
 // 🔄 UPGRADED: Professional Lookahead Scheduling for Seamless Loops (MC Claude Research)
 // 🎛️ NEW: Simple Loop Sync for 8-Bar Loops (MC Claude Streamlined Implementation)
+// 🎚️ NEW: Pitch Shifting (independent of tempo)
 
 import { Track } from '@/types';
 import { audioContextManager } from './audioContextManager';
+import * as Tone from 'tone';
 
 export interface MixerAudioState {
   audio: HTMLAudioElement;
   audioContext: AudioContext;
   source: MediaElementAudioSourceNode;
   gainNode: GainNode;
-  hiCutNode: BiquadFilterNode; // 🎛️ NEW: High-cut EQ (low-pass filter)
-  loCutNode: BiquadFilterNode; // 🎛️ NEW: Low-cut EQ (high-pass filter)
+  hiCutNode: BiquadFilterNode; // 🎛️ High-cut EQ (low-pass filter)
+  loCutNode: BiquadFilterNode; // 🎛️ Low-cut EQ (high-pass filter)
+  pitchShiftNode: Tone.PitchShift; // 🎚️ NEW: Pitch shifting (independent of tempo)
+  pitchShiftInput: GainNode; // 🎚️ NEW: Input to pitch shift chain
+  pitchShiftOutput: GainNode; // 🎚️ NEW: Output from pitch shift chain
   analyzerNode: AnalyserNode;
   isLoaded: boolean;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
   bpm: number;
-  preciseLooper?: PreciseLooper; // 🔄 NEW: Professional looping system
-  loopStartTime?: number; // 🔄 NEW: Track when loop started for sync
-  audioBuffer?: AudioBuffer; // 🎵 NEW: Audio buffer for content analysis
-  fxInput?: GainNode; // 🎛️ NEW: FX chain input node
-  fxOutput?: GainNode; // 🎛️ NEW: FX chain output node
+  preciseLooper?: PreciseLooper; // 🔄 Professional looping system
+  loopStartTime?: number; // 🔄 Track when loop started for sync
+  audioBuffer?: AudioBuffer; // 🎵 Audio buffer for content analysis
+  fxInput?: GainNode; // 🎛️ FX chain input node
+  fxOutput?: GainNode; // 🎛️ FX chain output node
 }
 
 // 🎛️ SIMPLE LOOP SYNC: MC Claude's streamlined implementation for 8-bar loops
@@ -931,12 +936,13 @@ export interface MixerAudioControls {
   stop: () => void;
   setVolume: (volume: number) => void;
   setPlaybackRate: (rate: number) => void;
-  setBPM: (bpm: number) => void; // 🔄 NEW: Update BPM for precise looping
-  setLoopLength: (bars: number) => void; // 🔄 NEW: Update loop length
-  setLoopEnabled: (enabled: boolean) => void; // 🔄 NEW: Enable/disable looping
-  setLoopPosition: (position: number) => void; // 🎯 NEW: Set loop start position
-  setHiCut: (enabled: boolean) => void; // 🎛️ NEW: Enable/disable high-cut EQ
-  setLoCut: (enabled: boolean) => void; // 🎛️ NEW: Enable/disable low-cut EQ
+  setBPM: (bpm: number) => void; // 🔄 Update BPM for precise looping
+  setLoopLength: (bars: number) => void; // 🔄 Update loop length
+  setLoopEnabled: (enabled: boolean) => void; // 🔄 Enable/disable looping
+  setLoopPosition: (position: number) => void; // 🎯 Set loop start position
+  setHiCut: (enabled: boolean) => void; // 🎛️ Enable/disable high-cut EQ
+  setLoCut: (enabled: boolean) => void; // 🎛️ Enable/disable low-cut EQ
+  setPitch: (semitones: number) => void; // 🎚️ NEW: Set pitch shift in semitones (±8)
   cleanup: () => void;
 }
 
@@ -1040,16 +1046,69 @@ export class MixerAudioEngine {
       loCutNode.frequency.value = 20; // Full range initially (bypassed)
       loCutNode.Q.value = 0.7; // Gentle slope
 
+      // 🎚️ Create pitch shift chain using Tone.js
+      let pitchShiftInput: GainNode;
+      let pitchShiftOutput: GainNode;
+      let pitchShiftNode: Tone.PitchShift;
+
+      try {
+        // Set Tone to use our existing AudioContext
+        Tone.setContext(audioContext as any);
+
+        // Start Tone.js audio system
+        await Tone.start();
+        console.log('🎚️ Tone.js started');
+
+        // Create Tone.js PitchShift node with optimized settings
+        pitchShiftNode = new Tone.PitchShift({
+          pitch: 0, // Start at 0 semitones (no shift)
+          windowSize: 0.1, // Smaller window = better performance, slight quality trade-off
+          delayTime: 0, // Minimize latency
+          feedback: 0, // No feedback for cleaner sound
+          wet: 1.0 // CRITICAL: Ensure 100% wet signal (full effect)
+        });
+
+        // Create native gain nodes for interfacing with Tone.js
+        pitchShiftInput = audioContext.createGain();
+        pitchShiftOutput = audioContext.createGain();
+
+        // Use Tone.connect for better compatibility between native and Tone.js nodes
+        Tone.connect(pitchShiftInput, pitchShiftNode);
+        Tone.connect(pitchShiftNode, pitchShiftOutput);
+
+        console.log(`🎚️ Deck ${deckId} pitch shift node created: ${pitchShiftNode.pitch} semitones, wet: ${pitchShiftNode.wet.value}`);
+      } catch (error) {
+        console.error(`🎚️ Deck ${deckId} Failed to create pitch shift node:`, error);
+        // Fallback: create simple bypass nodes
+        pitchShiftInput = audioContext.createGain();
+        pitchShiftOutput = audioContext.createGain();
+        // Create a dummy pitch shift object that just passes through
+        pitchShiftNode = {
+          pitch: 0,
+          input: pitchShiftInput as any,
+          output: pitchShiftOutput as any,
+          disconnect: () => {}
+        } as any;
+        // Connect input directly to output for bypass
+        pitchShiftInput.connect(pitchShiftOutput);
+        console.warn(`🎚️ Deck ${deckId} Using bypass mode (pitch shift unavailable)`);
+      }
+
       // Configure analyzer for waveform visualization
       analyzerNode.fftSize = 1024; // Optimized: 1024 provides plenty of detail for visual waveforms (was 2048)
       analyzerNode.smoothingTimeConstant = 0.8;
       console.log(`🎛️ Deck ${deckId} analyzer node created:`, analyzerNode);
 
-      // Connect audio graph: source → lo-cut → hi-cut → gain → analyzer → master
-      // FX chain (filter/delay) will be inserted between hiCutNode and gainNode by SimplifiedMixer
+      // Connect audio graph: source → lo-cut → hi-cut → pitchShift → gain → analyzer → master
+      // FX chain (filter/delay) will be inserted between hiCutNode and pitchShiftInput by SimplifiedMixer
       source.connect(loCutNode);
       loCutNode.connect(hiCutNode);
-      hiCutNode.connect(gainNode);
+      hiCutNode.connect(pitchShiftInput);
+
+      // Pitch shift chain: pitchShiftInput → Tone.js PitchShift → pitchShiftOutput (connected above)
+      console.log(`🎚️ Deck ${deckId} Pitch shift chain ready`);
+
+      pitchShiftOutput.connect(gainNode);
       gainNode.connect(analyzerNode);
       analyzerNode.connect(this.masterGain!);
 
@@ -1061,13 +1120,16 @@ export class MixerAudioEngine {
         gainNode,
         hiCutNode,
         loCutNode,
+        pitchShiftNode,
+        pitchShiftInput,
+        pitchShiftOutput,
         analyzerNode,
         isLoaded: true,
         isPlaying: false,
         currentTime: 0,
         duration: audio.duration || 0,
         bpm: 120, // Default, will be updated from track data
-        // 🔄 NEW: Initialize PreciseLooper with default 8-bar loop
+        // 🔄 Initialize PreciseLooper with default 8-bar loop
         preciseLooper: new PreciseLooper(audioContext, audio, 120, deckId, 8)
       };
 
@@ -1226,7 +1288,7 @@ export class MixerAudioEngine {
           }
         },
 
-        // 🎛️ NEW: Low-cut EQ control (removes low frequencies)
+        // 🎛️ Low-cut EQ control (removes low frequencies)
         setLoCut: (enabled: boolean) => {
           const now = audioContext.currentTime;
           if (enabled) {
@@ -1243,6 +1305,29 @@ export class MixerAudioEngine {
             loCutNode.Q.cancelScheduledValues(now);
             loCutNode.Q.setTargetAtTime(0.7, now, 0.015);
             console.log(`🎛️ Deck ${deckId} LO-CUT disabled (full range)`);
+          }
+        },
+
+        // 🎚️ NEW: Pitch shift control (independent of tempo)
+        setPitch: (semitones: number) => {
+          // Clamp to ±8 semitones for performance and musicality
+          const clampedPitch = Math.max(-8, Math.min(8, semitones));
+
+          try {
+            if (pitchShiftNode && typeof pitchShiftNode.pitch !== 'undefined') {
+              // Use .value for more precise control if available
+              if (typeof pitchShiftNode.pitch === 'object' && 'value' in pitchShiftNode.pitch) {
+                pitchShiftNode.pitch.value = clampedPitch;
+              } else {
+                pitchShiftNode.pitch = clampedPitch;
+              }
+
+              console.log(`🎚️ Deck ${deckId} pitch: ${clampedPitch >= 0 ? '+' : ''}${clampedPitch} semitones (wet: ${pitchShiftNode.wet.value})`);
+            } else {
+              console.warn(`🎚️ Deck ${deckId} pitch shift not available (bypass mode)`);
+            }
+          } catch (error) {
+            console.error(`🎚️ Deck ${deckId} pitch shift error:`, error);
           }
         },
 
@@ -1273,6 +1358,9 @@ export class MixerAudioEngine {
             source.disconnect();
             loCutNode.disconnect();
             hiCutNode.disconnect();
+            pitchShiftInput.disconnect();
+            pitchShiftNode.disconnect();
+            pitchShiftOutput.disconnect();
             gainNode.disconnect();
             analyzerNode.disconnect();
             console.log(`✅ Deck ${deckId} audio nodes disconnected`);
