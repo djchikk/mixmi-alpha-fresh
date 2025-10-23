@@ -2,42 +2,16 @@ import { TrackNode } from '@/components/globe/types';
 import { IPTrack } from '@/types';
 import { supabase } from '@/lib/supabase';
 
-// Function to generate random coordinates with better distribution
-function generateRandomCoordinates(): { lat: number; lng: number } {
-  // Use a more realistic distribution that favors populated areas
-  const regions = [
-    // North America
-    { latRange: [25, 50], lngRange: [-130, -70], weight: 3 },
-    // Europe
-    { latRange: [35, 60], lngRange: [-10, 40], weight: 3 },
-    // Asia
-    { latRange: [10, 50], lngRange: [60, 140], weight: 3 },
-    // South America
-    { latRange: [-35, 10], lngRange: [-80, -35], weight: 2 },
-    // Africa
-    { latRange: [-35, 35], lngRange: [-20, 50], weight: 2 },
-    // Australia/Oceania
-    { latRange: [-45, -10], lngRange: [110, 180], weight: 1 },
-  ];
+// Function to generate coordinates around Null Island (0, 0)
+// For tracks without location data - spreads them in a clickable cluster
+function generateNullIslandCoordinates(): { lat: number; lng: number } {
+  // Generate coordinates in a circular pattern around (0, 0)
+  // Spread within ~2.5 degrees radius to keep nodes clustered but clickable
+  const radius = Math.random() * 2.5; // Random distance from center (0-2.5 degrees)
+  const angle = Math.random() * Math.PI * 2; // Random angle (0-360 degrees)
 
-  // Pick a region based on weights
-  const totalWeight = regions.reduce((sum, r) => sum + r.weight, 0);
-  let random = Math.random() * totalWeight;
-  let selectedRegion = regions[0];
-
-  for (const region of regions) {
-    random -= region.weight;
-    if (random <= 0) {
-      selectedRegion = region;
-      break;
-    }
-  }
-
-  // Generate coordinates within the selected region
-  const lat = selectedRegion.latRange[0] + 
-    Math.random() * (selectedRegion.latRange[1] - selectedRegion.latRange[0]);
-  const lng = selectedRegion.lngRange[0] + 
-    Math.random() * (selectedRegion.lngRange[1] - selectedRegion.lngRange[0]);
+  const lat = radius * Math.sin(angle);
+  const lng = radius * Math.cos(angle);
 
   return { lat, lng };
 }
@@ -77,11 +51,12 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     }));
   }
   
-  // Use single coordinates if available, otherwise generate random ones
-  const coordinates = (track.location_lat && track.location_lng) 
+  // Use single coordinates if available, otherwise send to Null Island
+  const hasLocation = track.location_lat && track.location_lng;
+  const coordinates = hasLocation
     ? { lat: track.location_lat, lng: track.location_lng }
-    : generateRandomCoordinates();
-    
+    : generateNullIslandCoordinates();
+
   return {
     id: track.id,
     title: track.title,
@@ -92,7 +67,7 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     duration: track.duration,
     imageUrl: track.cover_image_url || undefined, // Now uses clean Supabase Storage URLs
     audioUrl: track.audio_url,
-    location: track.primary_location, // Add location name for display
+    location: hasLocation ? track.primary_location : 'Null Island 🏝️', // Show Null Island for tracks without location
     // Include metadata fields
     tags: track.tags,
     description: track.description,
