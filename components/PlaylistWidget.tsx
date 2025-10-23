@@ -48,6 +48,7 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
           console.log('🎵 PlaylistWidget: Parsed data:', data);
           setPlaylist(data.playlist || []);
           setCurrentIndex(data.currentIndex ?? -1);
+          setIsCollapsed(data.isCollapsed ?? false); // Load collapsed state, default to expanded
           console.log('✅ Playlist: Loaded', data.playlist?.length || 0, 'tracks from localStorage');
         } catch (e) {
           console.error('❌ Error loading playlist:', e);
@@ -71,12 +72,13 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
     if (typeof window !== 'undefined') {
       const data = {
         playlist,
-        currentIndex
+        currentIndex,
+        isCollapsed
       };
       localStorage.setItem('playlist-widget', JSON.stringify(data));
-      console.log('💾 Playlist: Saved to localStorage -', playlist.length, 'tracks');
+      console.log('💾 Playlist: Saved to localStorage -', playlist.length, 'tracks, collapsed:', isCollapsed);
     }
-  }, [playlist, currentIndex, hasLoadedFromStorage]);
+  }, [playlist, currentIndex, isCollapsed, hasLoadedFromStorage]);
 
   // Helper to fetch pack tracks
   const fetchPackTracks = async (packTrack: any): Promise<IPTrack[]> => {

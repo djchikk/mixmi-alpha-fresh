@@ -51,16 +51,10 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
         sourceIndex: index
       };
     },
-    end: (item, monitor) => {
-      const didDrop = monitor.didDrop();
-      if (!didDrop) {
-        onRemove();
-      }
-    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-  }), [track, index, onRemove]);
+  }), [track, index]);
 
   return (
     <div ref={drag} style={{ opacity: isDragging ? 0.5 : 1 }}>
