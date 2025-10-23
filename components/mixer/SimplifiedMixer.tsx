@@ -131,6 +131,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const deckBCurrentTimeRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
 
+  // Lightweight render trigger for waveform updates (increments each frame)
+  const [, forceUpdate] = useState(0);
+
   // Track active FX retry timeouts for proper cleanup
   const fxRetryTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
@@ -233,6 +236,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         // Update the audioState for waveform display
         mixerState.deckB.audioState.currentTime = deckBCurrentTimeRef.current;
       }
+
+      // Trigger re-render to update waveform displays
+      forceUpdate(prev => prev + 1);
 
       // Continue animation loop if either deck is playing
       if (mixerState.deckA.playing || mixerState.deckB.playing) {
