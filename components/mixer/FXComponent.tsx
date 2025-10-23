@@ -31,13 +31,13 @@ const PERFORMANCE_CONFIG = {
     // Throttling
     UPDATE_INTERVAL: 16, // ~60fps
     SMOOTHING_TIME: 0.05, // 50ms for smooth DJ-style sweeps
-    
+
     // Safety limits
     MAX_FEEDBACK: 0.85, // Prevent infinite loops
     MAX_DELAY_TIME: 1.0, // 1 second max
     MAX_REVERB_WITH_DELAY: 0.5, // Prevent mud when both active
-    MAX_Q: 30, // Prevent filter self-oscillation
-    
+    MAX_Q: 3, // Musical resonance - higher values cause artifacts (was 30)
+
     // CPU monitoring
     MAX_ACCEPTABLE_LATENCY: 0.02, // 20ms
     PERFORMANCE_CHECK_INTERVAL: 5000 // Check every 5 seconds
@@ -190,32 +190,42 @@ class FXChain {
     // Update filter from XY pad (0-1 values) with performance optimization
     updateFilter(x: number, y: number) {
         if (!this.filter.enabled) return;
-        
-        // Y-axis: Cutoff frequency (100Hz to 20kHz, exponential)
-        // IMPORTANT: Keep lowpass above highpass (20Hz) to avoid blocking all audio
-        const minFreq = 100;  // Changed from 20 to 100 to ensure audio passes
-        const maxFreq = 20000;
+
+        // Y-axis: Cutoff frequency (400Hz to 12kHz, exponential)
+        // More musical range - avoids extreme low/high artifacts
+        const minFreq = 400;  // Start higher for cleaner sound
+        const maxFreq = 12000; // Cap lower to avoid harsh highs
         const cutoff = minFreq * Math.pow(maxFreq / minFreq, y);
-        
-        // X-axis: Resonance (Q factor, 1 to MAX_Q)
-        const resonance = Math.min(1 + (x * (PERFORMANCE_CONFIG.MAX_Q - 1)), PERFORMANCE_CONFIG.MAX_Q);
-        
+
+        // X-axis: Resonance (Q factor, 0.7 to MAX_Q)
+        // Add dead zone in center (40-60%) for neutral sound
+        let qValue;
+        if (x >= 0.4 && x <= 0.6) {
+            // Dead zone - minimal resonance for smooth, neutral filtering
+            qValue = 0.7;
+        } else {
+            // Map outer ranges to resonance
+            const normalizedX = x < 0.4 ? x / 0.4 : (x - 0.6) / 0.4;
+            qValue = 0.7 + (normalizedX * (PERFORMANCE_CONFIG.MAX_Q - 0.7));
+        }
+        const resonance = Math.min(qValue, PERFORMANCE_CONFIG.MAX_Q);
+
         console.log(`🎛️ FX updateFilter for ${this.deckId}: cutoff=${cutoff.toFixed(0)}Hz, Q=${resonance.toFixed(1)}`);
-        
+
         // Use setTargetAtTime for smooth, click-free updates
         const now = this.context.currentTime;
-        
+
         this.filter.lowpass.frequency.cancelScheduledValues(now);
         this.filter.lowpass.frequency.setTargetAtTime(
-            cutoff, 
-            now, 
+            cutoff,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
-        
+
         this.filter.lowpass.Q.cancelScheduledValues(now);
         this.filter.lowpass.Q.setTargetAtTime(
-            resonance, 
-            now, 
+            resonance,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
     }
@@ -477,6 +487,29 @@ class FXChain {
     destroy() {
         if (this.performanceInterval) {
             clearInterval(this.performanceInterval);
+        }
+
+        // Disconnect all audio nodes to prevent memory leaks
+        try {
+            this.input.disconnect();
+            this.output.disconnect();
+            this.filter.input.disconnect();
+            this.filter.highpass.disconnect();
+            this.filter.lowpass.disconnect();
+            this.filter.output.disconnect();
+            this.delay.input.disconnect();
+            this.delay.delayNode.disconnect();
+            this.delay.feedbackGain.disconnect();
+            this.delay.dryGain.disconnect();
+            this.delay.delayWetGain.disconnect();
+            this.delay.reverbWetGain.disconnect();
+            if (this.delay.convolver.buffer) {
+                this.delay.convolver.disconnect();
+            }
+            this.delay.output.disconnect();
+            console.log(`✅ FX chain ${this.deckId} nodes disconnected`);
+        } catch (error) {
+            console.warn(`⚠️ FX chain ${this.deckId} cleanup warning:`, error);
         }
     }
 }

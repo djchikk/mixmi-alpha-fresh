@@ -11,7 +11,6 @@ export interface MixerAudioState {
   audioContext: AudioContext;
   source: MediaElementAudioSourceNode;
   gainNode: GainNode;
-  filterNode: BiquadFilterNode;
   hiCutNode: BiquadFilterNode; // 🎛️ NEW: High-cut EQ (low-pass filter)
   loCutNode: BiquadFilterNode; // 🎛️ NEW: Low-cut EQ (high-pass filter)
   analyzerNode: AnalyserNode;
@@ -932,7 +931,6 @@ export interface MixerAudioControls {
   stop: () => void;
   setVolume: (volume: number) => void;
   setPlaybackRate: (rate: number) => void;
-  setFilterValue: (value: number) => void;
   setBPM: (bpm: number) => void; // 🔄 NEW: Update BPM for precise looping
   setLoopLength: (bars: number) => void; // 🔄 NEW: Update loop length
   setLoopEnabled: (enabled: boolean) => void; // 🔄 NEW: Enable/disable looping
@@ -1028,15 +1026,9 @@ export class MixerAudioEngine {
       // Create Web Audio API nodes for professional mixing
       const source = audioContext.createMediaElementSource(audio);
       const gainNode = audioContext.createGain();
-      const filterNode = audioContext.createBiquadFilter();
       const hiCutNode = audioContext.createBiquadFilter();
       const loCutNode = audioContext.createBiquadFilter();
       const analyzerNode = audioContext.createAnalyser();
-
-      // Configure filter node for DJ-style filtering
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = 20000; // Full frequency range initially
-      filterNode.Q.value = 1;
 
       // Configure EQ nodes - Hi-Cut (low-pass filter to remove highs)
       hiCutNode.type = 'lowpass';
@@ -1049,15 +1041,15 @@ export class MixerAudioEngine {
       loCutNode.Q.value = 0.7; // Gentle slope
 
       // Configure analyzer for waveform visualization
-      analyzerNode.fftSize = 2048;
+      analyzerNode.fftSize = 1024; // Optimized: 1024 provides plenty of detail for visual waveforms (was 2048)
       analyzerNode.smoothingTimeConstant = 0.8;
       console.log(`🎛️ Deck ${deckId} analyzer node created:`, analyzerNode);
 
       // Connect audio graph: source → lo-cut → hi-cut → gain → analyzer → master
-      // Note: filterNode is kept in state for legacy setFilterValue, but FX has its own filters
+      // FX chain (filter/delay) will be inserted between hiCutNode and gainNode by SimplifiedMixer
       source.connect(loCutNode);
       loCutNode.connect(hiCutNode);
-      hiCutNode.connect(gainNode); // Skip filterNode - FX will insert between hiCutNode and gain
+      hiCutNode.connect(gainNode);
       gainNode.connect(analyzerNode);
       analyzerNode.connect(this.masterGain!);
 
@@ -1067,7 +1059,6 @@ export class MixerAudioEngine {
         audioContext,
         source,
         gainNode,
-        filterNode,
         hiCutNode,
         loCutNode,
         analyzerNode,
@@ -1162,18 +1153,6 @@ export class MixerAudioEngine {
           const clampedRate = Math.max(0.5, Math.min(2.0, rate));
           audio.playbackRate = clampedRate;
           console.log(`⚡ Deck ${deckId} playback rate: ${clampedRate.toFixed(2)}x`);
-        },
-
-        setFilterValue: (value: number) => {
-          // Value from -1 (low pass) to +1 (high pass)
-          if (value < 0) {
-            filterNode.type = 'lowpass';
-            filterNode.frequency.value = 20000 * (1 + value); // 20kHz to 0Hz
-          } else {
-            filterNode.type = 'highpass';
-            filterNode.frequency.value = 20 * Math.pow(1000, value); // 20Hz to 20kHz
-          }
-          console.log(`🎛️ Deck ${deckId} filter: ${filterNode.type} ${Math.round(filterNode.frequency.value)}Hz`);
         },
 
         // 🔄 NEW: Update BPM for precise looping
@@ -1292,7 +1271,8 @@ export class MixerAudioEngine {
           // Disconnect all Web Audio nodes
           try {
             source.disconnect();
-            filterNode.disconnect();
+            loCutNode.disconnect();
+            hiCutNode.disconnect();
             gainNode.disconnect();
             analyzerNode.disconnect();
             console.log(`✅ Deck ${deckId} audio nodes disconnected`);
