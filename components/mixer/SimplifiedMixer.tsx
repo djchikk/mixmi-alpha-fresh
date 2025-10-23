@@ -32,6 +32,7 @@ interface SimplifiedMixerState {
     loopEnabled: boolean;
     loopLength: number;
     loopPosition: number;
+    boostEnabled: boolean;
   };
   deckB: {
     track: Track | null;
@@ -42,6 +43,7 @@ interface SimplifiedMixerState {
     loopEnabled: boolean;
     loopLength: number;
     loopPosition: number;
+    boostEnabled: boolean;
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -62,19 +64,21 @@ interface RecordingState {
 export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps) {
   // Initialize simplified mixer state
   const [mixerState, setMixerState] = useState<SimplifiedMixerState>({
-    deckA: { 
-      track: null, 
+    deckA: {
+      track: null,
       playing: false,
       loopEnabled: true,
       loopLength: 8,
-      loopPosition: 0
+      loopPosition: 0,
+      boostEnabled: false
     },
-    deckB: { 
-      track: null, 
+    deckB: {
+      track: null,
       playing: false,
       loopEnabled: true,
       loopLength: 8,
-      loopPosition: 0
+      loopPosition: 0,
+      boostEnabled: false
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -327,11 +331,18 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               try {
                 // Disconnect existing connections
                 audioState.hiCutNode.disconnect();
+                audioState.compressorBypass.disconnect();
+                audioState.compressorEffect.disconnect();
+                audioState.compressorNode.disconnect();
                 audioState.gainNode.disconnect();
 
-                // Reconnect audio routing through FX: EQ → FX → gain → analyzer → master
+                // Reconnect audio routing through FX: EQ → FX → compressor (w/ bypass) → gain → analyzer → master
                 audioState.hiCutNode.connect(fxInput);
-                fxOutput.connect(audioState.gainNode);
+                fxOutput.connect(audioState.compressorBypass);
+                fxOutput.connect(audioState.compressorNode);
+                audioState.compressorBypass.connect(audioState.gainNode);
+                audioState.compressorNode.connect(audioState.compressorEffect);
+                audioState.compressorEffect.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
                 audioState.analyzerNode.connect(audioState.audioContext.destination);
 
@@ -346,7 +357,11 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               } catch (error) {
                 console.error('🎛️ Failed to connect Deck A FX:', error);
                 // Fall back to direct connection
-                audioState.hiCutNode.connect(audioState.gainNode);
+                audioState.hiCutNode.connect(audioState.compressorBypass);
+                audioState.hiCutNode.connect(audioState.compressorNode);
+                audioState.compressorBypass.connect(audioState.gainNode);
+                audioState.compressorNode.connect(audioState.compressorEffect);
+                audioState.compressorEffect.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
                 audioState.analyzerNode.connect(audioState.audioContext.destination);
                 return false;
@@ -357,8 +372,16 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           // FX not ready, use direct connection and retry
           try {
             audioState.hiCutNode.disconnect();
+            audioState.compressorBypass.disconnect();
+            audioState.compressorEffect.disconnect();
+            audioState.compressorNode.disconnect();
             audioState.gainNode.disconnect();
-            audioState.hiCutNode.connect(audioState.gainNode);
+
+            audioState.hiCutNode.connect(audioState.compressorBypass);
+            audioState.hiCutNode.connect(audioState.compressorNode);
+            audioState.compressorBypass.connect(audioState.gainNode);
+            audioState.compressorNode.connect(audioState.compressorEffect);
+            audioState.compressorEffect.connect(audioState.gainNode);
             audioState.gainNode.connect(audioState.analyzerNode);
             audioState.analyzerNode.connect(audioState.audioContext.destination);
           } catch (e) {
@@ -501,11 +524,18 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               try {
                 // Disconnect existing connections
                 audioState.hiCutNode.disconnect();
+                audioState.compressorBypass.disconnect();
+                audioState.compressorEffect.disconnect();
+                audioState.compressorNode.disconnect();
                 audioState.gainNode.disconnect();
 
-                // Reconnect audio routing through FX: EQ → FX → gain → analyzer → master
+                // Reconnect audio routing through FX: EQ → FX → compressor (w/ bypass) → gain → analyzer → master
                 audioState.hiCutNode.connect(fxInput);
-                fxOutput.connect(audioState.gainNode);
+                fxOutput.connect(audioState.compressorBypass);
+                fxOutput.connect(audioState.compressorNode);
+                audioState.compressorBypass.connect(audioState.gainNode);
+                audioState.compressorNode.connect(audioState.compressorEffect);
+                audioState.compressorEffect.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
                 audioState.analyzerNode.connect(audioState.audioContext.destination);
 
@@ -520,7 +550,11 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               } catch (error) {
                 console.error('🎛️ Failed to connect Deck B FX:', error);
                 // Fall back to direct connection
-                audioState.hiCutNode.connect(audioState.gainNode);
+                audioState.hiCutNode.connect(audioState.compressorBypass);
+                audioState.hiCutNode.connect(audioState.compressorNode);
+                audioState.compressorBypass.connect(audioState.gainNode);
+                audioState.compressorNode.connect(audioState.compressorEffect);
+                audioState.compressorEffect.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
                 audioState.analyzerNode.connect(audioState.audioContext.destination);
                 return false;
@@ -531,8 +565,16 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           // FX not ready, use direct connection and retry
           try {
             audioState.hiCutNode.disconnect();
+            audioState.compressorBypass.disconnect();
+            audioState.compressorEffect.disconnect();
+            audioState.compressorNode.disconnect();
             audioState.gainNode.disconnect();
-            audioState.hiCutNode.connect(audioState.gainNode);
+
+            audioState.hiCutNode.connect(audioState.compressorBypass);
+            audioState.hiCutNode.connect(audioState.compressorNode);
+            audioState.compressorBypass.connect(audioState.gainNode);
+            audioState.compressorNode.connect(audioState.compressorEffect);
+            audioState.compressorEffect.connect(audioState.gainNode);
             audioState.gainNode.connect(audioState.analyzerNode);
             audioState.analyzerNode.connect(audioState.audioContext.destination);
           } catch (e) {
@@ -855,6 +897,26 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     const audioControls = mixerState[deckKey].audioControls;
     if (audioControls && audioControls.setLoopPosition) {
       audioControls.setLoopPosition(position);
+    }
+  };
+
+  // Boost toggle handlers
+  const handleBoostToggle = (deck: 'A' | 'B') => {
+    const deckKey = deck === 'A' ? 'deckA' : 'deckB';
+    const newBoostEnabled = !mixerState[deckKey].boostEnabled;
+
+    setMixerState(prev => ({
+      ...prev,
+      [deckKey]: {
+        ...prev[deckKey],
+        boostEnabled: newBoostEnabled
+      }
+    }));
+
+    // Update audio controls
+    const audioControls = mixerState[deckKey].audioControls;
+    if (audioControls && audioControls.setBoost) {
+      audioControls.setBoost(newBoostEnabled);
     }
   };
 
@@ -1360,6 +1422,22 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
           {/* Crossfader with Deck Controls */}
           <div className="flex justify-center items-center gap-6" style={{ marginTop: '52px' }}>
+            {/* Deck A Boost Button */}
+            <button
+              onClick={() => handleBoostToggle('A')}
+              disabled={!mixerState.deckA.track}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all uppercase tracking-wider ${
+                mixerState.deckA.boostEnabled
+                  ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 active:bg-[#81E4F2]/90'
+                  : mixerState.deckA.track
+                  ? 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white'
+                  : 'bg-black border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+              }`}
+              title={mixerState.deckA.boostEnabled ? 'Boost ON' : 'Boost OFF'}
+            >
+              BOOST
+            </button>
+
             {/* Deck A Play/Pause */}
             <button
               onClick={handleDeckAPlayPause}
@@ -1413,6 +1491,22 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                   <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
                 </svg>
               )}
+            </button>
+
+            {/* Deck B Boost Button */}
+            <button
+              onClick={() => handleBoostToggle('B')}
+              disabled={!mixerState.deckB.track}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all uppercase tracking-wider ${
+                mixerState.deckB.boostEnabled
+                  ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 active:bg-[#81E4F2]/90'
+                  : mixerState.deckB.track
+                  ? 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white'
+                  : 'bg-black border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+              }`}
+              title={mixerState.deckB.boostEnabled ? 'Boost ON' : 'Boost OFF'}
+            >
+              BOOST
             </button>
           </div>
         </div>
