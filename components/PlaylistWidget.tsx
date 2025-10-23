@@ -482,21 +482,36 @@ interface PlaylistItemProps {
 }
 
 const PlaylistItem: React.FC<PlaylistItemProps> = ({ track, index, isPlaying, onRemove, onPlay, moveTrack }) => {
-  // Drag for reordering within playlist
+  // Drag for both reordering within playlist AND dragging to external targets (Crate, Mixer)
   const [{ isDragging }, drag] = useDrag({
-    type: 'PLAYLIST_ITEM',
-    item: { index },
+    type: 'COLLECTION_TRACK',
+    item: () => ({
+      track: {
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        imageUrl: track.imageUrl,
+        audioUrl: track.audioUrl,
+        bpm: track.bpm,
+        content_type: track.content_type,
+        price_stx: track.price_stx,
+        primary_uploader_wallet: track.primary_uploader_wallet
+      },
+      sourceIndex: index,
+      fromPlaylist: true // Flag to identify playlist items for reordering
+    }),
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging()
     })
   });
 
   const [, drop] = useDrop({
-    accept: 'PLAYLIST_ITEM',
-    hover: (item: { index: number }) => {
-      if (item.index !== index) {
-        moveTrack(item.index, index);
-        item.index = index;
+    accept: 'COLLECTION_TRACK',
+    hover: (item: { track?: any; sourceIndex?: number; fromPlaylist?: boolean }) => {
+      // Only reorder if it's from the same playlist and has a valid index
+      if (item.fromPlaylist && item.sourceIndex !== undefined && item.sourceIndex !== index) {
+        moveTrack(item.sourceIndex, index);
+        item.sourceIndex = index;
       }
     }
   });
