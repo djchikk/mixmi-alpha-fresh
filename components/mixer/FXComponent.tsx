@@ -31,13 +31,13 @@ const PERFORMANCE_CONFIG = {
     // Throttling
     UPDATE_INTERVAL: 16, // ~60fps
     SMOOTHING_TIME: 0.05, // 50ms for smooth DJ-style sweeps
-    
+
     // Safety limits
-    MAX_FEEDBACK: 0.85, // Prevent infinite loops
-    MAX_DELAY_TIME: 1.0, // 1 second max
-    MAX_REVERB_WITH_DELAY: 0.5, // Prevent mud when both active
-    MAX_Q: 30, // Prevent filter self-oscillation
-    
+    MAX_FEEDBACK: 0.5, // Musical feedback range (was 0.85 - too extreme)
+    MAX_DELAY_TIME: 0.375, // 375ms max = dotted eighth note at 120 BPM (was 1.0s - too extreme)
+    MAX_REVERB_WITH_DELAY: 0.3, // Prevent mud when both active (was 0.5)
+    MAX_Q: 3, // Musical resonance - higher values cause artifacts
+
     // CPU monitoring
     MAX_ACCEPTABLE_LATENCY: 0.02, // 20ms
     PERFORMANCE_CHECK_INTERVAL: 5000 // Check every 5 seconds
@@ -52,7 +52,8 @@ class FXChain {
     cpuProtectionEnabled: boolean;
     reverbEnabled: boolean;
     performanceInterval?: NodeJS.Timeout;
-    
+    currentBPM: number; // 🎵 Current BPM for tempo-synced delay
+
     input: GainNode;
     output: GainNode;
     
@@ -76,10 +77,11 @@ class FXChain {
         enabled: boolean;
     };
     
-    constructor(audioContext: AudioContext, deckId: string) {
+    constructor(audioContext: AudioContext, deckId: string, initialBPM: number = 120) {
         this.context = audioContext;
         this.deckId = deckId;
-        
+        this.currentBPM = initialBPM;
+
         // Performance monitoring
         this.cpuProtectionEnabled = true;
         this.reverbEnabled = true;
@@ -190,89 +192,137 @@ class FXChain {
     // Update filter from XY pad (0-1 values) with performance optimization
     updateFilter(x: number, y: number) {
         if (!this.filter.enabled) return;
-        
-        // Y-axis: Cutoff frequency (100Hz to 20kHz, exponential)
-        // IMPORTANT: Keep lowpass above highpass (20Hz) to avoid blocking all audio
-        const minFreq = 100;  // Changed from 20 to 100 to ensure audio passes
-        const maxFreq = 20000;
+
+        // Y-axis: Cutoff frequency (400Hz to 12kHz, exponential)
+        // More musical range - avoids extreme low/high artifacts
+        const minFreq = 400;  // Start higher for cleaner sound
+        const maxFreq = 12000; // Cap lower to avoid harsh highs
         const cutoff = minFreq * Math.pow(maxFreq / minFreq, y);
-        
-        // X-axis: Resonance (Q factor, 1 to MAX_Q)
-        const resonance = Math.min(1 + (x * (PERFORMANCE_CONFIG.MAX_Q - 1)), PERFORMANCE_CONFIG.MAX_Q);
-        
+
+        // X-axis: Resonance (Q factor, 0.7 to MAX_Q)
+        // Add dead zone in center (40-60%) for neutral sound
+        let qValue;
+        if (x >= 0.4 && x <= 0.6) {
+            // Dead zone - minimal resonance for smooth, neutral filtering
+            qValue = 0.7;
+        } else {
+            // Map outer ranges to resonance
+            const normalizedX = x < 0.4 ? x / 0.4 : (x - 0.6) / 0.4;
+            qValue = 0.7 + (normalizedX * (PERFORMANCE_CONFIG.MAX_Q - 0.7));
+        }
+        const resonance = Math.min(qValue, PERFORMANCE_CONFIG.MAX_Q);
+
         console.log(`🎛️ FX updateFilter for ${this.deckId}: cutoff=${cutoff.toFixed(0)}Hz, Q=${resonance.toFixed(1)}`);
-        
+
         // Use setTargetAtTime for smooth, click-free updates
         const now = this.context.currentTime;
-        
+
         this.filter.lowpass.frequency.cancelScheduledValues(now);
         this.filter.lowpass.frequency.setTargetAtTime(
-            cutoff, 
-            now, 
+            cutoff,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
-        
+
         this.filter.lowpass.Q.cancelScheduledValues(now);
         this.filter.lowpass.Q.setTargetAtTime(
-            resonance, 
-            now, 
+            resonance,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
     }
     
-    // Update delay + reverb from XY pad (0-1 values) with safety limits
+    // Set BPM for tempo-synced delay
+    setBPM(bpm: number) {
+        this.currentBPM = bpm;
+        console.log(`🎵 FX ${this.deckId} BPM updated to ${bpm}`);
+    }
+
+    // Update delay + reverb from XY pad (0-1 values) with tempo-synced delay times
     updateDelay(x: number, y: number) {
         if (!this.delay.enabled) return;
-        
-        // Y-axis: Delay time (0-1s) + Reverb mix
-        const delayTime = Math.min(y * PERFORMANCE_CONFIG.MAX_DELAY_TIME, PERFORMANCE_CONFIG.MAX_DELAY_TIME);
-        const wetAmount = y;
-        
-        // X-axis: Feedback (0-85%) + Reverb size
-        const feedback = Math.min(x * PERFORMANCE_CONFIG.MAX_FEEDBACK, PERFORMANCE_CONFIG.MAX_FEEDBACK);
-        
+
+        // Y-axis: Delay time (tempo-synced) + Wet/Dry mix
+        // Add dead zone at bottom (0-20%) for completely dry signal
+        let delayTime;
+        let wetAmount;
+        if (y < 0.2) {
+            // Dead zone - minimal delay
+            delayTime = 0.01; // Very short delay (essentially off)
+            wetAmount = 0;
+        } else {
+            // Map 20-100% to tempo-synced beat divisions
+            const normalizedY = (y - 0.2) / 0.8;
+
+            // Calculate beat duration in seconds
+            const beatDuration = 60.0 / this.currentBPM;
+
+            // Map Y position to musical note values:
+            // 0.0 (20%) = 1/16 note (0.25 beats)
+            // 0.5 (60%) = 1/8 note (0.5 beats)
+            // 1.0 (100%) = Dotted 8th (0.75 beats)
+            const beatFraction = 0.25 + (normalizedY * 0.5); // Range: 0.25 to 0.75 beats
+            delayTime = beatDuration * beatFraction;
+
+            wetAmount = normalizedY * 0.7; // Cap wet at 70% to keep some dry signal
+
+            console.log(`🎵 Tempo-synced delay: ${this.currentBPM} BPM, ${beatFraction.toFixed(2)} beats = ${(delayTime * 1000).toFixed(0)}ms`);
+        }
+
+        // X-axis: Feedback + Reverb size
+        // Add dead zone in center (40-60%) for neutral feedback
+        let feedback;
+        if (x >= 0.4 && x <= 0.6) {
+            // Dead zone - minimal feedback for single repeat
+            feedback = 0.1;
+        } else {
+            // Map outer ranges to feedback
+            const normalizedX = x < 0.4 ? x / 0.4 : (x - 0.6) / 0.4;
+            feedback = 0.1 + (normalizedX * (PERFORMANCE_CONFIG.MAX_FEEDBACK - 0.1));
+        }
+
         // Limit reverb when delay is high to prevent mud
         const reverbLimit = this.reverbEnabled ? PERFORMANCE_CONFIG.MAX_REVERB_WITH_DELAY : 0;
         const reverbAmount = Math.min(x * reverbLimit, reverbLimit);
-        
-        console.log(`🎛️ FX updateDelay for ${this.deckId}: time=${delayTime.toFixed(2)}s, feedback=${feedback.toFixed(2)}, wet=${wetAmount.toFixed(2)}, reverb=${reverbAmount.toFixed(2)}`);
-        
+
+        console.log(`🎛️ FX updateDelay for ${this.deckId}: time=${delayTime.toFixed(3)}s, feedback=${feedback.toFixed(2)}, wet=${wetAmount.toFixed(2)}, reverb=${reverbAmount.toFixed(2)}`);
+
         const now = this.context.currentTime;
-        
+
         // Update delay parameters with ramping
         this.delay.delayNode.delayTime.cancelScheduledValues(now);
         this.delay.delayNode.delayTime.setTargetAtTime(
-            delayTime, 
-            now, 
+            delayTime,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
-        
+
         this.delay.feedbackGain.gain.cancelScheduledValues(now);
         this.delay.feedbackGain.gain.setTargetAtTime(
-            feedback, 
-            now, 
+            feedback,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
-        
+
         // Update wet/dry mix
         this.delay.dryGain.gain.cancelScheduledValues(now);
         this.delay.dryGain.gain.setTargetAtTime(
-            1 - wetAmount, 
-            now, 
+            1 - wetAmount,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
-        
+
         this.delay.delayWetGain.gain.cancelScheduledValues(now);
         this.delay.delayWetGain.gain.setTargetAtTime(
-            wetAmount, 
-            now, 
+            wetAmount,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
-        
+
         this.delay.reverbWetGain.gain.cancelScheduledValues(now);
         this.delay.reverbWetGain.gain.setTargetAtTime(
-            wetAmount * reverbAmount, 
-            now, 
+            wetAmount * reverbAmount,
+            now,
             PERFORMANCE_CONFIG.SMOOTHING_TIME
         );
     }
@@ -363,15 +413,16 @@ class FXChain {
 
     // Bypass an effect
     bypassEffect(effectName: 'filter' | 'delay', bypass: boolean) {
-        console.log(`🎛️ FXChain.bypassEffect called - ${this.deckId} ${effectName}: ${bypass ? 'bypassed' : 'enabled'}`);
+        console.log(`🎛️ FXChain.bypassEffect called - ${this.deckId} ${effectName}: ${bypass ? 'BYPASS' : 'ENABLE'}`);
         const effect = this[effectName];
         if (!effect) {
-            console.log(`🎛️ Effect ${effectName} not found!`);
+            console.error(`🎛️ Effect ${effectName} not found!`);
             return;
         }
-        
+
         effect.enabled = !bypass;
-        
+        console.log(`🎛️ Effect states - filter.enabled: ${this.filter.enabled}, delay.enabled: ${this.delay.enabled}`);
+
         // Always disconnect everything first to avoid double connections
         console.log(`🎛️ Disconnecting all nodes for ${this.deckId}`);
         try {
@@ -381,38 +432,38 @@ class FXChain {
             this.delay.input.disconnect();
             this.delay.output.disconnect();
         } catch (e) {
-            console.warn(`🎛️ Some nodes already disconnected for ${this.deckId}`, e);
+            console.warn(`🎛️ Some nodes already disconnected for ${this.deckId}:`, e);
         }
-        
+
         // Now reconnect based on enabled states
         if (this.filter.enabled && this.delay.enabled) {
             // Both enabled: input → filter → delay → output
-            console.log(`🎛️ Connecting both effects: input → filter → delay → output`);
+            console.log(`🎛️ ✅ Routing: input → filter → delay → output`);
             this.input.connect(this.filter.input);
-            // Ensure filter internals are connected
             this.ensureFilterInternalsConnected();
             this.filter.output.connect(this.delay.input);
-            // Ensure delay internals are connected
             this.ensureDelayInternalsConnected();
             this.delay.output.connect(this.output);
+            console.log(`🎛️ ✅ Both effects connected successfully`);
         } else if (this.filter.enabled && !this.delay.enabled) {
             // Only filter: input → filter → output
-            console.log(`🎛️ Connecting filter only: input → filter → output`);
+            console.log(`🎛️ ✅ Routing: input → filter → output`);
             this.input.connect(this.filter.input);
-            // Ensure filter internals are connected
             this.ensureFilterInternalsConnected();
             this.filter.output.connect(this.output);
+            console.log(`🎛️ ✅ Filter connected successfully`);
         } else if (!this.filter.enabled && this.delay.enabled) {
             // Only delay: input → delay → output
-            console.log(`🎛️ Connecting delay only: input → delay → output`);
+            console.log(`🎛️ ✅ Routing: input → delay → output`);
             this.input.connect(this.delay.input);
-            // Ensure delay internals are connected
             this.ensureDelayInternalsConnected();
             this.delay.output.connect(this.output);
+            console.log(`🎛️ ✅ Delay connected successfully`);
         } else {
             // Both bypassed: input → output
-            console.log(`🎛️ Both effects bypassed: input → output`);
+            console.log(`🎛️ ✅ Routing: input → output (bypass mode)`);
             this.input.connect(this.output);
+            console.log(`🎛️ ✅ Bypass connected successfully`);
         }
     }
     
@@ -478,6 +529,29 @@ class FXChain {
         if (this.performanceInterval) {
             clearInterval(this.performanceInterval);
         }
+
+        // Disconnect all audio nodes to prevent memory leaks
+        try {
+            this.input.disconnect();
+            this.output.disconnect();
+            this.filter.input.disconnect();
+            this.filter.highpass.disconnect();
+            this.filter.lowpass.disconnect();
+            this.filter.output.disconnect();
+            this.delay.input.disconnect();
+            this.delay.delayNode.disconnect();
+            this.delay.feedbackGain.disconnect();
+            this.delay.dryGain.disconnect();
+            this.delay.delayWetGain.disconnect();
+            this.delay.reverbWetGain.disconnect();
+            if (this.delay.convolver.buffer) {
+                this.delay.convolver.disconnect();
+            }
+            this.delay.output.disconnect();
+            console.log(`✅ FX chain ${this.deckId} nodes disconnected`);
+        } catch (error) {
+            console.warn(`⚠️ FX chain ${this.deckId} cleanup warning:`, error);
+        }
     }
 }
 
@@ -487,22 +561,30 @@ class FXChain {
 interface FXComponentProps {
   audioContext: AudioContext | null;
   deckId: 'deckA' | 'deckB';
+  audioControls?: any; // 🎛️ Audio controls for EQ
+  masterBPM?: number; // 🎵 Master BPM for tempo-synced delay
 }
 
 // ========================================
 // FX COMPONENT
 // ========================================
-const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps>(({ 
-  audioContext, 
-  deckId
+const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps>(({
+  audioContext,
+  deckId,
+  audioControls,
+  masterBPM = 120
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fxChainRef = useRef<FXChain | null>(null);
   const currentEffectRef = useRef<'filter' | 'delay'>('filter');
   const updatePositionRef = useRef<((e: { clientX: number; clientY: number }) => void) | null>(null);
-  
+
   // Add state for current effect to trigger UI updates
   const [currentEffect, setCurrentEffect] = useState<'filter' | 'delay'>('filter');
+
+  // 🎛️ NEW: Track EQ button states
+  const [hiCutActive, setHiCutActive] = useState(false);
+  const [loCutActive, setLoCutActive] = useState(false);
 
   // Track renders for debugging
   useEffect(() => {
@@ -551,25 +633,60 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
     console.log('🎛️ togglePower called');
     const effect = button.dataset.effect as 'filter' | 'delay';
     console.log('🎛️ Effect:', effect, 'FXChain:', !!fxChainRef.current, 'Container:', !!containerRef.current);
-    
-    if (!effect || !fxChainRef.current || !containerRef.current) {
-      console.log('🎛️ togglePower early return - missing requirements');
+
+    if (!effect) {
+      console.error('🎛️ togglePower: No effect specified on button');
       return;
     }
-    
+
+    if (!fxChainRef.current) {
+      console.error('🎛️ togglePower: fxChainRef.current is null - FX chain not initialized yet');
+      return;
+    }
+
+    if (!containerRef.current) {
+      console.error('🎛️ togglePower: containerRef.current is null - container not mounted');
+      return;
+    }
+
     button.classList.toggle('active');
     const isActive = button.classList.contains('active');
-    console.log(`🎛️ ${deckId} ${effect} power toggled to:`, isActive);
-    
+    console.log(`🎛️ ${deckId} ${effect} power toggled to:`, isActive ? 'ON' : 'OFF');
+
     // Update effects chain
+    console.log(`🎛️ Calling bypassEffect(${effect}, ${!isActive})`);
     fxChainRef.current.bypassEffect(effect, !isActive);
-    
+
     // If this is the currently selected effect, update XY pad
     if (effect === currentEffectRef.current) {
       const xyPad = containerRef.current.querySelector('.xy-pad');
       xyPad?.classList.toggle('bypassed', !isActive);
+      console.log(`🎛️ XY pad ${!isActive ? 'enabled' : 'disabled'} for ${effect}`);
     }
-  }, []);
+  }, [deckId]);
+
+  // 🎛️ NEW: EQ button handlers
+  const toggleHiCut = useCallback(() => {
+    if (!audioControls?.setHiCut) {
+      console.warn(`🎛️ ${deckId} HI-CUT: audioControls not available`);
+      return;
+    }
+
+    const newState = !hiCutActive;
+    setHiCutActive(newState);
+    audioControls.setHiCut(newState);
+  }, [audioControls, hiCutActive, deckId]);
+
+  const toggleLoCut = useCallback(() => {
+    if (!audioControls?.setLoCut) {
+      console.warn(`🎛️ ${deckId} LO-CUT: audioControls not available`);
+      return;
+    }
+
+    const newState = !loCutActive;
+    setLoCutActive(newState);
+    audioControls.setLoCut(newState);
+  }, [audioControls, loCutActive, deckId]);
 
   const initXYPad = useCallback(() => {
     if (!containerRef.current) return;
@@ -693,8 +810,8 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
 
     console.log(`🎛️ FX Component initializing for ${deckId}...`);
 
-    // Create FX chain
-    const fxChain = new FXChain(audioContext, deckId);
+    // Create FX chain with current BPM
+    const fxChain = new FXChain(audioContext, deckId, masterBPM);
     fxChainRef.current = fxChain;
     
     // Initialize with synthetic reverb
@@ -752,6 +869,13 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
       }
     };
   }, [audioContext, deckId]); // Remove callback deps to prevent re-render loops
+
+  // Update BPM when masterBPM changes
+  useEffect(() => {
+    if (fxChainRef.current && masterBPM) {
+      fxChainRef.current.setBPM(masterBPM);
+    }
+  }, [masterBPM]);
 
   // Method to reset FX to defaults (exposed via ref)
   useEffect(() => {
@@ -863,6 +987,27 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
           </div>
           <div className="xy-position filter" style={{ display: currentEffect === 'filter' ? 'block' : 'none' }}></div>
           <div className="xy-position delay" style={{ display: currentEffect === 'delay' ? 'block' : 'none' }}></div>
+        </div>
+      </div>
+
+      {/* EQ Section */}
+      <div className="eq-section">
+        <div className="eq-label">EQ</div>
+        <div className="eq-controls">
+          <button
+            className={`eq-btn hi-cut ${hiCutActive ? 'active' : ''}`}
+            onClick={toggleHiCut}
+            title="High Cut - Remove highs above 2kHz (warm/muffled sound)"
+          >
+            <span className="eq-btn-label">HI CUT</span>
+          </button>
+          <button
+            className={`eq-btn lo-cut ${loCutActive ? 'active' : ''}`}
+            onClick={toggleLoCut}
+            title="Low Cut - Remove lows below 500Hz (thin/no bass sound)"
+          >
+            <span className="eq-btn-label">LO CUT</span>
+          </button>
         </div>
       </div>
 
@@ -1099,6 +1244,76 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
 
         .xy-pad.bypassed .xy-position {
           opacity: 0.3;
+        }
+
+        /* EQ Section */
+        .eq-section {
+          padding: 12px 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .eq-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 8px;
+          font-weight: 600;
+          text-align: center;
+        }
+
+        .eq-controls {
+          display: flex;
+          gap: 8px;
+        }
+
+        .eq-btn {
+          flex: 1;
+          padding: 8px 4px;
+          background: rgba(0, 0, 0, 0.4);
+          border: 2px solid rgba(255, 255, 255, 0.15);
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .eq-btn:hover {
+          background: rgba(0, 0, 0, 0.6);
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .eq-btn-label {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: rgba(255, 255, 255, 0.6);
+          display: block;
+          text-align: center;
+        }
+
+        /* Hi-Cut (Orange glow when active) */
+        .eq-btn.hi-cut.active {
+          border-color: #FF9500;
+          box-shadow: 0 0 12px rgba(255, 149, 0, 0.4), inset 0 0 8px rgba(255, 149, 0, 0.2);
+          background: rgba(255, 149, 0, 0.1);
+        }
+
+        .eq-btn.hi-cut.active .eq-btn-label {
+          color: #FFB340;
+        }
+
+        /* Lo-Cut (Purple glow when active) */
+        .eq-btn.lo-cut.active {
+          border-color: #A855F7;
+          box-shadow: 0 0 12px rgba(168, 85, 247, 0.4), inset 0 0 8px rgba(168, 85, 247, 0.2);
+          background: rgba(168, 85, 247, 0.1);
+        }
+
+        .eq-btn.lo-cut.active .eq-btn-label {
+          color: #C084FC;
         }
 
       `}</style>

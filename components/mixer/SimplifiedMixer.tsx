@@ -16,6 +16,8 @@ import LoopControls from './LoopControls';
 import FXComponent from './FXComponent';
 import DeckCrate from './DeckCrate';
 import RecordingPreview from './RecordingPreview';
+import * as Dialog from '@radix-ui/react-dialog';
+import { Keyboard } from 'lucide-react';
 
 interface SimplifiedMixerProps {
   className?: string;
@@ -32,6 +34,7 @@ interface SimplifiedMixerState {
     loopEnabled: boolean;
     loopLength: number;
     loopPosition: number;
+    boostLevel: number; // 0=off, 1=gentle (cyan), 2=aggressive (orange)
   };
   deckB: {
     track: Track | null;
@@ -42,6 +45,7 @@ interface SimplifiedMixerState {
     loopEnabled: boolean;
     loopLength: number;
     loopPosition: number;
+    boostLevel: number; // 0=off, 1=gentle (cyan), 2=aggressive (orange)
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -62,19 +66,21 @@ interface RecordingState {
 export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps) {
   // Initialize simplified mixer state
   const [mixerState, setMixerState] = useState<SimplifiedMixerState>({
-    deckA: { 
-      track: null, 
+    deckA: {
+      track: null,
       playing: false,
       loopEnabled: true,
       loopLength: 8,
-      loopPosition: 0
+      loopPosition: 0,
+      boostLevel: 0 // 0=off, 1=gentle, 2=aggressive
     },
-    deckB: { 
-      track: null, 
+    deckB: {
+      track: null,
       playing: false,
       loopEnabled: true,
       loopLength: 8,
-      loopPosition: 0
+      loopPosition: 0,
+      boostLevel: 0 // 0=off, 1=gentle, 2=aggressive
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -104,6 +110,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Username state for linking to creator pages
   const [deckAUsername, setDeckAUsername] = useState<string | null>(null);
   const [deckBUsername, setDeckBUsername] = useState<string | null>(null);
+
+  // Keyboard shortcuts modal state
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
   useEffect(() => {
     const updateWaveformWidth = () => {
@@ -326,13 +335,21 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
               try {
                 // Disconnect existing connections
-                audioState.filterNode.disconnect();
+                audioState.hiCutNode.disconnect();
+                audioState.compressorBypass.disconnect();
+                audioState.compressorEffect.disconnect();
+                audioState.compressorNode.disconnect();
                 audioState.gainNode.disconnect();
 
-                // Reconnect audio routing through FX: filter → FX → gain → analyzer
-                audioState.filterNode.connect(fxInput);
-                fxOutput.connect(audioState.gainNode);
+                // Reconnect audio routing through FX: EQ → FX → compressor (w/ bypass) → gain → analyzer → master
+                audioState.hiCutNode.connect(fxInput);
+                fxOutput.connect(audioState.compressorBypass);
+                fxOutput.connect(audioState.compressorNode);
+                audioState.compressorBypass.connect(audioState.gainNode);
+                audioState.compressorNode.connect(audioState.compressorEffect);
+                audioState.compressorEffect.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
+                audioState.analyzerNode.connect(audioState.audioContext.destination);
 
                 console.log('🎛️ Deck A FX connected to audio chain successfully');
 
@@ -345,8 +362,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               } catch (error) {
                 console.error('🎛️ Failed to connect Deck A FX:', error);
                 // Fall back to direct connection
-                audioState.filterNode.connect(audioState.gainNode);
+                audioState.hiCutNode.connect(audioState.compressorBypass);
+                audioState.hiCutNode.connect(audioState.compressorNode);
+                audioState.compressorBypass.connect(audioState.gainNode);
+                audioState.compressorNode.connect(audioState.compressorEffect);
+                audioState.compressorEffect.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
+                audioState.analyzerNode.connect(audioState.audioContext.destination);
                 return false;
               }
             }
@@ -354,9 +376,19 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
           // FX not ready, use direct connection and retry
           try {
-            audioState.filterNode.disconnect();
-            audioState.filterNode.connect(audioState.gainNode);
+            audioState.hiCutNode.disconnect();
+            audioState.compressorBypass.disconnect();
+            audioState.compressorEffect.disconnect();
+            audioState.compressorNode.disconnect();
+            audioState.gainNode.disconnect();
+
+            audioState.hiCutNode.connect(audioState.compressorBypass);
+            audioState.hiCutNode.connect(audioState.compressorNode);
+            audioState.compressorBypass.connect(audioState.gainNode);
+            audioState.compressorNode.connect(audioState.compressorEffect);
+            audioState.compressorEffect.connect(audioState.gainNode);
             audioState.gainNode.connect(audioState.analyzerNode);
+            audioState.analyzerNode.connect(audioState.audioContext.destination);
           } catch (e) {
             // Ignore if already connected
           }
@@ -496,13 +528,21 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
               try {
                 // Disconnect existing connections
-                audioState.filterNode.disconnect();
+                audioState.hiCutNode.disconnect();
+                audioState.compressorBypass.disconnect();
+                audioState.compressorEffect.disconnect();
+                audioState.compressorNode.disconnect();
                 audioState.gainNode.disconnect();
 
-                // Reconnect audio routing through FX: filter → FX → gain → analyzer
-                audioState.filterNode.connect(fxInput);
-                fxOutput.connect(audioState.gainNode);
+                // Reconnect audio routing through FX: EQ → FX → compressor (w/ bypass) → gain → analyzer → master
+                audioState.hiCutNode.connect(fxInput);
+                fxOutput.connect(audioState.compressorBypass);
+                fxOutput.connect(audioState.compressorNode);
+                audioState.compressorBypass.connect(audioState.gainNode);
+                audioState.compressorNode.connect(audioState.compressorEffect);
+                audioState.compressorEffect.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
+                audioState.analyzerNode.connect(audioState.audioContext.destination);
 
                 console.log('🎛️ Deck B FX connected to audio chain successfully');
 
@@ -515,8 +555,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               } catch (error) {
                 console.error('🎛️ Failed to connect Deck B FX:', error);
                 // Fall back to direct connection
-                audioState.filterNode.connect(audioState.gainNode);
+                audioState.hiCutNode.connect(audioState.compressorBypass);
+                audioState.hiCutNode.connect(audioState.compressorNode);
+                audioState.compressorBypass.connect(audioState.gainNode);
+                audioState.compressorNode.connect(audioState.compressorEffect);
+                audioState.compressorEffect.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
+                audioState.analyzerNode.connect(audioState.audioContext.destination);
                 return false;
               }
             }
@@ -524,9 +569,19 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
           // FX not ready, use direct connection and retry
           try {
-            audioState.filterNode.disconnect();
-            audioState.filterNode.connect(audioState.gainNode);
+            audioState.hiCutNode.disconnect();
+            audioState.compressorBypass.disconnect();
+            audioState.compressorEffect.disconnect();
+            audioState.compressorNode.disconnect();
+            audioState.gainNode.disconnect();
+
+            audioState.hiCutNode.connect(audioState.compressorBypass);
+            audioState.hiCutNode.connect(audioState.compressorNode);
+            audioState.compressorBypass.connect(audioState.gainNode);
+            audioState.compressorNode.connect(audioState.compressorEffect);
+            audioState.compressorEffect.connect(audioState.gainNode);
             audioState.gainNode.connect(audioState.analyzerNode);
+            audioState.analyzerNode.connect(audioState.audioContext.destination);
           } catch (e) {
             // Ignore if already connected
           }
@@ -645,13 +700,54 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (mixerState.deckB.audioControls) {
       mixerState.deckB.audioControls.stop();
     }
-    
+
     setMixerState(prev => ({
       ...prev,
       deckA: { ...prev.deckA, playing: false },
       deckB: { ...prev.deckB, playing: false }
     }));
   };
+
+  const handleReturnToStart = useCallback(async () => {
+    const wasPlaying = mixerState.deckA.playing || mixerState.deckB.playing;
+
+    // Stop both decks and reset to beginning
+    if (mixerState.deckA.audioControls) {
+      mixerState.deckA.audioControls.stop();
+    }
+    if (mixerState.deckB.audioControls) {
+      mixerState.deckB.audioControls.stop();
+    }
+
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, playing: false },
+      deckB: { ...prev.deckB, playing: false }
+    }));
+
+    // If was playing, restart playback immediately
+    if (wasPlaying) {
+      // Small delay to ensure stop completes
+      setTimeout(async () => {
+        if (mixerState.deckA.audioControls && mixerState.deckA.track) {
+          await mixerState.deckA.audioControls.play();
+          setMixerState(prev => ({
+            ...prev,
+            deckA: { ...prev.deckA, playing: true }
+          }));
+        }
+        if (mixerState.deckB.audioControls && mixerState.deckB.track) {
+          await mixerState.deckB.audioControls.play();
+          setMixerState(prev => ({
+            ...prev,
+            deckB: { ...prev.deckB, playing: true }
+          }));
+        }
+      }, 100);
+    }
+
+    console.log(`🔄 Return to start - ${wasPlaying ? 'restarting playback' : 'staying paused'}`);
+  }, [mixerState]);
 
   // Sync toggle
   const handleSync = useCallback(async () => {
@@ -809,6 +905,27 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
   };
 
+  // Boost toggle handlers - Progressive: 0 (off) → 1 (gentle/cyan) → 2 (aggressive/orange) → 0
+  const handleBoostToggle = (deck: 'A' | 'B') => {
+    const deckKey = deck === 'A' ? 'deckA' : 'deckB';
+    const currentLevel = mixerState[deckKey].boostLevel;
+    const newLevel = (currentLevel + 1) % 3; // Cycle through 0, 1, 2
+
+    setMixerState(prev => ({
+      ...prev,
+      [deckKey]: {
+        ...prev[deckKey],
+        boostLevel: newLevel
+      }
+    }));
+
+    // Update audio controls
+    const audioControls = mixerState[deckKey].audioControls;
+    if (audioControls && audioControls.setBoost) {
+      audioControls.setBoost(newLevel);
+    }
+  };
+
   // Recording handlers
   const setupMixerRecording = useCallback(() => {
     const audioContext = getAudioContext();
@@ -958,6 +1075,99 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
   }, [recordingState.isRecording, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
 
+  // Keyboard shortcuts for mixer control
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if user is typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      switch (key) {
+        case '?':
+          // ?: Show keyboard shortcuts
+          e.preventDefault();
+          setShowKeyboardShortcuts(true);
+          break;
+
+        case ' ':
+          // Space: Master play/pause
+          e.preventDefault();
+          handleMasterPlayAfterCountIn();
+          break;
+
+        case 'a':
+          // A: Toggle Deck A play/pause
+          e.preventDefault();
+          handleDeckAPlayPause();
+          break;
+
+        case 'b':
+          // B: Toggle Deck B play/pause
+          e.preventDefault();
+          handleDeckBPlayPause();
+          break;
+
+        case 'arrowleft':
+          // Left arrow: Move crossfader left (towards A)
+          e.preventDefault();
+          handleCrossfaderChange(Math.max(0, mixerState.crossfaderPosition - 5));
+          break;
+
+        case 'arrowright':
+          // Right arrow: Move crossfader right (towards B)
+          e.preventDefault();
+          handleCrossfaderChange(Math.min(100, mixerState.crossfaderPosition + 5));
+          break;
+
+        case '1':
+        case '2':
+        case '4':
+        case '8':
+          // Number keys: Set loop length for both decks
+          e.preventDefault();
+          const length = parseInt(key);
+          handleLoopLengthChange('A', length);
+          handleLoopLengthChange('B', length);
+          console.log(`⌨️ Loop length set to ${length} bars`);
+          break;
+
+        case 's':
+          // S: Toggle sync
+          e.preventDefault();
+          handleSync();
+          break;
+
+        case 'r':
+          // R: Toggle recording
+          e.preventDefault();
+          handleRecordToggle();
+          break;
+
+        case 'escape':
+          // Escape: Return to start
+          e.preventDefault();
+          handleReturnToStart();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [
+    mixerState.crossfaderPosition,
+    handleDeckAPlayPause,
+    handleDeckBPlayPause,
+    handleMasterPlayAfterCountIn,
+    handleCrossfaderChange,
+    handleLoopLengthChange,
+    handleSync,
+    handleRecordToggle,
+    handleReturnToStart
+  ]);
+
   // Monitor playback to count bars and auto-stop recording at target (sample-accurate with AudioContext)
   useEffect(() => {
     if (!recordingState.isRecording || recordingState.recordingStartTime === null) return;
@@ -992,10 +1202,143 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   return (
     <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 mx-auto ${className}`} style={{ maxWidth: '1168px' }}>
 
+      {/* Keyboard Shortcuts Modal */}
+      <Dialog.Root open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 rounded-lg p-6 shadow-2xl border border-slate-600 z-50 max-w-md w-full">
+            <Dialog.Title className="text-xl font-bold text-slate-200 mb-4 flex items-center gap-2">
+              <Keyboard size={20} className="text-[#81E4F2]" />
+              Keyboard Shortcuts
+            </Dialog.Title>
+
+            <div className="space-y-3 text-sm">
+              {/* Transport Controls */}
+              <div>
+                <div className="text-xs text-[#81E4F2] font-bold uppercase tracking-wider mb-2">Transport</div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span>Master Play/Pause</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">Space</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Deck A Play/Pause</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">A</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Deck B Play/Pause</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">B</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Return to Start</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">Esc</kbd>
+                  </div>
+                </div>
+              </div>
+
+              {/* Crossfader */}
+              <div>
+                <div className="text-xs text-[#81E4F2] font-bold uppercase tracking-wider mb-2">Crossfader</div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span>Move Left (towards A)</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">←</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Move Right (towards B)</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">→</kbd>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loop Controls */}
+              <div>
+                <div className="text-xs text-[#81E4F2] font-bold uppercase tracking-wider mb-2">Loop Length</div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span>Set 1, 2, 4, or 8 bars</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">1</kbd>
+                      <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">2</kbd>
+                      <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">4</kbd>
+                      <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">8</kbd>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Controls */}
+              <div>
+                <div className="text-xs text-[#81E4F2] font-bold uppercase tracking-wider mb-2">Other</div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span>Toggle Sync</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">S</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Toggle Recording</span>
+                    <kbd className="px-2 py-0.5 bg-slate-700 rounded text-slate-200 font-mono text-xs">R</kbd>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Dialog.Close asChild>
+              <button className="mt-6 w-full px-4 py-2 bg-[#81E4F2] text-slate-900 rounded-lg font-bold hover:bg-[#81E4F2]/80 transition-all">
+                Got it!
+              </button>
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
       {/* Top Section - Decks, Crates, and BPM */}
-      <div className="flex justify-center items-end mb-8" style={{ gap: waveformWidth >= 700 ? '48px' : waveformWidth >= 600 ? '32px' : waveformWidth >= 500 ? '16px' : '8px' }}>
-        {/* Left: Deck A + Loop Controls + Track Info */}
+      <div className="flex justify-center items-end mb-3" style={{ gap: waveformWidth >= 700 ? '48px' : waveformWidth >= 600 ? '32px' : waveformWidth >= 500 ? '16px' : '8px' }}>
+        {/* Left: Volume A + Deck A + Loop Controls + Track Info */}
         <div className="flex gap-4 items-center">
+          {/* Deck A Controls */}
+          <div className="flex gap-3 items-end">
+            {/* Volume Fader */}
+            <div className="flex flex-col items-center gap-1" style={{ width: '40px' }}>
+              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Vol</div>
+              <div className="relative flex flex-col items-center">
+                {/* Tick marks */}
+                <div className="absolute left-[-12px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
+                  <span>10</span>
+                  <span>8</span>
+                  <span>6</span>
+                  <span>4</span>
+                  <span>2</span>
+                  <span>0</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  defaultValue="100"
+                  onChange={(e) => {
+                    const volume = parseInt(e.target.value) / 100;
+                    mixerState.deckA.audioControls?.setVolume(volume);
+                  }}
+                  className="volume-fader"
+                  style={{
+                    height: '140px',
+                    width: '10px',
+                    writingMode: 'vertical-lr',
+                    direction: 'rtl',
+                    appearance: 'none',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: '6px',
+                    outline: 'none',
+                    border: '1px solid rgba(129, 228, 242, 0.3)',
+                    padding: '4px 0'
+                  }}
+                />
+              </div>
+              <div className="text-[8px] text-slate-600 font-mono mt-1">A</div>
+            </div>
+          </div>
+
           <SimplifiedDeck
             currentTrack={mixerState.deckA.track}
             isPlaying={mixerState.deckA.playing}
@@ -1083,23 +1426,35 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             </div>
           </div>
 
-          {/* Transport Controls */}
-          <MasterTransportControls
-            variant="simplified"
-            deckALoaded={!!mixerState.deckA.track}
-            deckBLoaded={!!mixerState.deckB.track}
-            deckAPlaying={mixerState.deckA.playing}
-            deckBPlaying={mixerState.deckB.playing}
-            deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
-            syncActive={mixerState.syncActive}
-            recordingRemix={recordingState.isRecording}
-            onMasterPlay={handleMasterPlay}
-            onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
-            onMasterStop={handleMasterStop}
-            onRecordToggle={handleRecordToggle}
-            onSyncToggle={handleSync}
-            onMasterSyncReset={handleMasterSyncReset}
-          />
+          {/* Transport Controls with Keyboard Shortcut */}
+          <div className="flex flex-col items-center">
+            <MasterTransportControls
+              variant="simplified"
+              deckALoaded={!!mixerState.deckA.track}
+              deckBLoaded={!!mixerState.deckB.track}
+              deckAPlaying={mixerState.deckA.playing}
+              deckBPlaying={mixerState.deckB.playing}
+              deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
+              syncActive={mixerState.syncActive}
+              recordingRemix={recordingState.isRecording}
+              onMasterPlay={handleMasterPlay}
+              onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
+              onMasterStop={handleMasterStop}
+              onReturnToStart={handleReturnToStart}
+              onRecordToggle={handleRecordToggle}
+              onSyncToggle={handleSync}
+              onMasterSyncReset={handleMasterSyncReset}
+            />
+
+            {/* Keyboard Shortcuts Button */}
+            <button
+              onClick={() => setShowKeyboardShortcuts(true)}
+              className="mt-1 w-8 h-8 rounded-full bg-transparent hover:bg-slate-700/30 text-slate-500 hover:text-[#81E4F2] flex items-center justify-center transition-all"
+              title="Keyboard Shortcuts (?)"
+            >
+              <Keyboard size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Right: Loop Controls + Track Info + Deck B */}
@@ -1157,6 +1512,49 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             deck="B"
             trackInfoPosition="none"
           />
+
+          {/* Deck B Controls */}
+          <div className="flex gap-3 items-end">
+            {/* Volume Fader */}
+            <div className="flex flex-col items-center gap-1" style={{ width: '40px' }}>
+              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Vol</div>
+              <div className="relative flex flex-col items-center">
+                {/* Tick marks */}
+                <div className="absolute right-[-12px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
+                  <span>10</span>
+                  <span>8</span>
+                  <span>6</span>
+                  <span>4</span>
+                  <span>2</span>
+                  <span>0</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  defaultValue="100"
+                  onChange={(e) => {
+                    const volume = parseInt(e.target.value) / 100;
+                    mixerState.deckB.audioControls?.setVolume(volume);
+                  }}
+                  className="volume-fader"
+                  style={{
+                    height: '140px',
+                    width: '10px',
+                    writingMode: 'vertical-lr',
+                    direction: 'rtl',
+                    appearance: 'none',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: '6px',
+                    outline: 'none',
+                    border: '1px solid rgba(129, 228, 242, 0.3)',
+                    padding: '4px 0'
+                  }}
+                />
+              </div>
+              <div className="text-[8px] text-slate-600 font-mono mt-1">B</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1169,6 +1567,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               ref={deckAFXRef}
               audioContext={getAudioContext()}
               deckId="deckA"
+              audioControls={mixerState.deckA.audioControls}
+              masterBPM={mixerState.masterBPM}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-500">
@@ -1222,6 +1622,32 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
           {/* Crossfader with Deck Controls */}
           <div className="flex justify-center items-center gap-6" style={{ marginTop: '52px' }}>
+            {/* TODO: BOOST feature - needs refinement, commented out for now
+            <button
+              onClick={() => handleBoostToggle('A')}
+              disabled={!mixerState.deckA.track}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all uppercase tracking-wider ${
+                mixerState.deckA.boostLevel === 2
+                  ? 'bg-orange-500 border-2 border-orange-500 text-white hover:bg-orange-600 active:bg-orange-700'
+                  : mixerState.deckA.boostLevel === 1
+                  ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 active:bg-[#81E4F2]/90'
+                  : mixerState.deckA.track
+                  ? 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white'
+                  : 'bg-black border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+              }`}
+              style={{ minWidth: '72px' }}
+              title={
+                mixerState.deckA.boostLevel === 2
+                  ? 'BOOST+ (Aggressive) - Click for OFF'
+                  : mixerState.deckA.boostLevel === 1
+                  ? 'BOOST (Gentle) - Click for BOOST+'
+                  : 'Boost OFF - Click for BOOST'
+              }
+            >
+              {mixerState.deckA.boostLevel === 2 ? 'BOOST+' : 'BOOST'}
+            </button>
+            */}
+
             {/* Deck A Play/Pause */}
             <button
               onClick={handleDeckAPlayPause}
@@ -1276,6 +1702,32 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 </svg>
               )}
             </button>
+
+            {/* TODO: BOOST feature - needs refinement, commented out for now
+            <button
+              onClick={() => handleBoostToggle('B')}
+              disabled={!mixerState.deckB.track}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all uppercase tracking-wider ${
+                mixerState.deckB.boostLevel === 2
+                  ? 'bg-orange-500 border-2 border-orange-500 text-white hover:bg-orange-600 active:bg-orange-700'
+                  : mixerState.deckB.boostLevel === 1
+                  ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 active:bg-[#81E4F2]/90'
+                  : mixerState.deckB.track
+                  ? 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white'
+                  : 'bg-black border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+              }`}
+              style={{ minWidth: '72px' }}
+              title={
+                mixerState.deckB.boostLevel === 2
+                  ? 'BOOST+ (Aggressive) - Click for OFF'
+                  : mixerState.deckB.boostLevel === 1
+                  ? 'BOOST (Gentle) - Click for BOOST+'
+                  : 'Boost OFF - Click for BOOST'
+              }
+            >
+              {mixerState.deckB.boostLevel === 2 ? 'BOOST+' : 'BOOST'}
+            </button>
+            */}
           </div>
         </div>
 
@@ -1286,6 +1738,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               ref={deckBFXRef}
               audioContext={getAudioContext()}
               deckId="deckB"
+              audioControls={mixerState.deckB.audioControls}
+              masterBPM={mixerState.masterBPM}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-500">
@@ -1325,6 +1779,76 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           }}
         />
       )}
+
+      {/* Volume Fader Styling - Professional DJ Style */}
+      <style jsx global>{`
+        .volume-fader::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 20px;
+          height: 8px;
+          background: #1e293b;
+          border: 2px solid #81E4F2;
+          border-radius: 3px;
+          cursor: grab;
+          box-shadow:
+            0 0 8px rgba(129, 228, 242, 0.5),
+            0 2px 4px rgba(0, 0, 0, 0.4),
+            inset 0 0 0 1px rgba(129, 228, 242, 0.2);
+          transition: all 0.15s ease;
+          position: relative;
+        }
+
+        .volume-fader::-webkit-slider-thumb:hover {
+          background: #2d3e56;
+          border-color: #A0EDF9;
+          box-shadow:
+            0 0 12px rgba(129, 228, 242, 0.7),
+            0 2px 6px rgba(0, 0, 0, 0.4),
+            inset 0 0 0 1px rgba(129, 228, 242, 0.3);
+        }
+
+        .volume-fader::-webkit-slider-thumb:active {
+          cursor: grabbing;
+          background: #1e293b;
+          box-shadow:
+            0 0 16px rgba(129, 228, 242, 0.9),
+            0 1px 2px rgba(0, 0, 0, 0.5),
+            inset 0 0 0 1px rgba(129, 228, 242, 0.4);
+        }
+
+        .volume-fader::-moz-range-thumb {
+          width: 20px;
+          height: 8px;
+          background: #1e293b;
+          border: 2px solid #81E4F2;
+          border-radius: 3px;
+          cursor: grab;
+          box-shadow:
+            0 0 8px rgba(129, 228, 242, 0.5),
+            0 2px 4px rgba(0, 0, 0, 0.4),
+            inset 0 0 0 1px rgba(129, 228, 242, 0.2);
+          transition: all 0.15s ease;
+        }
+
+        .volume-fader::-moz-range-thumb:hover {
+          background: #2d3e56;
+          border-color: #A0EDF9;
+          box-shadow:
+            0 0 12px rgba(129, 228, 242, 0.7),
+            0 2px 6px rgba(0, 0, 0, 0.4),
+            inset 0 0 0 1px rgba(129, 228, 242, 0.3);
+        }
+
+        .volume-fader::-moz-range-thumb:active {
+          cursor: grabbing;
+          background: #1e293b;
+          box-shadow:
+            0 0 16px rgba(129, 228, 242, 0.9),
+            0 1px 2px rgba(0, 0, 0, 0.5),
+            inset 0 0 0 1px rgba(129, 228, 242, 0.4);
+        }
+      `}</style>
     </div>
   );
 }

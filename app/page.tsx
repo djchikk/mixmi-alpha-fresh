@@ -76,14 +76,68 @@ export default function HomePage() {
   const [centerTrackCard, setCenterTrackCard] = useState<any | null>(null); // For FILL button centered card
   const [fillAddedTrackIds, setFillAddedTrackIds] = useState<Set<string>>(new Set()); // Track IDs added by FILL
 
-  // Widget visibility state
-  const [isMixerVisible, setIsMixerVisible] = useState(true);
-  const [isPlaylistVisible, setIsPlaylistVisible] = useState(false);
-  const [isRadioVisible, setIsRadioVisible] = useState(false);
+  // Widget visibility state - persisted in localStorage
+  const [isMixerVisible, setIsMixerVisible] = useState(true); // Default
+  const [isPlaylistVisible, setIsPlaylistVisible] = useState(false); // Default
+  const [isRadioVisible, setIsRadioVisible] = useState(false); // Default
+  const [hasLoadedVisibility, setHasLoadedVisibility] = useState(false); // Use state instead of ref
 
   // Fill/Reset state
   const [isFilled, setIsFilled] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+
+  // Load widget visibility from localStorage on mount (client-side only)
+  useEffect(() => {
+    console.log('🔧 Loading widget visibility from localStorage...');
+    if (typeof window !== 'undefined') {
+      const savedMixer = localStorage.getItem('mixer-widget-visible');
+      const savedPlaylist = localStorage.getItem('playlist-widget-visible');
+      const savedRadio = localStorage.getItem('radio-widget-visible');
+
+      console.log('🔧 Found:', { savedMixer, savedPlaylist, savedRadio });
+
+      if (savedMixer !== null) setIsMixerVisible(savedMixer === 'true');
+      if (savedPlaylist !== null) setIsPlaylistVisible(savedPlaylist === 'true');
+      if (savedRadio !== null) setIsRadioVisible(savedRadio === 'true');
+
+      setHasLoadedVisibility(true); // Use state to ensure proper sequencing
+      console.log('✅ Widget visibility loaded');
+    }
+  }, []); // Run once on mount
+
+  // Persist widget visibility states to localStorage (but not until after initial load)
+  useEffect(() => {
+    if (!hasLoadedVisibility) {
+      console.log('⏭️ Skipping mixer visibility save (waiting for initial load)');
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mixer-widget-visible', String(isMixerVisible));
+      console.log('💾 Mixer visibility saved:', isMixerVisible);
+    }
+  }, [isMixerVisible, hasLoadedVisibility]);
+
+  useEffect(() => {
+    if (!hasLoadedVisibility) {
+      console.log('⏭️ Skipping playlist visibility save (waiting for initial load)');
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('playlist-widget-visible', String(isPlaylistVisible));
+      console.log('💾 Playlist visibility saved:', isPlaylistVisible);
+    }
+  }, [isPlaylistVisible, hasLoadedVisibility]);
+
+  useEffect(() => {
+    if (!hasLoadedVisibility) {
+      console.log('⏭️ Skipping radio visibility save (waiting for initial load)');
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('radio-widget-visible', String(isRadioVisible));
+      console.log('💾 Radio visibility saved:', isRadioVisible);
+    }
+  }, [isRadioVisible, hasLoadedVisibility]);
 
   // Handle comparison track from collection bar
   const handleComparisonTrack = (track: any) => {

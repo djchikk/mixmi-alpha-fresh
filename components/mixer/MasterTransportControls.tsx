@@ -16,6 +16,7 @@ interface MasterTransportControlsProps {
   onMasterPlay: () => void;
   onMasterPlayAfterCountIn: () => void;
   onMasterStop: () => void;
+  onReturnToStart: () => void;
   onRecordToggle: () => void;
   onSyncToggle: () => void;
   onMasterSyncReset: () => void;
@@ -38,6 +39,7 @@ const MasterTransportControls = memo(function MasterTransportControls({
   onMasterPlay,
   onMasterPlayAfterCountIn,
   onMasterStop,
+  onReturnToStart,
   onRecordToggle,
   onSyncToggle,
   onMasterSyncReset,
@@ -158,6 +160,26 @@ const MasterTransportControls = memo(function MasterTransportControls({
             <path d="M2 1 L13 9 L2 17 Z" fill="currentColor"/>
           </svg>
         )}
+      </button>
+
+      {/* Return to Start Button */}
+      <button
+        onClick={onReturnToStart}
+        disabled={!deckALoaded && !deckBLoaded}
+        className={`return-to-start-btn w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+          deckALoaded || deckBLoaded
+            ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2]'
+            : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+        }`}
+        title="Return to Start"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Double bar on left (return indicator) */}
+          <rect x="2" y="3" width="1.5" height="10" fill="currentColor"/>
+          <rect x="4" y="3" width="1.5" height="10" fill="currentColor"/>
+          {/* Triangle pointing left */}
+          <path d="M14 8L7 3.5V12.5L14 8Z" fill="currentColor"/>
+        </svg>
       </button>
 
       {/* BPM Display for simplified variant */}

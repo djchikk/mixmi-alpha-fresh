@@ -34,40 +34,49 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false); // Use state instead of ref
 
   // Load playlist from localStorage
   useEffect(() => {
+    console.log('🎵 PlaylistWidget: Component mounted, checking localStorage...');
     if (typeof window !== 'undefined') {
-      // Clear old playlist data on first load (one-time migration)
-      const migrationKey = 'playlist-widget-cleared-v1';
-      if (!localStorage.getItem(migrationKey)) {
-        localStorage.removeItem('playlist-widget');
-        localStorage.setItem(migrationKey, 'true');
-        console.log('🎵 Playlist: Cleared old playlist data');
-      }
-
       const saved = localStorage.getItem('playlist-widget');
+      console.log('🎵 PlaylistWidget: localStorage data:', saved ? 'Found' : 'Empty');
       if (saved) {
         try {
           const data = JSON.parse(saved);
+          console.log('🎵 PlaylistWidget: Parsed data:', data);
           setPlaylist(data.playlist || []);
           setCurrentIndex(data.currentIndex ?? -1);
+          console.log('✅ Playlist: Loaded', data.playlist?.length || 0, 'tracks from localStorage');
         } catch (e) {
-          console.error('Error loading playlist:', e);
+          console.error('❌ Error loading playlist:', e);
         }
+      } else {
+        console.log('📭 Playlist: No saved data in localStorage');
       }
+      // Mark that we've completed the initial load - using state ensures proper sequencing
+      setHasLoadedFromStorage(true);
     }
   }, []);
 
-  // Save to localStorage
+  // Save to localStorage (but not until after we've loaded from storage)
   useEffect(() => {
+    // Skip saving on initial mount before load completes
+    if (!hasLoadedFromStorage) {
+      console.log('⏭️ Playlist: Skipping save (waiting for initial load)');
+      return;
+    }
+
     if (typeof window !== 'undefined') {
-      localStorage.setItem('playlist-widget', JSON.stringify({
+      const data = {
         playlist,
         currentIndex
-      }));
+      };
+      localStorage.setItem('playlist-widget', JSON.stringify(data));
+      console.log('💾 Playlist: Saved to localStorage -', playlist.length, 'tracks');
     }
-  }, [playlist, currentIndex]);
+  }, [playlist, currentIndex, hasLoadedFromStorage]);
 
   // Helper to fetch pack tracks
   const fetchPackTracks = async (packTrack: any): Promise<IPTrack[]> => {
