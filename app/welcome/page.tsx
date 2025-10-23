@@ -121,8 +121,8 @@ export default function Welcome() {
                 <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
                   <span className="text-[#81E4F2] text-lg mt-0.5">🎚️</span>
                   <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Professional Mixer</h3>
-                    <p className="text-[#a8b2c3]">Dual decks with waveform displays, BPM sync, crossfader, FX, and rock-solid stability for extended sessions</p>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Big Mixer</h3>
+                    <p className="text-[#a8b2c3]">Dual decks with waveform displays, BPM sync, crossfader, EQ, FX, keyboard shortcuts, and rock-solid stability for extended sessions</p>
                   </div>
                 </div>
 
