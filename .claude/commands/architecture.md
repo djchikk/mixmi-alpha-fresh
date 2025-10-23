@@ -12,12 +12,135 @@ Read these files to understand the complete system:
 
 **Branch**: `main` (auto-deploys to production on push)
 
-**Key Components:**
-1. **🎛️ Tiny Mixer** - Professional DJ interface (SimplifiedMixerCompact.tsx)
-2. **📦 Crate** - Persistent content transport (components/shared/Crate.tsx)
-3. **🎵 Playlist Widget** - Expandable playlist player (components/PlaylistWidget.tsx)
-4. **🌍 Globe** - 3D content visualization with Null Island
-5. **🛒 Cart** - Shopping cart in Header (contexts/CartContext.tsx)
+## Pages & Routes
+
+**Main Pages:**
+- **`/` (Globe Page)** - 3D globe with track discovery
+  - Tiny Mixer: Open on load, quick mixing (no recording), sync + loop length controls, no FX
+  - Other widgets: Hidden until launched from right-side Widget Launcher buttons
+  - Search: Persistent across pages, results draggable to mixer/crate or clickable to add to cart
+- **`/mixer`** - Full-screen Big Mixer with FX, keyboard commands, recording capability
+- **`/store/[username]`** - Creator stores (edit mode when authenticated)
+- **`/profile/[username]`** - User profiles (edit mode when authenticated)
+- **`/welcome`** - Alpha welcome/landing page
+
+**Persistent UI (All Pages):**
+- **Header** - Navigation + shopping cart (top)
+- **Crate** - Content collection bar (bottom, context-aware)
+- **Search** - Global search persisting across navigation
+
+## User Flows
+
+**Globe Discovery → Quick Mix Flow:**
+```
+Hover globe node → Card appears →
+  → Drag loop to Tiny Mixer deck →
+  → Sync & adjust loop length →
+  → Quick mix (no recording)
+```
+
+**Globe → Full Production Flow:**
+```
+Hover globe node → Card appears →
+  → Click info icon → Track metadata modal →
+  → Drag to Crate (staging) →
+  → Navigate to /mixer →
+  → Drag from Crate to Big Mixer decks →
+  → Mix with FX + keyboard shortcuts →
+  → Record remix with IP attribution
+```
+
+**Search → Mix/Cart Flow:**
+```
+Search for content →
+  → Click result → Add to cart
+  OR
+  → Drag result → Mixer deck / Crate
+```
+
+**Loop Pack/EP Unpacking:**
+```
+Globe card (loop pack/EP) →
+  → Chevron to unfold individual tracks →
+  → Drag individual track to mixer/crate
+
+Crate: Loop packs/EPs unpack horizontally
+Playlist: Loop packs/EPs auto-unpack on drop
+```
+
+## Key Components & Behaviors
+
+**Tiny Mixer (Globe Page):**
+- Location: Floating on globe page, open on load
+- Features: Dual decks, sync, loop length controls
+- Limitations: No FX, no recording (quick mixing only)
+- Content Filter: **8-bar loops only** (rejects songs, packs, EPs)
+
+**Big Mixer (/mixer Page):**
+- Features: Full FX, recording, keyboard commands
+- Content Filter: **8-bar loops only**
+- Workflow: Professional production environment
+
+**Widget System:**
+- Tiny Mixer: Open on page load
+- Playlist Widget: Hidden until launched
+- Radio Widget: Hidden until launched
+- Widget Launcher: Right-side buttons control visibility
+
+**Crate (Persistent Bottom Bar):**
+- Context-aware behavior per page
+- Loop packs/EPs: Unpack horizontally (chevron button)
+- Individual tracks: 64px thumbnails, draggable
+- Cart integration: Add to cart from hover overlay
+
+**Globe Track Cards:**
+- Trigger: Hover over globe nodes
+- Draggable to: Mixer decks, Crate, Playlist
+- Info icon: Opens TrackDetailsModal with full metadata
+- Loop packs/EPs: Chevron unfolds individual tracks
+- Individual tracks: Draggable from unfolded view
+
+**Playlist Widget:**
+- Auto-unpacks: Loop packs/EPs automatically expand
+- Draggable out: To Crate or Mixer decks
+- Reorderable: Internal drag-to-reorder
+
+**Search (Global):**
+- Persists across all pages
+- Results clickable: Add to cart
+- Results draggable: To mixer decks or Crate
+
+**User Profiles & Creator Stores:**
+- View mode: Public browsing
+- Edit mode: When user authenticated and viewing own profile/store
+- Full CRUD: Content management when authenticated
+
+## Content Type Handling
+
+**8-Bar Loops (Primary Content):**
+- Accepted by: Both mixers, Crate, Playlist
+- Display: Purple border (#9772F4)
+- Behavior: Direct drag to mixer decks
+
+**Loop Packs (Collections of Loops):**
+- Display: Thick purple border (4px)
+- Unfold: Chevron reveals individual 8-bar loops
+- Crate: Horizontal unpacking
+- Playlist: Auto-unpack on drop
+- Individual loops: Draggable to mixers
+
+**Songs (Full Tracks):**
+- Display: Gold border (#FFE4B5)
+- Mixers: **Rejected** (loops only)
+- Crate: Accepted for staging
+- Preview: 20-second limit
+
+**EPs (Song Collections):**
+- Display: Thick gold border (4px)
+- Unfold: Chevron reveals individual songs
+- Crate: Horizontal unpacking
+- Playlist: Auto-unpack on drop
+- Individual songs: 20-second previews
 
 **Recent Major Features:**
 - ✅ Playlist drag & drop (bidirectional, fully functional)
