@@ -134,6 +134,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const deckBCurrentTimeRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
 
+  // Track active FX retry timeouts for proper cleanup
+  const fxRetryTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+
   useEffect(() => {
     const updateWaveformWidth = () => {
       const width = window.innerWidth;
@@ -251,6 +254,102 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     };
   }, [mixerState.deckA.playing, mixerState.deckB.playing, mixerState.deckA.audioState, mixerState.deckB.audioState]);
 
+  // Reusable FX connection helper with retry logic and timeout tracking
+  const connectDeckFX = useCallback((
+    deckName: 'A' | 'B',
+    fxRef: React.RefObject<FXElement>,
+    audioState: any, // MixerAudioState type
+    retryCount = 0
+  ): boolean => {
+    console.log(`🎛️ Attempting to connect Deck ${deckName} FX (attempt ${retryCount + 1})`);
+
+    if (fxRef.current) {
+      const hasAudioInput = !!fxRef.current.audioInput;
+      const hasAudioOutput = !!fxRef.current.audioOutput;
+
+      if (hasAudioInput && hasAudioOutput) {
+        const fxInput = fxRef.current.audioInput;
+        const fxOutput = fxRef.current.audioOutput;
+
+        try {
+          // Disconnect existing connections
+          audioState.hiCutNode.disconnect();
+          audioState.compressorBypass.disconnect();
+          audioState.compressorEffect.disconnect();
+          audioState.compressorNode.disconnect();
+          audioState.gainNode.disconnect();
+
+          // Reconnect audio routing through FX: EQ → FX → compressor (w/ bypass) → gain → analyzer → master
+          audioState.hiCutNode.connect(fxInput);
+          fxOutput.connect(audioState.compressorBypass);
+          fxOutput.connect(audioState.compressorNode);
+          audioState.compressorBypass.connect(audioState.gainNode);
+          audioState.compressorNode.connect(audioState.compressorEffect);
+          audioState.compressorEffect.connect(audioState.gainNode);
+          audioState.gainNode.connect(audioState.analyzerNode);
+          audioState.analyzerNode.connect(audioState.audioContext.destination);
+
+          console.log(`🎛️ Deck ${deckName} FX connected to audio chain successfully`);
+
+          // Reset FX to defaults for new track
+          if (fxRef.current.resetToDefaults) {
+            fxRef.current.resetToDefaults();
+          }
+
+          return true;
+        } catch (error) {
+          console.error(`🎛️ Failed to connect Deck ${deckName} FX:`, error);
+          // Fall back to direct connection
+          audioState.hiCutNode.connect(audioState.compressorBypass);
+          audioState.hiCutNode.connect(audioState.compressorNode);
+          audioState.compressorBypass.connect(audioState.gainNode);
+          audioState.compressorNode.connect(audioState.compressorEffect);
+          audioState.compressorEffect.connect(audioState.gainNode);
+          audioState.gainNode.connect(audioState.analyzerNode);
+          audioState.analyzerNode.connect(audioState.audioContext.destination);
+          return false;
+        }
+      }
+    }
+
+    // FX not ready, use direct connection and retry
+    try {
+      audioState.hiCutNode.disconnect();
+      audioState.compressorBypass.disconnect();
+      audioState.compressorEffect.disconnect();
+      audioState.compressorNode.disconnect();
+      audioState.gainNode.disconnect();
+
+      audioState.hiCutNode.connect(audioState.compressorBypass);
+      audioState.hiCutNode.connect(audioState.compressorNode);
+      audioState.compressorBypass.connect(audioState.gainNode);
+      audioState.compressorNode.connect(audioState.compressorEffect);
+      audioState.compressorEffect.connect(audioState.gainNode);
+      audioState.gainNode.connect(audioState.analyzerNode);
+      audioState.analyzerNode.connect(audioState.audioContext.destination);
+    } catch (e) {
+      // Ignore if already connected
+    }
+
+    // Retry up to 10 times with exponential backoff
+    if (retryCount < 10) {
+      const timeout = setTimeout(() => {
+        fxRetryTimeoutsRef.current.delete(timeout);
+        connectDeckFX(deckName, fxRef, audioState, retryCount + 1);
+      }, 100 * Math.pow(1.5, retryCount));
+      fxRetryTimeoutsRef.current.add(timeout);
+    }
+    return false;
+  }, []);
+
+  // Cleanup all FX retry timeouts on unmount
+  useEffect(() => {
+    return () => {
+      fxRetryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      fxRetryTimeoutsRef.current.clear();
+    };
+  }, []);
+
   // Load track to Deck A
   const loadTrackToDeckA = async (track: Track) => {
     console.log('🎵 SimplifiedMixer: Loading track to Deck A:', track);
@@ -352,89 +451,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           }
         }));
 
-        // Connect FX if available (with retry for timing issues)
-        const connectFX = (retryCount = 0) => {
-          console.log(`🎛️ Attempting to connect Deck A FX (attempt ${retryCount + 1})`);
-
-          if (deckAFXRef.current) {
-            const hasAudioInput = !!deckAFXRef.current.audioInput;
-            const hasAudioOutput = !!deckAFXRef.current.audioOutput;
-
-            if (hasAudioInput && hasAudioOutput) {
-              const fxInput = deckAFXRef.current.audioInput;
-              const fxOutput = deckAFXRef.current.audioOutput;
-
-              try {
-                // Disconnect existing connections
-                audioState.hiCutNode.disconnect();
-                audioState.compressorBypass.disconnect();
-                audioState.compressorEffect.disconnect();
-                audioState.compressorNode.disconnect();
-                audioState.gainNode.disconnect();
-
-                // Reconnect audio routing through FX: EQ → FX → compressor (w/ bypass) → gain → analyzer → master
-                audioState.hiCutNode.connect(fxInput);
-                fxOutput.connect(audioState.compressorBypass);
-                fxOutput.connect(audioState.compressorNode);
-                audioState.compressorBypass.connect(audioState.gainNode);
-                audioState.compressorNode.connect(audioState.compressorEffect);
-                audioState.compressorEffect.connect(audioState.gainNode);
-                audioState.gainNode.connect(audioState.analyzerNode);
-                audioState.analyzerNode.connect(audioState.audioContext.destination);
-
-                console.log('🎛️ Deck A FX connected to audio chain successfully');
-
-                // Reset FX to defaults for new track
-                if (deckAFXRef.current.resetToDefaults) {
-                  deckAFXRef.current.resetToDefaults();
-                }
-
-                return true;
-              } catch (error) {
-                console.error('🎛️ Failed to connect Deck A FX:', error);
-                // Fall back to direct connection
-                audioState.hiCutNode.connect(audioState.compressorBypass);
-                audioState.hiCutNode.connect(audioState.compressorNode);
-                audioState.compressorBypass.connect(audioState.gainNode);
-                audioState.compressorNode.connect(audioState.compressorEffect);
-                audioState.compressorEffect.connect(audioState.gainNode);
-                audioState.gainNode.connect(audioState.analyzerNode);
-                audioState.analyzerNode.connect(audioState.audioContext.destination);
-                return false;
-              }
-            }
-          }
-
-          // FX not ready, use direct connection and retry
-          try {
-            audioState.hiCutNode.disconnect();
-            audioState.compressorBypass.disconnect();
-            audioState.compressorEffect.disconnect();
-            audioState.compressorNode.disconnect();
-            audioState.gainNode.disconnect();
-
-            audioState.hiCutNode.connect(audioState.compressorBypass);
-            audioState.hiCutNode.connect(audioState.compressorNode);
-            audioState.compressorBypass.connect(audioState.gainNode);
-            audioState.compressorNode.connect(audioState.compressorEffect);
-            audioState.compressorEffect.connect(audioState.gainNode);
-            audioState.gainNode.connect(audioState.analyzerNode);
-            audioState.analyzerNode.connect(audioState.audioContext.destination);
-          } catch (e) {
-            // Ignore if already connected
-          }
-
-          // Retry up to 10 times with exponential backoff
-          if (retryCount < 10) {
-            setTimeout(() => {
-              connectFX(retryCount + 1);
-            }, 100 * Math.pow(1.5, retryCount));
-          }
-          return false;
-        };
-
-        // Start connection attempts
-        connectFX();
+        // Connect FX using shared helper function
+        connectDeckFX('A', deckAFXRef, audioState);
       } else {
         console.error('❌ No audio result returned');
       }
@@ -545,89 +563,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           }
         }));
 
-        // Connect FX if available (with retry for timing issues)
-        const connectFX = (retryCount = 0) => {
-          console.log(`🎛️ Attempting to connect Deck B FX (attempt ${retryCount + 1})`);
-
-          if (deckBFXRef.current) {
-            const hasAudioInput = !!deckBFXRef.current.audioInput;
-            const hasAudioOutput = !!deckBFXRef.current.audioOutput;
-
-            if (hasAudioInput && hasAudioOutput) {
-              const fxInput = deckBFXRef.current.audioInput;
-              const fxOutput = deckBFXRef.current.audioOutput;
-
-              try {
-                // Disconnect existing connections
-                audioState.hiCutNode.disconnect();
-                audioState.compressorBypass.disconnect();
-                audioState.compressorEffect.disconnect();
-                audioState.compressorNode.disconnect();
-                audioState.gainNode.disconnect();
-
-                // Reconnect audio routing through FX: EQ → FX → compressor (w/ bypass) → gain → analyzer → master
-                audioState.hiCutNode.connect(fxInput);
-                fxOutput.connect(audioState.compressorBypass);
-                fxOutput.connect(audioState.compressorNode);
-                audioState.compressorBypass.connect(audioState.gainNode);
-                audioState.compressorNode.connect(audioState.compressorEffect);
-                audioState.compressorEffect.connect(audioState.gainNode);
-                audioState.gainNode.connect(audioState.analyzerNode);
-                audioState.analyzerNode.connect(audioState.audioContext.destination);
-
-                console.log('🎛️ Deck B FX connected to audio chain successfully');
-
-                // Reset FX to defaults for new track
-                if (deckBFXRef.current.resetToDefaults) {
-                  deckBFXRef.current.resetToDefaults();
-                }
-
-                return true;
-              } catch (error) {
-                console.error('🎛️ Failed to connect Deck B FX:', error);
-                // Fall back to direct connection
-                audioState.hiCutNode.connect(audioState.compressorBypass);
-                audioState.hiCutNode.connect(audioState.compressorNode);
-                audioState.compressorBypass.connect(audioState.gainNode);
-                audioState.compressorNode.connect(audioState.compressorEffect);
-                audioState.compressorEffect.connect(audioState.gainNode);
-                audioState.gainNode.connect(audioState.analyzerNode);
-                audioState.analyzerNode.connect(audioState.audioContext.destination);
-                return false;
-              }
-            }
-          }
-
-          // FX not ready, use direct connection and retry
-          try {
-            audioState.hiCutNode.disconnect();
-            audioState.compressorBypass.disconnect();
-            audioState.compressorEffect.disconnect();
-            audioState.compressorNode.disconnect();
-            audioState.gainNode.disconnect();
-
-            audioState.hiCutNode.connect(audioState.compressorBypass);
-            audioState.hiCutNode.connect(audioState.compressorNode);
-            audioState.compressorBypass.connect(audioState.gainNode);
-            audioState.compressorNode.connect(audioState.compressorEffect);
-            audioState.compressorEffect.connect(audioState.gainNode);
-            audioState.gainNode.connect(audioState.analyzerNode);
-            audioState.analyzerNode.connect(audioState.audioContext.destination);
-          } catch (e) {
-            // Ignore if already connected
-          }
-
-          // Retry up to 10 times with exponential backoff
-          if (retryCount < 10) {
-            setTimeout(() => {
-              connectFX(retryCount + 1);
-            }, 100 * Math.pow(1.5, retryCount));
-          }
-          return false;
-        };
-
-        // Start connection attempts
-        connectFX();
+        // Connect FX using shared helper function
+        connectDeckFX('B', deckBFXRef, audioState);
       } else {
         console.error('❌ No audio result returned');
       }
