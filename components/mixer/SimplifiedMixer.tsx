@@ -114,6 +114,11 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Keyboard shortcuts modal state
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
+  // Use refs for audio time tracking to avoid state update race conditions
+  const deckACurrentTimeRef = useRef(0);
+  const deckBCurrentTimeRef = useRef(0);
+  const animationFrameRef = useRef<number | null>(null);
+
   useEffect(() => {
     const updateWaveformWidth = () => {
       const width = window.innerWidth;
@@ -196,29 +201,40 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
   }, []); // Empty dependency array - only run once on mount
 
-  // Update current time for waveforms
+  // Update current time for waveforms using requestAnimationFrame (prevents race conditions)
   useEffect(() => {
     const updateCurrentTime = () => {
-      setMixerState(prevState => {
-        const newState = { ...prevState };
-        
-        // Update Deck A current time if playing
-        if (newState.deckA.playing && newState.deckA.audioState?.audio) {
-          newState.deckA.audioState.currentTime = newState.deckA.audioState.audio.currentTime;
-        }
-        
-        // Update Deck B current time if playing
-        if (newState.deckB.playing && newState.deckB.audioState?.audio) {
-          newState.deckB.audioState.currentTime = newState.deckB.audioState.audio.currentTime;
-        }
-        
-        return newState;
-      });
+      // Update refs directly (no state updates = no race conditions)
+      if (mixerState.deckA.playing && mixerState.deckA.audioState?.audio) {
+        deckACurrentTimeRef.current = mixerState.deckA.audioState.audio.currentTime;
+        // Update the audioState for waveform display
+        mixerState.deckA.audioState.currentTime = deckACurrentTimeRef.current;
+      }
+
+      if (mixerState.deckB.playing && mixerState.deckB.audioState?.audio) {
+        deckBCurrentTimeRef.current = mixerState.deckB.audioState.audio.currentTime;
+        // Update the audioState for waveform display
+        mixerState.deckB.audioState.currentTime = deckBCurrentTimeRef.current;
+      }
+
+      // Continue animation loop if either deck is playing
+      if (mixerState.deckA.playing || mixerState.deckB.playing) {
+        animationFrameRef.current = requestAnimationFrame(updateCurrentTime);
+      }
     };
 
-    const interval = setInterval(updateCurrentTime, 100);
-    return () => clearInterval(interval);
-  }, [mixerState.deckA.playing, mixerState.deckB.playing]);
+    // Start animation loop if needed
+    if (mixerState.deckA.playing || mixerState.deckB.playing) {
+      animationFrameRef.current = requestAnimationFrame(updateCurrentTime);
+    }
+
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [mixerState.deckA.playing, mixerState.deckB.playing, mixerState.deckA.audioState, mixerState.deckB.audioState]);
 
   // Load track to Deck A
   const loadTrackToDeckA = async (track: Track) => {
