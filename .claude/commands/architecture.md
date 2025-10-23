@@ -24,10 +24,12 @@ Read these files to understand the complete system:
 - **`/profile/[username]`** - User profiles (edit mode when authenticated)
 - **`/welcome`** - Alpha welcome/landing page
 
-**Persistent UI (All Pages):**
-- **Header** - Navigation + shopping cart (top)
+**Persistent UI (Most Pages):**
+- **Header** - Navigation + shopping cart (top, all pages)
 - **Crate** - Content collection bar (bottom, context-aware)
-- **Search** - Global search persisting across navigation
+  - Visible: Globe, Mixer, Store pages
+  - Hidden: Profile pages
+- **Search** - Global search persisting across navigation (all pages)
 
 ## User Flows
 
