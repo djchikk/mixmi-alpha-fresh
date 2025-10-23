@@ -947,6 +947,8 @@ export interface MixerAudioControls {
 export class MixerAudioEngine {
   private static audioContext: AudioContext | null = null;
   private static masterGain: GainNode | null = null;
+  // Track all active audio elements for cleanup and monitoring
+  private static activeAudioElements: Set<HTMLAudioElement> = new Set();
 
   // Initialize the global audio context (only once)
   static async initializeAudioContext(): Promise<AudioContext> {
@@ -973,28 +975,33 @@ export class MixerAudioEngine {
   // MC Claude's Fresh Audio Element Pattern - Extended for Mixer with Seamless Looping
   static createFreshAudioElement(src: string): HTMLAudioElement {
     console.log('🎵 Creating fresh audio element with CORS solution + PRECISE LOOPING');
-    
+
     // Create completely fresh audio element each time
     const audio = new Audio();
-    
+
     // Set crossOrigin BEFORE setting src (critical order per MC Claude)
     audio.crossOrigin = 'anonymous';
     audio.volume = 1.0;
     audio.preload = 'auto';
-    
+
     // 🔄 REMOVED: No longer using basic browser looping
     // audio.loop = true; // Replaced with PreciseLooper
-    
-    // Add timestamp to bypass caching completely (MC Claude's "nuclear option")
-    const cacheBusterSrc = `${src}?t=${Date.now()}`;
+
+    // Add cache-busting parameter only if needed (check for existing query params)
+    // Use version param instead of timestamp for better caching across sessions
+    const separator = src.includes('?') ? '&' : '?';
+    const cacheBusterSrc = `${src}${separator}v=${Date.now()}`;
     audio.src = cacheBusterSrc;
-    
+
     // 🚨 CRITICAL: Append to DOM for proper CORS handling (MC Claude's solution)
     document.body.appendChild(audio);
-    console.log('✅ Audio element appended to DOM for CORS compatibility');
-    
+
+    // Track this element for monitoring and cleanup
+    this.activeAudioElements.add(audio);
+    console.log(`✅ Audio element appended to DOM and tracked (${this.activeAudioElements.size} active)`);
+
     console.log('🔄 Audio element configured for PRECISE LOOPING (no more gaps!)');
-    
+
     return audio;
   }
 
@@ -1012,20 +1019,30 @@ export class MixerAudioEngine {
               // Create fresh audio element using MC Claude's pattern
         const audio = this.createFreshAudioElement(audioUrl);
       
-      // Wait for audio to be ready
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Audio load timeout')), 10000);
-        
-        audio.addEventListener('canplaythrough', () => {
-          clearTimeout(timeout);
-          resolve(true);
-        }, { once: true });
-        
-        audio.addEventListener('error', (e) => {
-          clearTimeout(timeout);
-          reject(new Error(`Audio load error: ${e.message || 'Unknown error'}`));
-        }, { once: true });
-      });
+      // Wait for audio to be ready with proper cleanup on failure
+      try {
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Audio load timeout')), 10000);
+
+          audio.addEventListener('canplaythrough', () => {
+            clearTimeout(timeout);
+            resolve(true);
+          }, { once: true });
+
+          audio.addEventListener('error', (e) => {
+            clearTimeout(timeout);
+            reject(new Error(`Audio load error: ${e.message || 'Unknown error'}`));
+          }, { once: true });
+        });
+      } catch (loadError) {
+        // Cleanup audio element on load failure
+        if (audio.parentNode) {
+          audio.parentNode.removeChild(audio);
+        }
+        this.activeAudioElements.delete(audio);
+        console.error(`🚨 Deck ${deckId} audio load failed, cleaned up element`);
+        throw loadError;
+      }
 
       // Create Web Audio API nodes for professional mixing
       const source = audioContext.createMediaElementSource(audio);
@@ -1332,26 +1349,30 @@ export class MixerAudioEngine {
 
         cleanup: () => {
           console.log(`🧹 Cleaning up deck ${deckId} audio`);
-          
+
           // 🔄 NEW: Cleanup precise looper first
           if (state.preciseLooper) {
             state.preciseLooper.cleanup();
           }
-          
+
           // AGGRESSIVE CLEANUP: Stop all audio immediately
           audio.pause();
           audio.currentTime = 0;
-          
+
           // Clear the source to stop loading
           audio.src = '';
           audio.load(); // Force audio element to reset
-          
+
           // 🚨 CRITICAL: Remove from DOM (MC Claude's pattern)
           if (audio.parentNode) {
             audio.parentNode.removeChild(audio);
             console.log(`✅ Deck ${deckId} audio element removed from DOM`);
           }
-          
+
+          // Remove from tracking set
+          MixerAudioEngine.activeAudioElements.delete(audio);
+          console.log(`✅ Deck ${deckId} audio element untracked (${MixerAudioEngine.activeAudioElements.size} remaining)`);
+
           // Disconnect all Web Audio nodes
           try {
             source.disconnect();
@@ -1366,12 +1387,12 @@ export class MixerAudioEngine {
           } catch (error) {
             console.warn(`⚠️ Deck ${deckId} cleanup warning:`, error);
           }
-          
+
           // Reset state completely
           state.isLoaded = false;
           state.isPlaying = false;
           state.currentTime = 0;
-          
+
           console.log(`✅ Deck ${deckId} cleanup completed`);
         }
       };
@@ -1478,6 +1499,20 @@ export class MixerAudioEngine {
 
   // Cleanup all audio resources
   static cleanup() {
+    // Clean up all tracked audio elements
+    if (this.activeAudioElements.size > 0) {
+      console.log(`🧹 Cleaning up ${this.activeAudioElements.size} active audio elements`);
+      this.activeAudioElements.forEach(audio => {
+        audio.pause();
+        audio.src = '';
+        if (audio.parentNode) {
+          audio.parentNode.removeChild(audio);
+        }
+      });
+      this.activeAudioElements.clear();
+      console.log('✅ All audio elements cleaned up');
+    }
+
     // Note: We do NOT close the audioContext as it's a singleton
     // Just disconnect and nullify references
     if (this.masterGain) {
