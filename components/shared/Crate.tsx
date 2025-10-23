@@ -97,7 +97,7 @@ export default function Crate({ className = '' }: CrateProps) {
 
   // Set up drop zone
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: ['TRACK_CARD', 'DECK_TRACK'],
+    accept: ['TRACK_CARD', 'DECK_TRACK', 'COLLECTION_TRACK'],
     drop: (item: { track: IPTrack }) => {
       // Check if track already exists
       const exists = collection.some(t => t.id === item.track.id);
