@@ -2,11 +2,9 @@
 // Extends the proven audio foundation for professional DJ mixing capabilities
 // 🔄 UPGRADED: Professional Lookahead Scheduling for Seamless Loops (MC Claude Research)
 // 🎛️ NEW: Simple Loop Sync for 8-Bar Loops (MC Claude Streamlined Implementation)
-// 🎚️ NEW: Pitch Shifting (independent of tempo)
 
 import { Track } from '@/types';
 import { audioContextManager } from './audioContextManager';
-import * as Tone from 'tone';
 
 export interface MixerAudioState {
   audio: HTMLAudioElement;
@@ -15,9 +13,6 @@ export interface MixerAudioState {
   gainNode: GainNode;
   hiCutNode: BiquadFilterNode; // 🎛️ High-cut EQ (low-pass filter)
   loCutNode: BiquadFilterNode; // 🎛️ Low-cut EQ (high-pass filter)
-  pitchShiftNode: Tone.PitchShift; // 🎚️ NEW: Pitch shifting (independent of tempo)
-  pitchShiftInput: GainNode; // 🎚️ NEW: Input to pitch shift chain
-  pitchShiftOutput: GainNode; // 🎚️ NEW: Output from pitch shift chain
   analyzerNode: AnalyserNode;
   isLoaded: boolean;
   isPlaying: boolean;
@@ -942,7 +937,6 @@ export interface MixerAudioControls {
   setLoopPosition: (position: number) => void; // 🎯 Set loop start position
   setHiCut: (enabled: boolean) => void; // 🎛️ Enable/disable high-cut EQ
   setLoCut: (enabled: boolean) => void; // 🎛️ Enable/disable low-cut EQ
-  setPitch: (semitones: number) => void; // 🎚️ NEW: Set pitch shift in semitones (±4)
   cleanup: () => void;
 }
 
@@ -1046,87 +1040,16 @@ export class MixerAudioEngine {
       loCutNode.frequency.value = 20; // Full range initially (bypassed)
       loCutNode.Q.value = 0.7; // Gentle slope
 
-      // 🎚️ Create pitch shift chain using Tone.js with true bypass
-      let pitchShiftInput: GainNode;
-      let pitchShiftOutput: GainNode;
-      let pitchShiftNode: Tone.PitchShift;
-      let pitchBypassGain: GainNode; // Direct bypass path
-      let pitchEffectGain: GainNode; // Effect path
-      let pitchShiftEnabled = false; // Track bypass state
-
-      try {
-        // Set Tone to use our existing AudioContext
-        Tone.setContext(audioContext as any);
-
-        // Start Tone.js audio system
-        await Tone.start();
-        console.log('🎚️ Tone.js started');
-
-        // Create Tone.js PitchShift node with optimized settings
-        pitchShiftNode = new Tone.PitchShift({
-          pitch: 0, // Start at 0 semitones (no shift)
-          windowSize: 0.2, // Larger window = better quality, especially for downward shifts
-          delayTime: 0, // Minimize latency
-          feedback: 0, // No feedback for cleaner sound
-          wet: 1 // CRITICAL: Ensure 100% wet signal (full effect)
-        });
-
-        // Create native gain nodes for interfacing with Tone.js
-        pitchShiftInput = audioContext.createGain();
-        pitchShiftOutput = audioContext.createGain();
-
-        // Create true bypass routing with gain nodes
-        pitchBypassGain = audioContext.createGain();
-        pitchEffectGain = audioContext.createGain();
-
-        // Set initial state: BYPASS (pitch at 0)
-        pitchBypassGain.gain.value = 1.0; // Bypass path active
-        pitchEffectGain.gain.value = 0.0; // Effect path muted
-
-        // Connect bypass path: input → bypass → output (direct, no processing)
-        pitchShiftInput.connect(pitchBypassGain);
-        pitchBypassGain.connect(pitchShiftOutput);
-
-        // Connect effect path: input → effectGain → PitchShift → output
-        pitchShiftInput.connect(pitchEffectGain);
-        Tone.connect(pitchEffectGain, pitchShiftNode);
-        Tone.connect(pitchShiftNode, pitchShiftOutput);
-
-        console.log(`🎚️ Deck ${deckId} pitch shift node created with TRUE BYPASS (bypass active)`);
-      } catch (error) {
-        console.error(`🎚️ Deck ${deckId} Failed to create pitch shift node:`, error);
-        // Fallback: create simple bypass nodes
-        pitchShiftInput = audioContext.createGain();
-        pitchShiftOutput = audioContext.createGain();
-        pitchBypassGain = audioContext.createGain();
-        pitchEffectGain = audioContext.createGain();
-        // Create a dummy pitch shift object that just passes through
-        pitchShiftNode = {
-          pitch: 0,
-          input: pitchShiftInput as any,
-          output: pitchShiftOutput as any,
-          disconnect: () => {}
-        } as any;
-        // Connect input directly to output for bypass
-        pitchShiftInput.connect(pitchShiftOutput);
-        console.warn(`🎚️ Deck ${deckId} Using bypass mode (pitch shift unavailable)`);
-      }
-
       // Configure analyzer for waveform visualization
       analyzerNode.fftSize = 1024; // Optimized: 1024 provides plenty of detail for visual waveforms (was 2048)
       analyzerNode.smoothingTimeConstant = 0.8;
       console.log(`🎛️ Deck ${deckId} analyzer node created:`, analyzerNode);
 
-      // Connect audio graph: source → lo-cut → hi-cut → pitchShift → gain → analyzer → master
-      // FX chain (filter/delay) will be inserted between hiCutNode and pitchShiftInput by SimplifiedMixer
+      // Connect audio graph: source → lo-cut → hi-cut → gain → analyzer → master
+      // FX chain (filter/delay) will be inserted between hiCutNode and gainNode by SimplifiedMixer
       source.connect(loCutNode);
       loCutNode.connect(hiCutNode);
-      hiCutNode.connect(pitchShiftInput);
-
-      // Pitch shift chain: pitchShiftInput → Tone.js PitchShift → pitchShiftOutput (connected above)
-      console.log(`🎚️ Deck ${deckId} Pitch shift chain ready`);
-
-      pitchShiftOutput.connect(gainNode);
+      hiCutNode.connect(gainNode);
       gainNode.connect(analyzerNode);
       analyzerNode.connect(this.masterGain!);
 
@@ -1138,9 +1061,6 @@ export class MixerAudioEngine {
         gainNode,
         hiCutNode,
         loCutNode,
-        pitchShiftNode,
-        pitchShiftInput,
-        pitchShiftOutput,
         analyzerNode,
         isLoaded: true,
         isPlaying: false,
@@ -1326,59 +1246,6 @@ export class MixerAudioEngine {
           }
         },
 
-        // 🎚️ NEW: Pitch shift control with TRUE BYPASS (independent of tempo)
-        setPitch: (semitones: number) => {
-          // Clamp to ±4 semitones for better quality and performance
-          const clampedPitch = Math.max(-4, Math.min(4, semitones));
-
-          try {
-            // TRUE BYPASS: Switch between direct and effect paths
-            const shouldBypass = clampedPitch === 0;
-
-            if (shouldBypass !== !pitchShiftEnabled) {
-              // State change needed
-              const now = audioContext.currentTime;
-              const fadeTime = 0.01; // 10ms crossfade to avoid clicks
-
-              if (shouldBypass) {
-                // Switch to BYPASS (direct path)
-                pitchBypassGain.gain.setValueAtTime(pitchBypassGain.gain.value, now);
-                pitchBypassGain.gain.linearRampToValueAtTime(1.0, now + fadeTime);
-
-                pitchEffectGain.gain.setValueAtTime(pitchEffectGain.gain.value, now);
-                pitchEffectGain.gain.linearRampToValueAtTime(0.0, now + fadeTime);
-
-                pitchShiftEnabled = false;
-                console.log(`🎚️ Deck ${deckId} BYPASS ACTIVE (no processing, pure audio)`);
-              } else {
-                // Switch to EFFECT (pitch shift path)
-                pitchBypassGain.gain.setValueAtTime(pitchBypassGain.gain.value, now);
-                pitchBypassGain.gain.linearRampToValueAtTime(0.0, now + fadeTime);
-
-                pitchEffectGain.gain.setValueAtTime(pitchEffectGain.gain.value, now);
-                pitchEffectGain.gain.linearRampToValueAtTime(1.0, now + fadeTime);
-
-                pitchShiftEnabled = true;
-                console.log(`🎚️ Deck ${deckId} PITCH SHIFT ACTIVE`);
-              }
-            }
-
-            // Update pitch value (only matters when effect is active)
-            if (pitchShiftNode && typeof pitchShiftNode.pitch !== 'undefined' && !shouldBypass) {
-              // Use .value for more precise control if available
-              if (typeof pitchShiftNode.pitch === 'object' && 'value' in pitchShiftNode.pitch) {
-                pitchShiftNode.pitch.value = clampedPitch;
-              } else {
-                pitchShiftNode.pitch = clampedPitch;
-              }
-
-              console.log(`🎚️ Deck ${deckId} pitch: ${clampedPitch >= 0 ? '+' : ''}${clampedPitch} semitones`);
-            }
-          } catch (error) {
-            console.error(`🎚️ Deck ${deckId} pitch shift error:`, error);
-          }
-        },
-
         cleanup: () => {
           console.log(`🧹 Cleaning up deck ${deckId} audio`);
           
@@ -1406,11 +1273,6 @@ export class MixerAudioEngine {
             source.disconnect();
             loCutNode.disconnect();
             hiCutNode.disconnect();
-            pitchShiftInput.disconnect();
-            pitchBypassGain.disconnect();
-            pitchEffectGain.disconnect();
-            pitchShiftNode.disconnect();
-            pitchShiftOutput.disconnect();
             gainNode.disconnect();
             analyzerNode.disconnect();
             console.log(`✅ Deck ${deckId} audio nodes disconnected`);

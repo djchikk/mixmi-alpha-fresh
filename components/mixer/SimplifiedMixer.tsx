@@ -84,10 +84,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Sync engine reference
   const syncEngineRef = React.useRef<SimpleLoopSync | null>(null);
 
-  // Pitch control state with snap-to-zero
-  const [pitchA, setPitchA] = useState<number>(0);
-  const [pitchB, setPitchB] = useState<number>(0);
-
   // Recording state and refs
   const [recordingState, setRecordingState] = useState<RecordingState>({
     isRecording: false,
@@ -331,16 +327,15 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               try {
                 // Disconnect existing connections
                 audioState.hiCutNode.disconnect();
-                audioState.pitchShiftOutput.disconnect();
+                audioState.gainNode.disconnect();
 
-                // Reconnect audio routing through FX: EQ → FX → pitchShift → gain → analyzer
-                // This keeps the EQ and pitch shift nodes in the chain!
+                // Reconnect audio routing through FX: EQ → FX → gain → analyzer → master
                 audioState.hiCutNode.connect(fxInput);
-                fxOutput.connect(audioState.pitchShiftInput);
-                audioState.pitchShiftOutput.connect(audioState.gainNode);
+                fxOutput.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
+                audioState.analyzerNode.connect(audioState.audioContext.destination);
 
-                console.log('🎛️ Deck A FX connected to audio chain successfully (EQ + Pitch preserved)');
+                console.log('🎛️ Deck A FX connected to audio chain successfully');
 
                 // Reset FX to defaults for new track
                 if ((deckAFXRef.current as any).resetToDefaults) {
@@ -350,21 +345,22 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 return true;
               } catch (error) {
                 console.error('🎛️ Failed to connect Deck A FX:', error);
-                // Fall back to direct connection (preserving EQ + Pitch)
-                audioState.hiCutNode.connect(audioState.pitchShiftInput);
-                audioState.pitchShiftOutput.connect(audioState.gainNode);
+                // Fall back to direct connection
+                audioState.hiCutNode.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
+                audioState.analyzerNode.connect(audioState.audioContext.destination);
                 return false;
               }
             }
           }
 
-          // FX not ready, use direct connection and retry (preserving EQ + Pitch)
+          // FX not ready, use direct connection and retry
           try {
             audioState.hiCutNode.disconnect();
-            audioState.hiCutNode.connect(audioState.pitchShiftInput);
-            audioState.pitchShiftOutput.connect(audioState.gainNode);
+            audioState.gainNode.disconnect();
+            audioState.hiCutNode.connect(audioState.gainNode);
             audioState.gainNode.connect(audioState.analyzerNode);
+            audioState.analyzerNode.connect(audioState.audioContext.destination);
           } catch (e) {
             // Ignore if already connected
           }
@@ -505,16 +501,15 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               try {
                 // Disconnect existing connections
                 audioState.hiCutNode.disconnect();
-                audioState.pitchShiftOutput.disconnect();
+                audioState.gainNode.disconnect();
 
-                // Reconnect audio routing through FX: EQ → FX → pitchShift → gain → analyzer
-                // This keeps the EQ and pitch shift nodes in the chain!
+                // Reconnect audio routing through FX: EQ → FX → gain → analyzer → master
                 audioState.hiCutNode.connect(fxInput);
-                fxOutput.connect(audioState.pitchShiftInput);
-                audioState.pitchShiftOutput.connect(audioState.gainNode);
+                fxOutput.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
+                audioState.analyzerNode.connect(audioState.audioContext.destination);
 
-                console.log('🎛️ Deck B FX connected to audio chain successfully (EQ + Pitch preserved)');
+                console.log('🎛️ Deck B FX connected to audio chain successfully');
 
                 // Reset FX to defaults for new track
                 if ((deckBFXRef.current as any).resetToDefaults) {
@@ -524,21 +519,22 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 return true;
               } catch (error) {
                 console.error('🎛️ Failed to connect Deck B FX:', error);
-                // Fall back to direct connection (preserving EQ + Pitch)
-                audioState.hiCutNode.connect(audioState.pitchShiftInput);
-                audioState.pitchShiftOutput.connect(audioState.gainNode);
+                // Fall back to direct connection
+                audioState.hiCutNode.connect(audioState.gainNode);
                 audioState.gainNode.connect(audioState.analyzerNode);
+                audioState.analyzerNode.connect(audioState.audioContext.destination);
                 return false;
               }
             }
           }
 
-          // FX not ready, use direct connection and retry (preserving EQ + Pitch)
+          // FX not ready, use direct connection and retry
           try {
             audioState.hiCutNode.disconnect();
-            audioState.hiCutNode.connect(audioState.pitchShiftInput);
-            audioState.pitchShiftOutput.connect(audioState.gainNode);
+            audioState.gainNode.disconnect();
+            audioState.hiCutNode.connect(audioState.gainNode);
             audioState.gainNode.connect(audioState.analyzerNode);
+            audioState.analyzerNode.connect(audioState.audioContext.destination);
           } catch (e) {
             // Ignore if already connected
           }
@@ -1049,61 +1045,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               </div>
               <div className="text-[8px] text-slate-600 font-mono mt-1">A</div>
             </div>
-
-            {/* Pitch Fader */}
-            <div className="flex flex-col items-center gap-1" style={{ width: '40px' }}>
-              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Pitch</div>
-              <div className="relative flex flex-col items-center">
-                <div className="absolute left-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
-                  <span>+4</span>
-                  <span>+2</span>
-                  <span>0</span>
-                  <span>-2</span>
-                  <span>-4</span>
-                </div>
-                {/* Zero indicator light */}
-                <div
-                  className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-all duration-150"
-                  style={{
-                    backgroundColor: pitchA === 0 ? '#81e4f2' : 'rgba(129, 228, 242, 0.15)',
-                    boxShadow: pitchA === 0 ? '0 0 8px rgba(129, 228, 242, 0.8)' : 'none'
-                  }}
-                />
-                <input
-                  type="range"
-                  min="-4"
-                  max="4"
-                  step="0.1"
-                  value={pitchA}
-                  onChange={(e) => {
-                    let semitones = parseFloat(e.target.value);
-
-                    // Snap to zero if within threshold
-                    const snapThreshold = 0.15;
-                    if (Math.abs(semitones) < snapThreshold) {
-                      semitones = 0;
-                    }
-
-                    setPitchA(semitones);
-                    mixerState.deckA.audioControls?.setPitch(semitones);
-                  }}
-                  className="volume-fader"
-                  style={{
-                    height: '140px',
-                    width: '16px',
-                    writingMode: 'vertical-lr',
-                    direction: 'rtl',
-                    appearance: 'none',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    borderRadius: '8px',
-                    outline: 'none',
-                    border: '1px solid rgba(129, 228, 242, 0.3)',
-                    padding: '4px 0'
-                  }}
-                />
-              </div>
-              <div className="text-[8px] text-slate-600 font-mono mt-1">A</div>
-            </div>
           </div>
 
           <SimplifiedDeck
@@ -1270,61 +1211,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
           {/* Deck B Controls */}
           <div className="flex gap-3 items-end">
-            {/* Pitch Fader */}
-            <div className="flex flex-col items-center gap-1" style={{ width: '40px' }}>
-              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Pitch</div>
-              <div className="relative flex flex-col items-center">
-                <div className="absolute right-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
-                  <span>+4</span>
-                  <span>+2</span>
-                  <span>0</span>
-                  <span>-2</span>
-                  <span>-4</span>
-                </div>
-                {/* Zero indicator light */}
-                <div
-                  className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-all duration-150"
-                  style={{
-                    backgroundColor: pitchB === 0 ? '#81e4f2' : 'rgba(129, 228, 242, 0.15)',
-                    boxShadow: pitchB === 0 ? '0 0 8px rgba(129, 228, 242, 0.8)' : 'none'
-                  }}
-                />
-                <input
-                  type="range"
-                  min="-4"
-                  max="4"
-                  step="0.1"
-                  value={pitchB}
-                  onChange={(e) => {
-                    let semitones = parseFloat(e.target.value);
-
-                    // Snap to zero if within threshold
-                    const snapThreshold = 0.15;
-                    if (Math.abs(semitones) < snapThreshold) {
-                      semitones = 0;
-                    }
-
-                    setPitchB(semitones);
-                    mixerState.deckB.audioControls?.setPitch(semitones);
-                  }}
-                  className="volume-fader"
-                  style={{
-                    height: '140px',
-                    width: '16px',
-                    writingMode: 'vertical-lr',
-                    direction: 'rtl',
-                    appearance: 'none',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    borderRadius: '8px',
-                    outline: 'none',
-                    border: '1px solid rgba(129, 228, 242, 0.3)',
-                    padding: '4px 0'
-                  }}
-                />
-              </div>
-              <div className="text-[8px] text-slate-600 font-mono mt-1">B</div>
-            </div>
-
             {/* Volume Fader */}
             <div className="flex flex-col items-center gap-1" style={{ width: '40px' }}>
               <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Vol</div>
