@@ -18,6 +18,21 @@ import DeckCrate from './DeckCrate';
 import RecordingPreview from './RecordingPreview';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Keyboard } from 'lucide-react';
+import { IPTrack } from '@/types';
+
+// Type definitions for FX Component extended HTMLDivElement
+interface FXElement extends HTMLDivElement {
+  audioInput?: GainNode;
+  audioOutput?: GainNode;
+  resetToDefaults?: () => void;
+}
+
+// Extend Window interface for cart functionality
+declare global {
+  interface Window {
+    addToCart?: (track: Track) => void;
+  }
+}
 
 interface SimplifiedMixerProps {
   className?: string;
@@ -179,8 +194,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   }, [mixerState.deckB.track?.primary_uploader_wallet]);
 
   // FX Component refs
-  const deckAFXRef = React.useRef<HTMLDivElement>(null);
-  const deckBFXRef = React.useRef<HTMLDivElement>(null);
+  const deckAFXRef = React.useRef<FXElement>(null);
+  const deckBFXRef = React.useRef<FXElement>(null);
 
   // Use the mixer audio hook
   const {
@@ -263,7 +278,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       if (!error && data) {
         // Add full IPTrack data to loadedTracks for remix split calculations
         // Note: addLoadedTrack already checks for duplicates by ID
-        addLoadedTrack(data as any);
+        addLoadedTrack(data as IPTrack);
         console.log(`📊 Deck A track loaded with full data:`, {
           id: data.id,
           title: data.title,
@@ -342,12 +357,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           console.log(`🎛️ Attempting to connect Deck A FX (attempt ${retryCount + 1})`);
 
           if (deckAFXRef.current) {
-            const hasAudioInput = !!(deckAFXRef.current as any).audioInput;
-            const hasAudioOutput = !!(deckAFXRef.current as any).audioOutput;
+            const hasAudioInput = !!deckAFXRef.current.audioInput;
+            const hasAudioOutput = !!deckAFXRef.current.audioOutput;
 
             if (hasAudioInput && hasAudioOutput) {
-              const fxInput = (deckAFXRef.current as any).audioInput as GainNode;
-              const fxOutput = (deckAFXRef.current as any).audioOutput as GainNode;
+              const fxInput = deckAFXRef.current.audioInput;
+              const fxOutput = deckAFXRef.current.audioOutput;
 
               try {
                 // Disconnect existing connections
@@ -370,8 +385,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 console.log('🎛️ Deck A FX connected to audio chain successfully');
 
                 // Reset FX to defaults for new track
-                if ((deckAFXRef.current as any).resetToDefaults) {
-                  (deckAFXRef.current as any).resetToDefaults();
+                if (deckAFXRef.current.resetToDefaults) {
+                  deckAFXRef.current.resetToDefaults();
                 }
 
                 return true;
@@ -457,7 +472,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
       if (!error && data) {
         // Add full IPTrack data to loadedTracks for remix split calculations
-        addLoadedTrack(data as any);
+        addLoadedTrack(data as IPTrack);
         console.log(`📊 Track loaded with full data:`, {
           id: data.id,
           title: data.title,
@@ -535,12 +550,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           console.log(`🎛️ Attempting to connect Deck B FX (attempt ${retryCount + 1})`);
 
           if (deckBFXRef.current) {
-            const hasAudioInput = !!(deckBFXRef.current as any).audioInput;
-            const hasAudioOutput = !!(deckBFXRef.current as any).audioOutput;
+            const hasAudioInput = !!deckBFXRef.current.audioInput;
+            const hasAudioOutput = !!deckBFXRef.current.audioOutput;
 
             if (hasAudioInput && hasAudioOutput) {
-              const fxInput = (deckBFXRef.current as any).audioInput as GainNode;
-              const fxOutput = (deckBFXRef.current as any).audioOutput as GainNode;
+              const fxInput = deckBFXRef.current.audioInput;
+              const fxOutput = deckBFXRef.current.audioOutput;
 
               try {
                 // Disconnect existing connections
@@ -563,8 +578,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 console.log('🎛️ Deck B FX connected to audio chain successfully');
 
                 // Reset FX to defaults for new track
-                if ((deckBFXRef.current as any).resetToDefaults) {
-                  (deckBFXRef.current as any).resetToDefaults();
+                if (deckBFXRef.current.resetToDefaults) {
+                  deckBFXRef.current.resetToDefaults();
                 }
 
                 return true;
@@ -860,8 +875,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const handleAddToCart = (track: Track) => {
     console.log('🛒 Adding track to cart:', track);
     // Use global cart function if available
-    if ((window as any).addToCart) {
-      (window as any).addToCart(track);
+    if (window.addToCart) {
+      window.addToCart(track);
     }
   };
 
