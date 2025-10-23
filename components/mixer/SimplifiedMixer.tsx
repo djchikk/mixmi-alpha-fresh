@@ -998,31 +998,69 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       <div className="flex justify-center items-end mb-8" style={{ gap: waveformWidth >= 700 ? '48px' : waveformWidth >= 600 ? '32px' : waveformWidth >= 500 ? '16px' : '8px' }}>
         {/* Left: Volume A + Deck A + Loop Controls + Track Info */}
         <div className="flex gap-4 items-center">
-          {/* Deck A Volume Slider */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Vol</div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              defaultValue="100"
-              onChange={(e) => {
-                const volume = parseInt(e.target.value) / 100;
-                mixerState.deckA.audioControls?.setVolume(volume);
-              }}
-              className="volume-slider"
-              style={{
-                width: '120px',
-                writingMode: 'vertical-lr',
-                direction: 'rtl',
-                appearance: 'none',
-                background: 'linear-gradient(to top, rgba(129, 228, 242, 0.3) 0%, rgba(129, 228, 242, 0.1) 100%)',
-                borderRadius: '4px',
-                outline: 'none',
-                border: '1px solid rgba(129, 228, 242, 0.2)'
-              }}
-            />
-            <div className="text-[10px] text-slate-500 font-mono">A</div>
+          {/* Deck A Controls */}
+          <div className="flex gap-3 items-end">
+            {/* Volume Fader */}
+            <div className="flex flex-col items-center gap-1" style={{ width: '40px' }}>
+              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Vol</div>
+              <div className="relative flex flex-col items-center">
+                {/* Tick marks */}
+                <div className="absolute left-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
+                  <span>10</span>
+                  <span>8</span>
+                  <span>6</span>
+                  <span>4</span>
+                  <span>2</span>
+                  <span>0</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  defaultValue="100"
+                  onChange={(e) => {
+                    const volume = parseInt(e.target.value) / 100;
+                    mixerState.deckA.audioControls?.setVolume(volume);
+                  }}
+                  className="volume-fader"
+                  style={{
+                    height: '140px',
+                    width: '16px',
+                    writingMode: 'vertical-lr',
+                    direction: 'rtl',
+                    appearance: 'none',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    border: '1px solid rgba(129, 228, 242, 0.3)',
+                    padding: '4px 0'
+                  }}
+                />
+              </div>
+              <div className="text-[8px] text-slate-600 font-mono mt-1">A</div>
+            </div>
+
+            {/* Pitch Fader - Placeholder for future */}
+            <div className="flex flex-col items-center gap-1" style={{ width: '40px', opacity: 0.3 }}>
+              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Pitch</div>
+              <div className="relative flex flex-col items-center">
+                <div className="absolute left-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
+                  <span>+8</span>
+                  <span>+4</span>
+                  <span>0</span>
+                  <span>-4</span>
+                  <span>-8</span>
+                </div>
+                <div style={{
+                  height: '140px',
+                  width: '16px',
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(100, 100, 100, 0.2)'
+                }}></div>
+              </div>
+              <div className="text-[8px] text-slate-600 font-mono mt-1">A</div>
+            </div>
           </div>
 
           <SimplifiedDeck
@@ -1187,31 +1225,69 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             trackInfoPosition="none"
           />
 
-          {/* Deck B Volume Slider */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Vol</div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              defaultValue="100"
-              onChange={(e) => {
-                const volume = parseInt(e.target.value) / 100;
-                mixerState.deckB.audioControls?.setVolume(volume);
-              }}
-              className="volume-slider"
-              style={{
-                width: '120px',
-                writingMode: 'vertical-lr',
-                direction: 'rtl',
-                appearance: 'none',
-                background: 'linear-gradient(to top, rgba(129, 228, 242, 0.3) 0%, rgba(129, 228, 242, 0.1) 100%)',
-                borderRadius: '4px',
-                outline: 'none',
-                border: '1px solid rgba(129, 228, 242, 0.2)'
-              }}
-            />
-            <div className="text-[10px] text-slate-500 font-mono">B</div>
+          {/* Deck B Controls */}
+          <div className="flex gap-3 items-end">
+            {/* Pitch Fader - Placeholder for future */}
+            <div className="flex flex-col items-center gap-1" style={{ width: '40px', opacity: 0.3 }}>
+              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Pitch</div>
+              <div className="relative flex flex-col items-center">
+                <div className="absolute right-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
+                  <span>+8</span>
+                  <span>+4</span>
+                  <span>0</span>
+                  <span>-4</span>
+                  <span>-8</span>
+                </div>
+                <div style={{
+                  height: '140px',
+                  width: '16px',
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(100, 100, 100, 0.2)'
+                }}></div>
+              </div>
+              <div className="text-[8px] text-slate-600 font-mono mt-1">B</div>
+            </div>
+
+            {/* Volume Fader */}
+            <div className="flex flex-col items-center gap-1" style={{ width: '40px' }}>
+              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1">Vol</div>
+              <div className="relative flex flex-col items-center">
+                {/* Tick marks */}
+                <div className="absolute right-[-8px] top-0 bottom-0 flex flex-col justify-between text-[8px] text-slate-500 font-mono" style={{ height: '140px' }}>
+                  <span>10</span>
+                  <span>8</span>
+                  <span>6</span>
+                  <span>4</span>
+                  <span>2</span>
+                  <span>0</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  defaultValue="100"
+                  onChange={(e) => {
+                    const volume = parseInt(e.target.value) / 100;
+                    mixerState.deckB.audioControls?.setVolume(volume);
+                  }}
+                  className="volume-fader"
+                  style={{
+                    height: '140px',
+                    width: '16px',
+                    writingMode: 'vertical-lr',
+                    direction: 'rtl',
+                    appearance: 'none',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    border: '1px solid rgba(129, 228, 242, 0.3)',
+                    padding: '4px 0'
+                  }}
+                />
+              </div>
+              <div className="text-[8px] text-slate-600 font-mono mt-1">B</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1384,50 +1460,68 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         />
       )}
 
-      {/* Volume Slider Styling */}
+      {/* Volume Fader Styling - Professional DJ Style */}
       <style jsx global>{`
-        .volume-slider::-webkit-slider-thumb {
+        .volume-fader::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 32px;
-          height: 12px;
-          background: linear-gradient(135deg, rgba(129, 228, 242, 0.9) 0%, rgba(129, 228, 242, 0.7) 100%);
-          border: 1px solid rgba(129, 228, 242, 0.8);
+          width: 24px;
+          height: 10px;
+          background: linear-gradient(180deg, #81E4F2 0%, #60C5D4 100%);
+          border: 1px solid rgba(129, 228, 242, 0.9);
           border-radius: 2px;
-          cursor: pointer;
-          box-shadow: 0 0 8px rgba(129, 228, 242, 0.3);
+          cursor: grab;
+          box-shadow:
+            0 0 8px rgba(129, 228, 242, 0.4),
+            0 2px 4px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
           transition: all 0.15s ease;
         }
 
-        .volume-slider::-webkit-slider-thumb:hover {
-          background: linear-gradient(135deg, rgba(129, 228, 242, 1) 0%, rgba(129, 228, 242, 0.9) 100%);
-          box-shadow: 0 0 12px rgba(129, 228, 242, 0.5);
-          transform: scaleX(1.1);
+        .volume-fader::-webkit-slider-thumb:hover {
+          background: linear-gradient(180deg, #A0EDF9 0%, #81E4F2 100%);
+          box-shadow:
+            0 0 12px rgba(129, 228, 242, 0.6),
+            0 2px 6px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
 
-        .volume-slider::-webkit-slider-thumb:active {
-          box-shadow: 0 0 16px rgba(129, 228, 242, 0.7);
+        .volume-fader::-webkit-slider-thumb:active {
+          cursor: grabbing;
+          box-shadow:
+            0 0 16px rgba(129, 228, 242, 0.8),
+            0 1px 2px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
-        .volume-slider::-moz-range-thumb {
-          width: 32px;
-          height: 12px;
-          background: linear-gradient(135deg, rgba(129, 228, 242, 0.9) 0%, rgba(129, 228, 242, 0.7) 100%);
-          border: 1px solid rgba(129, 228, 242, 0.8);
+        .volume-fader::-moz-range-thumb {
+          width: 24px;
+          height: 10px;
+          background: linear-gradient(180deg, #81E4F2 0%, #60C5D4 100%);
+          border: 1px solid rgba(129, 228, 242, 0.9);
           border-radius: 2px;
-          cursor: pointer;
-          box-shadow: 0 0 8px rgba(129, 228, 242, 0.3);
+          cursor: grab;
+          box-shadow:
+            0 0 8px rgba(129, 228, 242, 0.4),
+            0 2px 4px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
           transition: all 0.15s ease;
         }
 
-        .volume-slider::-moz-range-thumb:hover {
-          background: linear-gradient(135deg, rgba(129, 228, 242, 1) 0%, rgba(129, 228, 242, 0.9) 100%);
-          box-shadow: 0 0 12px rgba(129, 228, 242, 0.5);
-          transform: scaleX(1.1);
+        .volume-fader::-moz-range-thumb:hover {
+          background: linear-gradient(180deg, #A0EDF9 0%, #81E4F2 100%);
+          box-shadow:
+            0 0 12px rgba(129, 228, 242, 0.6),
+            0 2px 6px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
 
-        .volume-slider::-moz-range-thumb:active {
-          box-shadow: 0 0 16px rgba(129, 228, 242, 0.7);
+        .volume-fader::-moz-range-thumb:active {
+          cursor: grabbing;
+          box-shadow:
+            0 0 16px rgba(129, 228, 242, 0.8),
+            0 1px 2px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
       `}</style>
     </div>
