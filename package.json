@@ -10,6 +10,8 @@
     "test:remix-splits": "npx ts-node --project scripts/tsconfig.json scripts/test-remix-splits.ts"
   },
   "dependencies": {
+    "@dicebear/collection": "^9.2.4",
+    "@dicebear/core": "^9.2.4",
     "@hookform/resolvers": "^5.1.1",
     "@micro-stacks/react": "1.0.9",
     "@radix-ui/react-accordion": "^1.2.11",

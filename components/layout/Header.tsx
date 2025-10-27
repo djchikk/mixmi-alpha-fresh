@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SignInModal from "../modals/SignInModal";
 import IPTrackModal from "../modals/IPTrackModal";
+import { generateAvatar } from "@/lib/avatarUtils";
 
 export default function Header() {
   const pathname = usePathname();
@@ -31,6 +32,8 @@ export default function Header() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
+  const avatarDropdownRef = useRef<HTMLDivElement>(null);
 
   // Cart state
   const { cart, removeFromCart, clearCart, purchaseAll, cartTotal, purchaseStatus, purchaseError, showPurchaseModal, setShowPurchaseModal } = useCart();
@@ -47,14 +50,37 @@ export default function Header() {
         return;
       }
 
-      const { data } = await supabase
+      // Get profile data
+      const { data: profileData } = await supabase
         .from('user_profiles')
         .select('username, avatar_url')
         .eq('wallet_address', walletAddress)
         .single();
 
-      setUsername(data?.username || null);
-      setAvatarUrl(data?.avatar_url || null);
+      setUsername(profileData?.username || null);
+
+      // Priority 1: Profile avatar
+      if (profileData?.avatar_url) {
+        setAvatarUrl(profileData.avatar_url);
+        return;
+      }
+
+      // Priority 2: First track cover they uploaded
+      const { data: trackData } = await supabase
+        .from('ip_tracks')
+        .select('cover_image_url')
+        .eq('uploader_wallet', walletAddress)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+
+      if (trackData?.cover_image_url) {
+        setAvatarUrl(trackData.cover_image_url);
+        return;
+      }
+
+      // Priority 3: Will use DiceBear (handled in render)
+      setAvatarUrl(null);
     };
 
     fetchUserData();
@@ -75,6 +101,22 @@ export default function Header() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showCartPopover, cartPinned]);
+
+  // Handle click outside avatar dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (avatarDropdownRef.current && !avatarDropdownRef.current.contains(event.target as Node)) {
+        setShowAvatarDropdown(false);
+      }
+    };
+
+    if (showAvatarDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAvatarDropdown]);
 
   return (
     <>
@@ -136,51 +178,88 @@ export default function Header() {
       <div className="flex-1 flex justify-end items-center gap-4">
         <div className="hidden md:block">
           {isAuthenticated && walletAddress ? (
-            <div className="flex items-center gap-3">
-              {/* My Profile | My Store links */}
-              <div className="flex items-center gap-2 text-sm">
-                {/* Avatar */}
-                {avatarUrl && (
-                  <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-accent/50">
-                    <img
-                      src={avatarUrl}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <Link
-                  href={username ? `/profile/${username}` : `/profile/${walletAddress}`}
-                  className={`transition-colors ${
-                    isProfilePage
-                      ? 'text-[#81E4F2] font-semibold'
-                      : 'text-[#81E4F2]/70 hover:text-[#81E4F2] font-medium'
-                  }`}
-                >
-                  My Profile
-                </Link>
-                <span className="text-gray-600">|</span>
-                <Link
-                  href={username ? `/store/${username}` : `/store/${walletAddress}`}
-                  className={`transition-colors ${
-                    isStorePage
-                      ? 'text-[#81E4F2] font-semibold'
-                      : 'text-[#81E4F2]/70 hover:text-[#81E4F2] font-medium'
-                  }`}
-                >
-                  My Store
-                </Link>
-              </div>
-
-              <div className="text-sm text-gray-300 font-mono">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </div>
+            <div className="relative" ref={avatarDropdownRef}>
+              {/* Clickable Avatar */}
               <button
-                onClick={disconnectWallet}
-                className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors"
+                onClick={() => setShowAvatarDropdown(!showAvatarDropdown)}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
-                Disconnect
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-accent/50">
+                  <img
+                    src={avatarUrl || generateAvatar(walletAddress)}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </button>
+
+              {/* Avatar Dropdown Menu */}
+              {showAvatarDropdown && (
+                <div className="absolute top-full mt-2 right-0 w-64 bg-[#101726]/95 backdrop-blur-sm border border-[#1E293B] rounded-lg shadow-xl">
+                  {/* User Info Header */}
+                  <div className="p-4 border-b border-[#1E293B]">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent/50">
+                        <img
+                          src={avatarUrl || generateAvatar(walletAddress)}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-white truncate">
+                          {username || 'Mixmi User'}
+                        </div>
+                        <div className="text-xs text-gray-400 font-mono">
+                          {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="py-2">
+                    <Link
+                      href={username ? `/profile/${username}` : `/profile/${walletAddress}`}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
+                      onClick={() => setShowAvatarDropdown(false)}
+                    >
+                      <span className="text-lg">👤</span>
+                      <span>My Profile</span>
+                    </Link>
+                    <Link
+                      href={username ? `/store/${username}` : `/store/${walletAddress}`}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
+                      onClick={() => setShowAvatarDropdown(false)}
+                    >
+                      <span className="text-lg">🏪</span>
+                      <span>My Store</span>
+                    </Link>
+                    <Link
+                      href="/account"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
+                      onClick={() => setShowAvatarDropdown(false)}
+                    >
+                      <span className="text-lg">⚙️</span>
+                      <span>Account</span>
+                    </Link>
+                  </div>
+
+                  {/* Disconnect Button */}
+                  <div className="p-3 border-t border-[#1E293B]">
+                    <button
+                      onClick={() => {
+                        disconnectWallet();
+                        setShowAvatarDropdown(false);
+                      }}
+                      className="w-full px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>🚪</span>
+                      <span>Disconnect</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <button
@@ -255,55 +334,63 @@ export default function Header() {
             {/* Mobile Wallet Authentication */}
             <div className="pt-2 border-t border-border">
               {isAuthenticated && walletAddress ? (
-                <div className="flex flex-col gap-2">
-                  {/* My Profile | My Store links */}
-                  <div className="flex items-center gap-2 text-sm">
-                    {/* Avatar */}
-                    {avatarUrl && (
-                      <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-accent/50">
-                        <img
-                          src={avatarUrl}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
+                <div className="flex flex-col gap-3">
+                  {/* User Info */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-accent/50">
+                      <img
+                        src={avatarUrl || generateAvatar(walletAddress)}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">
+                        {username || 'Mixmi User'}
                       </div>
-                    )}
+                      <div className="text-xs text-gray-400 font-mono">
+                        {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Links */}
+                  <div className="flex flex-col gap-2">
                     <Link
                       href={username ? `/profile/${username}` : `/profile/${walletAddress}`}
-                      className={`transition-colors ${
-                        isProfilePage
-                          ? 'text-[#81E4F2] font-semibold'
-                          : 'text-[#81E4F2]/70 hover:text-[#81E4F2] font-medium'
-                      }`}
+                      className="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      My Profile
+                      <span>👤</span>
+                      <span>My Profile</span>
                     </Link>
-                    <span className="text-gray-600">|</span>
                     <Link
                       href={username ? `/store/${username}` : `/store/${walletAddress}`}
-                      className={`transition-colors ${
-                        isStorePage
-                          ? 'text-[#81E4F2] font-semibold'
-                          : 'text-[#81E4F2]/70 hover:text-[#81E4F2] font-medium'
-                      }`}
+                      className="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      My Store
+                      <span>🏪</span>
+                      <span>My Store</span>
+                    </Link>
+                    <Link
+                      href="/account"
+                      className="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <span>⚙️</span>
+                      <span>Account</span>
                     </Link>
                   </div>
 
-                  <div className="text-sm text-gray-300 font-mono">
-                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                  </div>
                   <button
                     onClick={() => {
                       disconnectWallet();
                       setIsMobileMenuOpen(false);
                     }}
-                    className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors w-fit"
+                    className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors w-fit flex items-center gap-2"
                   >
-                    Disconnect
+                    <span>🚪</span>
+                    <span>Disconnect</span>
                   </button>
                 </div>
               ) : (
