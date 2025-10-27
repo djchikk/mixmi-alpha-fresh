@@ -22,14 +22,40 @@ interface CertificateViewerProps {
 }
 
 export default function CertificateViewer({ track, onClose }: CertificateViewerProps) {
+  // Get color based on content type
+  const getBorderColor = () => {
+    if (track.content_type === 'loop' || track.content_type === 'loop_pack') {
+      return '#9772F4'; // Purple for remixable
+    }
+    return '#FFE4B5'; // Gold for downloadable
+  };
+
+  const borderColor = getBorderColor();
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const date = new Date(dateString);
+
+    // UTC time
+    const utcHours = date.getUTCHours().toString().padStart(2, '0');
+    const utcMinutes = date.getUTCMinutes().toString().padStart(2, '0');
+
+    // PST time (UTC-8)
+    const pstDate = new Date(date.getTime() - (8 * 60 * 60 * 1000));
+    const pstHours = pstDate.getUTCHours();
+    const pstMinutes = pstDate.getUTCMinutes().toString().padStart(2, '0');
+    const pstAmPm = pstHours >= 12 ? 'PM' : 'AM';
+    const pstHours12 = pstHours % 12 || 12;
+    const pstFormatted = `${pstHours12.toString().padStart(2, '0')}:${pstMinutes} ${pstAmPm}`;
+
+    // Date format: October 9, 2025
+    const dateFormatted = date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      timeZone: 'UTC'
     });
+
+    return `${dateFormatted} at ${utcHours}:${utcMinutes} UTC (${pstFormatted} PST)`;
   };
 
   const shortenWallet = (wallet: string) => {
@@ -65,28 +91,40 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       background: white;
       color: #1e293b;
       padding: 60px 40px;
-      border: 6px solid #9772F4;
+      border: 6px solid ${borderColor};
       border-radius: 12px;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
     .header {
       text-align: center;
       margin-bottom: 40px;
-      border-bottom: 3px solid #9772F4;
+      border-bottom: 3px solid ${borderColor};
       padding-bottom: 30px;
     }
+    .header .logo-container {
+      display: inline-block;
+      background: #101726;
+      padding: 8px 16px;
+      border-radius: 6px;
+      margin: 0 auto 16px;
+    }
+    .header .logo {
+      height: 16px;
+      display: block;
+    }
     .header h1 {
-      font-size: 42px;
+      font-size: 36px;
       font-weight: 800;
       color: #9772F4;
       margin-bottom: 8px;
-      letter-spacing: -1px;
+      letter-spacing: 2px;
     }
     .header .subtitle {
-      font-size: 16px;
+      font-size: 14px;
       color: #64748b;
       text-transform: uppercase;
       letter-spacing: 2px;
+      font-weight: 600;
     }
     .track-info {
       display: flex;
@@ -102,7 +140,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       height: 100px;
       border-radius: 8px;
       object-fit: cover;
-      border: 2px solid #9772F4;
+      border: 2px solid ${borderColor};
     }
     .track-details h2 {
       font-size: 28px;
@@ -118,8 +156,8 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     .track-details .type {
       display: inline-block;
       padding: 4px 12px;
-      background: #9772F4;
-      color: white;
+      background: ${borderColor};
+      color: ${borderColor === '#FFE4B5' ? '#1e293b' : 'white'};
       border-radius: 4px;
       font-size: 12px;
       text-transform: uppercase;
@@ -159,7 +197,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       background: #f1f5f9;
       padding: 24px;
       border-radius: 8px;
-      border-left: 4px solid #9772F4;
+      border-left: 4px solid ${borderColor};
     }
     .footer {
       text-align: center;
@@ -185,8 +223,11 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
 <body>
   <div class="certificate">
     <div class="header">
-      <h1>Mixmi Certificate</h1>
-      <div class="subtitle">Official Upload Record</div>
+      <div class="logo-container">
+        <img src="/logos/logotype-mixmi.svg" alt="Mixmi" class="logo" />
+      </div>
+      <h1>CERTIFICATE</h1>
+      <div class="subtitle">Verified Upload</div>
     </div>
 
     <div class="track-info">
@@ -231,11 +272,11 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       <div class="ip-rights">
         <div class="info-row">
           <span class="info-label">Composition Rights:</span>
-          <span class="info-value">100% - You</span>
+          <span class="info-value">100% - ${shortenWallet(track.primary_uploader_wallet)}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">Production Rights:</span>
-          <span class="info-value">100% - You</span>
+          <span class="info-label">Sound Recording Rights:</span>
+          <span class="info-value">100% - ${shortenWallet(track.primary_uploader_wallet)}</span>
         </div>
       </div>
     </div>
@@ -263,7 +304,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   const handleCopyText = () => {
     const text = `
 MIXMI CERTIFICATE
-Official Upload Record
+Verified Upload
 ═══════════════════════════════════════════
 
 Track: ${track.title}
@@ -273,8 +314,8 @@ Upload Date: ${formatDate(track.created_at)}
 Track ID: ${track.id}
 
 INTELLECTUAL PROPERTY RIGHTS
-Composition: 100% - You
-Production: 100% - You
+Composition: 100% - ${shortenWallet(track.primary_uploader_wallet)}
+Sound Recording: 100% - ${shortenWallet(track.primary_uploader_wallet)}
 
 Uploader Wallet: ${track.primary_uploader_wallet}
 ${track.bpm ? `BPM: ${track.bpm}` : ''}
@@ -304,7 +345,7 @@ mixmi.app • Discover • Mix • Create
     price_stx: track.price_stx,
     ip_attribution: {
       composition: [{ wallet: track.primary_uploader_wallet, percentage: 100 }],
-      production: [{ wallet: track.primary_uploader_wallet, percentage: 100 }]
+      sound_recording: [{ wallet: track.primary_uploader_wallet, percentage: 100 }]
     },
     mixmi_certificate: "This track was registered on Mixmi Alpha"
   };
@@ -329,11 +370,18 @@ mixmi.app • Discover • Mix • Create
         {/* Certificate Content */}
         <div className="p-8">
           {/* Certificate Card */}
-          <div className="certificate-display bg-white text-gray-900 p-10 rounded-lg border-4 border-[#9772F4] mb-6">
+          <div className="certificate-display bg-white text-gray-900 p-10 rounded-lg border-4 mb-6" style={{ borderColor }}>
             {/* Header */}
-            <div className="text-center mb-8 border-b-2 border-[#9772F4] pb-6">
-              <div className="text-4xl font-bold mb-2 text-[#9772F4]">Mixmi Certificate</div>
-              <div className="text-sm text-gray-600 uppercase tracking-widest">Official Upload Record</div>
+            <div className="text-center mb-8 border-b-2 pb-6" style={{ borderColor }}>
+              <div className="inline-block bg-[#101726] px-4 py-2 rounded-md mb-4">
+                <img
+                  src="/logos/logotype-mixmi.svg"
+                  alt="Mixmi"
+                  className="h-4"
+                />
+              </div>
+              <div className="text-3xl font-bold mb-2 tracking-wider" style={{ color: borderColor }}>CERTIFICATE</div>
+              <div className="text-sm text-gray-600 uppercase tracking-widest font-semibold">Verified Upload</div>
             </div>
 
             {/* Track Info */}
@@ -341,12 +389,19 @@ mixmi.app • Discover • Mix • Create
               <img
                 src={track.cover_image_url}
                 alt={track.title}
-                className="w-24 h-24 rounded-lg object-cover border-2 border-[#9772F4]"
+                className="w-24 h-24 rounded-lg object-cover border-2"
+                style={{ borderColor }}
               />
               <div className="flex-1">
                 <div className="font-bold text-2xl mb-1">{track.title}</div>
                 <div className="text-gray-600 text-lg mb-2">{track.artist}</div>
-                <span className="inline-block px-3 py-1 bg-[#9772F4] text-white text-xs rounded uppercase tracking-wide font-semibold">
+                <span
+                  className="inline-block px-3 py-1 text-xs rounded uppercase tracking-wide font-semibold"
+                  style={{
+                    backgroundColor: borderColor,
+                    color: borderColor === '#FFE4B5' ? '#1e293b' : 'white'
+                  }}
+                >
                   {track.content_type.replace(/_/g, ' ')}
                 </span>
               </div>
@@ -367,13 +422,13 @@ mixmi.app • Discover • Mix • Create
               </div>
 
               {/* IP Rights */}
-              <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-[#9772F4]">
+              <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
                 <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
                   Intellectual Property Rights
                 </div>
                 <div className="space-y-2 text-sm">
-                  <DetailRow label="Composition Rights" value="100% - You" />
-                  <DetailRow label="Production Rights" value="100% - You" />
+                  <DetailRow label="Composition Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+                  <DetailRow label="Sound Recording Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
                 </div>
               </div>
             </div>
