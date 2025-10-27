@@ -69,7 +69,7 @@ export default function Header() {
       const { data: trackData } = await supabase
         .from('ip_tracks')
         .select('cover_image_url')
-        .eq('uploader_wallet', walletAddress)
+        .eq('primary_uploader_wallet', walletAddress)
         .order('created_at', { ascending: true })
         .limit(1)
         .single();

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Header from "@/components/layout/Header";
 
 type Tab = "uploads" | "history" | "settings";
 
@@ -17,7 +18,7 @@ interface Track {
   bpm?: number;
   key?: string;
   created_at: string;
-  uploader_wallet: string;
+  primary_uploader_wallet: string;
   is_deleted: boolean;
 }
 
@@ -38,16 +39,25 @@ export default function AccountPage() {
   // Fetch user's tracks
   useEffect(() => {
     const fetchTracks = async () => {
-      if (!walletAddress) return;
+      if (!walletAddress) {
+        console.log('[Account] No wallet address yet');
+        return;
+      }
 
+      console.log('[Account] Fetching tracks for wallet:', walletAddress);
       setLoading(true);
+
       const { data, error } = await supabase
         .from("ip_tracks")
         .select("*")
-        .eq("uploader_wallet", walletAddress)
+        .eq("primary_uploader_wallet", walletAddress)
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
+      console.log('[Account] Query result:', { data, error, count: data?.length });
+
+      if (error) {
+        console.error('[Account] Error fetching tracks:', error);
+      } else if (data) {
         setTracks(data);
       }
       setLoading(false);
@@ -63,79 +73,82 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-24 pb-12">
-      <div className="max-w-6xl mx-auto px-6">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Account</h1>
-          <p className="text-gray-400">Manage your uploads, certificates, and settings</p>
-        </div>
+    <>
+      <Header />
+      <div className="min-h-screen bg-background pt-24 pb-12">
+        <div className="max-w-6xl mx-auto px-6">
+          {/* Page Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-white mb-2">Account</h1>
+            <p className="text-gray-400">Manage your uploads, certificates, and settings</p>
+          </div>
 
-        {/* Tab Navigation */}
-        <div className="border-b border-[#1E293B] mb-8">
-          <div className="flex gap-6">
-            <button
-              onClick={() => setActiveTab("uploads")}
-              className={`pb-3 px-2 font-medium transition-colors relative ${
-                activeTab === "uploads"
-                  ? "text-[#81E4F2]"
-                  : "text-gray-400 hover:text-gray-300"
-              }`}
-            >
-              My Uploads
+          {/* Tab Navigation */}
+          <div className="border-b border-[#1E293B] mb-8">
+            <div className="flex gap-6">
+              <button
+                onClick={() => setActiveTab("uploads")}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === "uploads"
+                    ? "text-[#81E4F2]"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
+              >
+                My Uploads
+                {activeTab === "uploads" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("history")}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === "history"
+                    ? "text-[#81E4F2]"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
+              >
+                Upload History
+                {activeTab === "history" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("settings")}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === "settings"
+                    ? "text-[#81E4F2]"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
+              >
+                Settings
+                {activeTab === "settings" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#81E4F2]"></div>
+            </div>
+          ) : (
+            <>
               {activeTab === "uploads" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                <MyUploadsTab tracks={tracks} onRefresh={() => {}} />
               )}
-            </button>
-            <button
-              onClick={() => setActiveTab("history")}
-              className={`pb-3 px-2 font-medium transition-colors relative ${
-                activeTab === "history"
-                  ? "text-[#81E4F2]"
-                  : "text-gray-400 hover:text-gray-300"
-              }`}
-            >
-              Upload History
               {activeTab === "history" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                <UploadHistoryTab tracks={tracks} />
               )}
-            </button>
-            <button
-              onClick={() => setActiveTab("settings")}
-              className={`pb-3 px-2 font-medium transition-colors relative ${
-                activeTab === "settings"
-                  ? "text-[#81E4F2]"
-                  : "text-gray-400 hover:text-gray-300"
-              }`}
-            >
-              Settings
               {activeTab === "settings" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                <SettingsTab />
               )}
-            </button>
-          </div>
+            </>
+          )}
         </div>
-
-        {/* Tab Content */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#81E4F2]"></div>
-          </div>
-        ) : (
-          <>
-            {activeTab === "uploads" && (
-              <MyUploadsTab tracks={tracks} onRefresh={() => {}} />
-            )}
-            {activeTab === "history" && (
-              <UploadHistoryTab tracks={tracks} />
-            )}
-            {activeTab === "settings" && (
-              <SettingsTab />
-            )}
-          </>
-        )}
       </div>
-    </div>
+    </>
   );
 }
 
