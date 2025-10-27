@@ -8,115 +8,246 @@ interface SimplifiedLicensingStepProps {
 export default function SimplifiedLicensingStep({ formData, handleInputChange }: SimplifiedLicensingStepProps) {
   // Simplified licensing for alpha version - keep custom pricing but remove complex options
   if (formData.content_type === 'full_song') {
-    // Songs: Download Only with custom pricing
+    // Songs: Platform Streaming (required) + Optional Downloads
     return (
       <div className="space-y-6">
-        {/* Song Download Option */}
-        <div className="p-4 bg-slate-800/30 rounded-lg border border-slate-700">
+        {/* Platform Streaming - Always Required */}
+        <div className="bg-[#81E4F2]/10 border border-[#81E4F2]/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="text-2xl mt-1">📥</div>
+            <input
+              type="checkbox"
+              checked={true}
+              disabled={true}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
+            />
             <div className="flex-1">
-              <div className="text-gray-300 font-medium mb-2">DOWNLOAD ONLY</div>
-              <ul className="text-gray-400 text-sm space-y-1 ml-4">
-                <li>• Personal listening</li>
-                <li>• DJ sets and live performance</li>
-                <li>• Playlist inclusion</li>
-              </ul>
-            </div>
-          </div>
-          
-          {/* Download price for full songs */}
-          <div className="mt-4 p-3 bg-slate-900/50 rounded">
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-sm">Download price:</span>
-              <div className="flex items-center">
-                <input
-                  type="number"
-                  value={formData.download_price || 2}
-                  onChange={(e) => {
-                    const price = parseFloat(e.target.value) || 0;
-                    handleInputChange('download_price', price);
-                    handleInputChange('price_stx', price);
-                  }}
-                  className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
-                  placeholder="2"
-                  min="0"
-                  step="1"
-                />
-                <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-gray-300 font-medium">PLATFORM STREAMING</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
+              </div>
+              <p className="text-gray-400 text-sm mb-3">
+                Your song earns approximately <strong>0.08 STX per full play</strong> from 30-minute streaming passes
+                (currently ~$0.036 USD - 9-12x better than Spotify).
+              </p>
+
+              {/* Streaming info display */}
+              <div className="bg-slate-900/50 p-3 rounded">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm">Streaming rate:</span>
+                  <span className="text-[#81E4F2] font-bold text-lg">~0.08 STX</span>
+                  <span className="text-gray-500 text-xs">per full play</span>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Optional Download */}
+        <div className="bg-[#9772F4]/10 border border-[#9772F4]/30 rounded-lg p-4">
+          <div className="flex items-start gap-3 mb-4">
+            <input
+              type="checkbox"
+              checked={formData.allow_downloads || false}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                handleInputChange('allow_downloads', checked);
+                handleInputChange('license_type', checked ? 'streaming_download' : 'streaming_only');
+                if (checked && !formData.download_price_stx) {
+                  handleInputChange('download_price_stx', 2);
+                } else if (!checked) {
+                  handleInputChange('download_price_stx', null);
+                }
+              }}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-gray-300 font-medium">ALLOW DOWNLOADS</span>
+                <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">Optional</span>
+              </div>
+              <p className="text-gray-400 text-sm">Allow users to download for offline/DJ use</p>
+            </div>
+          </div>
+
+          {/* Download pricing - only show if enabled */}
+          {formData.allow_downloads && (
+            <div className="ml-8 space-y-3">
+              <div className="p-3 bg-slate-900/50 rounded">
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 text-sm">Download price:</span>
+                  <div className="flex items-center">
+                    <input
+                      type="number"
+                      value={formData.download_price_stx || 2}
+                      onChange={(e) => {
+                        const price = parseFloat(e.target.value) || 0;
+                        handleInputChange('download_price_stx', price);
+                        handleInputChange('price_stx', price);
+                      }}
+                      className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
+                      placeholder="2"
+                      min="0"
+                      step="1"
+                    />
+                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* License terms for downloads */}
+              <div className="bg-blue-900/20 border border-blue-700/30 p-3 rounded">
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-400 text-sm">📋</span>
+                  <div>
+                    <div className="text-blue-300 text-xs font-medium mb-1">Download License</div>
+                    <p className="text-gray-400 text-xs leading-relaxed">
+                      Personal listening, DJ sets, live performance, and playlist inclusion.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Show message when downloads are disabled */}
+          {!formData.allow_downloads && (
+            <div className="ml-8 text-gray-500 text-sm italic">
+              Enable downloads to set custom download pricing
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // EPs: Show EP pricing similar to loop packs but for songs (download-only)
+  // EPs: Platform Streaming (required) + Optional Downloads per song
   if (formData.content_type === 'ep') {
     const songCount = formData.ep_files?.length || 0;
-    const pricePerSong = formData.price_per_song || 2;
-    const totalEPPrice = (pricePerSong * songCount).toFixed(1);
+    const downloadPricePerSong = formData.price_per_song || 2;
+    const totalEPPrice = (downloadPricePerSong * songCount).toFixed(1);
 
     return (
       <div className="space-y-6">
-        {/* EP Pricing & Download Info Combined */}
-        <div className="bg-[#FFE4B5]/10 border border-[#FFE4B5]/30 rounded-lg p-4">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="text-2xl mt-1">🎤</div>
+        {/* Platform Streaming - Always Required */}
+        <div className="bg-[#81E4F2]/10 border border-[#81E4F2]/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={true}
+              disabled={true}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
+            />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-gray-300 font-medium">EP DOWNLOAD ONLY</span>
+                <span className="text-gray-300 font-medium">PLATFORM STREAMING</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
               </div>
-              <p className="text-gray-400 text-sm mb-1">Complete songs available for download (no remix licensing)</p>
-              <ul className="text-gray-500 text-xs space-y-0.5 ml-4">
-                <li>• Personal listening & playlist inclusion</li>
-                <li>• DJ sets and live performance</li>
-              </ul>
-            </div>
-          </div>
+              <p className="text-gray-400 text-sm mb-3">
+                Each song in your EP earns approximately <strong>0.08 STX per full play</strong> from 30-minute streaming passes
+                (currently ~$0.036 USD - 9-12x better than Spotify).
+              </p>
 
-          {/* EP Pricing Section */}
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Songs in EP</label>
-                <div className="py-2 px-3 bg-slate-800 border border-slate-600 rounded text-green-400 text-sm">
-                  ✅ {songCount} songs
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Price Per Song</label>
-                <div className="flex items-center">
-                  <input
-                    type="number"
-                    value={pricePerSong}
-                    onChange={(e) => {
-                      const price = parseFloat(e.target.value) || 0;
-                      handleInputChange('price_per_song', price);
-                      handleInputChange('price_stx', price * songCount);
-                    }}
-                    className="w-20 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
-                    placeholder="2"
-                    min="0"
-                    step="1"
-                  />
-                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Total EP Price */}
-            <div className="bg-slate-900/50 p-3 rounded">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 text-sm">Total EP Price:</span>
-                <div className="text-right">
-                  <div className="text-[#81E4F2] font-bold text-xl">{totalEPPrice} STX</div>
-                  <div className="text-gray-500 text-xs">{songCount} songs × {pricePerSong} STX</div>
+              {/* Streaming info display */}
+              <div className="bg-slate-900/50 p-3 rounded">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm">Streaming rate:</span>
+                  <span className="text-[#81E4F2] font-bold text-lg">~0.08 STX</span>
+                  <span className="text-gray-500 text-xs">per song per full play</span>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Optional EP Downloads */}
+        <div className="bg-[#9772F4]/10 border border-[#9772F4]/30 rounded-lg p-4">
+          <div className="flex items-start gap-3 mb-4">
+            <input
+              type="checkbox"
+              checked={formData.allow_downloads || false}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                handleInputChange('allow_downloads', checked);
+                handleInputChange('license_type', checked ? 'streaming_download' : 'streaming_only');
+                if (!checked) {
+                  handleInputChange('download_price_stx', null);
+                }
+              }}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-gray-300 font-medium">ALLOW EP DOWNLOADS</span>
+                <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">Optional</span>
+              </div>
+              <p className="text-gray-400 text-sm">Allow users to download all songs for offline/DJ use</p>
+            </div>
+          </div>
+
+          {/* Download pricing - only show if enabled */}
+          {formData.allow_downloads && (
+            <div className="ml-8 space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Songs in EP</label>
+                  <div className="py-2 px-3 bg-slate-800 border border-slate-600 rounded text-green-400 text-sm">
+                    ✅ {songCount} songs
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Price Per Song</label>
+                  <div className="flex items-center">
+                    <input
+                      type="number"
+                      value={downloadPricePerSong}
+                      onChange={(e) => {
+                        const price = parseFloat(e.target.value) || 0;
+                        handleInputChange('price_per_song', price);
+                        handleInputChange('download_price_stx', price * songCount);
+                        handleInputChange('price_stx', price * songCount);
+                      }}
+                      className="w-20 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
+                      placeholder="2"
+                      min="0"
+                      step="1"
+                    />
+                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Total EP download price */}
+              <div className="bg-slate-900/50 p-3 rounded">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 text-sm">Total EP Price:</span>
+                  <div className="text-right">
+                    <div className="text-[#81E4F2] font-bold text-xl">{totalEPPrice} STX</div>
+                    <div className="text-gray-500 text-xs">{songCount} songs × {downloadPricePerSong} STX</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* License terms for downloads */}
+              <div className="bg-blue-900/20 border border-blue-700/30 p-3 rounded">
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-400 text-sm">📋</span>
+                  <div>
+                    <div className="text-blue-300 text-xs font-medium mb-1">Download License</div>
+                    <p className="text-gray-400 text-xs leading-relaxed">
+                      Personal listening, DJ sets, live performance, and playlist inclusion.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Show message when downloads are disabled */}
+          {!formData.allow_downloads && (
+            <div className="ml-8 text-gray-500 text-sm italic">
+              Enable downloads to set EP pricing
+            </div>
+          )}
         </div>
       </div>
     );
@@ -167,6 +298,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               onChange={(e) => {
                 const checked = e.target.checked;
                 handleInputChange('allow_downloads', checked);
+                handleInputChange('license_type', checked ? 'remix_external' : 'remix_only');
                 if (!checked) {
                   handleInputChange('download_price_stx', null);
                 }
@@ -297,6 +429,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
             onChange={(e) => {
               const checked = e.target.checked;
               handleInputChange('allow_downloads', checked);
+              handleInputChange('license_type', checked ? 'remix_external' : 'remix_only');
               if (checked && !formData.download_price_stx) {
                 handleInputChange('download_price_stx', 1);
               } else if (!checked) {

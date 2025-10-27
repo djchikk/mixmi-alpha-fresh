@@ -14,6 +14,23 @@ interface Track {
   created_at: string;
   primary_uploader_wallet: string;
   price_stx: number;
+  license_type?: string;
+  allow_downloads?: boolean;
+  remix_price_stx?: number;
+  download_price_stx?: number;
+  generation?: number;
+  parent_track_1_id?: string;
+  parent_track_2_id?: string;
+  parent_track_1?: {
+    id: string;
+    title: string;
+    artist: string;
+  };
+  parent_track_2?: {
+    id: string;
+    title: string;
+    artist: string;
+  };
 }
 
 interface CertificateViewerProps {
@@ -62,6 +79,54 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     return `${wallet.slice(0, 8)}...${wallet.slice(-6)}`;
   };
 
+  const getLicenseInfo = () => {
+    const isLoop = track.content_type === 'loop' || track.content_type === 'loop_pack';
+    const isSong = track.content_type === 'full_song' || track.content_type === 'ep';
+
+    if (isLoop) {
+      return {
+        type: 'Platform Remix Only',
+        platformPrice: '1 STX (per recording)',
+        downloadPrice: track.allow_downloads && track.download_price_stx
+          ? `${track.download_price_stx} STX`
+          : 'Not Available'
+      };
+    } else if (isSong) {
+      return {
+        type: 'Platform Streaming Only',
+        platformPrice: '~0.08 STX (per full play)',
+        downloadPrice: track.allow_downloads && track.download_price_stx
+          ? `${track.download_price_stx} STX`
+          : 'Not Available'
+      };
+    }
+
+    return {
+      type: 'Unknown',
+      platformPrice: 'N/A',
+      downloadPrice: 'N/A'
+    };
+  };
+
+  const licenseInfo = getLicenseInfo();
+
+  const getGenerationInfo = () => {
+    const gen = track.generation || 0;
+    const emojis = {
+      0: '🌱',
+      1: '🌿',
+      2: '🌳',
+      3: '🌲'
+    };
+    return {
+      emoji: emojis[gen] || '🌲',
+      label: `Gen ${gen}`
+    };
+  };
+
+  const generationInfo = getGenerationInfo();
+  const isRemix = (track.generation || 0) > 0;
+
   const handlePrint = () => {
     window.print();
   };
@@ -97,9 +162,9 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     }
     .header {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 24px;
       border-bottom: 3px solid ${borderColor};
-      padding-bottom: 30px;
+      padding-bottom: 20px;
     }
     .header .logo-container {
       display: inline-block;
@@ -130,8 +195,8 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       display: flex;
       align-items: center;
       gap: 24px;
-      margin-bottom: 40px;
-      padding: 24px;
+      margin-bottom: 24px;
+      padding: 20px;
       background: #f8fafc;
       border-radius: 8px;
     }
@@ -165,7 +230,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       font-weight: 600;
     }
     .section {
-      margin-bottom: 32px;
+      margin-bottom: 20px;
     }
     .section-title {
       font-size: 18px;
@@ -235,7 +300,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       <div class="track-details">
         <h2>${track.title}</h2>
         <div class="artist">${track.artist}</div>
-        <span class="type">${track.content_type.replace(/_/g, ' ')}</span>
+        <span class="type">${generationInfo.emoji} ${track.content_type.replace(/_/g, ' ')} · ${generationInfo.label}</span>
       </div>
     </div>
 
@@ -267,6 +332,47 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       </div>
     </div>
 
+    ${isRemix ? `
+    <div class="section">
+      <div class="section-title">Built From Source Loops</div>
+      <div class="ip-rights">
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 12px;">This ${generationInfo.label} remix combines:</p>
+        ${track.parent_track_1 ? `
+        <div class="info-row">
+          <span class="info-label">• ${track.parent_track_1.title}</span>
+          <span class="info-value">by ${track.parent_track_1.artist}</span>
+        </div>
+        ` : ''}
+        ${track.parent_track_2 ? `
+        <div class="info-row">
+          <span class="info-label">• ${track.parent_track_2.title}</span>
+          <span class="info-value">by ${track.parent_track_2.artist}</span>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Intellectual Property Rights</div>
+      <div class="ip-rights">
+        <div class="info-row">
+          <span class="info-label">Remix Created By:</span>
+          <span class="info-value">${shortenWallet(track.primary_uploader_wallet)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Commission:</span>
+          <span class="info-value">20% on sales</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">IP Ownership:</span>
+          <span class="info-value">100% flows to source loop creators</span>
+        </div>
+        <p style="color: #64748b; font-size: 12px; margin-top: 12px; font-style: italic;">
+          For detailed IP breakdown, view this track on Mixmi
+        </p>
+      </div>
+    </div>
+    ` : `
     <div class="section">
       <div class="section-title">Intellectual Property Rights</div>
       <div class="ip-rights">
@@ -277,6 +383,25 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
         <div class="info-row">
           <span class="info-label">Sound Recording Rights:</span>
           <span class="info-value">100% - ${shortenWallet(track.primary_uploader_wallet)}</span>
+        </div>
+      </div>
+    </div>
+    `}
+
+    <div class="section">
+      <div class="section-title">Usage Permissions</div>
+      <div class="ip-rights">
+        <div class="info-row">
+          <span class="info-label">License Type:</span>
+          <span class="info-value">${licenseInfo.type}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Platform Price:</span>
+          <span class="info-value">${licenseInfo.platformPrice}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Download Price:</span>
+          <span class="info-value">${licenseInfo.downloadPrice}</span>
         </div>
       </div>
     </div>
@@ -302,6 +427,26 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   };
 
   const handleCopyText = () => {
+    const sourceTracksText = isRemix && (track.parent_track_1 || track.parent_track_2) ? `
+BUILT FROM SOURCE LOOPS
+This ${generationInfo.label} remix combines:
+${track.parent_track_1 ? `• ${track.parent_track_1.title} by ${track.parent_track_1.artist}` : ''}
+${track.parent_track_2 ? `• ${track.parent_track_2.title} by ${track.parent_track_2.artist}` : ''}
+` : '';
+
+    const ipRightsText = isRemix ? `
+INTELLECTUAL PROPERTY RIGHTS
+Remix Created By: ${shortenWallet(track.primary_uploader_wallet)}
+Commission: 20% on sales
+IP Ownership: 100% flows to source loop creators
+
+For detailed IP breakdown, view this track on Mixmi
+` : `
+INTELLECTUAL PROPERTY RIGHTS
+Composition: 100% - ${shortenWallet(track.primary_uploader_wallet)}
+Sound Recording: 100% - ${shortenWallet(track.primary_uploader_wallet)}
+`;
+
     const text = `
 MIXMI CERTIFICATE
 Verified Upload
@@ -309,13 +454,14 @@ Verified Upload
 
 Track: ${track.title}
 Artist: ${track.artist}
-Content Type: ${track.content_type.replace(/_/g, ' ')}
+Content Type: ${generationInfo.emoji} ${track.content_type.replace(/_/g, ' ')} · ${generationInfo.label}
 Upload Date: ${formatDate(track.created_at)}
 Track ID: ${track.id}
-
-INTELLECTUAL PROPERTY RIGHTS
-Composition: 100% - ${shortenWallet(track.primary_uploader_wallet)}
-Sound Recording: 100% - ${shortenWallet(track.primary_uploader_wallet)}
+${sourceTracksText}${ipRightsText}
+USAGE PERMISSIONS
+License Type: ${licenseInfo.type}
+Platform Price: ${licenseInfo.platformPrice}
+Download Price: ${licenseInfo.downloadPrice}
 
 Uploader Wallet: ${track.primary_uploader_wallet}
 ${track.bpm ? `BPM: ${track.bpm}` : ''}
@@ -372,7 +518,7 @@ mixmi.app • Discover • Mix • Create
           {/* Certificate Card */}
           <div className="certificate-display bg-white text-gray-900 p-10 rounded-lg border-4 mb-6" style={{ borderColor }}>
             {/* Header */}
-            <div className="text-center mb-8 border-b-2 pb-6" style={{ borderColor }}>
+            <div className="text-center mb-6 border-b-2 pb-4" style={{ borderColor }}>
               <div className="inline-block bg-[#101726] px-4 py-2 rounded-md mb-4">
                 <img
                   src="/logos/logotype-mixmi.svg"
@@ -385,7 +531,7 @@ mixmi.app • Discover • Mix • Create
             </div>
 
             {/* Track Info */}
-            <div className="flex items-center gap-6 mb-8 bg-gray-50 p-6 rounded-lg">
+            <div className="flex items-center gap-6 mb-6 bg-gray-50 p-5 rounded-lg">
               <img
                 src={track.cover_image_url}
                 alt={track.title}
@@ -402,13 +548,13 @@ mixmi.app • Discover • Mix • Create
                     color: borderColor === '#FFE4B5' ? '#1e293b' : 'white'
                   }}
                 >
-                  {track.content_type.replace(/_/g, ' ')}
+                  {generationInfo.emoji} {track.content_type.replace(/_/g, ' ')} · {generationInfo.label}
                 </span>
               </div>
             </div>
 
             {/* Certificate Details */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
                 <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">Upload Details</div>
                 <div className="space-y-2 text-sm">
@@ -421,14 +567,83 @@ mixmi.app • Discover • Mix • Create
                 </div>
               </div>
 
+              {/* Source Tracks (for remixes) */}
+              {isRemix && (track.parent_track_1 || track.parent_track_2) && (
+                <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
+                  <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                    Built From Source Loops
+                  </div>
+                  <p className="text-gray-600 text-sm mb-3">This {generationInfo.label} remix combines:</p>
+                  <div className="space-y-2 text-sm">
+                    {track.parent_track_1 && (
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                        <span className="text-gray-600">• {track.parent_track_1.title}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">by {track.parent_track_1.artist}</span>
+                          <a
+                            href={`/store/${track.parent_track_1.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#81E4F2] hover:text-[#6dd4e4] text-xs font-medium"
+                          >
+                            View →
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {track.parent_track_2 && (
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600">• {track.parent_track_2.title}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">by {track.parent_track_2.artist}</span>
+                          <a
+                            href={`/store/${track.parent_track_2.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#81E4F2] hover:text-[#6dd4e4] text-xs font-medium"
+                          >
+                            View →
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* IP Rights */}
               <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
                 <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
                   Intellectual Property Rights
                 </div>
+                {isRemix ? (
+                  <>
+                    <div className="space-y-2 text-sm">
+                      <DetailRow label="Remix Created By" value={shortenWallet(track.primary_uploader_wallet)} />
+                      <DetailRow label="Commission" value="20% on sales" />
+                      <DetailRow label="IP Ownership" value="100% flows to source loop creators" />
+                    </div>
+                    <p className="text-gray-500 text-xs mt-3 italic">
+                      For detailed IP breakdown, view this track on Mixmi
+                    </p>
+                  </>
+                ) : (
+                  <div className="space-y-2 text-sm">
+                    <DetailRow label="Composition Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+                    <DetailRow label="Sound Recording Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+                  </div>
+                )}
+              </div>
+
+              {/* Usage Permissions */}
+              <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
+                <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                  Usage Permissions
+                </div>
                 <div className="space-y-2 text-sm">
-                  <DetailRow label="Composition Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
-                  <DetailRow label="Sound Recording Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+                  <DetailRow label="License Type" value={licenseInfo.type} />
+                  <DetailRow label="Platform Price" value={licenseInfo.platformPrice} />
+                  <DetailRow label="Download Price" value={licenseInfo.downloadPrice} />
                 </div>
               </div>
             </div>
