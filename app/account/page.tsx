@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
+import CertificateViewer from "@/components/account/CertificateViewer";
 
 type Tab = "uploads" | "history" | "settings";
 
@@ -28,6 +29,7 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState<Tab>("uploads");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -139,7 +141,7 @@ export default function AccountPage() {
                 <MyUploadsTab tracks={tracks} onRefresh={() => {}} />
               )}
               {activeTab === "history" && (
-                <UploadHistoryTab tracks={tracks} />
+                <UploadHistoryTab tracks={tracks} onViewCertificate={setSelectedTrack} />
               )}
               {activeTab === "settings" && (
                 <SettingsTab />
@@ -148,6 +150,14 @@ export default function AccountPage() {
           )}
         </div>
       </div>
+
+      {/* Certificate Viewer Modal */}
+      {selectedTrack && (
+        <CertificateViewer
+          track={selectedTrack}
+          onClose={() => setSelectedTrack(null)}
+        />
+      )}
     </>
   );
 }
@@ -200,7 +210,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
   );
 }
 
-function UploadHistoryTab({ tracks }: { tracks: Track[] }) {
+function UploadHistoryTab({ tracks, onViewCertificate }: { tracks: Track[]; onViewCertificate: (track: Track) => void }) {
   return (
     <div>
       <div className="mb-6">
@@ -232,7 +242,10 @@ function UploadHistoryTab({ tracks }: { tracks: Track[] }) {
                   {new Date(track.created_at).toLocaleDateString()} • {track.content_type}
                 </div>
               </div>
-              <button className="px-4 py-2 text-sm text-[#81E4F2] hover:text-white border border-[#81E4F2]/30 hover:border-[#81E4F2] rounded-md transition-colors">
+              <button
+                onClick={() => onViewCertificate(track)}
+                className="px-4 py-2 text-sm text-[#81E4F2] hover:text-white border border-[#81E4F2]/30 hover:border-[#81E4F2] rounded-md transition-colors"
+              >
                 View Certificate
               </button>
             </div>
