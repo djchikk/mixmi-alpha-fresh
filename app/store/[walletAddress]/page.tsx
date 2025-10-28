@@ -14,7 +14,7 @@ import { Plus } from 'lucide-react';
 import IPTrackModal from '@/components/modals/IPTrackModal';
 
 interface ContentFilter {
-  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep';
+  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'hidden';
   category?: string;
 }
 
@@ -198,23 +198,26 @@ export default function CreatorStorePage() {
 
     switch (activeFilter.type) {
       case 'full_song':
-        filtered = tracks.filter(track => track.content_type === 'full_song');
+        filtered = tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted);
         break;
       case 'loop':
-        filtered = tracks.filter(track => track.content_type === 'loop');
+        filtered = tracks.filter(track => track.content_type === 'loop' && !track.is_deleted);
         if (activeFilter.category) {
           filtered = filtered.filter(track => track.loop_category === activeFilter.category);
         }
         break;
       case 'loop_pack':
-        filtered = tracks.filter(track => track.content_type === 'loop_pack');
+        filtered = tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted);
         break;
       case 'ep':
-        filtered = tracks.filter(track => track.content_type === 'ep');
+        filtered = tracks.filter(track => track.content_type === 'ep' && !track.is_deleted);
+        break;
+      case 'hidden':
+        filtered = tracks.filter(track => track.is_deleted === true);
         break;
       case 'all':
       default:
-        filtered = tracks;
+        filtered = tracks.filter(track => !track.is_deleted);
         break;
     }
 
@@ -263,20 +266,22 @@ export default function CreatorStorePage() {
   const getFilterCount = (filter: ContentFilter) => {
     switch (filter.type) {
       case 'all':
-        return tracks.length;
+        return tracks.filter(track => !track.is_deleted).length;
       case 'full_song':
-        return tracks.filter(track => track.content_type === 'full_song').length;
+        return tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted).length;
       case 'loop':
         if (filter.category) {
           return tracks.filter(track =>
-            track.content_type === 'loop' && track.loop_category === filter.category
+            track.content_type === 'loop' && track.loop_category === filter.category && !track.is_deleted
           ).length;
         }
-        return tracks.filter(track => track.content_type === 'loop').length;
+        return tracks.filter(track => track.content_type === 'loop' && !track.is_deleted).length;
       case 'loop_pack':
-        return tracks.filter(track => track.content_type === 'loop_pack').length;
+        return tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted).length;
       case 'ep':
-        return tracks.filter(track => track.content_type === 'ep').length;
+        return tracks.filter(track => track.content_type === 'ep' && !track.is_deleted).length;
+      case 'hidden':
+        return tracks.filter(track => track.is_deleted === true).length;
       default:
         return 0;
     }
@@ -500,6 +505,20 @@ export default function CreatorStorePage() {
               >
                 EPs ({getFilterCount({ type: 'ep' })})
               </button>
+
+              {isOwnStore && (
+                <button
+                  onClick={() => setActiveFilter({ type: 'hidden' })}
+                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                    activeFilter.type === 'hidden'
+                      ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                      : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span>👁️‍🗨️</span>
+                  Hidden ({getFilterCount({ type: 'hidden' })})
+                </button>
+              )}
             </div>
 
             {activeFilter.type === 'loop' && availableCategories.length > 0 && (

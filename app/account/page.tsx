@@ -8,6 +8,7 @@ import Header from "@/components/layout/Header";
 import CertificateViewer from "@/components/account/CertificateViewer";
 import IPTrackModal from "@/components/modals/IPTrackModal";
 import TrackDetailsModal from "@/components/modals/TrackDetailsModal";
+import EditOptionsModal from "@/components/modals/EditOptionsModal";
 import InfoIcon from "@/components/shared/InfoIcon";
 
 type Tab = "uploads" | "history" | "settings";
@@ -32,7 +33,7 @@ interface Track {
 }
 
 interface ContentFilter {
-  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep';
+  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'hidden';
 }
 
 export default function AccountPage() {
@@ -128,19 +129,23 @@ export default function AccountPage() {
 
     switch (activeFilter.type) {
       case 'full_song':
-        filtered = tracks.filter(track => track.content_type === 'full_song');
+        filtered = tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted);
         break;
       case 'loop':
-        filtered = tracks.filter(track => track.content_type === 'loop');
+        filtered = tracks.filter(track => track.content_type === 'loop' && !track.is_deleted);
         break;
       case 'loop_pack':
-        filtered = tracks.filter(track => track.content_type === 'loop_pack');
+        filtered = tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted);
         break;
       case 'ep':
-        filtered = tracks.filter(track => track.content_type === 'ep');
+        filtered = tracks.filter(track => track.content_type === 'ep' && !track.is_deleted);
         break;
+      case 'hidden':
+        filtered = tracks.filter(track => track.is_deleted === true);
+        break;
+      case 'all':
       default:
-        filtered = tracks;
+        filtered = tracks.filter(track => !track.is_deleted);
         break;
     }
 
@@ -151,15 +156,17 @@ export default function AccountPage() {
   const getFilterCount = (filter: ContentFilter) => {
     switch (filter.type) {
       case 'all':
-        return tracks.length;
+        return tracks.filter(track => !track.is_deleted).length;
       case 'full_song':
-        return tracks.filter(track => track.content_type === 'full_song').length;
+        return tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted).length;
       case 'loop':
-        return tracks.filter(track => track.content_type === 'loop').length;
+        return tracks.filter(track => track.content_type === 'loop' && !track.is_deleted).length;
       case 'loop_pack':
-        return tracks.filter(track => track.content_type === 'loop_pack').length;
+        return tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted).length;
       case 'ep':
-        return tracks.filter(track => track.content_type === 'ep').length;
+        return tracks.filter(track => track.content_type === 'ep' && !track.is_deleted).length;
+      case 'hidden':
+        return tracks.filter(track => track.is_deleted === true).length;
       default:
         return 0;
     }
@@ -261,6 +268,18 @@ export default function AccountPage() {
               >
                 EPs ({getFilterCount({ type: 'ep' })})
               </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'hidden' })}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  activeFilter.type === 'hidden'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                <span>👁️‍🗨️</span>
+                Hidden ({getFilterCount({ type: 'hidden' })})
+              </button>
             </div>
           </div>
 
@@ -343,8 +362,9 @@ export default function AccountPage() {
 
 // Tab Components (placeholder implementations)
 function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () => void }) {
-  const publishedTracks = tracks.filter(t => !t.is_deleted);
+  // Tracks are already filtered by parent component based on active filter
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
@@ -354,6 +374,11 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
   const handleEditClick = (track: Track, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingTrack(track);
+    setIsOptionsModalOpen(true);
+  };
+
+  const handleOpenEditModal = () => {
+    setIsOptionsModalOpen(false);
     setIsEditModalOpen(true);
   };
 
@@ -425,11 +450,11 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
       <div>
         <div className="mb-6 flex items-center justify-between">
           <div className="text-sm text-gray-400">
-            {publishedTracks.length} {publishedTracks.length === 1 ? 'upload' : 'uploads'}
+            {tracks.length} {tracks.length === 1 ? 'upload' : 'uploads'}
           </div>
         </div>
 
-        {publishedTracks.length === 0 ? (
+        {tracks.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-gray-500 mb-4">No uploads yet</div>
             <p className="text-gray-600 text-sm">
@@ -438,7 +463,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {publishedTracks.map((track) => (
+            {tracks.map((track) => (
               <div
                 key={track.id}
                 className="group cursor-pointer"
@@ -598,6 +623,20 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
           </div>
         )}
       </div>
+
+      {/* Edit Options Modal */}
+      {editingTrack && (
+        <EditOptionsModal
+          track={editingTrack}
+          isOpen={isOptionsModalOpen}
+          onClose={() => {
+            setIsOptionsModalOpen(false);
+            setEditingTrack(null);
+          }}
+          onEditDetails={handleOpenEditModal}
+          onRefresh={onRefresh}
+        />
+      )}
 
       {/* Edit Modal */}
       {editingTrack && (
