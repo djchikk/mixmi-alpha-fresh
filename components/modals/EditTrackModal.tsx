@@ -772,9 +772,9 @@ export default function EditTrackModal({
             style={{
               padding: '14px',
               minHeight: '54px',
-              background: formData.content_type === 'loop' ? 'rgba(129, 228, 242, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'loop' ? '#81E4F2' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'loop' ? '#81E4F2' : '#8b92a6',
+              background: formData.content_type === 'loop' ? 'rgba(151, 114, 244, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'loop' ? '#9772F4' : 'rgba(255, 255, 255, 0.08)',
+              color: formData.content_type === 'loop' ? '#9772F4' : '#8b92a6',
               borderRadius: '12px'
             }}
           >
@@ -783,13 +783,15 @@ export default function EditTrackModal({
 
           {/* Top right: Loop Pack */}
           <div
-            className="flex items-center justify-center border-2 rounded-lg cursor-not-allowed opacity-60"
+            className="flex items-center justify-center rounded-lg cursor-not-allowed opacity-60"
             style={{
               padding: '14px',
               minHeight: '54px',
-              background: formData.content_type === 'loop_pack' ? 'rgba(129, 228, 242, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'loop_pack' ? '#81E4F2' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'loop_pack' ? '#81E4F2' : '#8b92a6',
+              background: formData.content_type === 'loop_pack' ? 'rgba(151, 114, 244, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'loop_pack' ? '#9772F4' : 'rgba(255, 255, 255, 0.08)',
+              borderWidth: formData.content_type === 'loop_pack' ? '4px' : '2px',
+              borderStyle: 'solid',
+              color: formData.content_type === 'loop_pack' ? '#9772F4' : '#8b92a6',
               borderRadius: '12px'
             }}
           >
@@ -802,9 +804,9 @@ export default function EditTrackModal({
             style={{
               padding: '14px',
               minHeight: '54px',
-              background: formData.content_type === 'full_song' ? 'rgba(129, 228, 242, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'full_song' ? '#81E4F2' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'full_song' ? '#81E4F2' : '#8b92a6',
+              background: formData.content_type === 'full_song' ? 'rgba(255, 228, 181, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'full_song' ? '#FFE4B5' : 'rgba(255, 255, 255, 0.08)',
+              color: formData.content_type === 'full_song' ? '#FFE4B5' : '#8b92a6',
               borderRadius: '12px'
             }}
           >
@@ -813,13 +815,15 @@ export default function EditTrackModal({
 
           {/* Bottom right: EP */}
           <div
-            className="flex items-center justify-center border-2 rounded-lg cursor-not-allowed opacity-60"
+            className="flex items-center justify-center rounded-lg cursor-not-allowed opacity-60"
             style={{
               padding: '14px',
               minHeight: '54px',
-              background: formData.content_type === 'ep' ? 'rgba(129, 228, 242, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'ep' ? '#81E4F2' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'ep' ? '#81E4F2' : '#8b92a6',
+              background: formData.content_type === 'ep' ? 'rgba(255, 228, 181, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'ep' ? '#FFE4B5' : 'rgba(255, 255, 255, 0.08)',
+              borderWidth: formData.content_type === 'ep' ? '4px' : '2px',
+              borderStyle: 'solid',
+              color: formData.content_type === 'ep' ? '#FFE4B5' : '#8b92a6',
               borderRadius: '12px'
             }}
           >
