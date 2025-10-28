@@ -50,9 +50,7 @@ export default function EditTrackModal({
     key: track.key || '',
     tags: track.tags || [],
     location: track.location || '',
-    download_price_stx: track.download_price_stx || '',
-    contact_commercial_fee: track.contact_commercial_fee || '',
-    contact_collab_fee: track.contact_collab_fee || ''
+    download_price_stx: track.download_price_stx || ''
   });
 
   const [tagInput, setTagInput] = useState('');
@@ -68,9 +66,7 @@ export default function EditTrackModal({
       key: track.key || '',
       tags: track.tags || [],
       location: track.location || '',
-      download_price_stx: track.download_price_stx || '',
-      contact_commercial_fee: track.contact_commercial_fee || '',
-      contact_collab_fee: track.contact_collab_fee || ''
+      download_price_stx: track.download_price_stx || ''
     });
   }, [track]);
 
@@ -211,35 +207,43 @@ export default function EditTrackModal({
         {!showDeleteConfirm ? (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-700 flex-shrink-0">
-              <h2 className="text-2xl font-semibold text-white">
-                Edit "{track.title}"
-              </h2>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+            <div className="p-6 border-b border-slate-700 flex-shrink-0">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-semibold text-white">
+                  Edit "{track.title}"
+                </h2>
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Secondary Actions - Horizontal */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleHideToggle}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  {track.is_deleted ? '👁️ Show in Store' : '👁️‍🗨️ Hide from Store'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-2 bg-slate-800 hover:bg-red-900/30 text-white rounded-lg transition-colors border border-slate-600 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  🗑️ Delete Forever
+                </button>
+              </div>
             </div>
 
             {/* Content - Scrollable */}
             <div className="p-6 pb-24 overflow-y-auto flex-1">
               <div className="space-y-6">
-              {/* Cover Image */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Cover Image
-                </label>
-                <TrackCoverUploader
-                  currentImageUrl={formData.cover_image_url}
-                  onImageUploaded={(url) => handleInputChange('cover_image_url', url)}
-                  walletAddress={walletAddress || ''}
-                />
-              </div>
-
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -370,6 +374,18 @@ export default function EditTrackModal({
                 />
               </div>
 
+              {/* Cover Image */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Cover Image
+                </label>
+                <TrackCoverUploader
+                  currentImageUrl={formData.cover_image_url}
+                  onImageUploaded={(url) => handleInputChange('cover_image_url', url)}
+                  walletAddress={walletAddress || ''}
+                />
+              </div>
+
               {/* Pricing */}
               <div className="space-y-4 border-t border-slate-700 pt-6">
                 <h3 className="text-lg font-semibold text-white">Pricing</h3>
@@ -387,53 +403,7 @@ export default function EditTrackModal({
                     placeholder="0.00"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Commercial Licensing Fee (STX)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.contact_commercial_fee}
-                    onChange={(e) => handleInputChange('contact_commercial_fee', e.target.value)}
-                    className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-[#81E4F2]"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Collaboration Fee (STX)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.contact_collab_fee}
-                    onChange={(e) => handleInputChange('contact_collab_fee', e.target.value)}
-                    className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-[#81E4F2]"
-                    placeholder="0.00"
-                  />
-                </div>
               </div>
-            </div>
-
-            {/* Secondary Actions */}
-            <div className="space-y-3 pt-4 border-t border-slate-700">
-              <button
-                onClick={handleHideToggle}
-                disabled={isProcessing}
-                className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {track.is_deleted ? '👁️ Show in Store' : '👁️‍🗨️ Hide from Store'}
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={isProcessing}
-                className="w-full px-4 py-2 bg-slate-800 hover:bg-red-900/30 text-white rounded-lg transition-colors border border-slate-600 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                🗑️ Delete Forever
-              </button>
             </div>
 
             {/* Primary Actions */}
