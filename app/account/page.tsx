@@ -31,13 +31,21 @@ interface Track {
   download_price_stx?: number;
 }
 
+interface ContentFilter {
+  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep';
+}
+
 export default function AccountPage() {
   const router = useRouter();
   const { isAuthenticated, walletAddress } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("uploads");
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
+  const [activeFilter, setActiveFilter] = useState<ContentFilter>({ type: 'all' });
   const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>('');
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -72,12 +80,90 @@ export default function AccountPage() {
     setLoading(false);
   };
 
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!walletAddress) return;
+
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('display_name, username, avatar_url')
+          .eq('wallet_address', walletAddress)
+          .single();
+
+        if (!profileError && profileData) {
+          // Set display name
+          if (profileData.display_name && profileData.display_name !== 'New User') {
+            setDisplayName(profileData.display_name);
+          } else if (profileData.username) {
+            setDisplayName(profileData.username);
+          } else {
+            setDisplayName(walletAddress.slice(0, 8) + '...');
+          }
+
+          // Set profile image
+          if (profileData.avatar_url) {
+            setProfileImage(profileData.avatar_url);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+      }
+    };
+
+    fetchProfile();
+  }, [walletAddress]);
+
   // Fetch tracks on mount
   useEffect(() => {
     if (walletAddress) {
       fetchTracks();
     }
   }, [walletAddress]);
+
+  // Filter tracks based on active filter
+  useEffect(() => {
+    let filtered = tracks;
+
+    switch (activeFilter.type) {
+      case 'full_song':
+        filtered = tracks.filter(track => track.content_type === 'full_song');
+        break;
+      case 'loop':
+        filtered = tracks.filter(track => track.content_type === 'loop');
+        break;
+      case 'loop_pack':
+        filtered = tracks.filter(track => track.content_type === 'loop_pack');
+        break;
+      case 'ep':
+        filtered = tracks.filter(track => track.content_type === 'ep');
+        break;
+      default:
+        filtered = tracks;
+        break;
+    }
+
+    setFilteredTracks(filtered);
+  }, [tracks, activeFilter]);
+
+  // Get count for each filter
+  const getFilterCount = (filter: ContentFilter) => {
+    switch (filter.type) {
+      case 'all':
+        return tracks.length;
+      case 'full_song':
+        return tracks.filter(track => track.content_type === 'full_song').length;
+      case 'loop':
+        return tracks.filter(track => track.content_type === 'loop').length;
+      case 'loop_pack':
+        return tracks.filter(track => track.content_type === 'loop_pack').length;
+      case 'ep':
+        return tracks.filter(track => track.content_type === 'ep').length;
+      default:
+        return 0;
+    }
+  };
 
   if (!isAuthenticated) {
     return null; // Will redirect
@@ -89,9 +175,93 @@ export default function AccountPage() {
       <div className="min-h-screen bg-background pt-24 pb-12">
         <div className="max-w-6xl mx-auto px-6">
           {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Account</h1>
-            <p className="text-gray-400">Manage your uploads, certificates, and settings</p>
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt={displayName || 'User'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Failed to load profile image');
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
+                  {displayName ? displayName.charAt(0).toUpperCase() : walletAddress ? walletAddress.charAt(0).toUpperCase() : 'A'}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h1 className="text-4xl font-bold">
+                <span className="bg-gradient-to-r from-[#a3f3ff] to-[#81E4F2] bg-clip-text text-transparent">
+                  Account Page
+                </span>
+              </h1>
+              <p className="text-gray-400 mt-1">Manage your uploads, certificates, and settings</p>
+            </div>
+          </div>
+
+          {/* Content Filters */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setActiveFilter({ type: 'all' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'all'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                All ({getFilterCount({ type: 'all' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'full_song' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'full_song'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Songs ({getFilterCount({ type: 'full_song' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'loop' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'loop'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Loops ({getFilterCount({ type: 'loop' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'loop_pack' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'loop_pack'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Loop Packs ({getFilterCount({ type: 'loop_pack' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'ep' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'ep'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                EPs ({getFilterCount({ type: 'ep' })})
+              </button>
+            </div>
           </div>
 
           {/* Tab Navigation */}
@@ -147,10 +317,10 @@ export default function AccountPage() {
           ) : (
             <>
               {activeTab === "uploads" && (
-                <MyUploadsTab tracks={tracks} onRefresh={fetchTracks} />
+                <MyUploadsTab tracks={filteredTracks} onRefresh={fetchTracks} />
               )}
               {activeTab === "history" && (
-                <UploadHistoryTab tracks={tracks} onViewCertificate={setSelectedTrack} />
+                <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
               )}
               {activeTab === "settings" && (
                 <SettingsTab />
@@ -308,9 +478,9 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
                     <button
                       onClick={(e) => handleEditClick(track, e)}
                       title="Edit track"
-                      className="absolute top-1 right-1 w-6 h-6 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/40 rounded flex items-center justify-center transition-all border border-[#81E4F2]/50 hover:border-[#81E4F2] group z-20"
+                      className="absolute top-1 right-1 w-9 h-9 bg-black/90 hover:bg-[#81E4F2]/30 rounded flex items-center justify-center transition-all border border-[#81E4F2]/60 hover:border-[#81E4F2] group z-20"
                     >
-                      <svg className="w-4 h-4 text-[#81E4F2] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <svg className="w-5 h-5 text-[#81E4F2] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
