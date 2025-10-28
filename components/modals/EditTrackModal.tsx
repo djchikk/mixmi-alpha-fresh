@@ -618,6 +618,7 @@ export default function EditTrackModal({
 
   // Hide/Delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   // Hide/Delete handlers
   const handleHideToggle = async () => {
@@ -626,7 +627,7 @@ export default function EditTrackModal({
       return;
     }
 
-    setIsSaving(true);
+    setIsActionLoading(true);
     try {
       const response = await fetch('/api/tracks/toggle-visibility', {
         method: 'POST',
@@ -653,7 +654,7 @@ export default function EditTrackModal({
       console.error('Error:', error);
       showToast('Failed to update track visibility', 'error');
     } finally {
-      setIsSaving(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -663,7 +664,7 @@ export default function EditTrackModal({
       return;
     }
 
-    setIsSaving(true);
+    setIsActionLoading(true);
     try {
       const response = await fetch('/api/tracks/delete', {
         method: 'POST',
@@ -690,7 +691,7 @@ export default function EditTrackModal({
       console.error('Error:', error);
       showToast('Failed to delete track', 'error');
     } finally {
-      setIsSaving(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -2232,14 +2233,14 @@ export default function EditTrackModal({
           <div className="flex gap-3 justify-center">
             <button
               onClick={handleHideToggle}
-              disabled={isSaving}
+              disabled={isActionLoading}
               className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               {track.is_deleted ? '👁️ Show in Store' : '👁️‍🗨️ Hide from Store'}
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              disabled={isSaving}
+              disabled={isActionLoading}
               className="flex-1 px-4 py-2 bg-slate-800 hover:bg-red-900/30 text-white rounded-lg transition-colors border border-slate-600 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               🗑️ Delete Forever
@@ -2261,16 +2262,17 @@ export default function EditTrackModal({
             <div className="flex gap-3 justify-center pt-4">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-600"
+                disabled={isActionLoading}
+                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteForever}
-                disabled={isSaving}
+                disabled={isActionLoading}
                 className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSaving ? 'Deleting...' : 'Delete Forever'}
+                {isActionLoading ? 'Deleting...' : 'Delete Forever'}
               </button>
             </div>
           </div>
