@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
 import CertificateViewer from "@/components/account/CertificateViewer";
+import IPTrackModal from "@/components/modals/IPTrackModal";
+import TrackDetailsModal from "@/components/modals/TrackDetailsModal";
+import InfoIcon from "@/components/shared/InfoIcon";
 
 type Tab = "uploads" | "history" | "settings";
 
@@ -14,6 +17,7 @@ interface Track {
   title: string;
   artist: string;
   cover_image_url: string;
+  audio_url?: string;
   content_type: string;
   price_stx: number;
   bpm?: number;
@@ -21,6 +25,10 @@ interface Track {
   created_at: string;
   primary_uploader_wallet: string;
   is_deleted: boolean;
+  generation?: number;
+  remix_depth?: number;
+  allow_downloads?: boolean;
+  download_price_stx?: number;
 }
 
 export default function AccountPage() {
@@ -38,33 +46,34 @@ export default function AccountPage() {
     }
   }, [isAuthenticated, router]);
 
-  // Fetch user's tracks
+  // Fetch user's tracks function
+  const fetchTracks = async () => {
+    if (!walletAddress) {
+      console.log('[Account] No wallet address yet');
+      return;
+    }
+
+    console.log('[Account] Fetching tracks for wallet:', walletAddress);
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("ip_tracks")
+      .select("*")
+      .eq("primary_uploader_wallet", walletAddress)
+      .order("created_at", { ascending: false });
+
+    console.log('[Account] Query result:', { data, error, count: data?.length });
+
+    if (error) {
+      console.error('[Account] Error fetching tracks:', error);
+    } else if (data) {
+      setTracks(data);
+    }
+    setLoading(false);
+  };
+
+  // Fetch tracks on mount
   useEffect(() => {
-    const fetchTracks = async () => {
-      if (!walletAddress) {
-        console.log('[Account] No wallet address yet');
-        return;
-      }
-
-      console.log('[Account] Fetching tracks for wallet:', walletAddress);
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from("ip_tracks")
-        .select("*")
-        .eq("primary_uploader_wallet", walletAddress)
-        .order("created_at", { ascending: false });
-
-      console.log('[Account] Query result:', { data, error, count: data?.length });
-
-      if (error) {
-        console.error('[Account] Error fetching tracks:', error);
-      } else if (data) {
-        setTracks(data);
-      }
-      setLoading(false);
-    };
-
     if (walletAddress) {
       fetchTracks();
     }
@@ -138,7 +147,7 @@ export default function AccountPage() {
           ) : (
             <>
               {activeTab === "uploads" && (
-                <MyUploadsTab tracks={tracks} onRefresh={() => {}} />
+                <MyUploadsTab tracks={tracks} onRefresh={fetchTracks} />
               )}
               {activeTab === "history" && (
                 <UploadHistoryTab tracks={tracks} onViewCertificate={setSelectedTrack} />
@@ -165,52 +174,318 @@ export default function AccountPage() {
 // Tab Components (placeholder implementations)
 function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () => void }) {
   const publishedTracks = tracks.filter(t => !t.is_deleted);
+  const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [detailsTrack, setDetailsTrack] = useState<Track | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  const handleEditClick = (track: Track, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingTrack(track);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditComplete = () => {
+    setIsEditModalOpen(false);
+    setEditingTrack(null);
+    onRefresh();
+  };
+
+  const handleInfoClick = (track: Track, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDetailsTrack(track);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handlePlayClick = (track: Track, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (playingTrackId === track.id) {
+      // Pause current track
+      audioElement?.pause();
+      setPlayingTrackId(null);
+    } else {
+      // Stop previous track if any
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+      }
+
+      // Play new track
+      const audio = new Audio(track.audio_url);
+      audio.play();
+      setAudioElement(audio);
+      setPlayingTrackId(track.id);
+
+      // Auto-stop after 20 seconds
+      setTimeout(() => {
+        audio.pause();
+        setPlayingTrackId(null);
+      }, 20000);
+    }
+  };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+      }
+    };
+  }, [audioElement]);
+
+  // Get border color based on content type
+  const getBorderColor = (track: Track) => {
+    if (track.content_type === 'full_song') return 'border-[#FFE4B5]';
+    if (track.content_type === 'ep') return 'border-[#FFE4B5]';
+    if (track.content_type === 'loop') return 'border-[#9772F4]';
+    if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
+    return 'border-[#9772F4]';
+  };
+
+  // Get border thickness - thicker for multi-content (loop packs and EPs)
+  const getBorderThickness = (track: Track) => {
+    return (track.content_type === 'loop_pack' || track.content_type === 'ep') ? 'border-4' : 'border-2';
+  };
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div className="text-sm text-gray-400">
-          {publishedTracks.length} {publishedTracks.length === 1 ? 'upload' : 'uploads'}
+    <>
+      <div>
+        <div className="mb-6 flex items-center justify-between">
+          <div className="text-sm text-gray-400">
+            {publishedTracks.length} {publishedTracks.length === 1 ? 'upload' : 'uploads'}
+          </div>
         </div>
+
+        {publishedTracks.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-gray-500 mb-4">No uploads yet</div>
+            <p className="text-gray-600 text-sm">
+              Upload your first track to get started
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {publishedTracks.map((track) => (
+              <div
+                key={track.id}
+                className="group cursor-pointer"
+              >
+                <div className={`relative aspect-square rounded-lg overflow-hidden ${getBorderColor(track)} ${getBorderThickness(track)} mb-2`}>
+                  <img
+                    src={track.cover_image_url}
+                    alt={track.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+
+                  {/* Hover Overlay - Exact same pattern as store cards */}
+                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2 animate-fadeIn opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Top Section: Title, Artist (full width) */}
+                    <div className="absolute top-1 left-2 right-2">
+                      <div className="flex flex-col">
+                        <h3 className="font-medium text-white text-sm leading-tight truncate">
+                          {track.title}
+                        </h3>
+                        <p className="text-white/80 text-xs truncate">
+                          {track.artist}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Info Icon - Left side, vertically centered */}
+                    <div className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10">
+                      <InfoIcon
+                        size="lg"
+                        onClick={(e) => handleInfoClick(track, e)}
+                        title="View details"
+                        className="text-white hover:text-white"
+                      />
+                    </div>
+
+                    {/* Edit Button - Top Right Corner (same position as trash can in store) */}
+                    <button
+                      onClick={(e) => handleEditClick(track, e)}
+                      title="Edit track"
+                      className="absolute top-1 right-1 w-6 h-6 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/40 rounded flex items-center justify-center transition-all border border-[#81E4F2]/50 hover:border-[#81E4F2] group z-20"
+                    >
+                      <svg className="w-4 h-4 text-[#81E4F2] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+
+                    {/* Center: Play Button - Absolutely centered */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                      {track.audio_url && (
+                        <button
+                          onClick={(e) => handlePlayClick(track, e)}
+                          className="transition-all hover:scale-110"
+                        >
+                          {playingTrackId === track.id ? (
+                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                            </svg>
+                          ) : (
+                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Bottom Section: M Badge/Price, Content Type, BPM */}
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
+                      {/* M Badge or Price (left) */}
+                      {(() => {
+                        // For loops: show M if remix-only, otherwise show download price
+                        if (track.content_type === 'loop' || track.content_type === 'loop_pack') {
+                          if (track.allow_downloads === false) {
+                            // Remix-only
+                            return (
+                              <div
+                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
+                                title="Platform remix only - 1 STX per recorded remix"
+                              >
+                                M
+                              </div>
+                            );
+                          } else if (track.download_price_stx) {
+                            // Has download price
+                            return (
+                              <div className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs">
+                                {track.download_price_stx}
+                              </div>
+                            );
+                          } else if (track.price_stx) {
+                            // Legacy price field
+                            return (
+                              <div className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs">
+                                {track.price_stx}
+                              </div>
+                            );
+                          }
+                        }
+                        // For songs/EPs: show download price if available
+                        else if (track.content_type === 'full_song' || track.content_type === 'ep') {
+                          if (track.download_price_stx) {
+                            return (
+                              <div className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs">
+                                {track.download_price_stx}
+                              </div>
+                            );
+                          } else if (track.price_stx) {
+                            return (
+                              <div className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs">
+                                {track.price_stx}
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
+
+                      {/* Content Type Badge (center) with generation indicators */}
+                      <span className="text-xs font-mono font-medium text-white">
+                        {track.content_type === 'ep' && 'EP'}
+                        {track.content_type === 'loop_pack' && 'PACK'}
+                        {track.content_type === 'loop' && (
+                          <>
+                            {track.generation === 0 || track.remix_depth === 0 ? (
+                              '🌱 LOOP'
+                            ) : track.generation === 1 || track.remix_depth === 1 ? (
+                              '🌿 LOOP'
+                            ) : track.generation === 2 || track.remix_depth === 2 ? (
+                              '🌳 LOOP'
+                            ) : (
+                              'LOOP'
+                            )}
+                          </>
+                        )}
+                        {track.content_type === 'full_song' && 'SONG'}
+                        {!track.content_type && 'TRACK'}
+                      </span>
+
+                      {/* BPM Badge (right) */}
+                      {track.bpm && track.content_type !== 'ep' ? (
+                        <span
+                          className="text-sm font-mono font-bold text-white"
+                          title="BPM"
+                        >
+                          {track.bpm}
+                        </span>
+                      ) : (
+                        <div className="w-12"></div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-white truncate">{track.title}</div>
+                <div className="text-xs text-gray-400 truncate">{track.artist}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {publishedTracks.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="text-gray-500 mb-4">No uploads yet</div>
-          <p className="text-gray-600 text-sm">
-            Upload your first track to get started
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {publishedTracks.map((track) => (
-            <div
-              key={track.id}
-              className="group cursor-pointer"
-            >
-              <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-[#9772F4] mb-2">
-                <img
-                  src={track.cover_image_url}
-                  alt={track.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button className="text-white text-sm px-4 py-2 bg-[#1E293B] rounded-md hover:bg-[#252a3a]">
-                    Edit
-                  </button>
-                </div>
-              </div>
-              <div className="text-sm text-white truncate">{track.title}</div>
-              <div className="text-xs text-gray-400 truncate">{track.artist}</div>
-            </div>
-          ))}
-        </div>
+      {/* Edit Modal */}
+      {editingTrack && (
+        <IPTrackModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingTrack(null);
+          }}
+          track={editingTrack as any}
+          onSave={handleEditComplete}
+        />
       )}
-    </div>
+
+      {/* Track Details Modal */}
+      {detailsTrack && (
+        <TrackDetailsModal
+          track={detailsTrack as any}
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            setIsDetailsModalOpen(false);
+            setDetailsTrack(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 
 function UploadHistoryTab({ tracks, onViewCertificate }: { tracks: Track[]; onViewCertificate: (track: Track) => void }) {
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+
+  const handlePlayPause = (track: Track) => {
+    if (playingTrackId === track.id) {
+      // Pause current track
+      audioElement?.pause();
+      setPlayingTrackId(null);
+    } else {
+      // Stop previous track if any
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+      }
+
+      // Play new track
+      const audio = new Audio(track.audio_url);
+      audio.play();
+      setAudioElement(audio);
+      setPlayingTrackId(track.id);
+
+      // Handle track ending
+      audio.onended = () => {
+        setPlayingTrackId(null);
+      };
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -230,11 +505,29 @@ function UploadHistoryTab({ tracks, onViewCertificate }: { tracks: Track[]; onVi
               key={track.id}
               className="flex items-center gap-4 p-4 bg-[#101726] border border-[#1E293B] rounded-lg hover:border-[#81E4F2]/30 transition-colors"
             >
-              <img
-                src={track.cover_image_url}
-                alt={track.title}
-                className="w-16 h-16 rounded object-cover"
-              />
+              {/* Thumbnail with play button */}
+              <div className="relative group">
+                <img
+                  src={track.cover_image_url}
+                  alt={track.title}
+                  className="w-16 h-16 rounded object-cover"
+                />
+                <button
+                  onClick={() => handlePlayPause(track)}
+                  className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded"
+                >
+                  {playingTrackId === track.id ? (
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
               <div className="flex-1 min-w-0">
                 <div className="text-white font-medium truncate">{track.title}</div>
                 <div className="text-sm text-gray-400 truncate">{track.artist}</div>
