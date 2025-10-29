@@ -69,10 +69,8 @@ interface SimplifiedMixerState {
 
 // Recording state
 interface RecordingState {
-  recordState: 'idle' | 'counting-in' | 'recording'; // Three-state recording system
-  countInBeat: number; // Current beat during count-in (0-7 for 8 beats)
+  recordState: 'idle' | 'rehearsal' | 'recording'; // Three-state: idle → rehearsal (first cycle) → recording (second cycle+)
   recordingStartTime: number | null; // AudioContext.currentTime when recording starts
-  countInDuration: number; // Seconds of count-in to trim
   barsRecorded: number;
   targetBars: number; // Safety limit (120 bars = ~15 min at 120 BPM)
   recordedUrl: string | null;
@@ -107,9 +105,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Recording state and refs
   const [recordingState, setRecordingState] = useState<RecordingState>({
     recordState: 'idle',
-    countInBeat: 0,
     recordingStartTime: null,
-    countInDuration: 0,
     barsRecorded: 0,
     targetBars: 120, // Safety limit: auto-stop at 120 bars (~15 min at 120 BPM)
     recordedUrl: null,
@@ -120,8 +116,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const recordedChunksRef = React.useRef<Blob[]>([]);
   const mixerDestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
 
-  // Count-in timing refs for cleanup
-  const countInIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Rehearsal cycle monitoring
+  const rehearsalIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Responsive waveform width based on breakpoints
   const [waveformWidth, setWaveformWidth] = useState(700);
@@ -361,9 +357,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       fxRetryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
       fxRetryTimeoutsRef.current.clear();
 
-      // Clear recording count-in timers
-      if (countInIntervalRef.current) {
-        clearInterval(countInIntervalRef.current);
+      // Clear rehearsal monitoring
+      if (rehearsalIntervalRef.current) {
+        clearInterval(rehearsalIntervalRef.current);
       }
 
       // Reset sync engine state
@@ -958,10 +954,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const stopRecording = useCallback(() => {
     console.log('🎙️ Stopping recording...');
 
-    // Clear any count-in timers
-    if (countInIntervalRef.current) {
-      clearInterval(countInIntervalRef.current);
-      countInIntervalRef.current = null;
+    // Clear any rehearsal monitoring
+    if (rehearsalIntervalRef.current) {
+      clearInterval(rehearsalIntervalRef.current);
+      rehearsalIntervalRef.current = null;
     }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -987,31 +983,30 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   const handleRecordToggle = useCallback(() => {
     if (recordingState.recordState !== 'idle') {
-      // Stop recording (works for both counting-in and recording states)
+      // Stop recording (works for both rehearsal and recording states)
       stopRecording();
       return;
     }
 
-    // Start stutter-free recording with count-in
+    // Start recording with rehearsal cycle approach
     // Ensure both decks are loaded
     if (!mixerState.deckA.track || !mixerState.deckB.track) {
       console.warn('⚠️ Both decks must have tracks loaded to record');
       return;
     }
 
-    console.log('🎙️ Starting stutter-free recording with 2-bar count-in...');
+    console.log('🎙️ Starting recording with rehearsal cycle...');
 
-    // Calculate count-in parameters
-    const beatDuration = (60 / mixerState.masterBPM) * 1000; // milliseconds per beat
-    const countInBeats = 8; // 2 bars = 8 beats
-    const countInDurationMs = beatDuration * countInBeats;
-    const countInDurationSeconds = countInDurationMs / 1000;
+    // Calculate 8-bar loop duration
+    const barsPerLoop = 8;
+    const beatsPerBar = 4;
+    const secondsPerBeat = 60 / mixerState.masterBPM;
+    const loopDuration = barsPerLoop * beatsPerBar * secondsPerBeat;
 
-    console.log(`⏱️ Count-in: ${countInDurationMs}ms (${countInBeats} beats at ${mixerState.masterBPM} BPM)`);
-    console.log(`🎵 Recording strategy: Capture count-in + performance, trim in post`);
+    console.log(`⏱️ Loop duration: ${loopDuration.toFixed(2)}s (${barsPerLoop} bars at ${mixerState.masterBPM} BPM)`);
+    console.log(`🎵 Strategy: Rehearsal cycle → Record at bar 1 of second cycle`);
 
     // STEP 1: Start playback if not already playing
-    // Audio flows normally - no muting, no stopping
     if (!mixerState.deckA.playing) {
       handleDeckAPlayPause();
     }
@@ -1019,13 +1014,11 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       handleDeckBPlayPause();
     }
 
-    // STEP 2: Start MediaRecorder IMMEDIATELY
-    // Captures everything: count-in + performance in one continuous recording
-    const stream = setupMixerRecording();
-    if (!stream) {
-      console.error('❌ Failed to setup recording stream');
-      return;
-    }
+    // STEP 2: Enter rehearsal state
+    setRecordingState(prev => ({
+      ...prev,
+      recordState: 'rehearsal'
+    }));
 
     const audioContext = getAudioContext();
     if (!audioContext) {
@@ -1033,98 +1026,105 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       return;
     }
 
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus'
-    });
+    // STEP 3: Monitor for bar 1 crossing
+    let crossingCount = 0;
+    let lastPosition = mixerState.deckA.audioState?.audio?.currentTime || 0;
+    const checkInterval = 50; // Check every 50ms
 
-    recordedChunksRef.current = [];
+    console.log('🔄 Rehearsal cycle started - waiting for bar 1 crossing...');
 
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        recordedChunksRef.current.push(event.data);
+    rehearsalIntervalRef.current = setInterval(() => {
+      const currentPosition = mixerState.deckA.audioState?.audio?.currentTime || 0;
+
+      // Detect loop boundary crossing (position wrapped back to near 0)
+      const THRESHOLD = 0.5; // Within 0.5 seconds of bar 1
+      if (lastPosition > loopDuration - THRESHOLD && currentPosition < THRESHOLD) {
+        crossingCount++;
+        console.log(`🔄 Bar 1 crossing detected! Count: ${crossingCount}`);
+
+        if (crossingCount === 2) {
+          // Second crossing - start recording!
+          console.log('🎙️ Second cycle reached - starting recording at bar 1!');
+
+          // Clear monitoring interval
+          if (rehearsalIntervalRef.current) {
+            clearInterval(rehearsalIntervalRef.current);
+            rehearsalIntervalRef.current = null;
+          }
+
+          // Setup MediaRecorder
+          const stream = setupMixerRecording();
+          if (!stream) {
+            console.error('❌ Failed to setup recording stream');
+            setRecordingState(prev => ({ ...prev, recordState: 'idle' }));
+            stopRecording();
+            return;
+          }
+
+          const mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm;codecs=opus'
+          });
+
+          recordedChunksRef.current = [];
+
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              recordedChunksRef.current.push(event.data);
+            }
+          };
+
+          mediaRecorder.onstop = () => {
+            console.log('🎙️ Recording stopped, processing audio...');
+            const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+            const url = URL.createObjectURL(blob);
+
+            const recordingEndTime = audioContext.currentTime;
+            const actualDuration = recordingEndTime - recordingState.recordingStartTime!;
+            const barsRecorded = AudioTiming.timeToBar(actualDuration, mixerState.masterBPM);
+
+            const metadata = {
+              recordedAt: new Date(),
+              startedOnDownbeat: true,
+              masterBPM: mixerState.masterBPM,
+              barsRecorded: Math.floor(barsRecorded),
+              duration: actualDuration
+            };
+
+            console.log('📊 Recording metadata:', metadata);
+
+            setRecordingState(prev => ({
+              ...prev,
+              recordState: 'idle',
+              recordedUrl: url,
+              recordedDuration: actualDuration,
+              showPreview: true
+            }));
+
+            console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${barsRecorded.toFixed(1)} bars)`);
+            console.log(`🎵 Perfect bar 1 alignment!`);
+          };
+
+          // Start recording at bar 1!
+          mediaRecorder.start(100);
+          mediaRecorderRef.current = mediaRecorder;
+
+          setRecordingState(prev => ({
+            ...prev,
+            recordState: 'recording',
+            recordingStartTime: audioContext.currentTime
+          }));
+
+          console.log('✅ Recording started at bar 1 of second cycle!');
+        }
       }
-    };
 
-    mediaRecorder.onstop = () => {
-      console.log('🎙️ Recording stopped, processing audio...');
-      const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
-      const url = URL.createObjectURL(blob);
+      lastPosition = currentPosition;
+    }, checkInterval);
 
-      // Calculate actual duration using AudioContext time
-      const recordingEndTime = audioContext.currentTime;
-      const actualDuration = recordingEndTime - recordingState.recordingStartTime!;
-      const barsRecorded = AudioTiming.timeToBar(actualDuration, mixerState.masterBPM);
-
-      // Recording metadata for trimming UI
-      const metadata = {
-        recordedAt: new Date(),
-        totalDuration: actualDuration,
-        countInDuration: recordingState.countInDuration, // Seconds to trim
-        suggestedTrimStart: recordingState.countInDuration,
-        suggestedTrimEnd: actualDuration,
-        masterBPM: mixerState.masterBPM,
-        barsRecorded: Math.floor(barsRecorded),
-        startedOnDownbeat: true // Always true after count-in
-      };
-
-      console.log('📊 Recording metadata:', metadata);
-
-      setRecordingState(prev => ({
-        ...prev,
-        recordState: 'idle',
-        countInBeat: 0,
-        recordedUrl: url,
-        recordedDuration: actualDuration,
-        showPreview: true
-      }));
-
-      console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${barsRecorded.toFixed(1)} bars)`);
-      console.log(`✂️ Trim ${countInDurationSeconds.toFixed(2)}s count-in in preview UI`);
-    };
-
-    // Start recording immediately (captures count-in + performance)
-    mediaRecorder.start(100);
-    mediaRecorderRef.current = mediaRecorder;
-
-    // STEP 3: Visual count-in feedback
-    setRecordingState(prev => ({
-      ...prev,
-      recordState: 'counting-in',
-      countInBeat: 0,
-      recordingStartTime: audioContext.currentTime,
-      countInDuration: countInDurationSeconds
-    }));
-
-    // Count-in beat tracker for visual feedback
-    let currentBeat = 0;
-    const countInInterval = setInterval(() => {
-      currentBeat++;
-      console.log(`🥁 Count-in beat: ${currentBeat}/${countInBeats}`);
-
-      setRecordingState(prev => ({
-        ...prev,
-        countInBeat: currentBeat
-      }));
-
-      // After count-in completes, switch to recording state
-      if (currentBeat >= countInBeats) {
-        clearInterval(countInInterval);
-        setRecordingState(prev => ({
-          ...prev,
-          recordState: 'recording',
-          countInBeat: 0
-        }));
-        console.log('🎙️ Count-in complete - now recording performance');
-        console.log('🎵 Audio has been flowing smoothly the entire time (no stutters!)');
-      }
-    }, beatDuration);
-
-    countInIntervalRef.current = countInInterval;
-
-    console.log(`✅ Stutter-free recording started`);
-    console.log(`🔊 Audio playing normally during count-in`);
-    console.log(`📹 MediaRecorder capturing everything`);
-  }, [recordingState.recordState, recordingState.recordingStartTime, recordingState.countInDuration, mixerState, stopRecording, setupMixerRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
+    console.log(`✅ Rehearsal cycle monitoring started`);
+    console.log(`🔊 Audio playing - listen to your mix!`);
+    console.log(`📹 Recording will start automatically at bar 1 of second cycle`);
+  }, [recordingState.recordState, recordingState.recordingStartTime, mixerState, stopRecording, setupMixerRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
 
   // Keyboard shortcuts for mixer control
   useEffect(() => {
@@ -1488,8 +1488,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
               syncActive={mixerState.syncActive}
               recordingRemix={recordingState.recordState === 'recording'}
-              recordingCountingIn={recordingState.recordState === 'counting-in'}
-              countInBeat={recordingState.countInBeat}
+              recordingRehearsal={recordingState.recordState === 'rehearsal'}
               masterBPM={mixerState.masterBPM}
               onMasterPlay={handleMasterPlay}
               onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}

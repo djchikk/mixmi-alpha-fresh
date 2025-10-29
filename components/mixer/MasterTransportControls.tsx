@@ -11,8 +11,7 @@ interface MasterTransportControlsProps {
   deckABPM: number;
   syncActive: boolean;
   recordingRemix: boolean;
-  recordingCountingIn?: boolean; // NEW: Count-in state
-  countInBeat?: number; // NEW: Current beat (0-7)
+  recordingRehearsal?: boolean; // NEW: Rehearsal state (waiting for second cycle)
 
   // Control handlers
   onMasterPlay: () => void;
@@ -38,8 +37,7 @@ const MasterTransportControls = memo(function MasterTransportControls({
   deckABPM,
   syncActive,
   recordingRemix,
-  recordingCountingIn = false,
-  countInBeat = 0,
+  recordingRehearsal = false,
   onMasterPlay,
   onMasterPlayAfterCountIn,
   onMasterStop,
@@ -196,28 +194,11 @@ const MasterTransportControls = memo(function MasterTransportControls({
         </div>
       )}
 
-      {/* Recording Count-In Indicator - positioned above record button */}
-      {recordingCountingIn && (
-        <div className="recording-count-in absolute -top-20 left-1/2 transform -translate-x-1/2">
-          <div className="text-xs text-slate-400 mb-2 text-center">Syncing...</div>
-          <div className="flex gap-1.5 items-center">
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((beat) => (
-              <div
-                key={beat}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  beat < countInBeat
-                    ? beat % 4 === 0
-                      ? 'bg-[#81E4F2] shadow-lg shadow-[#81E4F2]/80 scale-125' // Beat 1 of each bar glows brighter
-                      : 'bg-[#81E4F2] shadow-md shadow-[#81E4F2]/50' // Other beats
-                    : 'bg-slate-700' // Not yet reached
-                }`}
-              />
-            ))}
-          </div>
-          <div className="flex justify-center gap-6 mt-1">
-            <div className="text-[8px] text-slate-500">|</div>
-            <div className="text-[8px] text-slate-500">|</div>
-          </div>
+      {/* Rehearsal Indicator - positioned above record button */}
+      {recordingRehearsal && (
+        <div className="rehearsal-indicator absolute -top-16 left-1/2 transform -translate-x-1/2 text-center">
+          <div className="text-xs text-[#81E4F2] font-bold mb-1 animate-pulse">REHEARSAL</div>
+          <div className="text-[10px] text-slate-400">Recording starts next cycle</div>
         </div>
       )}
 
@@ -227,22 +208,22 @@ const MasterTransportControls = memo(function MasterTransportControls({
         className={`record-btn w-12 h-12 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all relative ${
           recordingRemix
             ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/50'
-            : recordingCountingIn
-            ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 animate-pulse shadow-lg shadow-[#81E4F2]/50'
+            : recordingRehearsal
+            ? 'border-[#81E4F2] border-2 text-[#81E4F2] animate-pulse-fast shadow-lg shadow-[#81E4F2]/30'
             : 'border-slate-600 text-slate-400 hover:border-red-500 hover:text-red-500'
         }`}
         title={
           recordingRemix
             ? 'Stop Recording'
-            : recordingCountingIn
-            ? 'Cancel Count-In'
-            : 'Start Recording (with 2-bar count-in)'
+            : recordingRehearsal
+            ? 'Rehearsing - Recording starts at bar 1'
+            : 'Start Recording (with rehearsal cycle)'
         }
       >
         {recordingRemix ? (
           <span>⏹ STOP</span>
-        ) : recordingCountingIn ? (
-          <span>⏺ SYNC</span>
+        ) : recordingRehearsal ? (
+          <span>⏺ ...</span>
         ) : (
           <span>⏺ REC</span>
         )}
@@ -270,23 +251,32 @@ const MasterTransportControls = memo(function MasterTransportControls({
           border-radius: 12px;
           backdrop-filter: blur(8px);
         }
-        
-        .count-in-display {
+
+        .rehearsal-indicator {
           z-index: 10;
           background: rgba(6, 182, 212, 0.1);
           border: 1px solid rgba(6, 182, 212, 0.3);
           border-radius: 8px;
-          padding: 6px 10px;
+          padding: 8px 12px;
           backdrop-filter: blur(4px);
         }
-        
+
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
-        
+
+        @keyframes pulse-fast {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+
         .animate-pulse {
-          animation: pulse 0.5s ease-in-out infinite;
+          animation: pulse 1s ease-in-out infinite;
+        }
+
+        .animate-pulse-fast {
+          animation: pulse-fast 0.6s ease-in-out infinite;
         }
       `}</style>
     </div>
