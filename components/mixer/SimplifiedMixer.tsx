@@ -958,11 +958,19 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (rehearsalIntervalRef.current) {
       clearInterval(rehearsalIntervalRef.current);
       rehearsalIntervalRef.current = null;
+      console.log('🔄 Rehearsal monitoring cleared');
     }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+
+    // Reset recording state to idle (handles both rehearsal and recording states)
+    setRecordingState(prev => ({
+      ...prev,
+      recordState: 'idle',
+      recordingStartTime: null
+    }));
 
     // Stop mixer playback when recording stops
     if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
@@ -978,7 +986,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       deckB: { ...prev.deckB, playing: false }
     }));
 
-    console.log('⏸️ Mixer playback stopped');
+    console.log('⏸️ Recording stopped, state reset to idle');
   }, [mixerState]);
 
   const handleRecordToggle = useCallback(() => {
