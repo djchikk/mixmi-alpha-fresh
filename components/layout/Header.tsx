@@ -126,7 +126,7 @@ export default function Header() {
         <Link href="/" className="flex items-center">
           <Image 
             src="/logos/logotype-mixmi.svg" 
-            alt="Mixmi Logo" 
+            alt="mixmi Logo" 
             width={100} 
             height={32} 
             priority
@@ -208,7 +208,7 @@ export default function Header() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-white truncate">
-                          {username || 'Mixmi User'}
+                          {username || 'mixmi User'}
                         </div>
                         <div className="text-xs text-gray-400 font-mono">
                           {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
@@ -346,7 +346,7 @@ export default function Header() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white truncate">
-                        {username || 'Mixmi User'}
+                        {username || 'mixmi User'}
                       </div>
                       <div className="text-xs text-gray-400 font-mono">
                         {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}

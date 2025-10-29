@@ -13,7 +13,7 @@
 
 ## Overview
 
-The Mixmi payment splitting system ensures fair compensation for all music contributors by automatically distributing purchase funds between composition (idea) and sound recording (production) rights holders.
+The mixmi payment splitting system ensures fair compensation for all music contributors by automatically distributing purchase funds between composition (idea) and sound recording (production) rights holders.
 
 **Key Features:**
 - ✅ 50/50 split between composition and production rights

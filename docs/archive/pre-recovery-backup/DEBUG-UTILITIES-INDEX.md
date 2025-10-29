@@ -1,4 +1,4 @@
-# 🛠️ Debug Utilities Index - Mixmi Profile
+# 🛠️ Debug Utilities Index - mixmi Profile
 
 ## Quick Access
 All utilities accessible at: `http://localhost:3010/[filename].html`

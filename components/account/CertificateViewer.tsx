@@ -137,7 +137,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Mixmi Certificate - ${track.title}</title>
+  <title>mixmi Certificate - ${track.title}</title>
   <style>
     * {
       margin: 0;
@@ -289,7 +289,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   <div class="certificate">
     <div class="header">
       <div class="logo-container">
-        <img src="/logos/logotype-mixmi.svg" alt="Mixmi" class="logo" />
+        <img src="/logos/logotype-mixmi.svg" alt="mixmi" class="logo" />
       </div>
       <h1>CERTIFICATE</h1>
       <div class="subtitle">Verified Upload</div>
@@ -368,7 +368,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
           <span class="info-value">100% flows to source loop creators</span>
         </div>
         <p style="color: #64748b; font-size: 12px; margin-top: 12px; font-style: italic;">
-          For detailed IP breakdown, view this track on Mixmi
+          For detailed IP breakdown, view this track on mixmi
         </p>
       </div>
     </div>
@@ -407,7 +407,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     </div>
 
     <div class="footer">
-      This certificate verifies the upload and attribution of this content on Mixmi Alpha.<br>
+      This certificate verifies the upload and attribution of this content on mixmi Alpha.<br>
       Generated on ${formatDate(new Date().toISOString())}<br>
       <strong>mixmi.app</strong> • Discover • Mix • Create
     </div>
@@ -440,7 +440,7 @@ Remix Created By: ${shortenWallet(track.primary_uploader_wallet)}
 Commission: 20% on sales
 IP Ownership: 100% flows to source loop creators
 
-For detailed IP breakdown, view this track on Mixmi
+For detailed IP breakdown, view this track on mixmi
 ` : `
 INTELLECTUAL PROPERTY RIGHTS
 Composition: 100% - ${shortenWallet(track.primary_uploader_wallet)}
@@ -448,7 +448,7 @@ Sound Recording: 100% - ${shortenWallet(track.primary_uploader_wallet)}
 `;
 
     const text = `
-MIXMI CERTIFICATE
+mixmi CERTIFICATE
 Verified Upload
 ═══════════════════════════════════════════
 
@@ -469,7 +469,7 @@ ${track.key ? `Key: ${track.key}` : ''}
 Price: ${track.price_stx} STX
 
 This certificate verifies the upload and attribution
-of this content on Mixmi Alpha.
+of this content on mixmi Alpha.
 
 Generated: ${formatDate(new Date().toISOString())}
 mixmi.app • Discover • Mix • Create
@@ -493,7 +493,7 @@ mixmi.app • Discover • Mix • Create
       composition: [{ wallet: track.primary_uploader_wallet, percentage: 100 }],
       sound_recording: [{ wallet: track.primary_uploader_wallet, percentage: 100 }]
     },
-    mixmi_certificate: "This track was registered on Mixmi Alpha"
+    mixmi_certificate: "This track was registered on mixmi Alpha"
   };
 
   return (
@@ -522,7 +522,7 @@ mixmi.app • Discover • Mix • Create
               <div className="inline-block bg-[#101726] px-4 py-2 rounded-md mb-4">
                 <img
                   src="/logos/logotype-mixmi.svg"
-                  alt="Mixmi"
+                  alt="mixmi"
                   className="h-4"
                 />
               </div>
@@ -624,7 +624,7 @@ mixmi.app • Discover • Mix • Create
                       <DetailRow label="IP Ownership" value="100% flows to source loop creators" />
                     </div>
                     <p className="text-gray-500 text-xs mt-3 italic">
-                      For detailed IP breakdown, view this track on Mixmi
+                      For detailed IP breakdown, view this track on mixmi
                     </p>
                   </>
                 ) : (
@@ -650,7 +650,7 @@ mixmi.app • Discover • Mix • Create
 
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8 pt-6 border-t border-gray-200">
-              This certificate verifies the upload and attribution of this content on Mixmi Alpha.
+              This certificate verifies the upload and attribution of this content on mixmi Alpha.
               <br />
               <span className="font-semibold">mixmi.app</span> • Discover • Mix • Create
             </div>

@@ -20,9 +20,9 @@ function isValidWalletAddress(address: string): boolean {
   return stacksMainnetPattern.test(address.toUpperCase());
 }
 
-// Validate alpha invite code format (e.g., MIXMI-ABC123)
+// Validate alpha invite code format (e.g., mixmi-ABC123)
 function isValidInviteCode(code: string): boolean {
-  // Invite codes are typically formatted like MIXMI-ABC123 or similar
+  // Invite codes are typically formatted like mixmi-ABC123 or similar
   // Match alphanumeric codes with optional hyphens, 6-20 characters
   const inviteCodePattern = /^[A-Z0-9-]{6,20}$/i;
   return inviteCodePattern.test(code);

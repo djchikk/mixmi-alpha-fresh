@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Convert alpha code or wallet address to actual wallet address
- * @param authIdentity - Either alpha code (MIXMI-ABC123) or wallet address (SP...)
+ * @param authIdentity - Either alpha code (mixmi-ABC123) or wallet address (SP...)
  * @returns Promise<string | null> - Actual wallet address or null if not found
  */
 export async function getWalletFromAuthIdentity(authIdentity: string): Promise<string | null> {

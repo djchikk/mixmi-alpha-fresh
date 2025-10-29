@@ -55,7 +55,7 @@ export async function generateMixCoverImage(
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 200, 400, 200);
 
-      // Add Mixmi branding in bottom section
+      // Add mixmi branding in bottom section
       ctx.fillStyle = 'rgba(129, 228, 242, 0.5)';
       ctx.font = 'bold 32px system-ui';
       ctx.textAlign = 'center';
@@ -116,7 +116,7 @@ export async function generateMixCoverImage(
         ctx.fillText('REMIX', 200, 100);
       }
 
-      // Add subtle Mixmi branding
+      // Add subtle mixmi branding
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.font = '10px system-ui';
       ctx.textAlign = 'right';

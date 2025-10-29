@@ -208,7 +208,7 @@ IPTrack (database) → Track (mixer format) → UI Display
 
 ## 🎉 **IMPACT SUMMARY**
 
-**CC13 has transformed the Mixmi Alpha uploader from a simple upload tool into a complete professional music creation platform.**
+**CC13 has transformed the mixmi Alpha uploader from a simple upload tool into a complete professional music creation platform.**
 
 **Users can now:**
 - 🌍 **Discover** music globally on the interactive globe

@@ -1,4 +1,4 @@
-# MIXMI Design System
+# mixmi Design System
 *Established January 2025 - Based on Upload Form Improvements*
 
 ## Overview

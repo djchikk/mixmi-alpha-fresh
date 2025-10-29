@@ -1,6 +1,6 @@
-# Placeholder Content for Mixmi Profile
+# Placeholder Content for mixmi Profile
 
-This repository contains placeholder content for the Mixmi profile application, including images and mock data.
+This repository contains placeholder content for the mixmi profile application, including images and mock data.
 
 ## Folder Structure
 

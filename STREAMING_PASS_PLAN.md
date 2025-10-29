@@ -285,7 +285,7 @@ Even accounting for shorter streams and mixed content, artists will earn **10-10
 
 ## Open Questions
 
-1. **Platform fee?** Should Mixmi take a small percentage (5-10%)?
+1. **Platform fee?** Should mixmi take a small percentage (5-10%)?
 2. **Pass expiration?** Credits never expire, or expire after X days?
 3. **Bulk discounts?** Offer 3-hour or 24-hour passes at better rates?
 4. **Gift passes?** Allow users to gift streaming credits?

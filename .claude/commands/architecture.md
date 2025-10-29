@@ -1,6 +1,6 @@
-# Mixmi App Architecture Context
+# mixmi App Architecture Context
 
-You are working on **Mixmi**, a professional music creation platform with blockchain-based IP attribution. Load full context from these key files:
+You are working on **mixmi**, a professional music creation platform with blockchain-based IP attribution. Load full context from these key files:
 
 ## Core Architecture Documents
 Read these files to understand the complete system:

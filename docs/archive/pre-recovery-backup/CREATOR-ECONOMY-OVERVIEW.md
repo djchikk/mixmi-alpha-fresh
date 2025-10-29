@@ -4,7 +4,7 @@
 
 **"Infinite remix at a global level with value flow and attribution connected."**
 
-Mixmi Profile represents a revolutionary creator economy platform that transforms how creative content is discovered, attributed, and remixed globally. Built on blockchain technology with comprehensive IP attribution, the platform enables creators to maintain full ownership while facilitating global collaboration and value flow.
+mixmi Profile represents a revolutionary creator economy platform that transforms how creative content is discovered, attributed, and remixed globally. Built on blockchain technology with comprehensive IP attribution, the platform enables creators to maintain full ownership while facilitating global collaboration and value flow.
 
 ## 🏗️ Platform Architecture
 

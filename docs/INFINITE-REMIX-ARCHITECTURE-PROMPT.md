@@ -7,7 +7,7 @@ We're building a music platform where users can remix loops infinitely, but we n
 
 ## PROMPT FOR CLAUDE DESKTOP (Strategy & Economics)
 
-I'm building a music remixing platform called Mixmi with an idealistic vision of infinite remixing, but I've hit a fundamental economic and technical constraint. I need help designing a novel solution.
+I'm building a music remixing platform called mixmi with an idealistic vision of infinite remixing, but I've hit a fundamental economic and technical constraint. I need help designing a novel solution.
 
 ### Current Architecture
 

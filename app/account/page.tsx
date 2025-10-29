@@ -775,7 +775,7 @@ function SettingsTab() {
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <h3 className="text-white font-semibold mb-4">Wallet Settings</h3>
           <p className="text-gray-400 text-sm mb-4">
-            Your connected wallet is used for all transactions and as your identity on Mixmi.
+            Your connected wallet is used for all transactions and as your identity on mixmi.
           </p>
           <div className="text-xs text-gray-500 font-mono">
             Connected: Connected wallet address will appear here

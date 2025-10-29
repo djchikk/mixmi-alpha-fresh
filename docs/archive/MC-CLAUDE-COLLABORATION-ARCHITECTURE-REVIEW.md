@@ -2,7 +2,7 @@
 
 ## **Hey MC Claude! 👋**
 
-We've discovered a critical architecture challenge in our Mixmi creator store and would love your perspective before implementing our solution.
+We've discovered a critical architecture challenge in our mixmi creator store and would love your perspective before implementing our solution.
 
 ## **🔍 THE CURRENT SITUATION**
 

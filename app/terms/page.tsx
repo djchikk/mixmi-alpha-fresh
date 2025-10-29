@@ -20,7 +20,7 @@ export default function TermsOfUse() {
               href="/"
               className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
             >
-              ← Back to MIXMI
+              ← Back to mixmi
             </Link>
             <div className="text-gray-500 text-sm font-mono">
               Last updated: {lastUpdated}
@@ -33,14 +33,14 @@ export default function TermsOfUse() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="prose prose-invert max-w-none">
           <h1 className="text-4xl font-bold text-white mb-8 font-mono">
-            MIXMI Terms of Use
+            mixmi Terms of Use
           </h1>
 
           {/* Welcome section */}
           <div className="bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/20 rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4 font-mono">Welcome to MIXMI</h2>
+            <h2 className="text-2xl font-bold text-white mb-4 font-mono">Welcome to mixmi</h2>
             <p className="text-gray-300 leading-relaxed font-mono">
-              MIXMI is a platform for infinite remix and creative collaboration. By using MIXMI, you agree to these terms. 
+              mixmi is a platform for infinite remix and creative collaboration. By using mixmi, you agree to these terms. 
               If you don't agree, please don't use the platform.
             </p>
           </div>
@@ -136,7 +136,7 @@ export default function TermsOfUse() {
                 <div className="space-y-2">
                   <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
                     <span className="text-white font-bold">Remix Only:</span>
-                    <span className="text-gray-300 ml-2">Remixing within MIXMI only</span>
+                    <span className="text-gray-300 ml-2">Remixing within mixmi only</span>
                   </div>
                   <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
                     <span className="text-white font-bold">Remix + Download:</span>
@@ -196,7 +196,7 @@ export default function TermsOfUse() {
                   <li>Lost keys = lost access (we cannot recover wallets)</li>
                   <li>Blockchain transactions are permanent</li>
                   <li>Stacks network transaction fees apply (typically ~$0.01)</li>
-                  <li>These fees go to the Stacks network, not MIXMI</li>
+                  <li>These fees go to the Stacks network, not mixmi</li>
                 </ul>
               </div>
             </section>
@@ -208,7 +208,7 @@ export default function TermsOfUse() {
               <div className="mb-6">
                 <h3 className="text-xl font-bold text-accent mb-3">6.1 Platform Limitation</h3>
                 <p className="text-gray-300 mb-3">
-                  MIXMI provides the platform "as is" without warranties. We are not responsible for:
+                  mixmi provides the platform "as is" without warranties. We are not responsible for:
                 </p>
                 <ul className="list-disc list-inside text-gray-300 space-y-1 ml-4">
                   <li>Disputes between users</li>
@@ -223,7 +223,7 @@ export default function TermsOfUse() {
                 <h3 className="text-xl font-bold text-accent mb-3">6.2 Your Indemnification</h3>
                 <div className="bg-orange-900/20 border border-orange-800/50 rounded-lg p-4">
                   <p className="text-orange-300 font-bold mb-2">
-                    You agree to indemnify and hold MIXMI harmless from any claims arising from:
+                    You agree to indemnify and hold mixmi harmless from any claims arising from:
                   </p>
                   <ul className="list-disc list-inside text-orange-200 space-y-1 ml-4">
                     <li>Your content</li>
@@ -250,12 +250,12 @@ export default function TermsOfUse() {
                   <li>TBD wallet management</li>
                 </ul>
                 <p className="text-white font-bold bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-                  Must be resolved between the parties. MIXMI is not a mediator or arbiter.
+                  Must be resolved between the parties. mixmi is not a mediator or arbiter.
                 </p>
                 
                 <div className="mt-4">
                   <h4 className="text-lg font-bold text-white mb-2">7.1.1 Documentation We Provide</h4>
-                  <p className="text-gray-300 mb-2">For any content disputes, MIXMI automatically provides:</p>
+                  <p className="text-gray-300 mb-2">For any content disputes, mixmi automatically provides:</p>
                   <ul className="list-disc list-inside text-gray-300 space-y-1 ml-4 mb-3">
                     <li>Blockchain-verified registration certificates</li>
                     <li>Timestamped proof of upload</li>
@@ -269,7 +269,7 @@ export default function TermsOfUse() {
               </div>
 
               <div>
-                <h3 className="text-xl font-bold text-accent mb-3">7.2 With MIXMI</h3>
+                <h3 className="text-xl font-bold text-accent mb-3">7.2 With mixmi</h3>
                 <p className="text-gray-300 mb-2">Any disputes with the platform will be resolved through:</p>
                 <ol className="list-decimal list-inside text-gray-300 space-y-1 ml-4">
                   <li>Good faith negotiation</li>
@@ -350,9 +350,9 @@ export default function TermsOfUse() {
               </p>
             </section>
 
-            {/* Section 11 - Spirit of MIXMI */}
+            {/* Section 11 - Spirit of mixmi */}
             <section className="bg-gradient-to-r from-accent/5 to-accent/10 border border-accent/20 rounded-lg p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">11. The Spirit of MIXMI</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">11. The Spirit of mixmi</h2>
               <p className="text-gray-300 mb-3">Beyond the legal requirements, we ask that you:</p>
               <ul className="list-disc list-inside text-gray-300 space-y-1 ml-4">
                 <li>Be truthful and act in good faith</li>
@@ -371,7 +371,7 @@ export default function TermsOfUse() {
                 <li>You have read and understood these terms</li>
                 <li>You accept full responsibility for your content and actions</li>
                 <li>You will act in good faith with all collaborators</li>
-                <li>You understand that MIXMI is a neutral platform, not a rights arbiter</li>
+                <li>You understand that mixmi is a neutral platform, not a rights arbiter</li>
               </ul>
             </section>
 

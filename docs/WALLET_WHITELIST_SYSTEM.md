@@ -1,5 +1,5 @@
 # Wallet Whitelist System 🔐
-## *Alpha User Authentication for Mixmi Uploader*
+## *Alpha User Authentication for mixmi Uploader*
 
 ---
 

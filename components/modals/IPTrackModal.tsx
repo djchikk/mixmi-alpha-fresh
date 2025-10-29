@@ -1665,7 +1665,7 @@ export default function IPTrackModal({
                 <span className="text-gray-300 font-medium">REMIX ONLY</span>
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Most Common</span>
               </div>
-              <p className="text-gray-500 text-sm mt-1">Others can remix within MIXMI platform only</p>
+              <p className="text-gray-500 text-sm mt-1">Others can remix within mixmi platform only</p>
               <p className="text-gray-600 text-xs mt-1">Perfect for: Building on-platform community</p>
             </div>
           </label>
@@ -2042,7 +2042,7 @@ export default function IPTrackModal({
           />
           <div className="flex-1">
             <span className="text-gray-300">
-              I agree to the MIXMI Terms of Service and confirm I have rights to distribute this content
+              I agree to the mixmi Terms of Service and confirm I have rights to distribute this content
             </span>
             <a 
               href="/terms" 
@@ -2182,7 +2182,7 @@ export default function IPTrackModal({
                 type="text"
                 value={inputWallet}
                 onChange={(e) => setInputWallet(e.target.value)}
-                placeholder="Example: MIXMI-ABC123 or SP1N0105..."
+                placeholder="Example: mixmi-ABC123 or SP1N0105..."
                 disabled={isAuthenticating}
                 required
                 style={{
@@ -2267,7 +2267,7 @@ export default function IPTrackModal({
             <div className="mt-6 pt-6 border-t border-gray-700">
               <p className="text-gray-500 text-sm mb-2">Need an invite code?</p>
               <a
-                href="mailto:mixmialpha@gmail.com?subject=MIXMI%20Alpha%20Access%20Request&body=Hi%2C%0A%0AI'd%20like%20to%20request%20early%20alpha%20access%20to%20MIXMI.%0A%0AThank%20you!"
+                href="mailto:mixmialpha@gmail.com?subject=mixmi%20Alpha%20Access%20Request&body=Hi%2C%0A%0AI'd%20like%20to%20request%20early%20alpha%20access%20to%20mixmi.%0A%0AThank%20you!"
                 className="text-[#81E4F2] hover:text-[#6BC4D4] font-medium text-sm transition-colors"
               >
                 Email us for alpha access →

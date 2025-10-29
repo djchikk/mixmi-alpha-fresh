@@ -213,7 +213,7 @@ export class CertificateService {
       doc.setFontSize(26);
       doc.setFont(undefined, 'bold');
       doc.setTextColor(50, 50, 50);
-      doc.text('MIXMI', pageWidth / 2, margin + 10, { align: 'center' });
+      doc.text('mixmi', pageWidth / 2, margin + 10, { align: 'center' });
       doc.setFont(undefined, 'normal');
       doc.setTextColor(0, 0, 0);
       
