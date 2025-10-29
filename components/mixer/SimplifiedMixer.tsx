@@ -122,6 +122,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const countInIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
   const recordingScheduleRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Visual playback state - controls waveform scrolling during count-in
+  const [visualPlaybackEnabled, setVisualPlaybackEnabled] = useState(true);
+
   // Responsive waveform width based on breakpoints
   const [waveformWidth, setWaveformWidth] = useState(700);
 
@@ -230,21 +233,25 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Update current time for waveforms using requestAnimationFrame (prevents race conditions)
   useEffect(() => {
     const updateCurrentTime = () => {
-      // Update refs directly (no state updates = no race conditions)
-      if (mixerState.deckA.playing && mixerState.deckA.audioState?.audio) {
-        deckACurrentTimeRef.current = mixerState.deckA.audioState.audio.currentTime;
-        // Update the audioState for waveform display
-        mixerState.deckA.audioState.currentTime = deckACurrentTimeRef.current;
-      }
+      // Only update waveform positions if visual playback is enabled
+      // During count-in, playback is muted and waveforms are frozen
+      if (visualPlaybackEnabled) {
+        // Update refs directly (no state updates = no race conditions)
+        if (mixerState.deckA.playing && mixerState.deckA.audioState?.audio) {
+          deckACurrentTimeRef.current = mixerState.deckA.audioState.audio.currentTime;
+          // Update the audioState for waveform display
+          mixerState.deckA.audioState.currentTime = deckACurrentTimeRef.current;
+        }
 
-      if (mixerState.deckB.playing && mixerState.deckB.audioState?.audio) {
-        deckBCurrentTimeRef.current = mixerState.deckB.audioState.audio.currentTime;
-        // Update the audioState for waveform display
-        mixerState.deckB.audioState.currentTime = deckBCurrentTimeRef.current;
-      }
+        if (mixerState.deckB.playing && mixerState.deckB.audioState?.audio) {
+          deckBCurrentTimeRef.current = mixerState.deckB.audioState.audio.currentTime;
+          // Update the audioState for waveform display
+          mixerState.deckB.audioState.currentTime = deckBCurrentTimeRef.current;
+        }
 
-      // Trigger re-render to update waveform displays
-      forceUpdate(prev => prev + 1);
+        // Trigger re-render to update waveform displays
+        forceUpdate(prev => prev + 1);
+      }
 
       // Continue animation loop if either deck is playing
       if (mixerState.deckA.playing || mixerState.deckB.playing) {
@@ -263,7 +270,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         animationFrameRef.current = null;
       }
     };
-  }, [mixerState.deckA.playing, mixerState.deckB.playing, mixerState.deckA.audioState, mixerState.deckB.audioState]);
+  }, [mixerState.deckA.playing, mixerState.deckB.playing, mixerState.deckA.audioState, mixerState.deckB.audioState, visualPlaybackEnabled]);
 
   // Reusable FX connection helper with retry logic and timeout tracking
   const connectDeckFX = useCallback((
@@ -366,6 +373,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       }
       if (recordingScheduleRef.current) {
         clearTimeout(recordingScheduleRef.current);
+      }
+
+      // Restore master gain and visual playback
+      const masterGain = getMasterGain();
+      if (masterGain) {
+        masterGain.gain.value = 1.0;
       }
 
       // Reset sync engine state
@@ -1050,6 +1063,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       recordingScheduleRef.current = null;
     }
 
+    // Restore master gain and visual playback (in case stopped during count-in)
+    const masterGain = getMasterGain();
+    if (masterGain) {
+      masterGain.gain.value = 1.0;
+    }
+    setVisualPlaybackEnabled(true);
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
@@ -1089,6 +1109,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         recordingScheduleRef.current = null;
       }
 
+      // Restore master gain and visual playback
+      const masterGain = getMasterGain();
+      if (masterGain) {
+        masterGain.gain.value = 1.0;
+      }
+      setVisualPlaybackEnabled(true);
+
       // Stop playback
       handleMasterStop();
 
@@ -1099,20 +1126,32 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         countInBeat: 0
       }));
     } else {
-      // Start count-in
+      // Start count-in with silent pre-roll
       // Ensure both decks are loaded
       if (!mixerState.deckA.track || !mixerState.deckB.track) {
         console.warn('⚠️ Both decks must have tracks loaded to record');
         return;
       }
 
-      console.log('🎙️ Starting 2-bar count-in...');
+      console.log('🎙️ Starting silent 2-bar pre-roll...');
 
       // Calculate count-in duration (2 bars = 8 beats)
       const beatDuration = (60 / mixerState.masterBPM) * 1000; // milliseconds per beat
       const countInDuration = beatDuration * 8; // 2 bars = 8 beats
 
-      console.log(`⏱️ Count-in: ${countInDuration}ms (${beatDuration}ms per beat at ${mixerState.masterBPM} BPM)`);
+      console.log(`⏱️ Silent pre-roll: ${countInDuration}ms (${beatDuration}ms per beat at ${mixerState.masterBPM} BPM)`);
+
+      // STEP 1: Start silent sync phase
+      // Mute master gain
+      const masterGain = getMasterGain();
+      if (masterGain) {
+        masterGain.gain.value = 0;
+        console.log('🔇 Master audio muted for count-in');
+      }
+
+      // Disable visual playback (freeze waveforms)
+      setVisualPlaybackEnabled(false);
+      console.log('👁️ Waveform scrolling disabled');
 
       // Set state to counting-in
       setRecordingState(prev => ({
@@ -1121,7 +1160,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         countInBeat: 0
       }));
 
-      // Start playback immediately (stutter happens during count-in)
+      // Start playback (silent, no visual movement)
       if (!mixerState.deckA.playing) {
         handleDeckAPlayPause();
       }
@@ -1129,20 +1168,20 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         handleDeckBPlayPause();
       }
 
-      // Track beats for visual feedback
+      // Track beats for visual feedback (dots still animate)
       let currentBeat = 0;
       countInIntervalRef.current = setInterval(() => {
         currentBeat++;
-        console.log(`🥁 Count-in beat: ${currentBeat}/8`);
+        console.log(`🥁 Silent sync beat: ${currentBeat}/8`);
         setRecordingState(prev => ({
           ...prev,
           countInBeat: currentBeat
         }));
       }, beatDuration);
 
-      // Schedule recording to start after exactly 2 bars
+      // STEP 2: After 2 bars, reset and go live
       recordingScheduleRef.current = setTimeout(() => {
-        console.log('🎙️ Count-in complete! Starting recording on downbeat...');
+        console.log('🎵 Silent pre-roll complete! Resetting to bar 1...');
 
         // Clear the beat interval
         if (countInIntervalRef.current) {
@@ -1150,15 +1189,58 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           countInIntervalRef.current = null;
         }
 
-        // Start actual recording
-        startRecording();
+        // Stop both decks
+        if (mixerState.deckA.audioControls) {
+          mixerState.deckA.audioControls.stop();
+        }
+        if (mixerState.deckB.audioControls) {
+          mixerState.deckB.audioControls.stop();
+        }
 
-        // Update state to recording
-        setRecordingState(prev => ({
-          ...prev,
-          recordState: 'recording',
-          countInBeat: 0
-        }));
+        // Reset deck positions to 0
+        if (mixerState.deckA.audioControls) {
+          mixerState.deckA.audioControls.setLoopPosition(0);
+        }
+        if (mixerState.deckB.audioControls) {
+          mixerState.deckB.audioControls.setLoopPosition(0);
+        }
+
+        console.log('🔄 Decks reset to position 0');
+
+        // Small delay to ensure reset completes
+        setTimeout(() => {
+          // Fade in master gain (quick but smooth to avoid click)
+          if (masterGain) {
+            const audioContext = getAudioContext();
+            if (audioContext) {
+              masterGain.gain.setTargetAtTime(1.0, audioContext.currentTime, 0.015); // ~50ms fade
+              console.log('🔊 Audio fading in...');
+            }
+          }
+
+          // Enable visual playback (waveforms start scrolling from 0)
+          setVisualPlaybackEnabled(true);
+          console.log('👁️ Waveform scrolling enabled from position 0');
+
+          // Restart decks from position 0
+          if (mixerState.deckA.audioControls) {
+            mixerState.deckA.audioControls.play();
+          }
+          if (mixerState.deckB.audioControls) {
+            mixerState.deckB.audioControls.play();
+          }
+
+          // Start recording - timestamp 0 = bar 1, beat 1!
+          console.log('🎙️ Starting recording from bar 1, beat 1...');
+          startRecording();
+
+          // Update state to recording
+          setRecordingState(prev => ({
+            ...prev,
+            recordState: 'recording',
+            countInBeat: 0
+          }));
+        }, 50); // Small delay for deck reset
       }, countInDuration);
     }
   }, [recordingState.recordState, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause, handleMasterStop]);
