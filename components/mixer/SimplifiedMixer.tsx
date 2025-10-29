@@ -69,7 +69,8 @@ interface SimplifiedMixerState {
 
 // Recording state
 interface RecordingState {
-  isRecording: boolean;
+  recordState: 'idle' | 'counting-in' | 'recording'; // Three-state recording system
+  countInBeat: number; // Current beat during count-in (0-7 for 8 beats)
   recordingStartTime: number | null; // AudioContext.currentTime when recording starts
   barsRecorded: number;
   targetBars: number; // Safety limit (120 bars = ~15 min at 120 BPM)
@@ -104,7 +105,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Recording state and refs
   const [recordingState, setRecordingState] = useState<RecordingState>({
-    isRecording: false,
+    recordState: 'idle',
+    countInBeat: 0,
     recordingStartTime: null,
     barsRecorded: 0,
     targetBars: 120, // Safety limit: auto-stop at 120 bars (~15 min at 120 BPM)
@@ -115,6 +117,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const recordedChunksRef = React.useRef<Blob[]>([]);
   const mixerDestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
+
+  // Count-in timing refs for cleanup
+  const countInIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const recordingScheduleRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Responsive waveform width based on breakpoints
   const [waveformWidth, setWaveformWidth] = useState(700);
@@ -347,12 +353,20 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     return false;
   }, []);
 
-  // Cleanup all FX retry timeouts and sync engine on unmount
+  // Cleanup all FX retry timeouts, sync engine, and recording timers on unmount
   useEffect(() => {
     return () => {
       // Clear FX retry timeouts
       fxRetryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
       fxRetryTimeoutsRef.current.clear();
+
+      // Clear recording count-in timers
+      if (countInIntervalRef.current) {
+        clearInterval(countInIntervalRef.current);
+      }
+      if (recordingScheduleRef.current) {
+        clearTimeout(recordingScheduleRef.current);
+      }
 
       // Reset sync engine state
       resetSyncState();
@@ -983,16 +997,30 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       // Calculate actual duration using AudioContext time
       const recordingEndTime = audioContext.currentTime;
       const actualDuration = recordingEndTime - recordingStartTime;
+      const barsRecorded = AudioTiming.timeToBar(actualDuration, mixerState.masterBPM);
+
+      // Recording metadata - always starts on downbeat due to count-in
+      const metadata = {
+        recordedAt: new Date(),
+        startedOnDownbeat: true, // Always true with count-in system
+        masterBPM: mixerState.masterBPM,
+        barsRecorded: Math.floor(barsRecorded),
+        duration: actualDuration
+      };
+
+      console.log('📊 Recording metadata:', metadata);
 
       setRecordingState(prev => ({
         ...prev,
-        isRecording: false,
+        recordState: 'idle',
+        countInBeat: 0,
         recordedUrl: url,
         recordedDuration: actualDuration,
         showPreview: true
       }));
 
-      console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${AudioTiming.timeToBar(actualDuration, mixerState.masterBPM).toFixed(1)} bars)`);
+      console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${barsRecorded.toFixed(1)} bars)`);
+      console.log(`🎵 Recording started on downbeat, enabling perfect musical navigation`);
     };
 
     mediaRecorder.start(100); // Collect data every 100ms
@@ -1000,9 +1028,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
     setRecordingState(prev => ({
       ...prev,
-      isRecording: true,
+      recordState: 'recording',
       recordingStartTime: recordingStartTime,
-      barsRecorded: 0
+      barsRecorded: 0,
+      countInBeat: 0
     }));
 
     console.log(`✅ Recording started at AudioContext time: ${recordingStartTime.toFixed(3)}s`);
@@ -1010,6 +1039,16 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   const stopRecording = useCallback(() => {
     console.log('🎙️ Stopping recording...');
+
+    // Clear any count-in timers
+    if (countInIntervalRef.current) {
+      clearInterval(countInIntervalRef.current);
+      countInIntervalRef.current = null;
+    }
+    if (recordingScheduleRef.current) {
+      clearTimeout(recordingScheduleRef.current);
+      recordingScheduleRef.current = null;
+    }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
@@ -1033,16 +1072,56 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   }, [mixerState]);
 
   const handleRecordToggle = useCallback(() => {
-    if (recordingState.isRecording) {
+    if (recordingState.recordState === 'recording') {
+      // Stop recording
       stopRecording();
+    } else if (recordingState.recordState === 'counting-in') {
+      // Cancel count-in and return to idle
+      console.log('🎙️ Canceling count-in...');
+
+      // Clear intervals and timeouts
+      if (countInIntervalRef.current) {
+        clearInterval(countInIntervalRef.current);
+        countInIntervalRef.current = null;
+      }
+      if (recordingScheduleRef.current) {
+        clearTimeout(recordingScheduleRef.current);
+        recordingScheduleRef.current = null;
+      }
+
+      // Stop playback
+      handleMasterStop();
+
+      // Reset to idle
+      setRecordingState(prev => ({
+        ...prev,
+        recordState: 'idle',
+        countInBeat: 0
+      }));
     } else {
+      // Start count-in
       // Ensure both decks are loaded
       if (!mixerState.deckA.track || !mixerState.deckB.track) {
         console.warn('⚠️ Both decks must have tracks loaded to record');
         return;
       }
 
-      // Start playback if not already playing
+      console.log('🎙️ Starting 2-bar count-in...');
+
+      // Calculate count-in duration (2 bars = 8 beats)
+      const beatDuration = (60 / mixerState.masterBPM) * 1000; // milliseconds per beat
+      const countInDuration = beatDuration * 8; // 2 bars = 8 beats
+
+      console.log(`⏱️ Count-in: ${countInDuration}ms (${beatDuration}ms per beat at ${mixerState.masterBPM} BPM)`);
+
+      // Set state to counting-in
+      setRecordingState(prev => ({
+        ...prev,
+        recordState: 'counting-in',
+        countInBeat: 0
+      }));
+
+      // Start playback immediately (stutter happens during count-in)
       if (!mixerState.deckA.playing) {
         handleDeckAPlayPause();
       }
@@ -1050,10 +1129,39 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         handleDeckBPlayPause();
       }
 
-      // Start recording
-      setTimeout(() => startRecording(), 100); // Small delay to ensure playback starts
+      // Track beats for visual feedback
+      let currentBeat = 0;
+      countInIntervalRef.current = setInterval(() => {
+        currentBeat++;
+        console.log(`🥁 Count-in beat: ${currentBeat}/8`);
+        setRecordingState(prev => ({
+          ...prev,
+          countInBeat: currentBeat
+        }));
+      }, beatDuration);
+
+      // Schedule recording to start after exactly 2 bars
+      recordingScheduleRef.current = setTimeout(() => {
+        console.log('🎙️ Count-in complete! Starting recording on downbeat...');
+
+        // Clear the beat interval
+        if (countInIntervalRef.current) {
+          clearInterval(countInIntervalRef.current);
+          countInIntervalRef.current = null;
+        }
+
+        // Start actual recording
+        startRecording();
+
+        // Update state to recording
+        setRecordingState(prev => ({
+          ...prev,
+          recordState: 'recording',
+          countInBeat: 0
+        }));
+      }, countInDuration);
     }
-  }, [recordingState.isRecording, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
+  }, [recordingState.recordState, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause, handleMasterStop]);
 
   // Keyboard shortcuts for mixer control
   useEffect(() => {
@@ -1150,7 +1258,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Monitor playback to count bars and auto-stop recording at target (sample-accurate with AudioContext)
   useEffect(() => {
-    if (!recordingState.isRecording || recordingState.recordingStartTime === null) return;
+    if (recordingState.recordState !== 'recording' || recordingState.recordingStartTime === null) return;
 
     const audioContext = getAudioContext();
     if (!audioContext) {
@@ -1177,7 +1285,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }, 100); // Check every 100ms
 
     return () => clearInterval(checkBars);
-  }, [recordingState.isRecording, recordingState.recordingStartTime, recordingState.targetBars, recordingState.barsRecorded, mixerState.masterBPM, stopRecording]);
+  }, [recordingState.recordState, recordingState.recordingStartTime, recordingState.targetBars, recordingState.barsRecorded, mixerState.masterBPM, stopRecording]);
 
   return (
     <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 mx-auto ${className}`} style={{ maxWidth: '1168px' }}>
@@ -1416,7 +1524,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               deckBPlaying={mixerState.deckB.playing}
               deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
               syncActive={mixerState.syncActive}
-              recordingRemix={recordingState.isRecording}
+              recordingRemix={recordingState.recordState === 'recording'}
+              recordingCountingIn={recordingState.recordState === 'counting-in'}
+              countInBeat={recordingState.countInBeat}
+              masterBPM={mixerState.masterBPM}
               onMasterPlay={handleMasterPlay}
               onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
               onMasterStop={handleMasterStop}
