@@ -1027,7 +1027,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
 
     // STEP 3: Monitor for bar 1 crossing
-    let crossingCount = 0;
     let lastPosition = mixerState.deckA.audioState?.audio?.currentTime || 0;
     const checkInterval = 50; // Check every 50ms
 
@@ -1039,83 +1038,78 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       // Detect loop boundary crossing (position wrapped back to near 0)
       const THRESHOLD = 0.5; // Within 0.5 seconds of bar 1
       if (lastPosition > loopDuration - THRESHOLD && currentPosition < THRESHOLD) {
-        crossingCount++;
-        console.log(`🔄 Bar 1 crossing detected! Count: ${crossingCount}`);
+        // First crossing - end of rehearsal, start recording!
+        console.log(`🔄 Bar 1 crossing detected! Rehearsal complete, starting recording...`);
 
-        if (crossingCount === 2) {
-          // Second crossing - start recording!
-          console.log('🎙️ Second cycle reached - starting recording at bar 1!');
+        // Clear monitoring interval
+        if (rehearsalIntervalRef.current) {
+          clearInterval(rehearsalIntervalRef.current);
+          rehearsalIntervalRef.current = null;
+        }
 
-          // Clear monitoring interval
-          if (rehearsalIntervalRef.current) {
-            clearInterval(rehearsalIntervalRef.current);
-            rehearsalIntervalRef.current = null;
+        // Setup MediaRecorder
+        const stream = setupMixerRecording();
+        if (!stream) {
+          console.error('❌ Failed to setup recording stream');
+          setRecordingState(prev => ({ ...prev, recordState: 'idle' }));
+          stopRecording();
+          return;
+        }
+
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus'
+        });
+
+        recordedChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            recordedChunksRef.current.push(event.data);
           }
+        };
 
-          // Setup MediaRecorder
-          const stream = setupMixerRecording();
-          if (!stream) {
-            console.error('❌ Failed to setup recording stream');
-            setRecordingState(prev => ({ ...prev, recordState: 'idle' }));
-            stopRecording();
-            return;
-          }
+        mediaRecorder.onstop = () => {
+          console.log('🎙️ Recording stopped, processing audio...');
+          const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
 
-          const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'audio/webm;codecs=opus'
-          });
+          const recordingEndTime = audioContext.currentTime;
+          const actualDuration = recordingEndTime - recordingState.recordingStartTime!;
+          const barsRecorded = AudioTiming.timeToBar(actualDuration, mixerState.masterBPM);
 
-          recordedChunksRef.current = [];
-
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-              recordedChunksRef.current.push(event.data);
-            }
+          const metadata = {
+            recordedAt: new Date(),
+            startedOnDownbeat: true,
+            masterBPM: mixerState.masterBPM,
+            barsRecorded: Math.floor(barsRecorded),
+            duration: actualDuration
           };
 
-          mediaRecorder.onstop = () => {
-            console.log('🎙️ Recording stopped, processing audio...');
-            const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
-            const url = URL.createObjectURL(blob);
-
-            const recordingEndTime = audioContext.currentTime;
-            const actualDuration = recordingEndTime - recordingState.recordingStartTime!;
-            const barsRecorded = AudioTiming.timeToBar(actualDuration, mixerState.masterBPM);
-
-            const metadata = {
-              recordedAt: new Date(),
-              startedOnDownbeat: true,
-              masterBPM: mixerState.masterBPM,
-              barsRecorded: Math.floor(barsRecorded),
-              duration: actualDuration
-            };
-
-            console.log('📊 Recording metadata:', metadata);
-
-            setRecordingState(prev => ({
-              ...prev,
-              recordState: 'idle',
-              recordedUrl: url,
-              recordedDuration: actualDuration,
-              showPreview: true
-            }));
-
-            console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${barsRecorded.toFixed(1)} bars)`);
-            console.log(`🎵 Perfect bar 1 alignment!`);
-          };
-
-          // Start recording at bar 1!
-          mediaRecorder.start(100);
-          mediaRecorderRef.current = mediaRecorder;
+          console.log('📊 Recording metadata:', metadata);
 
           setRecordingState(prev => ({
             ...prev,
-            recordState: 'recording',
-            recordingStartTime: audioContext.currentTime
+            recordState: 'idle',
+            recordedUrl: url,
+            recordedDuration: actualDuration,
+            showPreview: true
           }));
 
-          console.log('✅ Recording started at bar 1 of second cycle!');
-        }
+          console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${barsRecorded.toFixed(1)} bars)`);
+          console.log(`🎵 Perfect bar 1 alignment!`);
+        };
+
+        // Start recording at bar 1!
+        mediaRecorder.start(100);
+        mediaRecorderRef.current = mediaRecorder;
+
+        setRecordingState(prev => ({
+          ...prev,
+          recordState: 'recording',
+          recordingStartTime: audioContext.currentTime
+        }));
+
+        console.log('✅ Recording started at bar 1!');
       }
 
       lastPosition = currentPosition;
@@ -1123,7 +1117,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
     console.log(`✅ Rehearsal cycle monitoring started`);
     console.log(`🔊 Audio playing - listen to your mix!`);
-    console.log(`📹 Recording will start automatically at bar 1 of second cycle`);
+    console.log(`📹 Recording will start automatically at next bar 1`);
   }, [recordingState.recordState, recordingState.recordingStartTime, mixerState, stopRecording, setupMixerRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
 
   // Keyboard shortcuts for mixer control
