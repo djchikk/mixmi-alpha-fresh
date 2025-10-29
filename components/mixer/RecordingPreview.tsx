@@ -18,6 +18,8 @@ class SampleAccurateLooper {
   private startBar: number = 0;
   private endBar: number = 8;
   private isLooping: boolean = false;
+  private loopStartTime: number = 0; // AudioContext time when loop started
+  private loopDuration: number = 0; // Duration of loop in seconds
 
   constructor(audioContext: AudioContext, audioBuffer: AudioBuffer, bpm: number) {
     this.audioContext = audioContext;
@@ -99,6 +101,13 @@ class SampleAccurateLooper {
 
     const source = this.createLoopSource(startBar, endBar);
 
+    // Calculate loop duration for position tracking
+    const secondsPerBar = (4 * 60) / this.bpm;
+    this.loopDuration = (endBar - startBar) * secondsPerBar;
+
+    // Track when playback starts
+    this.loopStartTime = this.audioContext.currentTime;
+
     // Start playback immediately
     source.start(0);
 
@@ -140,6 +149,25 @@ class SampleAccurateLooper {
   // Check if currently looping
   getIsLooping(): boolean {
     return this.isLooping;
+  }
+
+  // Get current playback position (in seconds, relative to start of full recording)
+  getCurrentPosition(): number {
+    if (!this.isLooping || this.loopDuration === 0) {
+      return 0;
+    }
+
+    // Calculate elapsed time since loop started
+    const elapsedTime = this.audioContext.currentTime - this.loopStartTime;
+
+    // Wrap within loop duration
+    const positionInLoop = elapsedTime % this.loopDuration;
+
+    // Convert to absolute position in the full recording
+    const secondsPerBar = (4 * 60) / this.bpm;
+    const loopStartTime = this.startBar * secondsPerBar;
+
+    return loopStartTime + positionInLoop;
   }
 
   // Set volume
@@ -187,6 +215,7 @@ export default function RecordingPreview({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const looperRef = useRef<SampleAccurateLooper | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Create audio element for preview of full recording
@@ -250,6 +279,36 @@ export default function RecordingPreview({
     // Update the looper with new segment boundaries
     looperRef.current.updateSegment(selectedSegment.start, selectedSegment.end);
   }, [selectedSegment, isLoopPlaying]);
+
+  // Update playhead position during loop playback
+  useEffect(() => {
+    if (!isLoopPlaying || !looperRef.current) {
+      // Stop animation frame loop
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      return;
+    }
+
+    // Start animation frame loop to update playhead
+    const updatePlayhead = () => {
+      if (looperRef.current && isLoopPlaying) {
+        const position = looperRef.current.getCurrentPosition();
+        setCurrentTime(position);
+        animationFrameRef.current = requestAnimationFrame(updatePlayhead);
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(updatePlayhead);
+
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [isLoopPlaying]);
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
@@ -347,7 +406,7 @@ export default function RecordingPreview({
           <RecordingWaveformDisplay
             audioBuffer={audioBuffer}
             currentTime={currentTime}
-            isPlaying={isPlaying}
+            isPlaying={isPlaying || isLoopPlaying}
             totalBars={bars}
             bpm={bpm}
             onSelectSegment={(start, end) => {
