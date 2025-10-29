@@ -402,63 +402,63 @@ export default function CreatorStorePage() {
       <div className="max-w-7xl mx-auto px-6 pb-24">
         <div className="sticky top-[73px] z-40 bg-gradient-to-br from-[#151C2A]/95 to-[#101726]/95 backdrop-blur-md border-b border-white/10 -mx-6 px-6 pb-6 mb-8">
 
-          <div className="flex items-center justify-between mb-6 pt-6">
-            <div className="flex items-center gap-4">
-              <Link
-                href={`/profile/${walletOrUsername}`}
-                className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300 cursor-pointer"
-                title="Go to Profile"
-              >
-                {profileImage ? (
-                  <img
-                    src={profileImage}
-                    alt={creatorName || 'Creator'}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error('Failed to load profile image');
-                      // Hide the broken image and show fallback
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
-                    {creatorName ? creatorName.charAt(0).toUpperCase() : 'M'}
-                  </div>
-                )}
-              </Link>
+          <div className="flex items-center gap-4 mb-6 pt-6">
+            <Link
+              href={`/profile/${walletOrUsername}`}
+              className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300 cursor-pointer"
+              title="Go to Profile"
+            >
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt={creatorName || 'Creator'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Failed to load profile image');
+                    // Hide the broken image and show fallback
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
+                  {creatorName ? creatorName.charAt(0).toUpperCase() : 'M'}
+                </div>
+              )}
+            </Link>
 
-              <div>
-                <h1 className="text-4xl font-bold">
-                  <span className="bg-gradient-to-r from-[#9772F4] to-[#FFE4B5] bg-clip-text text-transparent">
-                    {creatorName ? (
-                      <>
-                        <Link
-                          href={`/profile/${walletOrUsername}`}
-                          className="border-b-2 border-transparent hover:border-[#81E4F2] transition-all duration-300"
-                        >
-                          {creatorName}
-                        </Link>
-                        's Store
-                      </>
-                    ) : 'Creator Store'}
-                  </span>
-                </h1>
-                <p className="text-gray-400 mt-1">
-                  {isOwnStore ? 'Manage your content' : 'Discover and license amazing tracks'}
-                </p>
-              </div>
+            <div>
+              <h1 className="text-4xl font-bold">
+                <span className="bg-gradient-to-r from-[#9772F4] to-[#FFE4B5] bg-clip-text text-transparent">
+                  {creatorName ? (
+                    <>
+                      <Link
+                        href={`/profile/${walletOrUsername}`}
+                        className="border-b-2 border-transparent hover:border-[#81E4F2] transition-all duration-300"
+                      >
+                        {creatorName}
+                      </Link>
+                      's Store
+                    </>
+                  ) : 'Creator Store'}
+                </span>
+              </h1>
+              <p className="text-gray-400 mt-1">
+                {isOwnStore ? 'Manage your content' : 'Discover and license amazing tracks'}
+              </p>
             </div>
+          </div>
 
-            {isOwnStore && (
+          {isOwnStore && (
+            <div className="flex justify-center mb-6">
               <button
                 onClick={() => setIsUploadModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
+                className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
               >
                 <Plus size={18} />
                 <span>Upload Content</span>
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3">
