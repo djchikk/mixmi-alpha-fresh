@@ -26,6 +26,7 @@ export default function UserProfilePage() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [targetWallet, setTargetWallet] = useState<string>('');
   const [artistName, setArtistName] = useState<string>('New User');
+  const [hasUploadedTracks, setHasUploadedTracks] = useState(false);
 
   const isOwnProfile = currentUserWallet === targetWallet;
 
@@ -82,6 +83,7 @@ export default function UserProfilePage() {
             .limit(1);
 
           if (tracks && tracks.length > 0) {
+            setHasUploadedTracks(true);
             const hasCustomizedName = data.profile?.display_name && data.profile.display_name !== 'New User';
             const hasCustomizedAvatar = data.profile?.avatar_url;
 
@@ -205,6 +207,8 @@ export default function UserProfilePage() {
                   profile={profile}
                   links={links}
                   targetWallet={targetWallet}
+                  username={profileData?.profile?.username}
+                  hasUploadedTracks={hasUploadedTracks}
                   isOwnProfile={isOwnProfile}
                   onUpdate={refreshProfile}
                 />

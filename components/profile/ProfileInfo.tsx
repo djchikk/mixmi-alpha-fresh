@@ -25,6 +25,8 @@ interface ProfileInfoProps {
     url: string;
   }>;
   targetWallet: string;
+  username?: string;
+  hasUploadedTracks: boolean;
   isOwnProfile: boolean;
   onUpdate: () => Promise<void>;
 }
@@ -33,6 +35,8 @@ export default function ProfileInfo({
   profile,
   links,
   targetWallet,
+  username,
+  hasUploadedTracks,
   isOwnProfile,
   onUpdate
 }: ProfileInfoProps) {
@@ -170,6 +174,18 @@ export default function ProfileInfo({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Store Button */}
+      {hasUploadedTracks && (
+        <div className="flex justify-center mt-6">
+          <a
+            href={`/store/${username || targetWallet}`}
+            className="px-8 py-3 bg-[#061F3C] border-2 border-[#81E4F2] rounded-lg text-[#81E4F2] font-medium hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300"
+          >
+            Store
+          </a>
         </div>
       )}
       </div>
