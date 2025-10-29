@@ -197,11 +197,11 @@ const MasterTransportControls = memo(function MasterTransportControls({
       {/* Record Button */}
       <button
         onClick={onRecordToggle}
-        className={`record-btn w-12 h-12 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all relative ${
+        className={`record-btn w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm transition-all relative ${
           recordingRemix
-            ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/50'
+            ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
             : recordingRehearsal
-            ? 'border-[#81E4F2] border-2 text-[#81E4F2] animate-pulse-fast shadow-lg shadow-[#81E4F2]/30'
+            ? 'bg-[#81E4F2] border-[#81E4F2] text-white animate-pulse shadow-lg shadow-[#81E4F2]/50'
             : 'border-slate-600 text-slate-400 hover:border-red-500 hover:text-red-500'
         }`}
         title={
@@ -212,12 +212,15 @@ const MasterTransportControls = memo(function MasterTransportControls({
             : 'Start Recording (with rehearsal cycle)'
         }
       >
-        {recordingRemix ? (
-          <span>⏹ STOP</span>
-        ) : recordingRehearsal ? (
-          <span>✕ CANCEL</span>
-        ) : (
-          <span>⏺ REC</span>
+        <div className={`w-3 h-3 rounded-full ${
+          recordingRemix || recordingRehearsal ? 'bg-white' : 'bg-current'
+        }`} />
+
+        {/* Cancel text overlay for rehearsal state */}
+        {recordingRehearsal && (
+          <span className="absolute text-[9px] font-medium text-slate-800 uppercase tracking-tight">
+            cancel
+          </span>
         )}
       </button>
 
@@ -249,17 +252,8 @@ const MasterTransportControls = memo(function MasterTransportControls({
           50% { opacity: 0.5; }
         }
 
-        @keyframes pulse-fast {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
-        }
-
         .animate-pulse {
           animation: pulse 1s ease-in-out infinite;
-        }
-
-        .animate-pulse-fast {
-          animation: pulse-fast 0.6s ease-in-out infinite;
         }
       `}</style>
     </div>
