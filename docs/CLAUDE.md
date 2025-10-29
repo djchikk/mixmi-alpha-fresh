@@ -1,10 +1,10 @@
-# CLAUDE.md - Mixmi Alpha Uploader
+# CLAUDE.md - mixmi Alpha Uploader
 
-This file provides guidance to Claude Code when working with the Mixmi Alpha Uploader repository.
+This file provides guidance to Claude Code when working with the mixmi Alpha Uploader repository.
 
 ## Project Overview
 
-**Mixmi Alpha Uploader** is a standalone Next.js application for alpha content migration, built separately from the main Mixmi app to avoid production environment issues. It provides a complete loop pack upload system with 3-way content selection (Song | Loop | Loop Pack).
+**mixmi Alpha Uploader** is a standalone Next.js application for alpha content migration, built separately from the main mixmi app to avoid production environment issues. It provides a complete loop pack upload system with 3-way content selection (Song | Loop | Loop Pack).
 
 ## 🚀 **October 2025 Achievements**
 
@@ -295,14 +295,14 @@ When a customer purchases a Gen 1 remix download from a creator's store:
 **Critical Architecture:** Separates user-friendly authentication from blockchain operations
 
 ### **The Challenge**
-- **Authentication:** Users need friendly invite codes (`MIXMI-ABC123`) to avoid security scanner warnings
+- **Authentication:** Users need friendly invite codes (`mixmi-ABC123`) to avoid security scanner warnings
 - **Blockchain:** Creative splits require actual Stacks wallet addresses (`SP1234...XYZ`) for payment operations
 - **UI Security:** Cannot expose wallet addresses in forms (triggers security violations)
 
 ### **The Solution: Dual-Layer System**
 
 **🎫 Authentication Layer (User-Facing):**
-- Users authenticate with alpha invite codes (`MIXMI-ABC123`)
+- Users authenticate with alpha invite codes (`mixmi-ABC123`)
 - UI displays alpha codes for user recognition
 - Forms avoid "wallet" terminology (uses "authenticated account", "access code")
 - Security scanners see no suspicious wallet address collection
@@ -320,7 +320,7 @@ When a customer purchases a Gen 1 remix download from a creator's store:
 **Key Functions:**
 - `getWalletFromAuthIdentity()` - Server-side alpha code → wallet conversion
 - `isValidStacksAddress()` - Validates SP/SM address format
-- `isAlphaCode()` - Detects MIXMI-ABC123 format
+- `isAlphaCode()` - Detects mixmi-ABC123 format
 
 **Form Behavior:**
 - **"Use authenticated account" checkbox** - Shows alpha code in UI, auto-fills with real wallet
@@ -339,9 +339,9 @@ When a customer purchases a Gen 1 remix download from a creator's store:
 
 ## 🔗 **CRITICAL: Main App Integration Context**
 
-**⚠️ IMPORTANT: This is an ALPHA UPLOADER, not the full Mixmi app!**
+**⚠️ IMPORTANT: This is an ALPHA UPLOADER, not the full mixmi app!**
 
-**Main Mixmi App (in local development) includes:**
+**Main mixmi App (in local development) includes:**
 1. **🎛️ Tiny mixer** that floats over the globe for real-time content mixing
 2. **📦 Persistent crate** at bottom that transports content between app sections with purchase flow
 3. **🏪 Content Creator Stores** with individual creator vaults and certificates  
@@ -355,7 +355,7 @@ When a customer purchases a Gen 1 remix download from a creator's store:
 - **Data flow**: Alpha is upload-focused, main app has complex user interactions
 - **UI consistency**: Components must work with main app's layout and floating elements
 
-**This alpha uploader serves as a testing ground and component laboratory for features that will eventually integrate into the main Mixmi application ecosystem.**
+**This alpha uploader serves as a testing ground and component laboratory for features that will eventually integrate into the main mixmi application ecosystem.**
 
 ## Essential Commands
 
@@ -769,7 +769,7 @@ NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
 ## 🔄 **Reference Code Integration Strategy**
 
 ### **Full App Code Repository**
-The `reference/full-app/` directory contains complete main Mixmi application code that serves as the source for feature integration. This approach allows:
+The `reference/full-app/` directory contains complete main mixmi application code that serves as the source for feature integration. This approach allows:
 - **Selective integration** of mature features without destabilizing alpha environment
 - **Component-by-component migration** ensuring each feature works perfectly
 - **Logged-in vs read-only state management** for different user contexts

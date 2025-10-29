@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const connectWallet = async () => {
     try {
       const appDetails = {
-        name: "Mixmi Profile",
+        name: "mixmi Profile",
         icon: window.location.origin + "/favicon.ico",
       };
       

@@ -11,7 +11,7 @@
 ## 🌟 **What We're Building: The "DJ Shopping Cart"**
 
 ### **The Vision**
-A **persistent floating widget** that follows users everywhere across the Mixmi platform, allowing them to collect tracks for mixing **without ever breaking their browsing flow**.
+A **persistent floating widget** that follows users everywhere across the mixmi platform, allowing them to collect tracks for mixing **without ever breaking their browsing flow**.
 
 ### **Revolutionary User Experience**
 ```
@@ -348,7 +348,7 @@ After:  Discovery → Add → Add → Add → Launch → Mix!
 - **Serato**: Traditional file browser approach
 - **djay Pro**: Playlist-based workflow
 - **Virtual DJ**: Folder navigation
-- **Mixmi**: Revolutionary persistent cart system ✨
+- **mixmi**: Revolutionary persistent cart system ✨
 
 ---
 

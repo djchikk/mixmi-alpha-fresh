@@ -138,11 +138,11 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
               </p>
             )}
           </div>
-          {/* Mixmi logo - subtle branding for store card */}
+          {/* mixmi logo - subtle branding for store card */}
           <div className="ml-3 flex items-center opacity-80 hover:opacity-100 transition-opacity">
             <img
               src="/logos/mixmi-logotype-240x64.png"
-              alt="Mixmi"
+              alt="mixmi"
               className="h-4 w-auto"
             />
           </div>

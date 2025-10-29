@@ -1,4 +1,4 @@
-# Mixmi Profile Style Guide
+# mixmi Profile Style Guide
 
 ## Color Scheme
 

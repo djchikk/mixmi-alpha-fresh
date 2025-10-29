@@ -1,6 +1,6 @@
 # Remix System - Authoritative Guide (October 2025)
 
-**This document is the single source of truth for how Mixmi's Gen 1 remix system works.**
+**This document is the single source of truth for how mixmi's Gen 1 remix system works.**
 
 ---
 

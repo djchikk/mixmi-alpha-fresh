@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Mixmi remix system creates a **compounding collaborative economy** where artists can mix existing loops together, paying the original creators and earning ownership of the new creation. This builds on the proven v3 payment splitter contract already live on mainnet.
+The mixmi remix system creates a **compounding collaborative economy** where artists can mix existing loops together, paying the original creators and earning ownership of the new creation. This builds on the proven v3 payment splitter contract already live on mainnet.
 
 **Key Principle:** When you remix two loops together, you pay for both originals, and the resulting 8-bar mix is owned 80% by original creators + 20% by you (the remixer).
 

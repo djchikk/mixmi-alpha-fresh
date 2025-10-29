@@ -9,7 +9,7 @@ export function generateAvatar(walletAddress: string): string {
   const avatar = createAvatar(shapes, {
     seed: walletAddress,
     size: 128,
-    // Customize colors to match Mixmi theme
+    // Customize colors to match mixmi theme
     backgroundColor: ['101726'], // Dark background like your app
   });
 

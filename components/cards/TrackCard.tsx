@@ -528,7 +528,7 @@ export default function TrackCard({
               >
                 <h4 className="text-white uppercase font-bold" style={{ fontSize: '10px', letterSpacing: '0.3px', marginBottom: '6px' }}>DESCRIPTION</h4>
                 <div className="text-xs" style={{ lineHeight: '1.5', color: '#999' }}>
-                  {track.description || `A ${track.content_type === 'full_song' ? 'beautiful song' : 'dynamic loop'} showcasing the power of the Mixmi platform. This track represents the future of creative collaboration and remix culture.`}
+                  {track.description || `A ${track.content_type === 'full_song' ? 'beautiful song' : 'dynamic loop'} showcasing the power of the mixmi platform. This track represents the future of creative collaboration and remix culture.`}
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
 # Audio Widgets Implementation Guide
 
-This document details the implementation of the Radio Widget and Playlist Widget for the Mixmi application.
+This document details the implementation of the Radio Widget and Playlist Widget for the mixmi application.
 
 ---
 

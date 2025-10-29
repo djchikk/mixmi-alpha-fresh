@@ -1,8 +1,8 @@
-# Mixmi Music Payment Splitter Smart Contract
+# mixmi Music Payment Splitter Smart Contract
 
 ## Overview
 
-This Clarity smart contract handles payment splitting for music purchases on the Mixmi platform. It divides payments between **composition rights** (idea) and **sound recording rights** (implementation), ensuring fair compensation for all contributors.
+This Clarity smart contract handles payment splitting for music purchases on the mixmi platform. It divides payments between **composition rights** (idea) and **sound recording rights** (implementation), ensuring fair compensation for all contributors.
 
 ## How It Works
 
@@ -195,5 +195,5 @@ For questions or issues:
 
 ---
 
-**Built with ❤️ for the Mixmi music platform**
+**Built with ❤️ for the mixmi music platform**
 **Powered by Stacks blockchain and Bitcoin**

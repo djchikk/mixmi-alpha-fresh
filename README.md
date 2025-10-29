@@ -1,10 +1,10 @@
-# Mixmi Alpha Uploader
+# mixmi Alpha Uploader
 
 > **🎵 Interactive 3D Globe Music Discovery + Loop Pack Upload System**
 >
 > **Current Status:** Alpha content migration tool for global music discovery via interactive 3D globe interface
 
-A specialized Next.js application for alpha content migration to the broader Mixmi creator economy platform. Features a stunning 3D globe interface for geographic music discovery and a streamlined loop pack upload system for alpha users.
+A specialized Next.js application for alpha content migration to the broader mixmi creator economy platform. Features a stunning 3D globe interface for geographic music discovery and a streamlined loop pack upload system for alpha users.
 
 ## 🌍 Core Features
 
@@ -169,7 +169,7 @@ scripts/                     # Database utilities and migration tools
 ### 🚫 Known Limitations
 - **Alpha User Only** - Requires whitelist approval for uploads
 - **Node.js Dependency** - Development requires Node.js environment
-- **Single Environment** - Separate from main Mixmi app to avoid production conflicts
+- **Single Environment** - Separate from main mixmi app to avoid production conflicts
 - **Pre-Production Status** - Aiming for production quality, planned for hosting without dedicated domain
 - **Audio File Selection** - No drag & drop for audio files yet (file picker only)
 
@@ -188,14 +188,14 @@ scripts/                     # Database utilities and migration tools
 - 📊 Content management dashboard
 
 ### Phase 3: Main App Integration
-- 🔄 Component portability back to main Mixmi platform
+- 🔄 Component portability back to main mixmi platform
 - 🔗 Creator economy feature integration
 - 💰 IP attribution and revenue sharing systems
 - 🤝 Advanced collaboration tools
 
 ## 🌟 Vision Connection
 
-This alpha uploader serves as both a standalone tool and a testing ground for components that will integrate into the broader **Mixmi Creator Economy Platform**. The vision of "infinite remix at a global level with value flow and attribution connected" drives the technical architecture, with this alpha tool focusing on content discovery and upload workflows.
+This alpha uploader serves as both a standalone tool and a testing ground for components that will integrate into the broader **mixmi Creator Economy Platform**. The vision of "infinite remix at a global level with value flow and attribution connected" drives the technical architecture, with this alpha tool focusing on content discovery and upload workflows.
 
 ### Future Integration Elements
 - **Multi-Account System** - Framework exists for multiple creative identities
@@ -234,4 +234,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Built for geographic music discovery and seamless alpha content migration to the broader Mixmi creator economy ecosystem.**
+**Built for geographic music discovery and seamless alpha content migration to the broader mixmi creator economy ecosystem.**

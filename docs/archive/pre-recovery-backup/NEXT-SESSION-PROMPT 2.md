@@ -1,4 +1,4 @@
-# Next Session Prompt for Mixmi Development
+# Next Session Prompt for mixmi Development
 
 ## 🚀 BREAKTHROUGH COMPLETED: Professional DJ Platform Achievements
 

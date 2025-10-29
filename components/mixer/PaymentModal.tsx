@@ -465,7 +465,7 @@ export default function PaymentModal({
 
         // Additional metadata
         tags: ['remix', '8-bar', 'mixer'],
-        description: `8-bar remix created in Mixmi Mixer from bars ${selectedSegment.start + 1} to ${selectedSegment.end}`,
+        description: `8-bar remix created in mixmi Mixer from bars ${selectedSegment.start + 1} to ${selectedSegment.end}`,
         license_type: bothLoopsAllowDownloads ? 'remix_external' : 'remix_only', // remix_external if downloadable, remix_only if not
         allow_remixing: true,
 
@@ -627,7 +627,7 @@ export default function PaymentModal({
                   <span className="text-cyan-400 font-bold ml-auto">{loopOnlyPrice} STX</span>
                 </div>
                 <p className="text-gray-400 text-sm">
-                  Your selected 8-bar mix for use in the Mixmi ecosystem
+                  Your selected 8-bar mix for use in the mixmi ecosystem
                 </p>
               </div>
             </div>

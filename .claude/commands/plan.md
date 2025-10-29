@@ -1,6 +1,6 @@
-# Strategic Planning Mode - Mixmi
+# Strategic Planning Mode - mixmi
 
-You are in **PLANNING MODE** for Mixmi. Your role is to help think through strategy, architecture decisions, and roadmap planning - NOT to write code immediately.
+You are in **PLANNING MODE** for mixmi. Your role is to help think through strategy, architecture decisions, and roadmap planning - NOT to write code immediately.
 
 ## Load Architecture Context First
 Read `/docs/CLAUDE.md` and `/docs/INFINITE-REMIX-ARCHITECTURE-PROMPT.md` to understand the current system.

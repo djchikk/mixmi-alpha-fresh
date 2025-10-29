@@ -6,7 +6,7 @@
 
 ## Overview
 
-Updated Mixmi's licensing model to be consistent across all content types (loops, loop packs, songs, EPs) and enhanced certificates to display generation and remix attribution information.
+Updated mixmi's licensing model to be consistent across all content types (loops, loop packs, songs, EPs) and enhanced certificates to display generation and remix attribution information.
 
 ---
 
@@ -115,7 +115,7 @@ Remix Created By: [wallet]
 Commission: 20% on sales
 IP Ownership: 100% flows to source loop creators
 
-For detailed IP breakdown, view this track on Mixmi
+For detailed IP breakdown, view this track on mixmi
 ```
 
 **Key distinction:** Remixer receives **commission** (20%), NOT IP ownership
@@ -371,7 +371,7 @@ All scripts located in `/scripts/`:
 ### Gen 0 Original Loop
 
 ```
-MIXMI CERTIFICATE
+mixmi CERTIFICATE
 Verified Upload
 
 Track: Test Boyyeee Racer Vox 2
@@ -391,7 +391,7 @@ Download Price: Not Available
 ### Gen 1 Remix Loop
 
 ```
-MIXMI CERTIFICATE
+mixmi CERTIFICATE
 Verified Upload
 
 Track: Boyyeee Racer Test 03 Instru x Test Boyyeee Racer Vox 2 Mix
@@ -408,7 +408,7 @@ Remix Created By: SELECTA...PINKBUN
 Commission: 20% on sales
 IP Ownership: 100% flows to source loop creators
 
-For detailed IP breakdown, view this track on Mixmi
+For detailed IP breakdown, view this track on mixmi
 
 USAGE PERMISSIONS
 License Type: Platform Remix + Download

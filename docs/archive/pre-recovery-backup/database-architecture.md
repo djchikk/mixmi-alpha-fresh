@@ -1,7 +1,7 @@
-# 📊 Database Architecture - Mixmi Profile Creator Economy
+# 📊 Database Architecture - mixmi Profile Creator Economy
 
 ## Overview
-The Mixmi Profile Creator Economy platform uses a sophisticated hybrid storage architecture combining localStorage for client-side persistence, Supabase PostgreSQL for IP attribution and metadata, and Supabase Storage for media assets. This multi-tier approach ensures optimal performance while maintaining professional-grade data integrity.
+The mixmi Profile Creator Economy platform uses a sophisticated hybrid storage architecture combining localStorage for client-side persistence, Supabase PostgreSQL for IP attribution and metadata, and Supabase Storage for media assets. This multi-tier approach ensures optimal performance while maintaining professional-grade data integrity.
 
 ## 🏗️ Architecture Components
 
