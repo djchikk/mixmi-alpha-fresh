@@ -449,7 +449,7 @@ export default function CreatorStorePage() {
           </div>
 
           {isOwnStore && (
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-start mb-6">
               <button
                 onClick={() => setIsUploadModalOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
