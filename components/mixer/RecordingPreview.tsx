@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Download, X, ShoppingCart } from 'lucide-react';
+import { Play, Pause, Download, X, ShoppingCart, Music } from 'lucide-react';
 import RecordingWaveformDisplay from './RecordingWaveformDisplay';
 import PaymentModal from './PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -212,6 +212,8 @@ export default function RecordingPreview({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const [downloadDeckA, setDownloadDeckA] = useState(false);
+  const [downloadDeckB, setDownloadDeckB] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const looperRef = useRef<SampleAccurateLooper | null>(null);
@@ -355,6 +357,23 @@ export default function RecordingPreview({
     a.click();
   };
 
+  // Calculate total price based on selections
+  const calculateTotal = () => {
+    let total = 1; // Base recording fee
+
+    if (downloadDeckA && deckATrack?.allowOfflineUse) {
+      total += (deckATrack as any).price_stx || 5;
+    }
+
+    if (downloadDeckB && deckBTrack?.allowOfflineUse) {
+      total += (deckBTrack as any).price_stx || 5;
+    }
+
+    return total;
+  };
+
+  const totalPrice = calculateTotal();
+
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
       <div className="bg-[#1a1f2e] rounded-2xl p-8 max-w-4xl w-full border border-slate-700/50 shadow-2xl">
@@ -391,13 +410,6 @@ export default function RecordingPreview({
             {isLoopPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             <span className="font-medium">{isLoopPlaying ? 'Stop' : 'Loop'} Selection ({selectedSegment.end - selectedSegment.start} Bars)</span>
           </button>
-
-          <button
-            onClick={handleDownload}
-            className="bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition-all"
-          >
-            <Download className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Recording Waveform with Selection Bracket */}
@@ -418,25 +430,137 @@ export default function RecordingPreview({
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-between items-center">
-          <p className="text-gray-400">
-            Ready to save your <span className="text-cyan-400 font-semibold">{selectedSegment.end - selectedSegment.start}-bar</span> mix?
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white px-6 py-3 rounded-xl transition-all font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white px-6 py-3 rounded-xl transition-all flex items-center gap-2 font-medium shadow-lg shadow-cyan-500/25"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              Save & Purchase
-            </button>
+        {/* Licensing & Pricing Section */}
+        <div className="space-y-4">
+          {/* What You're Creating */}
+          <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+            <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">What You're Creating:</h3>
+            <div className="space-y-3">
+              {/* Remix Info */}
+              <div className="flex items-start gap-3 bg-slate-800/40 rounded-lg p-4">
+                <Music className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-white font-medium">
+                      {selectedSegment.end - selectedSegment.start}-Bar Remix
+                    </span>
+                    <span className="text-cyan-400 font-semibold">1 STX</span>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    Appears on your creator store • 0.5 STX to each source creator
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Download:</span>
+                    {(deckATrack?.allowOfflineUse && deckBTrack?.allowOfflineUse) ? (
+                      <span className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded border border-green-500/30">
+                        Available for buyers
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2 py-1 bg-amber-500/10 text-amber-400 rounded border border-amber-500/30">
+                        Platform Only
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Optional Source Downloads */}
+          {(deckATrack?.allowOfflineUse || deckBTrack?.allowOfflineUse) && (
+            <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+              <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">Optional Source Downloads:</h3>
+              <p className="text-xs text-gray-400 mb-3">Add source tracks for offline use</p>
+              <div className="space-y-2">
+                {/* Deck A Track */}
+                {deckATrack?.allowOfflineUse && (
+                  <label className="flex items-center gap-3 bg-slate-800/40 rounded-lg p-3 cursor-pointer hover:bg-slate-800/60 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={downloadDeckA}
+                      onChange={(e) => setDownloadDeckA(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-600 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
+                    />
+                    <Download className="w-4 h-4 text-gray-400" />
+                    <div className="flex-1">
+                      <span className="text-white text-sm font-medium">{deckATrack.title}</span>
+                      <span className="text-xs text-gray-500 ml-2">by {deckATrack.artist}</span>
+                    </div>
+                    <span className="text-cyan-400 font-semibold text-sm">
+                      {(deckATrack as any).price_stx || 5} STX
+                    </span>
+                  </label>
+                )}
+
+                {/* Deck B Track */}
+                {deckBTrack?.allowOfflineUse && (
+                  <label className="flex items-center gap-3 bg-slate-800/40 rounded-lg p-3 cursor-pointer hover:bg-slate-800/60 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={downloadDeckB}
+                      onChange={(e) => setDownloadDeckB(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-600 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
+                    />
+                    <Download className="w-4 h-4 text-gray-400" />
+                    <div className="flex-1">
+                      <span className="text-white text-sm font-medium">{deckBTrack.title}</span>
+                      <span className="text-xs text-gray-500 ml-2">by {deckBTrack.artist}</span>
+                    </div>
+                    <span className="text-cyan-400 font-semibold text-sm">
+                      {(deckBTrack as any).price_stx || 5} STX
+                    </span>
+                  </label>
+                )}
+
+                {/* Show unavailable tracks */}
+                {!deckATrack?.allowOfflineUse && (
+                  <div className="flex items-center gap-3 bg-slate-800/20 rounded-lg p-3 opacity-50">
+                    <X className="w-4 h-4 text-gray-600" />
+                    <div className="flex-1">
+                      <span className="text-gray-500 text-sm">{deckATrack?.title}</span>
+                      <span className="text-xs text-gray-600 ml-2">Platform Only</span>
+                    </div>
+                  </div>
+                )}
+                {!deckBTrack?.allowOfflineUse && (
+                  <div className="flex items-center gap-3 bg-slate-800/20 rounded-lg p-3 opacity-50">
+                    <X className="w-4 h-4 text-gray-600" />
+                    <div className="flex-1">
+                      <span className="text-gray-500 text-sm">{deckBTrack?.title}</span>
+                      <span className="text-xs text-gray-600 ml-2">Platform Only</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Total & Action Buttons */}
+          <div className="flex items-center justify-between bg-slate-900/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+            <div>
+              <div className="text-sm text-gray-400 mb-1">Total:</div>
+              <div className="text-2xl font-bold text-white">
+                {totalPrice} STX
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {totalPrice === 1 ? 'Recording fee only' : `1 STX recording + ${totalPrice - 1} STX downloads`}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white px-6 py-3 rounded-xl transition-all font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white px-6 py-3 rounded-xl transition-all flex items-center gap-2 font-medium shadow-lg shadow-cyan-500/25"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                Save & Purchase
+              </button>
+            </div>
           </div>
         </div>
       </div>
