@@ -1112,6 +1112,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         console.log('✅ Recording started at bar 1!');
       }
 
+      // Update position for next check
       lastPosition = currentPosition;
     }, checkInterval);
 

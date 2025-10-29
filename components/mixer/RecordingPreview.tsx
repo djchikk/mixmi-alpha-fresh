@@ -8,6 +8,152 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getAudioContext } from '@/lib/mixerAudio';
 
+// Sample-accurate looper for gapless playback
+class SampleAccurateLooper {
+  private audioContext: AudioContext;
+  private audioBuffer: AudioBuffer;
+  private bpm: number;
+  private gainNode: GainNode;
+  private sourceNode: AudioBufferSourceNode | null = null;
+  private startBar: number = 0;
+  private endBar: number = 8;
+  private isLooping: boolean = false;
+
+  constructor(audioContext: AudioContext, audioBuffer: AudioBuffer, bpm: number) {
+    this.audioContext = audioContext;
+    this.audioBuffer = audioBuffer;
+    this.bpm = bpm;
+
+    // Create gain node for volume control
+    this.gainNode = audioContext.createGain();
+    this.gainNode.connect(audioContext.destination);
+  }
+
+  // Calculate sample-accurate loop boundaries
+  private calculateSampleBoundaries(startBar: number, endBar: number): {
+    startSample: number;
+    endSample: number;
+    loopDuration: number;
+  } {
+    const sampleRate = this.audioBuffer.sampleRate;
+
+    // Calculate time positions
+    const secondsPerBar = (4 * 60) / this.bpm;
+    const startTime = startBar * secondsPerBar;
+    const endTime = endBar * secondsPerBar;
+
+    // Convert to exact sample positions (sample-accurate)
+    const startSample = Math.round(startTime * sampleRate);
+    const endSample = Math.round(endTime * sampleRate);
+
+    // Calculate loop duration in seconds (from sample positions)
+    const loopDuration = (endSample - startSample) / sampleRate;
+
+    return { startSample, endSample, loopDuration };
+  }
+
+  // Create an AudioBufferSourceNode for a loop segment
+  private createLoopSource(startBar: number, endBar: number): AudioBufferSourceNode {
+    const { startSample, endSample } = this.calculateSampleBoundaries(startBar, endBar);
+
+    // Create a new buffer containing only the loop segment
+    const loopLength = endSample - startSample;
+    const loopBuffer = this.audioContext.createBuffer(
+      this.audioBuffer.numberOfChannels,
+      loopLength,
+      this.audioBuffer.sampleRate
+    );
+
+    // Copy the exact samples from the loop region
+    for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel++) {
+      const sourceData = this.audioBuffer.getChannelData(channel);
+      const loopData = loopBuffer.getChannelData(channel);
+
+      // Sample-accurate copy
+      for (let i = 0; i < loopLength; i++) {
+        loopData[i] = sourceData[startSample + i];
+      }
+    }
+
+    // Create source node with the loop buffer
+    const source = this.audioContext.createBufferSource();
+    source.buffer = loopBuffer;
+    source.connect(this.gainNode);
+
+    // Enable native looping for gapless playback
+    source.loop = true;
+    source.loopStart = 0;
+    source.loopEnd = loopBuffer.duration;
+
+    return source;
+  }
+
+  // Start looping
+  start(startBar: number, endBar: number): void {
+    if (this.isLooping) {
+      this.stop();
+    }
+
+    this.startBar = startBar;
+    this.endBar = endBar;
+
+    const source = this.createLoopSource(startBar, endBar);
+
+    // Start playback immediately
+    source.start(0);
+
+    this.sourceNode = source;
+    this.isLooping = true;
+
+    console.log(`🔄 Sample-accurate loop started: bars ${startBar}-${endBar}`);
+  }
+
+  // Stop looping
+  stop(): void {
+    if (!this.isLooping || !this.sourceNode) return;
+
+    try {
+      this.sourceNode.stop();
+      this.sourceNode.disconnect();
+    } catch (e) {
+      // Already stopped
+    }
+
+    this.sourceNode = null;
+    this.isLooping = false;
+
+    console.log('🛑 Sample-accurate loop stopped');
+  }
+
+  // Update loop boundaries while playing
+  updateSegment(startBar: number, endBar: number): void {
+    this.startBar = startBar;
+    this.endBar = endBar;
+
+    if (this.isLooping) {
+      // Restart with new boundaries
+      this.stop();
+      this.start(startBar, endBar);
+    }
+  }
+
+  // Check if currently looping
+  getIsLooping(): boolean {
+    return this.isLooping;
+  }
+
+  // Set volume
+  setVolume(volume: number): void {
+    this.gainNode.gain.value = Math.max(0, Math.min(1, volume));
+  }
+
+  // Cleanup
+  cleanup(): void {
+    this.stop();
+    this.gainNode.disconnect();
+  }
+}
+
 interface RecordingPreviewProps {
   recordingUrl: string;
   duration: number;
@@ -32,6 +178,7 @@ export default function RecordingPreview({
   const { walletAddress } = useAuth();
   const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoopPlaying, setIsLoopPlaying] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<{ start: number; end: number }>({ start: 0, end: 8 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -39,19 +186,14 @@ export default function RecordingPreview({
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const schedulerRef = useRef<number | null>(null);
-  const nextLoopTimeRef = useRef<number>(0);
-  const loopStartTimeRef = useRef<number>(0);
-  const loopEndTimeRef = useRef<number>(0);
-  const audioPlaybackStartRef = useRef<number>(0); // Track when playback started in AudioContext time
+  const looperRef = useRef<SampleAccurateLooper | null>(null);
 
   useEffect(() => {
-    // Create audio element for preview
+    // Create audio element for preview of full recording
     const audio = new Audio(recordingUrl);
     audioRef.current = audio;
 
     audio.addEventListener('ended', () => {
-      stopLoopScheduler();
       setIsPlaying(false);
     });
 
@@ -61,7 +203,7 @@ export default function RecordingPreview({
     };
     audio.addEventListener('timeupdate', updateTime);
 
-    // Load audio buffer for waveform visualization and get AudioContext
+    // Load audio buffer for waveform visualization and sample-accurate looping
     const loadAudioBuffer = async () => {
       try {
         // Use the same AudioContext as the mixer for sample-accurate timing
@@ -76,6 +218,10 @@ export default function RecordingPreview({
         const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
         setAudioBuffer(decodedBuffer);
+
+        // Create sample-accurate looper for loop playback
+        looperRef.current = new SampleAccurateLooper(audioContext, decodedBuffer, bpm);
+        console.log('✅ Sample-accurate looper initialized');
       } catch (error) {
         console.error('Failed to load audio buffer:', error);
       }
@@ -86,119 +232,60 @@ export default function RecordingPreview({
     return () => {
       audio.pause();
       audio.removeEventListener('timeupdate', updateTime);
-      stopLoopScheduler();
       audio.remove();
+
+      // Cleanup looper
+      if (looperRef.current) {
+        looperRef.current.cleanup();
+        looperRef.current = null;
+      }
       // Don't close the shared AudioContext
     };
-  }, [recordingUrl]);
+  }, [recordingUrl, bpm]);
 
   // Update loop boundaries when selection changes while looping
   useEffect(() => {
-    if (!isPlaying || !audioContextRef.current || !audioRef.current) return;
+    if (!looperRef.current || !isLoopPlaying) return;
 
-    // Calculate new loop boundaries
-    const beatsPerBar = 4;
-    const beatsPerSecond = bpm / 60;
-    const secondsPerBar = beatsPerBar / beatsPerSecond;
-    const startTime = selectedSegment.start * secondsPerBar;
-    const endTime = selectedSegment.end * secondsPerBar;
-
-    // Update refs
-    loopStartTimeRef.current = startTime;
-    loopEndTimeRef.current = endTime;
-
-    // Jump to new start position immediately
-    audioRef.current.currentTime = startTime;
-
-    // Reset playback start time reference
-    audioPlaybackStartRef.current = audioContextRef.current.currentTime;
-
-    // Recalculate next loop time relative to new playback start
-    const loopDuration = endTime - startTime;
-    nextLoopTimeRef.current = audioPlaybackStartRef.current + loopDuration;
-  }, [selectedSegment, bpm, isPlaying]);
+    // Update the looper with new segment boundaries
+    looperRef.current.updateSegment(selectedSegment.start, selectedSegment.end);
+  }, [selectedSegment, isLoopPlaying]);
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
 
+    // Stop loop playback if active
+    if (isLoopPlaying && looperRef.current) {
+      looperRef.current.stop();
+      setIsLoopPlaying(false);
+    }
+
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
       audioRef.current.play();
       setIsPlaying(true);
-    }
-  };
-
-  // Precise lookahead scheduler for seamless looping (based on mixer's PreciseLooper)
-  const scheduleLoop = () => {
-    if (!audioRef.current || !audioContextRef.current) return;
-
-    const scheduleAheadTime = 0.1; // 100ms lookahead
-    const currentTime = audioContextRef.current.currentTime;
-
-    // Schedule loop resets that are coming up in the next 100ms
-    while (nextLoopTimeRef.current < currentTime + scheduleAheadTime) {
-      const loopResetTime = nextLoopTimeRef.current;
-
-      // Schedule the reset with precise timing
-      setTimeout(() => {
-        if (audioRef.current && isPlaying) {
-          audioRef.current.currentTime = loopStartTimeRef.current;
-        }
-      }, (loopResetTime - currentTime) * 1000);
-
-      // Calculate next loop time
-      const loopDuration = loopEndTimeRef.current - loopStartTimeRef.current;
-      nextLoopTimeRef.current += loopDuration;
-    }
-
-    // Continue scheduling if still playing
-    if (isPlaying && schedulerRef.current !== null) {
-      schedulerRef.current = window.setTimeout(scheduleLoop, 25); // 25ms intervals
-    }
-  };
-
-  const stopLoopScheduler = () => {
-    if (schedulerRef.current !== null) {
-      clearTimeout(schedulerRef.current);
-      schedulerRef.current = null;
     }
   };
 
   const handlePreviewSelection = () => {
-    if (!audioRef.current || !audioContextRef.current) return;
+    if (!looperRef.current) return;
 
-    // Calculate start and end time in seconds
-    const beatsPerBar = 4;
-    const beatsPerSecond = bpm / 60;
-    const secondsPerBar = beatsPerBar / beatsPerSecond;
-    const startTime = selectedSegment.start * secondsPerBar;
-    const endTime = selectedSegment.end * secondsPerBar;
-
-    if (isPlaying) {
+    // Stop full recording playback if active
+    if (isPlaying && audioRef.current) {
       audioRef.current.pause();
-      stopLoopScheduler();
       setIsPlaying(false);
+    }
+
+    if (isLoopPlaying) {
+      // Stop loop playback
+      looperRef.current.stop();
+      setIsLoopPlaying(false);
     } else {
-      // Store loop boundaries
-      loopStartTimeRef.current = startTime;
-      loopEndTimeRef.current = endTime;
-
-      // Set audio position and play
-      audioRef.current.currentTime = startTime;
-      audioRef.current.play();
-      setIsPlaying(true);
-
-      // Track when playback started in AudioContext time
-      audioPlaybackStartRef.current = audioContextRef.current.currentTime;
-
-      // Initialize lookahead scheduler - schedule next loop relative to playback start
-      const loopDuration = endTime - startTime;
-      nextLoopTimeRef.current = audioPlaybackStartRef.current + loopDuration;
-
-      // Start the precise scheduler
-      schedulerRef.current = window.setTimeout(scheduleLoop, 25);
+      // Start sample-accurate loop playback
+      looperRef.current.start(selectedSegment.start, selectedSegment.end);
+      setIsLoopPlaying(true);
     }
   };
 
@@ -242,8 +329,8 @@ export default function RecordingPreview({
             onClick={handlePreviewSelection}
             className="flex-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
           >
-            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-            <span className="font-medium">Loop Selection ({selectedSegment.end - selectedSegment.start} Bars)</span>
+            {isLoopPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            <span className="font-medium">{isLoopPlaying ? 'Stop' : 'Loop'} Selection ({selectedSegment.end - selectedSegment.start} Bars)</span>
           </button>
 
           <button
