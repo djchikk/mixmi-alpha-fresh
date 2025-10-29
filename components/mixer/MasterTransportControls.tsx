@@ -216,14 +216,14 @@ const MasterTransportControls = memo(function MasterTransportControls({
           recordingRemix
             ? 'Stop Recording'
             : recordingRehearsal
-            ? 'Rehearsing - Recording starts at bar 1'
+            ? 'Cancel Recording (no save)'
             : 'Start Recording (with rehearsal cycle)'
         }
       >
         {recordingRemix ? (
           <span>⏹ STOP</span>
         ) : recordingRehearsal ? (
-          <span>⏺ ...</span>
+          <span>✕ CANCEL</span>
         ) : (
           <span>⏺ REC</span>
         )}
