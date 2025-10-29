@@ -406,7 +406,8 @@ export default function CreatorStorePage() {
             <div className="flex items-center gap-4">
               <Link
                 href={`/profile/${walletOrUsername}`}
-                className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:border-[#9772F4] transition-colors cursor-pointer"
+                className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300 cursor-pointer"
+                title="Go to Profile"
               >
                 {profileImage ? (
                   <img
@@ -429,7 +430,17 @@ export default function CreatorStorePage() {
               <div>
                 <h1 className="text-4xl font-bold">
                   <span className="bg-gradient-to-r from-[#9772F4] to-[#FFE4B5] bg-clip-text text-transparent">
-                    {creatorName ? `${creatorName}'s Store` : 'Creator Store'}
+                    {creatorName ? (
+                      <>
+                        <Link
+                          href={`/profile/${walletOrUsername}`}
+                          className="border-b-2 border-transparent hover:border-[#81E4F2] transition-all duration-300"
+                        >
+                          {creatorName}
+                        </Link>
+                        's Store
+                      </>
+                    ) : 'Creator Store'}
                   </span>
                 </h1>
                 <p className="text-gray-400 mt-1">
