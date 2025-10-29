@@ -72,6 +72,7 @@ interface RecordingState {
   recordState: 'idle' | 'counting-in' | 'recording'; // Three-state recording system
   countInBeat: number; // Current beat during count-in (0-7 for 8 beats)
   recordingStartTime: number | null; // AudioContext.currentTime when recording starts
+  countInDuration: number; // Seconds of count-in to trim
   barsRecorded: number;
   targetBars: number; // Safety limit (120 bars = ~15 min at 120 BPM)
   recordedUrl: string | null;
@@ -108,6 +109,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     recordState: 'idle',
     countInBeat: 0,
     recordingStartTime: null,
+    countInDuration: 0,
     barsRecorded: 0,
     targetBars: 120, // Safety limit: auto-stop at 120 bars (~15 min at 120 BPM)
     recordedUrl: null,
@@ -120,10 +122,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Count-in timing refs for cleanup
   const countInIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
-  const recordingScheduleRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  // Visual playback state - controls waveform scrolling during count-in
-  const [visualPlaybackEnabled, setVisualPlaybackEnabled] = useState(true);
 
   // Responsive waveform width based on breakpoints
   const [waveformWidth, setWaveformWidth] = useState(700);
@@ -233,25 +231,21 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   // Update current time for waveforms using requestAnimationFrame (prevents race conditions)
   useEffect(() => {
     const updateCurrentTime = () => {
-      // Only update waveform positions if visual playback is enabled
-      // During count-in, playback is muted and waveforms are frozen
-      if (visualPlaybackEnabled) {
-        // Update refs directly (no state updates = no race conditions)
-        if (mixerState.deckA.playing && mixerState.deckA.audioState?.audio) {
-          deckACurrentTimeRef.current = mixerState.deckA.audioState.audio.currentTime;
-          // Update the audioState for waveform display
-          mixerState.deckA.audioState.currentTime = deckACurrentTimeRef.current;
-        }
-
-        if (mixerState.deckB.playing && mixerState.deckB.audioState?.audio) {
-          deckBCurrentTimeRef.current = mixerState.deckB.audioState.audio.currentTime;
-          // Update the audioState for waveform display
-          mixerState.deckB.audioState.currentTime = deckBCurrentTimeRef.current;
-        }
-
-        // Trigger re-render to update waveform displays
-        forceUpdate(prev => prev + 1);
+      // Update refs directly (no state updates = no race conditions)
+      if (mixerState.deckA.playing && mixerState.deckA.audioState?.audio) {
+        deckACurrentTimeRef.current = mixerState.deckA.audioState.audio.currentTime;
+        // Update the audioState for waveform display
+        mixerState.deckA.audioState.currentTime = deckACurrentTimeRef.current;
       }
+
+      if (mixerState.deckB.playing && mixerState.deckB.audioState?.audio) {
+        deckBCurrentTimeRef.current = mixerState.deckB.audioState.audio.currentTime;
+        // Update the audioState for waveform display
+        mixerState.deckB.audioState.currentTime = deckBCurrentTimeRef.current;
+      }
+
+      // Trigger re-render to update waveform displays
+      forceUpdate(prev => prev + 1);
 
       // Continue animation loop if either deck is playing
       if (mixerState.deckA.playing || mixerState.deckB.playing) {
@@ -270,7 +264,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         animationFrameRef.current = null;
       }
     };
-  }, [mixerState.deckA.playing, mixerState.deckB.playing, mixerState.deckA.audioState, mixerState.deckB.audioState, visualPlaybackEnabled]);
+  }, [mixerState.deckA.playing, mixerState.deckB.playing, mixerState.deckA.audioState, mixerState.deckB.audioState]);
 
   // Reusable FX connection helper with retry logic and timeout tracking
   const connectDeckFX = useCallback((
@@ -370,15 +364,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       // Clear recording count-in timers
       if (countInIntervalRef.current) {
         clearInterval(countInIntervalRef.current);
-      }
-      if (recordingScheduleRef.current) {
-        clearTimeout(recordingScheduleRef.current);
-      }
-
-      // Restore master gain and visual playback
-      const masterGain = getMasterGain();
-      if (masterGain) {
-        masterGain.gain.value = 1.0;
       }
 
       // Reset sync engine state
@@ -970,86 +955,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     return mixerDestinationRef.current.stream;
   }, []);
 
-  const startRecording = useCallback(() => {
-    console.log('🎙️ Starting mixer recording...');
-
-    const stream = setupMixerRecording();
-    if (!stream) {
-      console.error('❌ Failed to setup mixer recording');
-      return;
-    }
-
-    const audioContext = getAudioContext();
-    if (!audioContext) {
-      console.error('❌ No audio context available for recording');
-      return;
-    }
-
-    // Clear previous recording
-    recordedChunksRef.current = [];
-
-    // Create MediaRecorder
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus'
-    });
-
-    // Capture the start time from AudioContext for sample-accurate timing
-    const recordingStartTime = audioContext.currentTime;
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        recordedChunksRef.current.push(event.data);
-      }
-    };
-
-    mediaRecorder.onstop = () => {
-      console.log('🎙️ Recording stopped, processing audio...');
-      const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
-      const url = URL.createObjectURL(blob);
-
-      // Calculate actual duration using AudioContext time
-      const recordingEndTime = audioContext.currentTime;
-      const actualDuration = recordingEndTime - recordingStartTime;
-      const barsRecorded = AudioTiming.timeToBar(actualDuration, mixerState.masterBPM);
-
-      // Recording metadata - always starts on downbeat due to count-in
-      const metadata = {
-        recordedAt: new Date(),
-        startedOnDownbeat: true, // Always true with count-in system
-        masterBPM: mixerState.masterBPM,
-        barsRecorded: Math.floor(barsRecorded),
-        duration: actualDuration
-      };
-
-      console.log('📊 Recording metadata:', metadata);
-
-      setRecordingState(prev => ({
-        ...prev,
-        recordState: 'idle',
-        countInBeat: 0,
-        recordedUrl: url,
-        recordedDuration: actualDuration,
-        showPreview: true
-      }));
-
-      console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${barsRecorded.toFixed(1)} bars)`);
-      console.log(`🎵 Recording started on downbeat, enabling perfect musical navigation`);
-    };
-
-    mediaRecorder.start(100); // Collect data every 100ms
-    mediaRecorderRef.current = mediaRecorder;
-
-    setRecordingState(prev => ({
-      ...prev,
-      recordState: 'recording',
-      recordingStartTime: recordingStartTime,
-      barsRecorded: 0,
-      countInBeat: 0
-    }));
-
-    console.log(`✅ Recording started at AudioContext time: ${recordingStartTime.toFixed(3)}s`);
-  }, [setupMixerRecording, mixerState.masterBPM]);
-
   const stopRecording = useCallback(() => {
     console.log('🎙️ Stopping recording...');
 
@@ -1058,17 +963,6 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       clearInterval(countInIntervalRef.current);
       countInIntervalRef.current = null;
     }
-    if (recordingScheduleRef.current) {
-      clearTimeout(recordingScheduleRef.current);
-      recordingScheduleRef.current = null;
-    }
-
-    // Restore master gain and visual playback (in case stopped during count-in)
-    const masterGain = getMasterGain();
-    if (masterGain) {
-      masterGain.gain.value = 1.0;
-    }
-    setVisualPlaybackEnabled(true);
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
@@ -1092,158 +986,145 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   }, [mixerState]);
 
   const handleRecordToggle = useCallback(() => {
-    if (recordingState.recordState === 'recording') {
-      // Stop recording
+    if (recordingState.recordState !== 'idle') {
+      // Stop recording (works for both counting-in and recording states)
       stopRecording();
-    } else if (recordingState.recordState === 'counting-in') {
-      // Cancel count-in and return to idle
-      console.log('🎙️ Canceling count-in...');
+      return;
+    }
 
-      // Clear intervals and timeouts
-      if (countInIntervalRef.current) {
-        clearInterval(countInIntervalRef.current);
-        countInIntervalRef.current = null;
+    // Start stutter-free recording with count-in
+    // Ensure both decks are loaded
+    if (!mixerState.deckA.track || !mixerState.deckB.track) {
+      console.warn('⚠️ Both decks must have tracks loaded to record');
+      return;
+    }
+
+    console.log('🎙️ Starting stutter-free recording with 2-bar count-in...');
+
+    // Calculate count-in parameters
+    const beatDuration = (60 / mixerState.masterBPM) * 1000; // milliseconds per beat
+    const countInBeats = 8; // 2 bars = 8 beats
+    const countInDurationMs = beatDuration * countInBeats;
+    const countInDurationSeconds = countInDurationMs / 1000;
+
+    console.log(`⏱️ Count-in: ${countInDurationMs}ms (${countInBeats} beats at ${mixerState.masterBPM} BPM)`);
+    console.log(`🎵 Recording strategy: Capture count-in + performance, trim in post`);
+
+    // STEP 1: Start playback if not already playing
+    // Audio flows normally - no muting, no stopping
+    if (!mixerState.deckA.playing) {
+      handleDeckAPlayPause();
+    }
+    if (!mixerState.deckB.playing) {
+      handleDeckBPlayPause();
+    }
+
+    // STEP 2: Start MediaRecorder IMMEDIATELY
+    // Captures everything: count-in + performance in one continuous recording
+    const stream = setupMixerRecording();
+    if (!stream) {
+      console.error('❌ Failed to setup recording stream');
+      return;
+    }
+
+    const audioContext = getAudioContext();
+    if (!audioContext) {
+      console.error('❌ No audio context available');
+      return;
+    }
+
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus'
+    });
+
+    recordedChunksRef.current = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
       }
-      if (recordingScheduleRef.current) {
-        clearTimeout(recordingScheduleRef.current);
-        recordingScheduleRef.current = null;
-      }
+    };
 
-      // Restore master gain and visual playback
-      const masterGain = getMasterGain();
-      if (masterGain) {
-        masterGain.gain.value = 1.0;
-      }
-      setVisualPlaybackEnabled(true);
+    mediaRecorder.onstop = () => {
+      console.log('🎙️ Recording stopped, processing audio...');
+      const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
 
-      // Stop playback
-      handleMasterStop();
+      // Calculate actual duration using AudioContext time
+      const recordingEndTime = audioContext.currentTime;
+      const actualDuration = recordingEndTime - recordingState.recordingStartTime!;
+      const barsRecorded = AudioTiming.timeToBar(actualDuration, mixerState.masterBPM);
 
-      // Reset to idle
+      // Recording metadata for trimming UI
+      const metadata = {
+        recordedAt: new Date(),
+        totalDuration: actualDuration,
+        countInDuration: recordingState.countInDuration, // Seconds to trim
+        suggestedTrimStart: recordingState.countInDuration,
+        suggestedTrimEnd: actualDuration,
+        masterBPM: mixerState.masterBPM,
+        barsRecorded: Math.floor(barsRecorded),
+        startedOnDownbeat: true // Always true after count-in
+      };
+
+      console.log('📊 Recording metadata:', metadata);
+
       setRecordingState(prev => ({
         ...prev,
         recordState: 'idle',
-        countInBeat: 0
+        countInBeat: 0,
+        recordedUrl: url,
+        recordedDuration: actualDuration,
+        showPreview: true
       }));
-    } else {
-      // Start count-in with silent pre-roll
-      // Ensure both decks are loaded
-      if (!mixerState.deckA.track || !mixerState.deckB.track) {
-        console.warn('⚠️ Both decks must have tracks loaded to record');
-        return;
-      }
 
-      console.log('🎙️ Starting silent 2-bar pre-roll...');
+      console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${barsRecorded.toFixed(1)} bars)`);
+      console.log(`✂️ Trim ${countInDurationSeconds.toFixed(2)}s count-in in preview UI`);
+    };
 
-      // Calculate count-in duration (2 bars = 8 beats)
-      const beatDuration = (60 / mixerState.masterBPM) * 1000; // milliseconds per beat
-      const countInDuration = beatDuration * 8; // 2 bars = 8 beats
+    // Start recording immediately (captures count-in + performance)
+    mediaRecorder.start(100);
+    mediaRecorderRef.current = mediaRecorder;
 
-      console.log(`⏱️ Silent pre-roll: ${countInDuration}ms (${beatDuration}ms per beat at ${mixerState.masterBPM} BPM)`);
+    // STEP 3: Visual count-in feedback
+    setRecordingState(prev => ({
+      ...prev,
+      recordState: 'counting-in',
+      countInBeat: 0,
+      recordingStartTime: audioContext.currentTime,
+      countInDuration: countInDurationSeconds
+    }));
 
-      // STEP 1: Start silent sync phase
-      // Mute master gain
-      const masterGain = getMasterGain();
-      if (masterGain) {
-        masterGain.gain.value = 0;
-        console.log('🔇 Master audio muted for count-in');
-      }
+    // Count-in beat tracker for visual feedback
+    let currentBeat = 0;
+    const countInInterval = setInterval(() => {
+      currentBeat++;
+      console.log(`🥁 Count-in beat: ${currentBeat}/${countInBeats}`);
 
-      // Disable visual playback (freeze waveforms)
-      setVisualPlaybackEnabled(false);
-      console.log('👁️ Waveform scrolling disabled');
-
-      // Set state to counting-in
       setRecordingState(prev => ({
         ...prev,
-        recordState: 'counting-in',
-        countInBeat: 0
+        countInBeat: currentBeat
       }));
 
-      // Start playback (silent, no visual movement)
-      if (!mixerState.deckA.playing) {
-        handleDeckAPlayPause();
-      }
-      if (!mixerState.deckB.playing) {
-        handleDeckBPlayPause();
-      }
-
-      // Track beats for visual feedback (dots still animate)
-      let currentBeat = 0;
-      countInIntervalRef.current = setInterval(() => {
-        currentBeat++;
-        console.log(`🥁 Silent sync beat: ${currentBeat}/8`);
+      // After count-in completes, switch to recording state
+      if (currentBeat >= countInBeats) {
+        clearInterval(countInInterval);
         setRecordingState(prev => ({
           ...prev,
-          countInBeat: currentBeat
+          recordState: 'recording',
+          countInBeat: 0
         }));
-      }, beatDuration);
+        console.log('🎙️ Count-in complete - now recording performance');
+        console.log('🎵 Audio has been flowing smoothly the entire time (no stutters!)');
+      }
+    }, beatDuration);
 
-      // STEP 2: After 2 bars, reset and go live
-      recordingScheduleRef.current = setTimeout(() => {
-        console.log('🎵 Silent pre-roll complete! Resetting to bar 1...');
+    countInIntervalRef.current = countInInterval;
 
-        // Clear the beat interval
-        if (countInIntervalRef.current) {
-          clearInterval(countInIntervalRef.current);
-          countInIntervalRef.current = null;
-        }
-
-        // Stop both decks
-        if (mixerState.deckA.audioControls) {
-          mixerState.deckA.audioControls.stop();
-        }
-        if (mixerState.deckB.audioControls) {
-          mixerState.deckB.audioControls.stop();
-        }
-
-        // Reset deck positions to 0
-        if (mixerState.deckA.audioControls) {
-          mixerState.deckA.audioControls.setLoopPosition(0);
-        }
-        if (mixerState.deckB.audioControls) {
-          mixerState.deckB.audioControls.setLoopPosition(0);
-        }
-
-        console.log('🔄 Decks reset to position 0');
-
-        // Small delay to ensure reset completes
-        setTimeout(() => {
-          // Fade in master gain (quick but smooth to avoid click)
-          if (masterGain) {
-            const audioContext = getAudioContext();
-            if (audioContext) {
-              masterGain.gain.setTargetAtTime(1.0, audioContext.currentTime, 0.015); // ~50ms fade
-              console.log('🔊 Audio fading in...');
-            }
-          }
-
-          // Enable visual playback (waveforms start scrolling from 0)
-          setVisualPlaybackEnabled(true);
-          console.log('👁️ Waveform scrolling enabled from position 0');
-
-          // Restart decks from position 0
-          if (mixerState.deckA.audioControls) {
-            mixerState.deckA.audioControls.play();
-          }
-          if (mixerState.deckB.audioControls) {
-            mixerState.deckB.audioControls.play();
-          }
-
-          // Start recording - timestamp 0 = bar 1, beat 1!
-          console.log('🎙️ Starting recording from bar 1, beat 1...');
-          startRecording();
-
-          // Update state to recording
-          setRecordingState(prev => ({
-            ...prev,
-            recordState: 'recording',
-            countInBeat: 0
-          }));
-        }, 50); // Small delay for deck reset
-      }, countInDuration);
-    }
-  }, [recordingState.recordState, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause, handleMasterStop]);
+    console.log(`✅ Stutter-free recording started`);
+    console.log(`🔊 Audio playing normally during count-in`);
+    console.log(`📹 MediaRecorder capturing everything`);
+  }, [recordingState.recordState, recordingState.recordingStartTime, recordingState.countInDuration, mixerState, stopRecording, setupMixerRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
 
   // Keyboard shortcuts for mixer control
   useEffect(() => {
