@@ -194,14 +194,6 @@ const MasterTransportControls = memo(function MasterTransportControls({
         </div>
       )}
 
-      {/* Rehearsal Indicator - positioned above record button */}
-      {recordingRehearsal && (
-        <div className="rehearsal-indicator absolute -top-16 left-1/2 transform -translate-x-1/2 text-center">
-          <div className="text-xs text-[#81E4F2] font-bold mb-1 animate-pulse">REHEARSAL</div>
-          <div className="text-[10px] text-slate-400">Recording starts next cycle</div>
-        </div>
-      )}
-
       {/* Record Button */}
       <button
         onClick={onRecordToggle}
@@ -250,15 +242,6 @@ const MasterTransportControls = memo(function MasterTransportControls({
           border: 1px solid rgba(71, 85, 105, 0.5);
           border-radius: 12px;
           backdrop-filter: blur(8px);
-        }
-
-        .rehearsal-indicator {
-          z-index: 10;
-          background: rgba(6, 182, 212, 0.1);
-          border: 1px solid rgba(6, 182, 212, 0.3);
-          border-radius: 8px;
-          padding: 8px 12px;
-          backdrop-filter: blur(4px);
         }
 
         @keyframes pulse {

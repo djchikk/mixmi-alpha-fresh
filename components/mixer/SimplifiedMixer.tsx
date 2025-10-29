@@ -1638,6 +1638,17 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           {/* Spacer to push waveforms down */}
           <div className="h-6"></div>
 
+          {/* Rehearsal Indicator - Above Waveforms */}
+          {recordingState.recordState === 'rehearsal' && (
+            <div className="flex justify-center mb-3">
+              <div className="px-4 py-2 bg-[#81E4F2]/10 border border-[#81E4F2]/30 rounded-full backdrop-blur-sm">
+                <span className="text-sm font-semibold text-[#81E4F2] animate-pulse">
+                  REHEARSAL • Recording starts next cycle
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             {/* Deck A Waveform */}
             <div className="flex justify-center">
