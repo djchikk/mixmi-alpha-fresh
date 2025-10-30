@@ -1541,7 +1541,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               className="mt-1 w-8 h-8 rounded-full bg-transparent hover:bg-slate-700/30 text-slate-500 hover:text-[#81E4F2] flex items-center justify-center transition-all"
               title="Keyboard Shortcuts (?)"
             >
-              <Keyboard size={16} />
+              <Keyboard size={20} />
             </button>
           </div>
         </div>
@@ -1746,6 +1746,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
             </button>
             */}
 
+            {/* Deck A Gate Controls */}
+            <GateControls
+              activeGate={mixerState.deckA.activeGate}
+              onGateChange={(gateIndex) => handleGateChange('A', gateIndex)}
+              disabled={!mixerState.deckA.track}
+            />
+
             {/* Deck A Play/Pause */}
             <button
               onClick={handleDeckAPlayPause}
@@ -1771,23 +1778,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               )}
             </button>
 
-            {/* Deck A Gate Controls */}
-            <GateControls
-              activeGate={mixerState.deckA.activeGate}
-              onGateChange={(gateIndex) => handleGateChange('A', gateIndex)}
-              disabled={!mixerState.deckA.track}
-            />
-
             <CrossfaderControl
               position={mixerState.crossfaderPosition}
               onPositionChange={handleCrossfaderChange}
-            />
-
-            {/* Deck B Gate Controls */}
-            <GateControls
-              activeGate={mixerState.deckB.activeGate}
-              onGateChange={(gateIndex) => handleGateChange('B', gateIndex)}
-              disabled={!mixerState.deckB.track}
             />
 
             {/* Deck B Play/Pause */}
@@ -1814,6 +1807,13 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
                 </svg>
               )}
             </button>
+
+            {/* Deck B Gate Controls */}
+            <GateControls
+              activeGate={mixerState.deckB.activeGate}
+              onGateChange={(gateIndex) => handleGateChange('B', gateIndex)}
+              disabled={!mixerState.deckB.track}
+            />
 
             {/* TODO: BOOST feature - needs refinement, commented out for now
             <button

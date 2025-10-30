@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { GATE_PATTERNS } from '@/lib/gateEffects';
 
 interface GateControlsProps {
   activeGate: number | null; // 0-5 for the 6 patterns, null for none
@@ -18,6 +19,16 @@ const GATE_COLORS = [
   { r: 74, g: 196, b: 255 }   // #4AC6FF - Cyan
 ];
 
+// Descriptive tooltips for each gate pattern
+const GATE_DESCRIPTIONS = [
+  'PULSE - Steady on/off rhythm (8th notes)',
+  'CHOP - Fast staccato chops (16th notes)',
+  'BOUNCE - Syncopated bounce rhythm (16th notes)',
+  'TRIPLET - Rolling triplet feel (8th note triplets)',
+  'STUTTER - Irregular stuttering effect (16th notes)',
+  'DRIFT - Spacious, drifting pattern (16th notes)'
+];
+
 export default function GateControls({ activeGate, onGateChange, disabled = false }: GateControlsProps) {
   const handleGateClick = (index: number) => {
     if (disabled) return;
@@ -31,14 +42,17 @@ export default function GateControls({ activeGate, onGateChange, disabled = fals
   };
 
   return (
-    <div className="gate-controls flex flex-col gap-1.5">
+    <div className="gate-controls flex flex-col" style={{ marginTop: '-18px' }}>
+      {/* Label */}
+      <div className="gate-label">GATE FX</div>
+
       {/* Row 1 */}
       <div className="flex gap-1.5">
         {[0, 1, 2].map(index => {
           const color = GATE_COLORS[index];
           const isActive = activeGate === index;
-          const opacity = isActive ? 0.35 : 0.15;
-          const borderOpacity = isActive ? 0.5 : 0.25;
+          const opacity = isActive ? 0.6 : 0.15;
+          const borderOpacity = isActive ? 0.8 : 0.25;
 
           return (
             <button
@@ -55,19 +69,19 @@ export default function GateControls({ activeGate, onGateChange, disabled = fals
                   ? `0 0 10px rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`
                   : 'none'
               }}
-              title={`Gate ${index + 1}${isActive ? ' (Active)' : ''}`}
+              title={`${GATE_DESCRIPTIONS[index]}${isActive ? ' (Active)' : ''}`}
             />
           );
         })}
       </div>
 
       {/* Row 2 */}
-      <div className="flex gap-1.5">
+      <div className="flex gap-1.5" style={{ marginTop: '6px' }}>
         {[3, 4, 5].map(index => {
           const color = GATE_COLORS[index];
           const isActive = activeGate === index;
-          const opacity = isActive ? 0.35 : 0.15;
-          const borderOpacity = isActive ? 0.5 : 0.25;
+          const opacity = isActive ? 0.6 : 0.15;
+          const borderOpacity = isActive ? 0.8 : 0.25;
 
           return (
             <button
@@ -84,13 +98,23 @@ export default function GateControls({ activeGate, onGateChange, disabled = fals
                   ? `0 0 10px rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`
                   : 'none'
               }}
-              title={`Gate ${index + 1}${isActive ? ' (Active)' : ''}`}
+              title={`${GATE_DESCRIPTIONS[index]}${isActive ? ' (Active)' : ''}`}
             />
           );
         })}
       </div>
 
       <style jsx>{`
+        .gate-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 8px;
+          font-weight: 600;
+          text-align: center;
+        }
+
         .gate-btn:hover:not(:disabled) {
           transform: scale(1.05);
         }
