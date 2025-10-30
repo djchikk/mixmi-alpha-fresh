@@ -13,9 +13,6 @@ export interface MixerAudioState {
   gainNode: GainNode;
   hiCutNode: BiquadFilterNode; // 🎛️ High-cut EQ (low-pass filter)
   loCutNode: BiquadFilterNode; // 🎛️ Low-cut EQ (high-pass filter)
-  compressorNode: DynamicsCompressorNode; // 🎚️ Boost/Compressor for level normalization
-  compressorBypass: GainNode; // 🎚️ Bypass path for compressor
-  compressorEffect: GainNode; // 🎚️ Effect path for compressor
   analyzerNode: AnalyserNode;
   isLoaded: boolean;
   isPlaying: boolean;
@@ -940,7 +937,6 @@ export interface MixerAudioControls {
   setLoopPosition: (position: number) => void; // 🎯 Set loop start position
   setHiCut: (enabled: boolean) => void; // 🎛️ Enable/disable high-cut EQ
   setLoCut: (enabled: boolean) => void; // 🎛️ Enable/disable low-cut EQ
-  setBoost: (level: number) => void; // 🎚️ Set boost level (0=off, 1=gentle, 2=aggressive)
   cleanup: () => void;
 }
 
@@ -1051,23 +1047,6 @@ export class MixerAudioEngine {
       const loCutNode = audioContext.createBiquadFilter();
       const analyzerNode = audioContext.createAnalyser();
 
-      // 🎚️ Create compressor with true bypass routing
-      const compressorNode = audioContext.createDynamicsCompressor();
-      const compressorBypass = audioContext.createGain();
-      const compressorEffect = audioContext.createGain();
-
-      // Configure compressor for audible, noticeable leveling
-      compressorNode.threshold.setValueAtTime(-18, audioContext.currentTime);  // Catches more signal
-      compressorNode.knee.setValueAtTime(20, audioContext.currentTime);        // Still smooth but more noticeable
-      compressorNode.ratio.setValueAtTime(6, audioContext.currentTime);        // More aggressive compression
-      compressorNode.attack.setValueAtTime(0.003, audioContext.currentTime);   // Fast attack preserves transients
-      compressorNode.release.setValueAtTime(0.25, audioContext.currentTime);   // Natural sounding release
-
-      // Initial state: bypass ON (compressor OFF)
-      compressorBypass.gain.value = 1.0;
-      compressorEffect.gain.value = 0.0;
-
-      console.log(`🎚️ Deck ${deckId} compressor created with true bypass (initially OFF)`);
 
       // Configure EQ nodes - Hi-Cut (low-pass filter to remove highs)
       hiCutNode.type = 'lowpass';
@@ -1084,21 +1063,11 @@ export class MixerAudioEngine {
       analyzerNode.smoothingTimeConstant = 0.8;
       console.log(`🎛️ Deck ${deckId} analyzer node created:`, analyzerNode);
 
-      // Connect audio graph: source → lo-cut → hi-cut → [compressor w/ bypass] → gain → analyzer → master
-      // FX chain (filter/delay) will be inserted between hiCutNode and compressor by SimplifiedMixer
+      // Connect audio graph: source → lo-cut → hi-cut → gain → analyzer → master
+      // FX chain and gate will be inserted between hiCutNode and gainNode by SimplifiedMixer
       source.connect(loCutNode);
       loCutNode.connect(hiCutNode);
-
-      // Compressor true bypass routing (will be connected after FX by SimplifiedMixer)
-      // For now, connect directly: hiCutNode → bypass path → gain
-      hiCutNode.connect(compressorBypass);
-      compressorBypass.connect(gainNode);
-
-      // Also set up effect path (initially silent)
-      hiCutNode.connect(compressorNode);
-      compressorNode.connect(compressorEffect);
-      compressorEffect.connect(gainNode);
-
+      hiCutNode.connect(gainNode);
       gainNode.connect(analyzerNode);
       analyzerNode.connect(this.masterGain!);
 
@@ -1110,9 +1079,6 @@ export class MixerAudioEngine {
         gainNode,
         hiCutNode,
         loCutNode,
-        compressorNode,
-        compressorBypass,
-        compressorEffect,
         analyzerNode,
         isLoaded: true,
         isPlaying: false,
@@ -1298,55 +1264,6 @@ export class MixerAudioEngine {
           }
         },
 
-        // 🎚️ Boost/Compressor control with progressive levels
-        setBoost: (level: number) => {
-          const now = audioContext.currentTime;
-          const fadeTime = 0.01; // 10ms crossfade to avoid clicks
-
-          // Cancel any previous automations to prevent conflicts
-          compressorBypass.gain.cancelScheduledValues(now);
-          compressorEffect.gain.cancelScheduledValues(now);
-
-          if (level === 0) {
-            // Level 0: OFF - Switch to BYPASS path
-            compressorBypass.gain.setValueAtTime(compressorBypass.gain.value, now);
-            compressorBypass.gain.linearRampToValueAtTime(1.0, now + fadeTime);
-
-            compressorEffect.gain.setValueAtTime(compressorEffect.gain.value, now);
-            compressorEffect.gain.linearRampToValueAtTime(0.0, now + fadeTime);
-
-            console.log(`🎚️ Deck ${deckId} BOOST disabled (bypass: ${compressorBypass.gain.value} → 1.0, effect: ${compressorEffect.gain.value} → 0.0)`);
-          } else if (level === 1) {
-            // Level 1: GENTLE - Transparent leveling for mastered tracks
-            compressorNode.threshold.setValueAtTime(-24, now);
-            compressorNode.knee.setValueAtTime(30, now);
-            compressorNode.ratio.setValueAtTime(3, now);
-
-            // Switch to EFFECT path
-            compressorBypass.gain.setValueAtTime(compressorBypass.gain.value, now);
-            compressorBypass.gain.linearRampToValueAtTime(0.0, now + fadeTime);
-
-            compressorEffect.gain.setValueAtTime(compressorEffect.gain.value, now);
-            compressorEffect.gain.linearRampToValueAtTime(1.0, now + fadeTime);
-
-            console.log(`🎚️ Deck ${deckId} BOOST (gentle) enabled: -24dB threshold, 3:1 ratio (bypass: ${compressorBypass.gain.value} → 0.0, effect: ${compressorEffect.gain.value} → 1.0)`);
-          } else if (level === 2) {
-            // Level 2: AGGRESSIVE - Strong leveling for quiet recordings
-            compressorNode.threshold.setValueAtTime(-18, now);
-            compressorNode.knee.setValueAtTime(20, now);
-            compressorNode.ratio.setValueAtTime(6, now);
-
-            // Switch to EFFECT path
-            compressorBypass.gain.setValueAtTime(compressorBypass.gain.value, now);
-            compressorBypass.gain.linearRampToValueAtTime(0.0, now + fadeTime);
-
-            compressorEffect.gain.setValueAtTime(compressorEffect.gain.value, now);
-            compressorEffect.gain.linearRampToValueAtTime(1.0, now + fadeTime);
-
-            console.log(`🎚️ Deck ${deckId} BOOST+ (aggressive) enabled: -18dB threshold, 6:1 ratio (bypass: ${compressorBypass.gain.value} → 0.0, effect: ${compressorEffect.gain.value} → 1.0)`);
-          }
-        },
-
         cleanup: () => {
           console.log(`🧹 Cleaning up deck ${deckId} audio`);
 
@@ -1378,9 +1295,6 @@ export class MixerAudioEngine {
             source.disconnect();
             loCutNode.disconnect();
             hiCutNode.disconnect();
-            compressorNode.disconnect();
-            compressorBypass.disconnect();
-            compressorEffect.disconnect();
             gainNode.disconnect();
             analyzerNode.disconnect();
             console.log(`✅ Deck ${deckId} audio nodes disconnected`);

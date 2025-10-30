@@ -995,18 +995,18 @@ const FXComponent = React.memo(React.forwardRef<HTMLDivElement, FXComponentProps
         <div className="eq-label">EQ</div>
         <div className="eq-controls">
           <button
-            className={`eq-btn hi-cut ${hiCutActive ? 'active' : ''}`}
-            onClick={toggleHiCut}
-            title="High Cut - Remove highs above 2kHz (warm/muffled sound)"
-          >
-            <span className="eq-btn-label">HI CUT</span>
-          </button>
-          <button
             className={`eq-btn lo-cut ${loCutActive ? 'active' : ''}`}
             onClick={toggleLoCut}
             title="Low Cut - Remove lows below 500Hz (thin/no bass sound)"
           >
             <span className="eq-btn-label">LO CUT</span>
+          </button>
+          <button
+            className={`eq-btn hi-cut ${hiCutActive ? 'active' : ''}`}
+            onClick={toggleHiCut}
+            title="High Cut - Remove highs above 2kHz (warm/muffled sound)"
+          >
+            <span className="eq-btn-label">HI CUT</span>
           </button>
         </div>
       </div>
