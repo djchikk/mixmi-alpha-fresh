@@ -361,12 +361,12 @@ export default function RecordingPreview({
   const calculateTotal = () => {
     let total = 2; // Base recording fee (1 STX per source loop)
 
-    if (downloadDeckA && deckATrack?.allowOfflineUse) {
-      total += (deckATrack as any).price_stx || 5;
+    if (downloadDeckA && (deckATrack as any)?.allow_downloads) {
+      total += (deckATrack as any).download_price_stx || (deckATrack as any).price_stx || 5;
     }
 
-    if (downloadDeckB && deckBTrack?.allowOfflineUse) {
-      total += (deckBTrack as any).price_stx || 5;
+    if (downloadDeckB && (deckBTrack as any)?.allow_downloads) {
+      total += (deckBTrack as any).download_price_stx || (deckBTrack as any).price_stx || 5;
     }
 
     return total;
@@ -462,7 +462,7 @@ export default function RecordingPreview({
 
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">Download:</span>
-                    {(deckATrack?.allowOfflineUse && deckBTrack?.allowOfflineUse) ? (
+                    {((deckATrack as any)?.allow_downloads && (deckBTrack as any)?.allow_downloads) ? (
                       <span className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded border border-green-500/30">
                         Available for buyers
                       </span>
@@ -478,13 +478,13 @@ export default function RecordingPreview({
           </div>
 
           {/* Optional Source Downloads */}
-          {(deckATrack?.allowOfflineUse || deckBTrack?.allowOfflineUse) && (
+          {((deckATrack as any)?.allow_downloads || (deckBTrack as any)?.allow_downloads) && (
             <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
               <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">Optional Source Downloads:</h3>
               <p className="text-xs text-gray-400 mb-3">Add source tracks for offline use</p>
               <div className="space-y-2">
                 {/* Deck A Track */}
-                {deckATrack?.allowOfflineUse && (
+                {(deckATrack as any)?.allow_downloads && (
                   <label className="flex items-center gap-3 bg-slate-800/40 rounded-lg p-3 cursor-pointer hover:bg-slate-800/60 transition-colors">
                     <input
                       type="checkbox"
@@ -498,13 +498,13 @@ export default function RecordingPreview({
                       <span className="text-xs text-gray-500 ml-2">by {deckATrack.artist}</span>
                     </div>
                     <span className="text-cyan-400 font-semibold text-sm">
-                      {(deckATrack as any).price_stx || 5} STX
+                      {(deckATrack as any).download_price_stx || (deckATrack as any).price_stx || 5} STX
                     </span>
                   </label>
                 )}
 
                 {/* Deck B Track */}
-                {deckBTrack?.allowOfflineUse && (
+                {(deckBTrack as any)?.allow_downloads && (
                   <label className="flex items-center gap-3 bg-slate-800/40 rounded-lg p-3 cursor-pointer hover:bg-slate-800/60 transition-colors">
                     <input
                       type="checkbox"
@@ -518,13 +518,13 @@ export default function RecordingPreview({
                       <span className="text-xs text-gray-500 ml-2">by {deckBTrack.artist}</span>
                     </div>
                     <span className="text-cyan-400 font-semibold text-sm">
-                      {(deckBTrack as any).price_stx || 5} STX
+                      {(deckBTrack as any).download_price_stx || (deckBTrack as any).price_stx || 5} STX
                     </span>
                   </label>
                 )}
 
                 {/* Show unavailable tracks */}
-                {!deckATrack?.allowOfflineUse && (
+                {!(deckATrack as any)?.allow_downloads && (
                   <div className="flex items-center gap-3 bg-slate-800/20 rounded-lg p-3 opacity-50">
                     <X className="w-4 h-4 text-gray-600" />
                     <div className="flex-1">
@@ -533,7 +533,7 @@ export default function RecordingPreview({
                     </div>
                   </div>
                 )}
-                {!deckBTrack?.allowOfflineUse && (
+                {!(deckBTrack as any)?.allow_downloads && (
                   <div className="flex items-center gap-3 bg-slate-800/20 rounded-lg p-3 opacity-50">
                     <X className="w-4 h-4 text-gray-600" />
                     <div className="flex-1">
@@ -584,6 +584,8 @@ export default function RecordingPreview({
           deckATrack={deckATrack}
           deckBTrack={deckBTrack}
           bpm={bpm}
+          downloadDeckA={downloadDeckA}
+          downloadDeckB={downloadDeckB}
           onClose={() => setShowPaymentModal(false)}
           onSuccess={() => {
             setShowPaymentModal(false);

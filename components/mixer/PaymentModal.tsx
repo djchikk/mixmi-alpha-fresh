@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, Music, FileText, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import { generateMixCoverImage } from '@/lib/generateMixCoverImage';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +30,8 @@ interface PaymentModalProps {
   deckATrack: TrackInfo | null;
   deckBTrack: TrackInfo | null;
   bpm: number;
+  downloadDeckA: boolean;
+  downloadDeckB: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -39,10 +42,13 @@ export default function PaymentModal({
   deckATrack,
   deckBTrack,
   bpm,
+  downloadDeckA,
+  downloadDeckB,
   onClose,
   onSuccess
 }: PaymentModalProps) {
   const { isAuthenticated, connectWallet, walletAddress } = useAuth();
+  const { addToCart } = useCart();
   const { loadedTracks } = useMixer();
   const [selectedOption, setSelectedOption] = useState<'loop-only' | 'loop-plus-sources'>('loop-only');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -278,8 +284,8 @@ export default function PaymentModal({
         permanentCoverUrl = await uploadCoverImage(mixCoverImageUrl);
       }
 
-      // Calculate the total price in microSTX
-      const totalPriceSTX = selectedOption === 'loop-only' ? loopOnlyPrice : loopPlusSourcesPrice;
+      // Calculate the total price in microSTX (always 2 STX for remix payment)
+      const totalPriceSTX = 2; // 1 STX per source loop
       const totalPriceMicroSTX = Math.floor(totalPriceSTX * 1_000_000);
 
       // Calculate remix splits (80/20 formula)
@@ -520,7 +526,23 @@ export default function PaymentModal({
           console.error('Certificate generation failed:', error);
           // Don't block on certificate failure
         });
-      
+
+      // Add selected tracks to shopping cart
+      let addedToCart = 0;
+      if (downloadDeckA && deckATrack && (deckATrack as any).allow_downloads) {
+        addToCart(deckATrack);
+        addedToCart++;
+      }
+      if (downloadDeckB && deckBTrack && (deckBTrack as any).allow_downloads) {
+        addToCart(deckBTrack);
+        addedToCart++;
+      }
+
+      // Show success message with cart info if applicable
+      if (addedToCart > 0) {
+        toast.success(`Remix saved! ${addedToCart} ${addedToCart === 1 ? 'track' : 'tracks'} added to cart for download.`);
+      }
+
       onSuccess();
     } catch (error: any) {
       console.error('Payment/save failed:', error);
