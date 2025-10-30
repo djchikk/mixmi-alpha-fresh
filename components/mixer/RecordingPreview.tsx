@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Download, X, ShoppingCart, Music } from 'lucide-react';
+import { Play, Pause, Download, X, ShoppingCart } from 'lucide-react';
 import RecordingWaveformDisplay from './RecordingWaveformDisplay';
 import PaymentModal from './PaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -359,7 +359,7 @@ export default function RecordingPreview({
 
   // Calculate total price based on selections
   const calculateTotal = () => {
-    let total = 1; // Base recording fee
+    let total = 2; // Base recording fee (1 STX per source loop)
 
     if (downloadDeckA && deckATrack?.allowOfflineUse) {
       total += (deckATrack as any).price_stx || 5;
@@ -438,18 +438,29 @@ export default function RecordingPreview({
             <div className="space-y-3">
               {/* Remix Info */}
               <div className="flex items-start gap-3 bg-slate-800/40 rounded-lg p-4">
-                <Music className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                <span className="text-2xl mt-0.5 flex-shrink-0">🌿</span>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-white font-medium">
-                      {selectedSegment.end - selectedSegment.start}-Bar Remix
-                    </span>
-                    <span className="text-cyan-400 font-semibold">1 STX</span>
+                    <div>
+                      <span className="text-white font-medium">
+                        {selectedSegment.end - selectedSegment.start}-Bar Generation 1 Remix
+                      </span>
+                    </div>
+                    <span className="text-cyan-400 font-semibold">2 STX</span>
                   </div>
-                  <p className="text-sm text-gray-400">
-                    Appears on your creator store • 0.5 STX to each source creator
+                  <p className="text-sm text-gray-400 mb-2">
+                    Appears on your creator store
                   </p>
-                  <div className="mt-2 flex items-center gap-2">
+
+                  {/* IP Rights & Commission Info */}
+                  <div className="bg-slate-900/50 rounded-lg p-3 mb-2 border border-slate-700/30">
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      <span className="text-cyan-400 font-medium">Your rights:</span> You earn a 20% commission on each use or download of this remix from your store.
+                      Source creators retain all intellectual property rights to their original loops.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">Download:</span>
                     {(deckATrack?.allowOfflineUse && deckBTrack?.allowOfflineUse) ? (
                       <span className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded border border-green-500/30">
@@ -543,7 +554,7 @@ export default function RecordingPreview({
                 {totalPrice} STX
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {totalPrice === 1 ? 'Recording fee only' : `1 STX recording + ${totalPrice - 1} STX downloads`}
+                {totalPrice === 2 ? 'Recording fee only' : `2 STX recording + ${totalPrice - 2} STX downloads`}
               </div>
             </div>
             <div className="flex gap-3">
