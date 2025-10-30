@@ -54,7 +54,7 @@ export default function Welcome() {
         }}
       >
         {/* Breathing Globe Background - Whisper of life */}
-        <div 
+        <div
           className="pointer-events-none"
           style={{
             position: 'fixed',
@@ -62,7 +62,7 @@ export default function Welcome() {
             left: '0',
             width: '100vw',
             height: '100vh',
-            opacity: 0.20,
+            opacity: 0.40,
             pointerEvents: 'none',
             zIndex: 0
           }}
@@ -114,15 +114,15 @@ export default function Welcome() {
                   <span className="text-[#81E4F2] text-lg mt-0.5">🌍</span>
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">Globe Browser with Tiny Mixer</h3>
-                    <p className="text-[#a8b2c3]">Discover sounds pinned anywhere on Earth and mix loops in the tiny dj mixer</p>
+                    <p className="text-[#a8b2c3]">Discover sounds pinned anywhere on Earth and mix loops in the tiny DJ mixer. Launch playlist and radio widgets, search content, and fully functional shopping cart</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
                   <span className="text-[#81E4F2] text-lg mt-0.5">🎚️</span>
                   <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Big Mixer</h3>
-                    <p className="text-[#a8b2c3]">Dual decks with waveform displays, BPM sync, crossfader, EQ, FX, keyboard shortcuts, and rock-solid stability for extended sessions</p>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Big Mixer with Recording</h3>
+                    <p className="text-[#a8b2c3]">Dual decks with waveform displays, BPM sync, crossfader, EQ, FX, gate effects, keyboard shortcuts, and live mix recording - built for extended sessions</p>
                   </div>
                 </div>
 
@@ -158,11 +158,27 @@ export default function Welcome() {
                   </div>
                 </div>
 
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">⚙️</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Account Management</h3>
+                    <p className="text-[#a8b2c3]">View and edit all your uploads, access certificates, and manage account settings</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">⏺️</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Mix Recording</h3>
+                    <p className="text-[#a8b2c3]">Record your live DJ mixes in the Big Mixer and download them as audio files</p>
+                  </div>
+                </div>
+
                 <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg md:col-span-2">
                   <span className="text-[#81E4F2] text-lg mt-0.5">📻</span>
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">Playlist Streaming & Radio</h3>
-                    <p className="text-[#a8b2c3]">Curate and broadcast continuous mixes from any creator's store</p>
+                    <p className="text-[#a8b2c3]">Compile playlists and stream previews in the player widget. Radio mode continuously plays random content from the database</p>
                   </div>
                 </div>
               </div>
@@ -241,14 +257,6 @@ export default function Welcome() {
             <div className="max-w-3xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">⏺️</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Remix Recording</h3>
-                    <p className="text-[#a8b2c3]">Record your live mixes directly in the mixer and save remixes to your store</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
                   <span className="text-[#9772F4] text-lg mt-0.5">🎖️</span>
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">On-Chain Certification</h3>
@@ -277,6 +285,22 @@ export default function Welcome() {
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">Production Content Migration</h3>
                     <p className="text-[#a8b2c3]">Test content will be replaced with curated professional loops and tracks</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">💎</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Playlist Curation Earnings</h3>
+                    <p className="text-[#a8b2c3]">Earn through curation - create and share playlists that connect listeners with great music</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">💰</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Streaming Earnings</h3>
+                    <p className="text-[#a8b2c3]">Monetized streaming for full tracks and playlists - artists earn when listeners stream their complete works</p>
                   </div>
                 </div>
               </div>
