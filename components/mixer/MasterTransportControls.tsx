@@ -62,11 +62,10 @@ const MasterTransportControls = memo(function MasterTransportControls({
   // Fixed count-in effect - removed onMasterPlay from dependencies
   useEffect(() => {
     if (countingIn && countBeat > 0 && countBeat < 4) {
-      console.log(`🎵 COUNT-IN: Beat ${countBeat}, next beat in ${beatInterval}ms`);
       countTimeoutRef.current = setTimeout(() => {
         setCountBeat(prev => prev + 1);
       }, beatInterval);
-      
+
       return () => {
         if (countTimeoutRef.current) {
           clearTimeout(countTimeoutRef.current);
@@ -74,7 +73,6 @@ const MasterTransportControls = memo(function MasterTransportControls({
       };
     } else if (countingIn && countBeat >= 4) {
       // Count-in complete, trigger actual play
-      console.log('🎵 COUNT-IN: Complete! Triggering master play without count-in...');
       setCountingIn(false);
       setCountBeat(0);
       // Call the direct play function that bypasses count-in logic
@@ -85,12 +83,10 @@ const MasterTransportControls = memo(function MasterTransportControls({
   const handleMasterPlay = () => {
     if (anyPlaying) {
       // If anything is playing, pause everything and reset to beginning
-      console.log('🎵 MASTER TRANSPORT: Pausing and resetting to beginning');
       onMasterStop();
     } else {
       // Start fresh with count-in sequence
       if (deckALoaded || deckBLoaded) {
-        console.log(`🎵 MASTER TRANSPORT: Starting fresh 4-beat count-in at ${deckABPM} BPM`);
         setCountingIn(true);
         setCountBeat(1);
       }

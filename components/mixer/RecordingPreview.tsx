@@ -113,8 +113,6 @@ class SampleAccurateLooper {
 
     this.sourceNode = source;
     this.isLooping = true;
-
-    console.log(`🔄 Sample-accurate loop started: bars ${startBar}-${endBar}`);
   }
 
   // Stop looping
@@ -130,8 +128,6 @@ class SampleAccurateLooper {
 
     this.sourceNode = null;
     this.isLooping = false;
-
-    console.log('🛑 Sample-accurate loop stopped');
   }
 
   // Update loop boundaries while playing
@@ -252,7 +248,6 @@ export default function RecordingPreview({
 
         // Create sample-accurate looper for loop playback
         looperRef.current = new SampleAccurateLooper(audioContext, decodedBuffer, bpm);
-        console.log('✅ Sample-accurate looper initialized');
       } catch (error) {
         console.error('Failed to load audio buffer:', error);
       }
