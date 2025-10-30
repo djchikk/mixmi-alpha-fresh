@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { IPTrack } from '@/types';
 import SafeImage from './shared/SafeImage';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
-import { useDrag } from 'react-dnd';
+import { useDrag, useDrop } from 'react-dnd';
 import { useMixer } from '@/contexts/MixerContext';
 import AudioWidgetControls from './AudioWidgetControls';
 
@@ -25,17 +25,40 @@ export default function RadioWidget() {
   const animationFrameRef = useRef<number | null>(null);
   const audioSourceSetupRef = useRef(false);
 
+  // Set up drop zone for incoming tracks
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'TRACK_CARD',
+    drop: (item: { track: IPTrack }) => {
+      console.log('📻 Radio: Dropped track:', item.track.title);
+      setCurrentTrack(item.track);
+      setPlayedTracks(prev => new Set([...prev, item.track.id]));
+
+      // Load audio but don't auto-play
+      if (audioRef.current) {
+        const audioSource = item.track.stream_url || item.track.audio_url;
+        audioRef.current.src = audioSource;
+        audioRef.current.volume = volume;
+        console.log('📻 Radio: Track loaded from drop, waiting for user to press play');
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }), [volume]);
+
   // Set up drag for album art
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
       if (!currentTrack) return null;
+      // Support both audio_url (tracks) and stream_url (radio stations)
+      const audioSource = currentTrack.stream_url || currentTrack.audio_url;
       return {
         track: {
           ...currentTrack,
           imageUrl: getOptimizedTrackImage(currentTrack, 64),
           cover_image_url: getOptimizedTrackImage(currentTrack, 64),
-          audioUrl: currentTrack.audio_url
+          audioUrl: audioSource
         }
       };
     },
@@ -45,7 +68,7 @@ export default function RadioWidget() {
     }),
   }), [currentTrack]);
 
-  // Fetch random track
+  // Fetch random track (supports songs, loops, and radio stations)
   const fetchRandomTrack = async () => {
     try {
       console.log('🎵 Radio: Fetching random track...');
@@ -55,7 +78,7 @@ export default function RadioWidget() {
         .from('ip_tracks')
         .select('*', { count: 'exact', head: true })
         .is('deleted_at', null)
-        .in('content_type', ['full_song', 'loop']);
+        .in('content_type', ['full_song', 'loop', 'radio_station']);
 
       console.log('🎵 Radio: Total tracks available:', count);
 
@@ -73,7 +96,7 @@ export default function RadioWidget() {
         .from('ip_tracks')
         .select('*')
         .is('deleted_at', null)
-        .in('content_type', ['full_song', 'loop'])
+        .in('content_type', ['full_song', 'loop', 'radio_station'])
         .order('created_at', { ascending: false }) // Prioritize recent uploads
         .range(randomOffset, randomOffset);
 
@@ -96,11 +119,12 @@ export default function RadioWidget() {
       setCurrentTrack(track);
       setPlayedTracks(prev => new Set([...prev, track.id]));
 
-      // Load and play audio
+      // Load and play audio (support both audio_url for tracks and stream_url for radio stations)
       if (audioRef.current) {
-        audioRef.current.src = track.audio_url;
+        const audioSource = track.stream_url || track.audio_url;
+        audioRef.current.src = audioSource;
         audioRef.current.volume = volume;
-        console.log('🎵 Radio: Audio loaded, volume:', volume, 'shouldAutoPlay:', shouldAutoPlayRef.current);
+        console.log('🎵 Radio: Audio loaded, volume:', volume, 'shouldAutoPlay:', shouldAutoPlayRef.current, 'source:', track.content_type === 'radio_station' ? 'stream' : 'file');
 
         if (shouldAutoPlayRef.current) {
           try {
@@ -261,11 +285,12 @@ export default function RadioWidget() {
       setCurrentTrack(track);
       setPlayedTracks(prev => new Set([...prev, track.id]));
 
-      // Load audio but don't auto-play
+      // Load audio but don't auto-play (support both audio_url and stream_url)
       if (audioRef.current) {
-        audioRef.current.src = track.audio_url;
+        const audioSource = track.stream_url || track.audio_url;
+        audioRef.current.src = audioSource;
         audioRef.current.volume = volume;
-        console.log('📻 Radio: Track loaded, waiting for user to press play');
+        console.log('📻 Radio: Track loaded, waiting for user to press play', 'type:', track.content_type);
       }
     };
 
@@ -297,9 +322,10 @@ export default function RadioWidget() {
       />
 
       <div
-        className={`radio-widget relative bg-slate-900/20 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 transition-all duration-300 overflow-hidden ${
+        ref={drop}
+        className={`radio-widget relative bg-slate-900/20 backdrop-blur-sm rounded-xl shadow-2xl border transition-all duration-300 overflow-hidden ${
           isCollapsed ? 'h-10' : 'h-[200px]'
-        }`}
+        } ${isOver ? 'border-[#81E4F2] border-2 bg-[#81E4F2]/10' : 'border-slate-700/50'}`}
         style={{ width: isCollapsed ? '240px' : '320px' }}
       >
         {/* Collapse/Expand Button */}
@@ -441,9 +467,12 @@ export default function RadioWidget() {
                     {/* Content type and BPM */}
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-white/50 font-mono">
-                        {currentTrack.content_type === 'full_song' ? 'SONG' : 'LOOP'}
+                        {currentTrack.content_type === 'radio_station' ? '📻 RADIO' : currentTrack.content_type === 'full_song' ? 'SONG' : 'LOOP'}
                       </span>
-                      {currentTrack.bpm && (
+                      {currentTrack.content_type === 'radio_station' && (
+                        <span className="text-xs text-[#FB923C] font-bold">🔴 LIVE</span>
+                      )}
+                      {currentTrack.bpm && currentTrack.content_type !== 'radio_station' && (
                         <span className="text-xs text-white/40 font-mono">{currentTrack.bpm} BPM</span>
                       )}
                     </div>
