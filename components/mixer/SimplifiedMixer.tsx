@@ -16,9 +16,11 @@ import LoopControls from './LoopControls';
 import FXComponent from './FXComponent';
 import DeckCrate from './DeckCrate';
 import RecordingPreview from './RecordingPreview';
+import GateControls from './GateControls';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Keyboard } from 'lucide-react';
 import { IPTrack } from '@/types';
+import { GateEffect } from '@/lib/gateEffects';
 
 // Type definitions for FX Component extended HTMLDivElement
 interface FXElement extends HTMLDivElement {
@@ -49,7 +51,7 @@ interface SimplifiedMixerState {
     loopEnabled: boolean;
     loopLength: number;
     loopPosition: number;
-    boostLevel: number; // 0=off, 1=gentle (cyan), 2=aggressive (orange)
+    activeGate: number | null; // 0-5 for gate patterns, null for off
   };
   deckB: {
     track: Track | null;
@@ -60,7 +62,7 @@ interface SimplifiedMixerState {
     loopEnabled: boolean;
     loopLength: number;
     loopPosition: number;
-    boostLevel: number; // 0=off, 1=gentle (cyan), 2=aggressive (orange)
+    activeGate: number | null; // 0-5 for gate patterns, null for off
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -87,7 +89,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       loopEnabled: true,
       loopLength: 8,
       loopPosition: 0,
-      boostLevel: 0 // 0=off, 1=gentle, 2=aggressive
+      activeGate: null // No gate active initially
     },
     deckB: {
       track: null,
@@ -95,7 +97,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       loopEnabled: true,
       loopLength: 8,
       loopPosition: 0,
-      boostLevel: 0 // 0=off, 1=gentle, 2=aggressive
+      activeGate: null // No gate active initially
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -206,6 +208,10 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const deckAFXRef = React.useRef<FXElement>(null);
   const deckBFXRef = React.useRef<FXElement>(null);
 
+  // Gate Effect refs
+  const deckAGateRef = React.useRef<GateEffect | null>(null);
+  const deckBGateRef = React.useRef<GateEffect | null>(null);
+
   // Use the mixer audio hook
   const {
     audioInitialized,
@@ -275,6 +281,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     deckName: 'A' | 'B',
     fxRef: React.RefObject<FXElement>,
     audioState: any, // MixerAudioState type
+    gateEffect: GateEffect | null = null, // Add gate parameter
     retryCount = 0
   ): boolean => {
     if (fxRef.current) {
@@ -288,18 +295,21 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         try {
           // Disconnect existing connections
           audioState.hiCutNode.disconnect();
-          audioState.compressorBypass.disconnect();
-          audioState.compressorEffect.disconnect();
-          audioState.compressorNode.disconnect();
           audioState.gainNode.disconnect();
 
-          // Reconnect audio routing through FX: EQ → FX → compressor (w/ bypass) → gain → analyzer → master
+          // Reconnect audio routing: EQ → FX → GATE → gain → analyzer → master
           audioState.hiCutNode.connect(fxInput);
-          fxOutput.connect(audioState.compressorBypass);
-          fxOutput.connect(audioState.compressorNode);
-          audioState.compressorBypass.connect(audioState.gainNode);
-          audioState.compressorNode.connect(audioState.compressorEffect);
-          audioState.compressorEffect.connect(audioState.gainNode);
+
+          if (gateEffect) {
+            // With gate: FX → GATE → gain
+            fxOutput.connect(gateEffect.getGainNode());
+            gateEffect.getGainNode().connect(audioState.gainNode);
+            console.log(`🎚️ Deck ${deckName} gate inserted into FX chain`);
+          } else {
+            // Without gate: FX → gain directly
+            fxOutput.connect(audioState.gainNode);
+          }
+
           audioState.gainNode.connect(audioState.analyzerNode);
           audioState.analyzerNode.connect(audioState.audioContext.destination);
 
@@ -312,11 +322,12 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         } catch (error) {
           console.error(`Failed to connect Deck ${deckName} FX:`, error);
           // Fall back to direct connection
-          audioState.hiCutNode.connect(audioState.compressorBypass);
-          audioState.hiCutNode.connect(audioState.compressorNode);
-          audioState.compressorBypass.connect(audioState.gainNode);
-          audioState.compressorNode.connect(audioState.compressorEffect);
-          audioState.compressorEffect.connect(audioState.gainNode);
+          if (gateEffect) {
+            audioState.hiCutNode.connect(gateEffect.getGainNode());
+            gateEffect.getGainNode().connect(audioState.gainNode);
+          } else {
+            audioState.hiCutNode.connect(audioState.gainNode);
+          }
           audioState.gainNode.connect(audioState.analyzerNode);
           audioState.analyzerNode.connect(audioState.audioContext.destination);
           return false;
@@ -324,19 +335,21 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       }
     }
 
-    // FX not ready, use direct connection and retry
+    // FX not ready, use direct connection with gate and retry
     try {
       audioState.hiCutNode.disconnect();
-      audioState.compressorBypass.disconnect();
-      audioState.compressorEffect.disconnect();
-      audioState.compressorNode.disconnect();
       audioState.gainNode.disconnect();
 
-      audioState.hiCutNode.connect(audioState.compressorBypass);
-      audioState.hiCutNode.connect(audioState.compressorNode);
-      audioState.compressorBypass.connect(audioState.gainNode);
-      audioState.compressorNode.connect(audioState.compressorEffect);
-      audioState.compressorEffect.connect(audioState.gainNode);
+      if (gateEffect) {
+        // Direct with gate: EQ → GATE → gain
+        audioState.hiCutNode.connect(gateEffect.getGainNode());
+        gateEffect.getGainNode().connect(audioState.gainNode);
+        console.log(`🎚️ Deck ${deckName} gate inserted (FX not ready)`);
+      } else {
+        // Direct without gate: EQ → gain
+        audioState.hiCutNode.connect(audioState.gainNode);
+      }
+
       audioState.gainNode.connect(audioState.analyzerNode);
       audioState.analyzerNode.connect(audioState.audioContext.destination);
     } catch (e) {
@@ -347,14 +360,14 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     if (retryCount < 10) {
       const timeout = setTimeout(() => {
         fxRetryTimeoutsRef.current.delete(timeout);
-        connectDeckFX(deckName, fxRef, audioState, retryCount + 1);
+        connectDeckFX(deckName, fxRef, audioState, gateEffect, retryCount + 1);
       }, 100 * Math.pow(1.5, retryCount));
       fxRetryTimeoutsRef.current.add(timeout);
     }
     return false;
   }, []);
 
-  // Cleanup all FX retry timeouts, sync engine, and recording timers on unmount
+  // Cleanup all FX retry timeouts, sync engine, gate effects, and recording timers on unmount
   useEffect(() => {
     return () => {
       // Clear FX retry timeouts
@@ -364,6 +377,14 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       // Clear rehearsal monitoring
       if (rehearsalIntervalRef.current) {
         clearInterval(rehearsalIntervalRef.current);
+      }
+
+      // Cleanup gate effects
+      if (deckAGateRef.current) {
+        deckAGateRef.current.dispose();
+      }
+      if (deckBGateRef.current) {
+        deckBGateRef.current.dispose();
       }
 
       // Reset sync engine state
@@ -449,6 +470,20 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       if (audioResult) {
         const { audioState, audioControls, trackBPM } = audioResult;
 
+        // Create gate effect (will be inserted by connectDeckFX)
+        const audioContext = getAudioContext();
+        if (audioContext) {
+          // Cleanup old gate if exists
+          if (deckAGateRef.current) {
+            deckAGateRef.current.dispose();
+          }
+
+          // Create new gate effect
+          const gateEffect = new GateEffect(audioContext);
+          deckAGateRef.current = gateEffect;
+          console.log('🎚️ Deck A gate effect created');
+        }
+
         // Apply current loop settings to the new track
         if (audioControls) {
           audioControls.setLoopEnabled(mixerState.deckA.loopEnabled);
@@ -470,8 +505,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           }
         }));
 
-        // Connect FX using shared helper function
-        connectDeckFX('A', deckAFXRef, audioState);
+        // Connect FX using shared helper function (includes gate in chain)
+        connectDeckFX('A', deckAFXRef, audioState, deckAGateRef.current);
       } else {
         console.error('No audio result returned');
       }
@@ -561,6 +596,20 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       if (audioResult) {
         const { audioState, audioControls } = audioResult;
 
+        // Create gate effect (will be inserted by connectDeckFX)
+        const audioContext = getAudioContext();
+        if (audioContext) {
+          // Cleanup old gate if exists
+          if (deckBGateRef.current) {
+            deckBGateRef.current.dispose();
+          }
+
+          // Create new gate effect
+          const gateEffect = new GateEffect(audioContext);
+          deckBGateRef.current = gateEffect;
+          console.log('🎚️ Deck B gate effect created');
+        }
+
         // Apply current loop settings to the new track
         if (audioControls) {
           audioControls.setLoopEnabled(mixerState.deckB.loopEnabled);
@@ -581,8 +630,8 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           }
         }));
 
-        // Connect FX using shared helper function
-        connectDeckFX('B', deckBFXRef, audioState);
+        // Connect FX using shared helper function (includes gate in chain)
+        connectDeckFX('B', deckBFXRef, audioState, deckBGateRef.current);
       } else {
         console.error('No audio result returned');
       }
@@ -784,6 +833,14 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       syncEngineRef.current.updateMasterBPM(newBPM);
     }
 
+    // Update gate effects BPM
+    if (deckAGateRef.current) {
+      deckAGateRef.current.updateBPM(newBPM);
+    }
+    if (deckBGateRef.current) {
+      deckBGateRef.current.updateBPM(newBPM);
+    }
+
     // Apply to playing deck
     if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
       const originalBPM = mixerState.deckA.track?.bpm || 120;
@@ -888,26 +945,35 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }
   };
 
-  // Boost toggle handlers - Progressive: 0 (off) → 1 (gentle/cyan) → 2 (aggressive/orange) → 0
-  const handleBoostToggle = (deck: 'A' | 'B') => {
+  // Gate effect handlers
+  const handleGateChange = useCallback((deck: 'A' | 'B', gateIndex: number | null) => {
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
-    const currentLevel = mixerState[deckKey].boostLevel;
-    const newLevel = (currentLevel + 1) % 3; // Cycle through 0, 1, 2
+    const gateRef = deck === 'A' ? deckAGateRef : deckBGateRef;
 
+    console.log(`🎛️ Gate change for Deck ${deck}:`, { gateIndex, masterBPM: mixerState.masterBPM, hasGateRef: !!gateRef.current });
+
+    // Update state
     setMixerState(prev => ({
       ...prev,
       [deckKey]: {
         ...prev[deckKey],
-        boostLevel: newLevel
+        activeGate: gateIndex
       }
     }));
 
-    // Update audio controls
-    const audioControls = mixerState[deckKey].audioControls;
-    if (audioControls && audioControls.setBoost) {
-      audioControls.setBoost(newLevel);
+    // Apply gate effect
+    if (gateRef.current) {
+      if (gateIndex === null) {
+        console.log(`🎛️ Stopping gate on Deck ${deck}`);
+        gateRef.current.stop();
+      } else {
+        console.log(`🎛️ Starting gate ${gateIndex} on Deck ${deck} at ${mixerState.masterBPM} BPM`);
+        gateRef.current.start(gateIndex, mixerState.masterBPM);
+      }
+    } else {
+      console.warn(`⚠️ No gate effect ref found for Deck ${deck}`);
     }
-  };
+  }, [mixerState.masterBPM]);
 
   // Recording handlers
   const setupMixerRecording = useCallback(() => {
@@ -1705,9 +1771,23 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               )}
             </button>
 
+            {/* Deck A Gate Controls */}
+            <GateControls
+              activeGate={mixerState.deckA.activeGate}
+              onGateChange={(gateIndex) => handleGateChange('A', gateIndex)}
+              disabled={!mixerState.deckA.track}
+            />
+
             <CrossfaderControl
               position={mixerState.crossfaderPosition}
               onPositionChange={handleCrossfaderChange}
+            />
+
+            {/* Deck B Gate Controls */}
+            <GateControls
+              activeGate={mixerState.deckB.activeGate}
+              onGateChange={(gateIndex) => handleGateChange('B', gateIndex)}
+              disabled={!mixerState.deckB.track}
             />
 
             {/* Deck B Play/Pause */}
