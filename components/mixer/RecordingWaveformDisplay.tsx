@@ -92,16 +92,16 @@ export default function RecordingWaveformDisplay({
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<'start' | 'end' | 'move' | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = normal, up to 8x zoom
-  const [selectedLength, setSelectedLength] = useState(8); // Default 8 bars
+  const [snapValue, setSnapValue] = useState<number>(0.25); // Default to 1/4 bar (beat)
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Adaptive quantization based on zoom level
-  const getQuantizeAmount = (zoom: number): number => {
-    if (zoom <= 2) return 0.25; // Beat-level (1/4 bar)
-    if (zoom <= 4) return 0.125; // Eighth-note (1/8 bar)
-    if (zoom <= 6) return 0.0625; // Sixteenth-note (1/16 bar)
-    return 0.03125; // Thirty-second note (1/32 bar) - maximum precision
-  };
+  // Snap options
+  const snapOptions = [
+    { value: 0.25, label: '1/4 bar (beat)' },
+    { value: 0.125, label: '1/8 bar' },
+    { value: 0.0625, label: '1/16 bar' },
+    { value: 0.03125, label: '1/32 bar' }
+  ];
 
   // Calculate timing
   const beatsPerBar = 4;
@@ -231,16 +231,7 @@ export default function RecordingWaveformDisplay({
     const labelX = selectionStartX + (selectionEndX - selectionStartX) / 2 - ctx.measureText(labelText).width / 2;
     ctx.fillText(labelText, labelX, 25);
 
-    // Selection handles
-    const handleWidth = 12;
-    const handleHeight = 30;
-
-    // Start handle
-    ctx.fillStyle = '#81E4F2';
-    ctx.fillRect(selectionStartX - handleWidth / 2, centerY - handleHeight / 2, handleWidth, handleHeight);
-
-    // End handle
-    ctx.fillRect(selectionEndX - handleWidth / 2, centerY - handleHeight / 2, handleWidth, handleHeight);
+    // Removed drag handles - selection controlled via length selector and nudge buttons
 
     // Current playback position
     if (isPlaying && currentTime > 0) {
@@ -255,66 +246,44 @@ export default function RecordingWaveformDisplay({
 
   }, [audioBuffer, selectionStart, selectionEnd, totalBars, isPlaying, currentTime, totalDuration, bpm, zoomLevel]);
 
-  // Handle mouse events for selection
+  // Handle mouse events for selection - only bracket move enabled (no handle dragging)
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const bar = Math.floor((x / rect.width) * totalBars);
 
-    // Check if clicking on handles
+    // Check if clicking inside selection bracket to move it
     const selectionStartX = (selectionStart / totalBars) * rect.width;
     const selectionEndX = (selectionEnd / totalBars) * rect.width;
 
-    const handleTolerance = 15;
-
-    if (Math.abs(x - selectionStartX) < handleTolerance) {
-      setIsDragging(true);
-      setDragType('start');
-    } else if (Math.abs(x - selectionEndX) < handleTolerance) {
-      setIsDragging(true);
-      setDragType('end');
-    } else if (x > selectionStartX && x < selectionEndX) {
+    if (x > selectionStartX && x < selectionEndX) {
       setIsDragging(true);
       setDragType('move');
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDragging || !canvasRef.current || !dragType) return;
+    if (!isDragging || !canvasRef.current || dragType !== 'move') return;
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
 
-    // Adaptive quantization based on zoom level
-    const quantize = getQuantizeAmount(zoomLevel);
+    // Use selected snap value
     const rawBar = (x / rect.width) * totalBars;
-    const bar = Math.round(rawBar / quantize) * quantize; // Snap to quantize grid
+    const bar = Math.round(rawBar / snapValue) * snapValue; // Snap to grid
 
-    if (dragType === 'start') {
-      // Allow dragging start handle, minimum 4 bars selection
-      const newStart = Math.min(bar, selectionEnd - 4);
-      setSelectionStart(Math.max(0, newStart));
-    } else if (dragType === 'end') {
-      // Allow dragging end handle, minimum 4 bars selection
-      const newEnd = Math.max(bar, selectionStart + 4);
-      setSelectionEnd(Math.min(totalBars, newEnd));
-    } else if (dragType === 'move') {
-      // Move entire selection
-      const selectionLength = selectionEnd - selectionStart;
-      const newStart = Math.max(0, Math.min(totalBars - selectionLength, bar - selectionLength / 2));
-      setSelectionStart(newStart);
-      setSelectionEnd(newStart + selectionLength);
-    }
+    // Move entire selection bracket
+    const selectionLength = selectionEnd - selectionStart;
+    const newStart = Math.max(0, Math.min(totalBars - selectionLength, bar - selectionLength / 2));
+    setSelectionStart(newStart);
+    setSelectionEnd(newStart + selectionLength);
   };
 
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
       setDragType(null);
-      // Update selected length to match actual selection
-      setSelectedLength(selectionEnd - selectionStart);
       onSelectSegment(selectionStart, selectionEnd);
     }
   };
@@ -338,164 +307,79 @@ export default function RecordingWaveformDisplay({
     container.scrollLeft = scrollPos;
   }, [selectionStart, selectionEnd, isDragging, zoomLevel, totalBars, dragType]);
 
-  // Jump to selection start/end helpers
-  const jumpToSelectionStart = () => {
-    if (!containerRef.current || !canvasRef.current) return;
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-    const startX = (selectionStart / totalBars) * canvas.width;
-    container.scrollLeft = Math.max(0, startX - 100); // Offset 100px for visibility
-  };
-
-  const jumpToSelectionEnd = () => {
-    if (!containerRef.current || !canvasRef.current) return;
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-    const endX = (selectionEnd / totalBars) * canvas.width;
-    container.scrollLeft = Math.max(0, endX - container.clientWidth + 100);
-  };
-
-  // Update selection length and adjust end point accordingly
-  const updateSelectionLength = (length: number) => {
-    setSelectedLength(length);
-    const newEnd = Math.min(totalBars, selectionStart + length);
-    setSelectionEnd(newEnd);
-    onSelectSegment(selectionStart, newEnd);
-  };
-
-  // Nudge selection start and maintain the selected length
+  // Nudge selection start and maintain the current selection length
   const nudgeStart = (direction: -1 | 1) => {
-    const quantize = getQuantizeAmount(zoomLevel);
-    const newStart = Math.max(0, Math.min(totalBars - selectedLength, selectionStart + (direction * quantize)));
-    const newEnd = Math.min(totalBars, newStart + selectedLength);
+    const selectionLength = selectionEnd - selectionStart;
+    const newStart = Math.max(0, Math.min(totalBars - selectionLength, selectionStart + (direction * snapValue)));
+    const newEnd = Math.min(totalBars, newStart + selectionLength);
     setSelectionStart(newStart);
     setSelectionEnd(newEnd);
     onSelectSegment(newStart, newEnd);
   };
 
-  const nudgeEnd = (direction: -1 | 1) => {
-    const quantize = getQuantizeAmount(zoomLevel);
-    const newEnd = Math.max(selectionStart + 4, Math.min(totalBars, selectionEnd + (direction * quantize)));
-    setSelectionEnd(newEnd);
-    setSelectedLength(newEnd - selectionStart);
-    onSelectSegment(selectionStart, newEnd);
-  };
-
   return (
     <div className="space-y-4">
-      {/* Zoom controls */}
+      {/* Zoom and Fine-tune controls - single row */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setZoomLevel(Math.max(1, zoomLevel - 0.5))}
-            disabled={zoomLevel <= 1}
-            className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 disabled:bg-slate-800/30 disabled:text-slate-600 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
-          >
-            Zoom Out
-          </button>
-          <span className="text-sm text-cyan-400 font-mono min-w-[60px] text-center font-semibold">
-            {zoomLevel}x
-          </span>
-          <button
-            onClick={() => setZoomLevel(Math.min(8, zoomLevel + 0.5))}
-            disabled={zoomLevel >= 8}
-            className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 disabled:bg-slate-800/30 disabled:text-slate-600 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
-          >
-            Zoom In
-          </button>
+        <div className="flex items-center gap-4">
+          {/* Zoom controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setZoomLevel(Math.max(1, zoomLevel - 0.5))}
+              disabled={zoomLevel <= 1}
+              className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 disabled:bg-slate-800/30 disabled:text-slate-600 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
+            >
+              Zoom Out
+            </button>
+            <span className="text-sm text-cyan-400 font-mono min-w-[60px] text-center font-semibold">
+              {zoomLevel}x
+            </span>
+            <button
+              onClick={() => setZoomLevel(Math.min(8, zoomLevel + 0.5))}
+              disabled={zoomLevel >= 8}
+              className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 disabled:bg-slate-800/30 disabled:text-slate-600 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
+            >
+              Zoom In
+            </button>
+          </div>
 
-          {/* Jump to selection buttons (only show when zoomed) */}
-          {zoomLevel > 1 && (
-            <>
-              <span className="text-slate-700 mx-1">|</span>
-              <button
-                onClick={jumpToSelectionStart}
-                className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
-                title="Jump to selection start"
-              >
-                ← Start
-              </button>
-              <button
-                onClick={jumpToSelectionEnd}
-                className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
-                title="Jump to selection end"
-              >
-                End →
-              </button>
-            </>
-          )}
+          {/* Fine-tune controls */}
+          <span className="text-slate-700 mx-1">|</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400 font-medium">Fine Tune Start:</span>
+            <button
+              onClick={() => nudgeStart(-1)}
+              className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
+              title="Nudge start earlier"
+            >
+              ← Left
+            </button>
+            <button
+              onClick={() => nudgeStart(1)}
+              className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
+              title="Nudge start later"
+            >
+              Right →
+            </button>
+          </div>
         </div>
-        <div className="text-xs text-gray-500">
-          Drag handles to adjust • Drag bracket to move • Min 4 bars
+
+        {/* Snap selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 font-medium">Snap:</span>
+          <select
+            value={snapValue}
+            onChange={(e) => setSnapValue(Number(e.target.value))}
+            className="text-xs text-cyan-400 font-mono bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 px-3 py-2 rounded-lg transition-all cursor-pointer focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50"
+          >
+            {snapOptions.map(option => (
+              <option key={option.value} value={option.value} className="bg-slate-800 text-white">
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
-
-      {/* Precision controls (only show when zoomed) */}
-      {zoomLevel > 1 && (
-        <div className="space-y-3">
-          {/* Length selector */}
-          <div className="flex items-center justify-between bg-slate-800/40 backdrop-blur-sm rounded-xl px-5 py-3 border border-slate-700/50">
-            <span className="text-sm text-gray-400 font-medium">Select Length:</span>
-            <div className="flex items-center gap-2">
-              {[4, 8, 16, 32, 64].filter(len => len <= totalBars).map(length => (
-                <button
-                  key={length}
-                  onClick={() => updateSelectionLength(length)}
-                  className={`px-4 py-2 rounded-lg text-sm transition-all font-medium ${
-                    selectedLength === length
-                      ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/25'
-                      : 'bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white'
-                  }`}
-                >
-                  {length}
-                </button>
-              ))}
-              {totalBars > 64 && (
-                <button
-                  onClick={() => updateSelectionLength(totalBars)}
-                  className={`px-4 py-2 rounded-lg text-sm transition-all font-medium ${
-                    selectedLength === totalBars
-                      ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/25'
-                      : 'bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white'
-                  }`}
-                >
-                  Max
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Nudge controls */}
-          <div className="flex items-center justify-between bg-slate-800/40 backdrop-blur-sm rounded-xl px-5 py-3 border border-slate-700/50">
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-400 font-medium">Fine Tune Start:</span>
-              <button
-                onClick={() => nudgeStart(-1)}
-                className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
-                title="Nudge start earlier"
-              >
-                ← Left
-              </button>
-              <button
-                onClick={() => nudgeStart(1)}
-                className="px-4 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 text-white rounded-lg text-sm transition-all font-medium"
-                title="Nudge start later"
-              >
-                Right →
-              </button>
-            </div>
-
-            <div className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-3 py-1.5 rounded-lg border border-cyan-500/30">
-              Snap: {
-                getQuantizeAmount(zoomLevel) === 0.25 ? '1/4 bar (beat)' :
-                getQuantizeAmount(zoomLevel) === 0.125 ? '1/8 bar' :
-                getQuantizeAmount(zoomLevel) === 0.0625 ? '1/16 bar' :
-                '1/32 bar'
-              }
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Scrollable canvas container */}
       <div
@@ -510,9 +394,7 @@ export default function RecordingWaveformDisplay({
           className="h-32"
           style={{
             minWidth: '100%',
-            cursor: isDragging && dragType === 'move' ? 'grabbing' :
-                    isDragging ? 'ew-resize' :
-                    'pointer'
+            cursor: isDragging ? 'grabbing' : 'grab'
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}

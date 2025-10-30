@@ -11,7 +11,8 @@ interface MasterTransportControlsProps {
   deckABPM: number;
   syncActive: boolean;
   recordingRemix: boolean;
-  
+  recordingRehearsal?: boolean; // NEW: Rehearsal state (waiting for second cycle)
+
   // Control handlers
   onMasterPlay: () => void;
   onMasterPlayAfterCountIn: () => void;
@@ -20,11 +21,11 @@ interface MasterTransportControlsProps {
   onRecordToggle: () => void;
   onSyncToggle: () => void;
   onMasterSyncReset: () => void;
-  
+
   // Optional variant and BPM display
   variant?: 'full' | 'simplified';
   masterBPM?: number;
-  
+
   className?: string;
 }
 
@@ -36,6 +37,7 @@ const MasterTransportControls = memo(function MasterTransportControls({
   deckABPM,
   syncActive,
   recordingRemix,
+  recordingRehearsal = false,
   onMasterPlay,
   onMasterPlayAfterCountIn,
   onMasterStop,
@@ -195,16 +197,31 @@ const MasterTransportControls = memo(function MasterTransportControls({
       {/* Record Button */}
       <button
         onClick={onRecordToggle}
-        className={`record-btn w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm transition-all ${
+        className={`record-btn w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm transition-all relative ${
           recordingRemix
             ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
+            : recordingRehearsal
+            ? 'bg-[#81E4F2] border-[#81E4F2] text-white animate-pulse shadow-lg shadow-[#81E4F2]/50'
             : 'border-slate-600 text-slate-400 hover:border-red-500 hover:text-red-500'
         }`}
-        title={recordingRemix ? 'Stop Recording' : 'Start Recording'}
+        title={
+          recordingRemix
+            ? 'Stop Recording'
+            : recordingRehearsal
+            ? 'Cancel Recording (no save)'
+            : 'Start Recording (with rehearsal cycle)'
+        }
       >
         <div className={`w-3 h-3 rounded-full ${
-          recordingRemix ? 'bg-white' : 'bg-current'
+          recordingRemix || recordingRehearsal ? 'bg-white' : 'bg-current'
         }`} />
+
+        {/* Cancel text overlay for rehearsal state */}
+        {recordingRehearsal && (
+          <span className="absolute text-[9px] font-medium text-slate-800 uppercase tracking-tight">
+            cancel
+          </span>
+        )}
       </button>
 
       {/* SYNC Button - moved into transport controls */}
@@ -229,23 +246,14 @@ const MasterTransportControls = memo(function MasterTransportControls({
           border-radius: 12px;
           backdrop-filter: blur(8px);
         }
-        
-        .count-in-display {
-          z-index: 10;
-          background: rgba(6, 182, 212, 0.1);
-          border: 1px solid rgba(6, 182, 212, 0.3);
-          border-radius: 8px;
-          padding: 6px 10px;
-          backdrop-filter: blur(4px);
-        }
-        
+
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
-        
+
         .animate-pulse {
-          animation: pulse 0.5s ease-in-out infinite;
+          animation: pulse 1s ease-in-out infinite;
         }
       `}</style>
     </div>

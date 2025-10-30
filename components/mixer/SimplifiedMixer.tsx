@@ -69,7 +69,7 @@ interface SimplifiedMixerState {
 
 // Recording state
 interface RecordingState {
-  isRecording: boolean;
+  recordState: 'idle' | 'rehearsal' | 'recording'; // Three-state: idle → rehearsal (first cycle) → recording (second cycle+)
   recordingStartTime: number | null; // AudioContext.currentTime when recording starts
   barsRecorded: number;
   targetBars: number; // Safety limit (120 bars = ~15 min at 120 BPM)
@@ -104,7 +104,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Recording state and refs
   const [recordingState, setRecordingState] = useState<RecordingState>({
-    isRecording: false,
+    recordState: 'idle',
     recordingStartTime: null,
     barsRecorded: 0,
     targetBars: 120, // Safety limit: auto-stop at 120 bars (~15 min at 120 BPM)
@@ -115,6 +115,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const recordedChunksRef = React.useRef<Blob[]>([]);
   const mixerDestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
+
+  // Rehearsal cycle monitoring
+  const rehearsalIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Responsive waveform width based on breakpoints
   const [waveformWidth, setWaveformWidth] = useState(700);
@@ -347,12 +350,17 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     return false;
   }, []);
 
-  // Cleanup all FX retry timeouts and sync engine on unmount
+  // Cleanup all FX retry timeouts, sync engine, and recording timers on unmount
   useEffect(() => {
     return () => {
       // Clear FX retry timeouts
       fxRetryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
       fxRetryTimeoutsRef.current.clear();
+
+      // Clear rehearsal monitoring
+      if (rehearsalIntervalRef.current) {
+        clearInterval(rehearsalIntervalRef.current);
+      }
 
       // Reset sync engine state
       resetSyncState();
@@ -374,25 +382,35 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       return;
     }
 
-    // Fetch full track data including attribution splits
-    // We'll replace the existing Deck A track in loadedTracks
+    // Fetch full track data including attribution splits and download permissions
+    let fullTrackData = track; // Default to original track if fetch fails
     try {
+      // Strip -loc-X suffix from ID if present (used for crate display but not in database)
+      const dbId = track.id.replace(/-loc-\d+$/, '');
+      console.log(`🔍 Querying Supabase for track: ${track.id} → ${dbId}`);
+
       const { data, error } = await supabase
         .from('ip_tracks')
         .select('*')
-        .eq('id', track.id)
+        .eq('id', dbId)
         .single();
 
       if (!error && data) {
         // Add full IPTrack data to loadedTracks for remix split calculations
         // Note: addLoadedTrack already checks for duplicates by ID
         addLoadedTrack(data as IPTrack);
+
+        // CRITICAL: Store full data including allow_downloads for mixer state
+        fullTrackData = { ...track, ...data }; // Merge with original track (preserves audioUrl if not in DB)
+
         console.log(`📊 Deck A track loaded with full data:`, {
           id: data.id,
           title: data.title,
           remix_depth: data.remix_depth || 0,
           hasCompositionSplits: !!(data.composition_split_1_wallet),
-          hasProductionSplits: !!(data.production_split_1_wallet)
+          hasProductionSplits: !!(data.production_split_1_wallet),
+          license: data.license,
+          download_price_stx: data.download_price_stx
         });
       }
     } catch (error) {
@@ -450,7 +468,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           masterBPM: trackBPM,
           deckA: {
             ...prev.deckA,
-            track,
+            track: fullTrackData, // Use full track data with all properties including allow_downloads
             playing: false,
             audioState,
             audioControls,
@@ -488,23 +506,34 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       return;
     }
 
-    // Fetch full track data including attribution splits
+    // Fetch full track data including attribution splits and download permissions
+    let fullTrackData = track; // Default to original track if fetch fails
     try {
+      // Strip -loc-X suffix from ID if present (used for crate display but not in database)
+      const dbId = track.id.replace(/-loc-\d+$/, '');
+      console.log(`🔍 Querying Supabase for track: ${track.id} → ${dbId}`);
+
       const { data, error } = await supabase
         .from('ip_tracks')
         .select('*')
-        .eq('id', track.id)
+        .eq('id', dbId)
         .single();
 
       if (!error && data) {
         // Add full IPTrack data to loadedTracks for remix split calculations
         addLoadedTrack(data as IPTrack);
-        console.log(`📊 Track loaded with full data:`, {
+
+        // CRITICAL: Store full data including allow_downloads for mixer state
+        fullTrackData = { ...track, ...data }; // Merge with original track (preserves audioUrl if not in DB)
+
+        console.log(`📊 Deck B track loaded with full data:`, {
           id: data.id,
           title: data.title,
           remix_depth: data.remix_depth || 0,
           hasCompositionSplits: !!(data.composition_split_1_wallet),
-          hasProductionSplits: !!(data.production_split_1_wallet)
+          hasProductionSplits: !!(data.production_split_1_wallet),
+          license: data.license,
+          download_price_stx: data.download_price_stx
         });
       }
     } catch (error) {
@@ -561,7 +590,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           ...prev,
           deckB: {
             ...prev.deckB,
-            track,
+            track: fullTrackData, // Use full track data with all properties including allow_downloads
             playing: false,
             audioState,
             audioControls,
@@ -943,77 +972,26 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     return mixerDestinationRef.current.stream;
   }, []);
 
-  const startRecording = useCallback(() => {
-    console.log('🎙️ Starting mixer recording...');
-
-    const stream = setupMixerRecording();
-    if (!stream) {
-      console.error('❌ Failed to setup mixer recording');
-      return;
-    }
-
-    const audioContext = getAudioContext();
-    if (!audioContext) {
-      console.error('❌ No audio context available for recording');
-      return;
-    }
-
-    // Clear previous recording
-    recordedChunksRef.current = [];
-
-    // Create MediaRecorder
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus'
-    });
-
-    // Capture the start time from AudioContext for sample-accurate timing
-    const recordingStartTime = audioContext.currentTime;
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        recordedChunksRef.current.push(event.data);
-      }
-    };
-
-    mediaRecorder.onstop = () => {
-      console.log('🎙️ Recording stopped, processing audio...');
-      const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
-      const url = URL.createObjectURL(blob);
-
-      // Calculate actual duration using AudioContext time
-      const recordingEndTime = audioContext.currentTime;
-      const actualDuration = recordingEndTime - recordingStartTime;
-
-      setRecordingState(prev => ({
-        ...prev,
-        isRecording: false,
-        recordedUrl: url,
-        recordedDuration: actualDuration,
-        showPreview: true
-      }));
-
-      console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${AudioTiming.timeToBar(actualDuration, mixerState.masterBPM).toFixed(1)} bars)`);
-    };
-
-    mediaRecorder.start(100); // Collect data every 100ms
-    mediaRecorderRef.current = mediaRecorder;
-
-    setRecordingState(prev => ({
-      ...prev,
-      isRecording: true,
-      recordingStartTime: recordingStartTime,
-      barsRecorded: 0
-    }));
-
-    console.log(`✅ Recording started at AudioContext time: ${recordingStartTime.toFixed(3)}s`);
-  }, [setupMixerRecording, mixerState.masterBPM]);
-
   const stopRecording = useCallback(() => {
     console.log('🎙️ Stopping recording...');
+
+    // Clear any rehearsal monitoring
+    if (rehearsalIntervalRef.current) {
+      clearInterval(rehearsalIntervalRef.current);
+      rehearsalIntervalRef.current = null;
+      console.log('🔄 Rehearsal monitoring cleared');
+    }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+
+    // Reset recording state to idle (handles both rehearsal and recording states)
+    setRecordingState(prev => ({
+      ...prev,
+      recordState: 'idle',
+      recordingStartTime: null
+    }));
 
     // Stop mixer playback when recording stops
     if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
@@ -1029,31 +1007,148 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       deckB: { ...prev.deckB, playing: false }
     }));
 
-    console.log('⏸️ Mixer playback stopped');
+    console.log('⏸️ Recording stopped, state reset to idle');
   }, [mixerState]);
 
   const handleRecordToggle = useCallback(() => {
-    if (recordingState.isRecording) {
+    if (recordingState.recordState !== 'idle') {
+      // Stop recording (works for both rehearsal and recording states)
       stopRecording();
-    } else {
-      // Ensure both decks are loaded
-      if (!mixerState.deckA.track || !mixerState.deckB.track) {
-        console.warn('⚠️ Both decks must have tracks loaded to record');
-        return;
-      }
-
-      // Start playback if not already playing
-      if (!mixerState.deckA.playing) {
-        handleDeckAPlayPause();
-      }
-      if (!mixerState.deckB.playing) {
-        handleDeckBPlayPause();
-      }
-
-      // Start recording
-      setTimeout(() => startRecording(), 100); // Small delay to ensure playback starts
+      return;
     }
-  }, [recordingState.isRecording, mixerState, stopRecording, startRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
+
+    // Start recording with rehearsal cycle approach
+    // Ensure both decks are loaded
+    if (!mixerState.deckA.track || !mixerState.deckB.track) {
+      console.warn('⚠️ Both decks must have tracks loaded to record');
+      return;
+    }
+
+    console.log('🎙️ Starting recording with rehearsal cycle...');
+
+    // Calculate 8-bar loop duration
+    const barsPerLoop = 8;
+    const beatsPerBar = 4;
+    const secondsPerBeat = 60 / mixerState.masterBPM;
+    const loopDuration = barsPerLoop * beatsPerBar * secondsPerBeat;
+
+    console.log(`⏱️ Loop duration: ${loopDuration.toFixed(2)}s (${barsPerLoop} bars at ${mixerState.masterBPM} BPM)`);
+    console.log(`🎵 Strategy: Rehearsal cycle → Record at bar 1 of second cycle`);
+
+    // STEP 1: Start playback if not already playing
+    if (!mixerState.deckA.playing) {
+      handleDeckAPlayPause();
+    }
+    if (!mixerState.deckB.playing) {
+      handleDeckBPlayPause();
+    }
+
+    // STEP 2: Enter rehearsal state
+    setRecordingState(prev => ({
+      ...prev,
+      recordState: 'rehearsal'
+    }));
+
+    const audioContext = getAudioContext();
+    if (!audioContext) {
+      console.error('❌ No audio context available');
+      return;
+    }
+
+    // STEP 3: Monitor for bar 1 crossing
+    let lastPosition = mixerState.deckA.audioState?.audio?.currentTime || 0;
+    const checkInterval = 50; // Check every 50ms
+
+    console.log('🔄 Rehearsal cycle started - waiting for bar 1 crossing...');
+
+    rehearsalIntervalRef.current = setInterval(() => {
+      const currentPosition = mixerState.deckA.audioState?.audio?.currentTime || 0;
+
+      // Detect loop boundary crossing (position wrapped back to near 0)
+      const THRESHOLD = 0.5; // Within 0.5 seconds of bar 1
+      if (lastPosition > loopDuration - THRESHOLD && currentPosition < THRESHOLD) {
+        // First crossing - end of rehearsal, start recording!
+        console.log(`🔄 Bar 1 crossing detected! Rehearsal complete, starting recording...`);
+
+        // Clear monitoring interval
+        if (rehearsalIntervalRef.current) {
+          clearInterval(rehearsalIntervalRef.current);
+          rehearsalIntervalRef.current = null;
+        }
+
+        // Setup MediaRecorder
+        const stream = setupMixerRecording();
+        if (!stream) {
+          console.error('❌ Failed to setup recording stream');
+          setRecordingState(prev => ({ ...prev, recordState: 'idle' }));
+          stopRecording();
+          return;
+        }
+
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus'
+        });
+
+        recordedChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            recordedChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          console.log('🎙️ Recording stopped, processing audio...');
+          const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
+
+          const recordingEndTime = audioContext.currentTime;
+          const actualDuration = recordingEndTime - recordingState.recordingStartTime!;
+          const barsRecorded = AudioTiming.timeToBar(actualDuration, mixerState.masterBPM);
+
+          const metadata = {
+            recordedAt: new Date(),
+            startedOnDownbeat: true,
+            masterBPM: mixerState.masterBPM,
+            barsRecorded: Math.floor(barsRecorded),
+            duration: actualDuration
+          };
+
+          console.log('📊 Recording metadata:', metadata);
+
+          setRecordingState(prev => ({
+            ...prev,
+            recordState: 'idle',
+            recordedUrl: url,
+            recordedDuration: actualDuration,
+            showPreview: true
+          }));
+
+          console.log(`✅ Recording complete: ${actualDuration.toFixed(2)}s (${barsRecorded.toFixed(1)} bars)`);
+          console.log(`🎵 Perfect bar 1 alignment!`);
+        };
+
+        // Start recording at bar 1!
+        mediaRecorder.start(100);
+        mediaRecorderRef.current = mediaRecorder;
+
+        setRecordingState(prev => ({
+          ...prev,
+          recordState: 'recording',
+          recordingStartTime: audioContext.currentTime
+        }));
+
+        console.log('✅ Recording started at bar 1!');
+      }
+
+      // Update position for next check
+      lastPosition = currentPosition;
+    }, checkInterval);
+
+    console.log(`✅ Rehearsal cycle monitoring started`);
+    console.log(`🔊 Audio playing - listen to your mix!`);
+    console.log(`📹 Recording will start automatically at next bar 1`);
+  }, [recordingState.recordState, recordingState.recordingStartTime, mixerState, stopRecording, setupMixerRecording, handleDeckAPlayPause, handleDeckBPlayPause]);
 
   // Keyboard shortcuts for mixer control
   useEffect(() => {
@@ -1150,7 +1245,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
   // Monitor playback to count bars and auto-stop recording at target (sample-accurate with AudioContext)
   useEffect(() => {
-    if (!recordingState.isRecording || recordingState.recordingStartTime === null) return;
+    if (recordingState.recordState !== 'recording' || recordingState.recordingStartTime === null) return;
 
     const audioContext = getAudioContext();
     if (!audioContext) {
@@ -1177,7 +1272,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
     }, 100); // Check every 100ms
 
     return () => clearInterval(checkBars);
-  }, [recordingState.isRecording, recordingState.recordingStartTime, recordingState.targetBars, recordingState.barsRecorded, mixerState.masterBPM, stopRecording]);
+  }, [recordingState.recordState, recordingState.recordingStartTime, recordingState.targetBars, recordingState.barsRecorded, mixerState.masterBPM, stopRecording]);
 
   return (
     <div className={`simplified-mixer bg-slate-900 rounded-lg p-4 mt-4 mx-auto ${className}`} style={{ maxWidth: '1168px' }}>
@@ -1416,7 +1511,9 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
               deckBPlaying={mixerState.deckB.playing}
               deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
               syncActive={mixerState.syncActive}
-              recordingRemix={recordingState.isRecording}
+              recordingRemix={recordingState.recordState === 'recording'}
+              recordingRehearsal={recordingState.recordState === 'rehearsal'}
+              masterBPM={mixerState.masterBPM}
               onMasterPlay={handleMasterPlay}
               onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
               onMasterStop={handleMasterStop}
@@ -1559,8 +1656,17 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
 
         {/* Waveforms - Center Column */}
         <div className="flex flex-col">
-          {/* Spacer to push waveforms down */}
-          <div className="h-6"></div>
+          {/* Spacer - increased to create room for rehearsal indicator */}
+          <div className="h-10 relative">
+            {/* Rehearsal Indicator - Positioned in spacer area */}
+            {recordingState.recordState === 'rehearsal' && (
+              <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
+                <span className="text-xs font-mono font-medium tracking-wide text-[#81E4F2] animate-pulse uppercase">
+                  Rehearsal • Recording starts next cycle
+                </span>
+              </div>
+            )}
+          </div>
 
           <div className="space-y-2">
             {/* Deck A Waveform */}
