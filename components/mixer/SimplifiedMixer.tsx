@@ -382,25 +382,35 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       return;
     }
 
-    // Fetch full track data including attribution splits
-    // We'll replace the existing Deck A track in loadedTracks
+    // Fetch full track data including attribution splits and download permissions
+    let fullTrackData = track; // Default to original track if fetch fails
     try {
+      // Strip -loc-X suffix from ID if present (used for crate display but not in database)
+      const dbId = track.id.replace(/-loc-\d+$/, '');
+      console.log(`🔍 Querying Supabase for track: ${track.id} → ${dbId}`);
+
       const { data, error } = await supabase
         .from('ip_tracks')
         .select('*')
-        .eq('id', track.id)
+        .eq('id', dbId)
         .single();
 
       if (!error && data) {
         // Add full IPTrack data to loadedTracks for remix split calculations
         // Note: addLoadedTrack already checks for duplicates by ID
         addLoadedTrack(data as IPTrack);
+
+        // CRITICAL: Store full data including allow_downloads for mixer state
+        fullTrackData = { ...track, ...data }; // Merge with original track (preserves audioUrl if not in DB)
+
         console.log(`📊 Deck A track loaded with full data:`, {
           id: data.id,
           title: data.title,
           remix_depth: data.remix_depth || 0,
           hasCompositionSplits: !!(data.composition_split_1_wallet),
-          hasProductionSplits: !!(data.production_split_1_wallet)
+          hasProductionSplits: !!(data.production_split_1_wallet),
+          license: data.license,
+          download_price_stx: data.download_price_stx
         });
       }
     } catch (error) {
@@ -458,7 +468,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           masterBPM: trackBPM,
           deckA: {
             ...prev.deckA,
-            track,
+            track: fullTrackData, // Use full track data with all properties including allow_downloads
             playing: false,
             audioState,
             audioControls,
@@ -496,23 +506,34 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
       return;
     }
 
-    // Fetch full track data including attribution splits
+    // Fetch full track data including attribution splits and download permissions
+    let fullTrackData = track; // Default to original track if fetch fails
     try {
+      // Strip -loc-X suffix from ID if present (used for crate display but not in database)
+      const dbId = track.id.replace(/-loc-\d+$/, '');
+      console.log(`🔍 Querying Supabase for track: ${track.id} → ${dbId}`);
+
       const { data, error } = await supabase
         .from('ip_tracks')
         .select('*')
-        .eq('id', track.id)
+        .eq('id', dbId)
         .single();
 
       if (!error && data) {
         // Add full IPTrack data to loadedTracks for remix split calculations
         addLoadedTrack(data as IPTrack);
-        console.log(`📊 Track loaded with full data:`, {
+
+        // CRITICAL: Store full data including allow_downloads for mixer state
+        fullTrackData = { ...track, ...data }; // Merge with original track (preserves audioUrl if not in DB)
+
+        console.log(`📊 Deck B track loaded with full data:`, {
           id: data.id,
           title: data.title,
           remix_depth: data.remix_depth || 0,
           hasCompositionSplits: !!(data.composition_split_1_wallet),
-          hasProductionSplits: !!(data.production_split_1_wallet)
+          hasProductionSplits: !!(data.production_split_1_wallet),
+          license: data.license,
+          download_price_stx: data.download_price_stx
         });
       }
     } catch (error) {
@@ -569,7 +590,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
           ...prev,
           deckB: {
             ...prev.deckB,
-            track,
+            track: fullTrackData, // Use full track data with all properties including allow_downloads
             playing: false,
             audioState,
             audioControls,
