@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, X, Play, Plus, Check, GripVertical } from 'lucide-react';
+import { Search, X, Play, Plus, Check, GripVertical, Radio } from 'lucide-react';
 import { TrackNode } from './types';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDrag } from 'react-dnd';
@@ -418,17 +418,28 @@ export default function GlobeSearch({
                     </button>
                     <button
                       onClick={() => {
-                        // Add to cart via global function
-                        if ((window as any).addToCart) {
-                          (window as any).addToCart(track);
+                        if (track.content_type === 'radio_station') {
+                          // Send radio stations to RadioWidget
+                          if ((window as any).loadRadioTrack) {
+                            (window as any).loadRadioTrack(track);
+                          }
+                        } else {
+                          // Add regular tracks to cart
+                          if ((window as any).addToCart) {
+                            (window as any).addToCart(track);
+                          }
                         }
                       }}
                       className="p-1 opacity-0 group-hover:opacity-100 hover:bg-[#252a3a] rounded transition-all"
-                      title="Add to Cart"
+                      title={track.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to Cart"}
                     >
-                      <svg className="w-3 h-3 text-gray-200" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
+                      {track.content_type === 'radio_station' ? (
+                        <Radio className="w-3 h-3 text-gray-200" />
+                      ) : (
+                        <svg className="w-3 h-3 text-gray-200" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      )}
                     </button>
                     <button
                       onClick={() => handleAddToCollection(track)}
