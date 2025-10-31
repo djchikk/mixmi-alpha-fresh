@@ -12,6 +12,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus } from 'lucide-react';
 import IPTrackModal from '@/components/modals/IPTrackModal';
+import ContentTypeSelector from '@/components/modals/ContentTypeSelector';
+import RadioStationModal from '@/components/modals/RadioStationModal';
 
 interface ContentFilter {
   type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'hidden';
@@ -32,7 +34,9 @@ export default function CreatorStorePage() {
   const [creatorName, setCreatorName] = useState<string>('');
   const [actualWalletAddress, setActualWalletAddress] = useState<string>('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isContentTypeSelectorOpen, setIsContentTypeSelectorOpen] = useState(false);
+  const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
+  const [isRadioModalOpen, setIsRadioModalOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -461,7 +465,7 @@ export default function CreatorStorePage() {
           {isOwnStore && (
             <div className="flex justify-start mb-6">
               <button
-                onClick={() => setIsUploadModalOpen(true)}
+                onClick={() => setIsContentTypeSelectorOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
               >
                 <Plus size={18} />
@@ -849,11 +853,36 @@ export default function CreatorStorePage() {
 
       <Crate />
 
-      {/* Upload Modal */}
+      {/* Content Type Selector */}
+      {isOwnStore && (
+        <ContentTypeSelector
+          isOpen={isContentTypeSelectorOpen}
+          onClose={() => setIsContentTypeSelectorOpen(false)}
+          onSelectMusic={() => {
+            setIsContentTypeSelectorOpen(false);
+            setIsMusicModalOpen(true);
+          }}
+          onSelectRadio={() => {
+            setIsContentTypeSelectorOpen(false);
+            setIsRadioModalOpen(true);
+          }}
+        />
+      )}
+
+      {/* Music Upload Modal */}
       {isOwnStore && (
         <IPTrackModal
-          isOpen={isUploadModalOpen}
-          onClose={() => setIsUploadModalOpen(false)}
+          isOpen={isMusicModalOpen}
+          onClose={() => setIsMusicModalOpen(false)}
+          onUploadComplete={refreshTracks}
+        />
+      )}
+
+      {/* Radio Station Upload Modal */}
+      {isOwnStore && (
+        <RadioStationModal
+          isOpen={isRadioModalOpen}
+          onClose={() => setIsRadioModalOpen(false)}
           onUploadComplete={refreshTracks}
         />
       )}
