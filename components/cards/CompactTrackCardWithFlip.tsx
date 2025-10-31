@@ -16,7 +16,7 @@ import { supabase } from '@/lib/supabase';
 interface CompactTrackCardWithFlipProps {
   track: IPTrack;
   isPlaying: boolean;
-  onPlayPreview: (trackId: string, audioUrl?: string) => void;
+  onPlayPreview: (trackId: string, audioUrl?: string, isRadioStation?: boolean) => void;
   onStopPreview?: () => void;
   showEditControls: boolean;
   onPurchase?: (track: IPTrack) => void;
@@ -117,8 +117,9 @@ export default function CompactTrackCardWithFlip({
         loopAudio.pause();
       }
 
-      // Play new loop
-      const audio = new Audio(loop.audio_url);
+      // Play new loop (support both audio_url and stream_url for radio stations)
+      const audioSource = loop.stream_url || loop.audio_url;
+      const audio = new Audio(audioSource);
       audio.play();
       setLoopAudio(audio);
       setPlayingLoopId(loop.id);
@@ -150,8 +151,8 @@ export default function CompactTrackCardWithFlip({
         ...track,
         imageUrl: getOptimizedTrackImage(track, 64),
         cover_image_url: track.cover_image_url, // CRITICAL: Keep original high-res URL
-        // Ensure we have audioUrl for mixer compatibility
-        audioUrl: track.audio_url
+        // Ensure we have audioUrl for mixer compatibility (use stream_url for radio stations)
+        audioUrl: track.stream_url || track.audio_url
       };
 
       return { track: optimizedTrack };
@@ -205,7 +206,8 @@ export default function CompactTrackCardWithFlip({
     e.stopPropagation();
     // For radio stations, use stream_url; otherwise use audio_url
     const audioSource = track.stream_url || track.audio_url;
-    onPlayPreview(track.id, audioSource);
+    const isRadioStation = track.content_type === 'radio_station';
+    onPlayPreview(track.id, audioSource, isRadioStation);
   };
 
   // Handle purchase click - add to cart

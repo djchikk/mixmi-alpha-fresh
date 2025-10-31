@@ -8,7 +8,7 @@ import { useDrag } from 'react-dnd';
 
 interface GlobeSearchProps {
   nodes: TrackNode[];
-  onPlayPreview: (trackId: string, audioUrl?: string) => void;
+  onPlayPreview: (trackId: string, audioUrl?: string, isRadioStation?: boolean) => void;
   playingTrackId: string | null;
   onAddToCollection?: (track: TrackNode) => void;
 }
@@ -403,7 +403,7 @@ export default function GlobeSearch({
                     </div>
                     
                     <button
-                      onClick={() => onPlayPreview(track.id, track.audioUrl)}
+                      onClick={() => onPlayPreview(track.id, track.audioUrl, track.content_type === 'radio_station')}
                       className="
                         p-1 opacity-0 group-hover:opacity-100
                         hover:bg-[#252a3a] rounded transition-all
