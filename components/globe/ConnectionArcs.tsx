@@ -123,23 +123,32 @@ export function ConnectionArcs({ selectedNode, allNodes }: ConnectionArcsProps) 
     if (!selectedNode) return [];
     
     console.log('🎯 ConnectionArcs - selectedNode:', selectedNode.title, selectedNode.id);
-    
+
+    // Add null safety check for selectedNode.id
+    if (!selectedNode.id) {
+      console.warn('⚠️ ConnectionArcs - selectedNode has no ID');
+      return null;
+    }
+
     // Special logging for test tracks
     if (selectedNode.title === "3 Location Test" || selectedNode.title === "multilocation fun") {
       console.log('🔍 Multi-location track detected!');
     }
-    
+
     // Extract the base track ID from the selected node
-    const baseTrackId = selectedNode.id.includes('-loc-') 
-      ? selectedNode.id.split('-loc-')[0] 
+    const baseTrackId = selectedNode.id.includes('-loc-')
+      ? selectedNode.id.split('-loc-')[0]
       : selectedNode.id;
     
     console.log('📌 Base track ID:', baseTrackId);
     
     // Find all nodes that belong to the same track
     const relatedNodes = allNodes.filter(node => {
-      const nodeBaseId = node.id.includes('-loc-') 
-        ? node.id.split('-loc-')[0] 
+      // Add null safety check
+      if (!node.id) return false;
+
+      const nodeBaseId = node.id.includes('-loc-')
+        ? node.id.split('-loc-')[0]
         : node.id;
       const isRelated = nodeBaseId === baseTrackId && node.id !== selectedNode.id;
       

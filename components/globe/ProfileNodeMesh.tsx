@@ -46,7 +46,8 @@ export function ProfileNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   
   // Assign colors based on node ID (consistent with original)
   const colorIndex = useMemo(() => {
-    const hash = node.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const nodeId = node.id || 'fallback';
+    const hash = nodeId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return hash % SUBTLE_COLORS.length;
   }, [node.id]);
   

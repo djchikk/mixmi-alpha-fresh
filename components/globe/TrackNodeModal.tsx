@@ -38,9 +38,16 @@ export default function TrackNodeModal({
 
       setIsLoading(true);
       try {
+        // Add null safety check
+        if (!node.id) {
+          console.warn('⚠️ TrackNodeModal - node has no ID');
+          setIsLoading(false);
+          return;
+        }
+
         // Extract the original track ID (remove the -loc-N suffix if present)
-        const trackId = node.id.includes('-loc-') 
-          ? node.id.split('-loc-')[0] 
+        const trackId = node.id.includes('-loc-')
+          ? node.id.split('-loc-')[0]
           : node.id;
           
         const { data, error } = await supabase
