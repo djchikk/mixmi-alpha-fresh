@@ -127,7 +127,7 @@ export function ConnectionArcs({ selectedNode, allNodes }: ConnectionArcsProps) 
     // Add null safety check for selectedNode.id
     if (!selectedNode.id) {
       console.warn('⚠️ ConnectionArcs - selectedNode has no ID');
-      return null;
+      return [];
     }
 
     // Special logging for test tracks
