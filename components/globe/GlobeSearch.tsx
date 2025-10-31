@@ -37,7 +37,17 @@ function DraggableSearchResult({ track, children }: DraggableSearchResultProps) 
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
-      return { track };
+      // Prepare complete track data with all necessary properties
+      return {
+        track: {
+          ...track,
+          imageUrl: track.imageUrl,
+          cover_image_url: track.imageUrl, // Ensure cover_image_url is set for image preview
+          audioUrl: track.audioUrl || track.stream_url,
+          audio_url: track.audioUrl, // Preserve original property
+          stream_url: track.stream_url, // Include stream_url for radio stations
+        }
+      };
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
@@ -418,15 +428,25 @@ export default function GlobeSearch({
                     </button>
                     <button
                       onClick={() => {
+                        // Prepare complete track data with all necessary properties
+                        const completeTrack = {
+                          ...track,
+                          imageUrl: track.imageUrl,
+                          cover_image_url: track.imageUrl, // Ensure cover_image_url is set for image display
+                          audioUrl: track.audioUrl || track.stream_url,
+                          audio_url: track.audioUrl, // Preserve original property
+                          stream_url: track.stream_url, // Include stream_url for radio stations
+                        };
+
                         if (track.content_type === 'radio_station') {
                           // Send radio stations to RadioWidget
                           if ((window as any).loadRadioTrack) {
-                            (window as any).loadRadioTrack(track);
+                            (window as any).loadRadioTrack(completeTrack);
                           }
                         } else {
                           // Add regular tracks to cart
                           if ((window as any).addToCart) {
-                            (window as any).addToCart(track);
+                            (window as any).addToCart(completeTrack);
                           }
                         }
                       }}
