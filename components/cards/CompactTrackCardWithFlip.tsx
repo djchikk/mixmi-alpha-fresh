@@ -367,7 +367,9 @@ export default function CompactTrackCardWithFlip({
                         <button
                           onClick={handlePlayClick}
                           onMouseLeave={() => {
-                            if (isPlaying && onStopPreview) {
+                            // Only stop preview on mouse leave for regular tracks, not radio stations
+                            const isRadioStation = track.content_type === 'radio_station';
+                            if (isPlaying && onStopPreview && !isRadioStation) {
                               onStopPreview();
                             }
                           }}

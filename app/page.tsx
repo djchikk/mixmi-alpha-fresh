@@ -476,7 +476,12 @@ export default function HomePage() {
       }
 
       // Set up event handlers before setting src
-      audio.addEventListener('error', (e) => console.error('Audio playback error:', e, 'for track:', trackId));
+      audio.addEventListener('error', (e) => {
+        console.error('Audio playback error:', e, 'for track:', trackId);
+        // Clear playing state when audio errors occur
+        setPlayingTrackId(null);
+        setCurrentAudio(null);
+      });
 
       // Set source
       audio.src = url;
@@ -744,7 +749,7 @@ export default function HomePage() {
                     social_links: {},
                     contact_email: ''
                   }}
-                  isPlaying={playingTrackId === leftComparisonTrack.id}
+                  isPlaying={playingTrackId !== null && playingTrackId === leftComparisonTrack.id}
                   onPlayPreview={handlePlayPreview}
                   onStopPreview={handleStopPreview}
                   showEditControls={false}
@@ -801,7 +806,7 @@ export default function HomePage() {
                     social_links: {},
                     contact_email: ''
                   }}
-                  isPlaying={playingTrackId === rightComparisonTrack.id}
+                  isPlaying={playingTrackId !== null && playingTrackId === rightComparisonTrack.id}
                   onPlayPreview={handlePlayPreview}
                   onStopPreview={handleStopPreview}
                   showEditControls={false}
@@ -857,7 +862,7 @@ export default function HomePage() {
                     social_links: {},
                     contact_email: ''
                   }}
-                  isPlaying={playingTrackId === centerTrackCard.id}
+                  isPlaying={playingTrackId !== null && playingTrackId === centerTrackCard.id}
                   onPlayPreview={handlePlayPreview}
                   onStopPreview={handleStopPreview}
                   showEditControls={false}
@@ -936,7 +941,7 @@ export default function HomePage() {
                           primary_location: track.location,
                           primary_uploader_wallet: track.uploaderAddress || track.wallet_address
                         } as any}
-                        isPlaying={playingTrackId === track.id}
+                        isPlaying={playingTrackId !== null && playingTrackId === track.id}
                         onPlayPreview={handlePlayPreview}
                         onStopPreview={handleStopPreview}
                         showEditControls={false}
@@ -994,7 +999,7 @@ export default function HomePage() {
                       social_links: {},
                       contact_email: ''
                     }}
-                    isPlaying={playingTrackId === displayTrack.id}
+                    isPlaying={playingTrackId !== null && playingTrackId === displayTrack.id}
                     onPlayPreview={handlePlayPreview}
                     onStopPreview={handleStopPreview}
                     showEditControls={false}
