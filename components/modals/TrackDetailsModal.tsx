@@ -921,7 +921,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           )}
 
 
-          {/* IP Rights */}
+          {/* IP Rights - Skip for radio stations */}
+          {!isRadioStation && (
           <div>
             <Divider title="IP RIGHTS" />
 
@@ -1052,6 +1053,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               </>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>,
