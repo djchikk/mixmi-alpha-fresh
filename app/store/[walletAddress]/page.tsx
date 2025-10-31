@@ -14,7 +14,7 @@ import { Plus } from 'lucide-react';
 import IPTrackModal from '@/components/modals/IPTrackModal';
 
 interface ContentFilter {
-  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'hidden';
+  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'hidden';
   category?: string;
 }
 
@@ -212,6 +212,12 @@ export default function CreatorStorePage() {
       case 'ep':
         filtered = tracks.filter(track => track.content_type === 'ep' && !track.is_deleted);
         break;
+      case 'radio_station':
+        filtered = tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted);
+        break;
+      case 'station_pack':
+        filtered = tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted);
+        break;
       case 'hidden':
         filtered = tracks.filter(track => track.is_deleted === true);
         break;
@@ -280,6 +286,10 @@ export default function CreatorStorePage() {
         return tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted).length;
       case 'ep':
         return tracks.filter(track => track.content_type === 'ep' && !track.is_deleted).length;
+      case 'radio_station':
+        return tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted).length;
+      case 'station_pack':
+        return tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted).length;
       case 'hidden':
         return tracks.filter(track => track.is_deleted === true).length;
       default:
@@ -517,6 +527,28 @@ export default function CreatorStorePage() {
                 EPs ({getFilterCount({ type: 'ep' })})
               </button>
 
+              <button
+                onClick={() => setActiveFilter({ type: 'radio_station' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'radio_station'
+                    ? 'bg-[#FB923C] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Radio Stations ({getFilterCount({ type: 'radio_station' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'station_pack' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'station_pack'
+                    ? 'bg-[#FB923C] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Radio Packs ({getFilterCount({ type: 'station_pack' })})
+              </button>
+
               {isOwnStore && (
                 <button
                   onClick={() => setActiveFilter({ type: 'hidden' })}
@@ -701,6 +733,60 @@ export default function CreatorStorePage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
                         .filter(t => t.content_type === 'ep')
+                        .slice(0, visibleCards)
+                        .map((track, index) => (
+                          <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
+                            <CompactTrackCardWithFlip
+                              track={track}
+                              isPlaying={playingTrack === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={isOwnStore}
+                              onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Radio Stations Section */}
+                {filteredTracks.filter(t => t.content_type === 'radio_station').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <h2 className="font-mono text-2xl font-bold text-[#FB923C] tracking-wide">radio stations</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FB923C]/50 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                      {filteredTracks
+                        .filter(t => t.content_type === 'radio_station')
+                        .slice(0, visibleCards)
+                        .map((track, index) => (
+                          <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
+                            <CompactTrackCardWithFlip
+                              track={track}
+                              isPlaying={playingTrack === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={isOwnStore}
+                              onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Radio Packs Section */}
+                {filteredTracks.filter(t => t.content_type === 'station_pack').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <h2 className="font-mono text-2xl font-bold text-[#FB923C] tracking-wide">radio packs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FB923C]/50 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                      {filteredTracks
+                        .filter(t => t.content_type === 'station_pack')
                         .slice(0, visibleCards)
                         .map((track, index) => (
                           <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
