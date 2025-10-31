@@ -64,7 +64,9 @@ export default function UserProfilePage() {
               }
               setIsInitializing(false);
             } else {
+              // Profile doesn't exist but viewing someone else's profile
               setProfileData(walletData);
+              setTargetWallet(identifier); // Set targetWallet even if no profile exists
             }
           } else {
             setProfileData(data);
