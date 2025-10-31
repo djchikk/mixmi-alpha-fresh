@@ -17,8 +17,9 @@ interface GlobeSearchProps {
 const FILTER_TYPES = [
   { id: 'loops', label: 'Loops' },
   { id: 'loop_pack', label: 'Loop Packs' },
-  { id: 'ep', label: 'EPs' }, // NEW: For EP content!
+  { id: 'ep', label: 'EPs' },
   { id: 'songs', label: 'Songs' },
+  { id: 'radio', label: 'Radio' }, // NEW: For radio stations!
   { id: 'instrumental', label: 'Instrumental' },
   { id: 'beats', label: 'Beats' },
   { id: 'vocal', label: 'Vocal' },
@@ -181,11 +182,12 @@ export default function GlobeSearch({
     if (activeFilters.size > 0) {
       filtered = filtered.filter(track => {
         const tags = Array.isArray(track.tags) ? track.tags : [];
-        
+
         if (activeFilters.has('loops') && track.content_type === 'loop') return true;
         if (activeFilters.has('loop_pack') && track.content_type === 'loop_pack') return true;
         if (activeFilters.has('ep') && track.content_type === 'ep') return true;
         if (activeFilters.has('songs') && track.content_type === 'full_song') return true;
+        if (activeFilters.has('radio') && track.content_type === 'radio_station') return true;
         if (activeFilters.has('instrumental') && tags.includes('instrumental')) return true;
         if (activeFilters.has('beats') && tags.includes('beats')) return true;
         if (activeFilters.has('vocal') && tags.includes('vocal')) return true;
