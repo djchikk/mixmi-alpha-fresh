@@ -283,8 +283,9 @@ export function GridNodeSystem({ nodes, onNodeClick, onNodeHover }: GridNodeSyst
         return (
           <group key={group.key}>
             {group.nodes.map((node, index) => {
-              // Assign color based on node ID
-              const colorIndex = node.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % COLORS.length;
+              // Assign color based on node ID (with null safety)
+              const nodeId = node.id || `fallback-${index}`;
+              const colorIndex = nodeId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % COLORS.length;
               const color = COLORS[colorIndex];
               
               // Calculate position
