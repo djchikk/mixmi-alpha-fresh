@@ -40,9 +40,12 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           id: track.id,
           title: track.title,
           artist: track.artist,
-          imageUrl: (track as any).cover_image_url || track.imageUrl, // Prefer original cover_image_url
+          imageUrl: track.imageUrl || (track as any).cover_image_url, // Use existing imageUrl or fallback
+          cover_image_url: (track as any).cover_image_url, // Keep original high-res URL for preview
           bpm: track.bpm || 120,
           audioUrl: track.audioUrl || track.audio_url, // Handle both formats like deck conversion!
+          audio_url: track.audio_url, // Preserve original property
+          stream_url: (track as any).stream_url, // Include stream_url for radio stations
           content_type: track.content_type,
           price_stx: track.price_stx,
           license: track.license,
@@ -665,8 +668,10 @@ export default function Crate({ className = '' }: CrateProps) {
                           title: packTrack.title,
                           artist: packTrack.artist,
                           imageUrl: getOptimizedTrackImage(packTrack, 64),
+                          cover_image_url: packTrack.cover_image_url, // Keep original high-res URL for preview
                           bpm: packTrack.bpm || 120,
                           audioUrl: packTrack.audio_url || packTrack.stream_url,
+                          audio_url: packTrack.audio_url, // Preserve original property
                           stream_url: packTrack.stream_url,
                           content_type: packTrack.content_type,
                           price_stx: packTrack.price_stx,
