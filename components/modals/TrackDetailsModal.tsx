@@ -363,8 +363,13 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     if (track.content_type === 'loop') return '8-Bar Loop';
     if (track.content_type === 'mix') return 'Mix';
     if (track.content_type === 'loop_pack') return 'Loop Pack';
+    if (track.content_type === 'radio_station') return 'Radio Station';
+    if (track.content_type === 'station_pack') return 'Radio Station Pack';
     return 'Track';
   };
+
+  // Check if this is a radio station (simplified modal)
+  const isRadioStation = track.content_type === 'radio_station' || track.content_type === 'station_pack';
 
   const getGeneration = () => {
     // Only show generation for loops and mixes (not songs, EPs, etc.)
@@ -649,7 +654,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             </div>
           )}
 
-          {/* Price and License - moved here for better flow */}
+          {/* Price and License - moved here for better flow - Skip for radio stations */}
+          {!isRadioStation && (
           <div>
             <Divider title="PRICE AND LICENSE" />
             <div className="space-y-1 text-xs">
@@ -733,24 +739,53 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               )}
             </div>
           </div>
-          
+          )}
+
           {/* Basic Info */}
           <div>
             <Divider title="BASIC INFO" />
             <div className="space-y-1 text-xs">
               <div className="flex">
-                <span className="text-gray-500 w-24">Title:</span>
+                <span className="text-gray-500 w-24">{isRadioStation ? 'Station:' : 'Title:'}</span>
                 <span className="text-gray-300">{track.title}</span>
               </div>
-              <div className="flex">
-                <span className="text-gray-500 w-24">{track.remix_depth && track.remix_depth > 0 ? 'Remixer:' : 'Artist:'}</span>
-                <span className="text-gray-300">{track.artist}</span>
-              </div>
+              {!isRadioStation && (
+                <div className="flex">
+                  <span className="text-gray-500 w-24">{track.remix_depth && track.remix_depth > 0 ? 'Remixer:' : 'Artist:'}</span>
+                  <span className="text-gray-300">{track.artist}</span>
+                </div>
+              )}
               <div className="flex">
                 <span className="text-gray-500 w-24">Type:</span>
                 <span className="text-gray-300">{getTrackType()}</span>
               </div>
-              {getGeneration() && (
+              {isRadioStation && (
+                <>
+                  <div className="flex">
+                    <span className="text-gray-500 w-24">Status:</span>
+                    <span className="text-[#FB923C] font-bold">🔴 LIVE</span>
+                  </div>
+                  {track.genre && (
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Genre:</span>
+                      <span className="text-gray-300">{track.genre}</span>
+                    </div>
+                  )}
+                  {track.location && (
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Location:</span>
+                      <span className="text-gray-300">{track.location}</span>
+                    </div>
+                  )}
+                  {track.description && (
+                    <div className="flex flex-col">
+                      <span className="text-gray-500 mb-1">Description:</span>
+                      <span className="text-gray-300 text-xs leading-relaxed">{track.description}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              {!isRadioStation && getGeneration() && (
                 <div className="flex">
                   <span className="text-gray-500 w-24">Generation:</span>
                   <span className="text-gray-300">{getGeneration()}</span>
