@@ -125,6 +125,7 @@ export default function RadioStationModal({
         cover_image_url: coverImageUrl,
         tags: tags,
         content_type: 'radio_station',
+        sample_type: 'radio', // Legacy field - set default for radio stations
         primary_uploader_wallet: walletAddress,
 
         // Location data
@@ -136,12 +137,24 @@ export default function RadioStationModal({
         production_split_1_wallet: walletAddress,
         production_split_1_percentage: 100,
 
+        // Music-specific fields (not applicable to radio)
+        bpm: null,
+        key: null,
+        audio_url: null, // Radio uses stream_url instead
+        isrc: null,
+
         // No pricing for radio stations
         price_stx: null,
         download_price_stx: null,
         remix_price_stx: null,
         allow_downloads: false,
         allow_remixing: false,
+
+        // No pack/remix tracking for radio
+        pack_id: null,
+        pack_position: null,
+        remix_depth: null,
+        source_track_ids: null,
 
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
