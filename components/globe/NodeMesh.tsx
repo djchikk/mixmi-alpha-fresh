@@ -48,12 +48,15 @@ export function NodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   
   // Calculate offset based on node grouping and zoom level
   const calculateOffset = useMemo(() => {
+    // Add null safety check
+    const nodeId = node.id || 'fallback';
+
     // Use the loc-N suffix to determine position in circle
-    const locMatch = node.id.match(/-loc-(\d+)$/);
+    const locMatch = nodeId.match(/-loc-(\d+)$/);
     const locationIndex = locMatch ? parseInt(locMatch[1]) : 0;
-    
+
     // Also hash the base track ID for additional offset
-    const baseId = node.id.split('-loc-')[0];
+    const baseId = nodeId.split('-loc-')[0];
     const hash = baseId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     
     // Calculate angle for circular arrangement
@@ -73,8 +76,9 @@ export function NodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   
   // Assign colors based on node ID
   const colorIndex = useMemo(() => {
-    // Use node ID to deterministically assign a color
-    const hash = node.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    // Use node ID to deterministically assign a color (with null safety)
+    const nodeId = node.id || 'fallback';
+    const hash = nodeId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return hash % SUBTLE_COLORS.length;
   }, [node.id]);
   
