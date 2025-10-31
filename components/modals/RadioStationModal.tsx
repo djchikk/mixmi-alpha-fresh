@@ -169,8 +169,8 @@ export default function RadioStationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-gradient-to-br from-[#1a2332] to-[#0f1419] rounded-xl shadow-2xl w-full max-w-lg border border-white/10 my-8">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 pt-20 bg-opacity-60 backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-[#1a2332] to-[#0f1419] rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[calc(90vh-90px)] overflow-y-auto border border-white/10">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 sticky top-0 bg-gradient-to-br from-[#1a2332] to-[#0f1419] z-10">
           <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export default function RadioStationModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 pb-24 space-y-6">
           {/* Station Name */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
