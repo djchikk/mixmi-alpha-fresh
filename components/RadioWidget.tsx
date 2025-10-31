@@ -29,15 +29,22 @@ export default function RadioWidget() {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'TRACK_CARD',
     drop: (item: { track: IPTrack }) => {
-      console.log('📻 Radio: Dropped track:', item.track.title);
+      console.log('📻 Radio: Dropped track:', item.track.title, item.track);
       setCurrentTrack(item.track);
       setPlayedTracks(prev => new Set([...prev, item.track.id]));
 
       // Load audio but don't auto-play
       if (audioRef.current) {
         const audioSource = item.track.stream_url || item.track.audio_url;
+        console.log('📻 Radio: Audio source:', audioSource);
+        if (!audioSource) {
+          console.error('📻 Radio: No audio source found!', item.track);
+          return;
+        }
         audioRef.current.src = audioSource;
         audioRef.current.volume = volume;
+        // Add load event to verify it's ready
+        audioRef.current.load();
         console.log('📻 Radio: Track loaded from drop, waiting for user to press play');
       }
     },
