@@ -8,7 +8,7 @@ import TrackDetailsModal from '../modals/TrackDetailsModal';
 import { useDrag } from 'react-dnd';
 import InfoIcon from '../shared/InfoIcon';
 import SafeImage from '../shared/SafeImage';
-import { GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { GripVertical, ChevronDown, ChevronUp, Radio } from 'lucide-react';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -409,8 +409,9 @@ export default function CompactTrackCardWithFlip({
                     {/* Payment Pending Warning - REMOVED: No longer needed for simplified payment model */}
 
                     {/* Bottom Section: Price/Remix Icon, Content Type Badge, BPM */}
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
+                    <div className="absolute bottom-2 left-0 right-0 flex items-center justify-between">
                       {/* Buy Button OR Remix Icon (left) - compact */}
+                      <div className="pl-2">
                       {(() => {
                         // Songs and EPs ALWAYS show download price (never mixer icon)
                         if (track.content_type === 'full_song' || track.content_type === 'ep') {
@@ -620,15 +621,21 @@ export default function CompactTrackCardWithFlip({
                           );
                         }
 
-                        // For RADIO STATIONS: Show LIVE indicator
+                        // For RADIO STATIONS: Show Radio icon button to send to RadioWidget
                         if (track.content_type === 'radio_station' || track.content_type === 'station_pack') {
                           return (
-                            <div
-                              className="text-[#FB923C] font-bold py-0.5 px-2 rounded text-xs flex items-center gap-1"
-                              title="Live radio stream"
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if ((window as any).loadRadioTrack) {
+                                  (window as any).loadRadioTrack(track);
+                                }
+                              }}
+                              className="text-white hover:text-[#81E4F2] transition-colors p-0 flex items-center"
+                              title="Add to Radio Widget"
                             >
-                              🔴 LIVE
-                            </div>
+                              <Radio className="w-5 h-5" />
+                            </button>
                           );
                         }
 
@@ -648,9 +655,10 @@ export default function CompactTrackCardWithFlip({
                         // Ultimate fallback: no price info
                         return null;
                       })()}
+                      </div>
 
                       {/* Content Type Badge (center) with generation indicators */}
-                      <span className="text-xs font-mono font-medium text-white">
+                      <span className="text-xs font-mono font-medium text-white absolute left-1/2 transform -translate-x-1/2">
                         {track.content_type === 'ep' && 'EP'}
                         {track.content_type === 'loop_pack' && 'PACK'}
                         {track.content_type === 'loop' && (
@@ -678,13 +686,21 @@ export default function CompactTrackCardWithFlip({
                           </>
                         )}
                         {track.content_type === 'full_song' && 'SONG'}
-                        {track.content_type === 'radio_station' && '📻 RADIO'}
+                        {track.content_type === 'radio_station' && 'RADIO'}
                         {track.content_type === 'station_pack' && '📻 PACK'}
                         {!track.content_type && 'TRACK'}
                       </span>
-                      
-                      {/* BPM Badge (right) - hide for EPs since they have multiple songs with different BPMs */}
-                      {track.bpm && track.content_type !== 'ep' ? (
+
+                      {/* BPM Badge OR LIVE indicator (right) - hide for EPs since they have multiple songs with different BPMs */}
+                      <div className="pr-2">
+                      {(track.content_type === 'radio_station' || track.content_type === 'station_pack') ? (
+                        <span
+                          className="text-[#FB923C] font-bold text-xs"
+                          title="Live radio stream"
+                        >
+                          LIVE
+                        </span>
+                      ) : track.bpm && track.content_type !== 'ep' ? (
                         <span
                           className="text-sm font-mono font-bold text-white"
                           title="BPM"
@@ -694,6 +710,7 @@ export default function CompactTrackCardWithFlip({
                       ) : (
                         <div className="w-12"></div>
                       )}
+                      </div>
                     </div>
                   </div>
                 )}

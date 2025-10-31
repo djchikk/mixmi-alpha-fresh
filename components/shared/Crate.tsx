@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useMixer } from '@/contexts/MixerContext';
 import { useDrop, useDrag } from 'react-dnd';
 import { IPTrack } from '@/types';
-import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft, Radio } from 'lucide-react';
 import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
@@ -560,20 +560,32 @@ export default function Crate({ className = '' }: CrateProps) {
                     </svg>
                   </button>
 
-                  {/* Cart button (all contexts) */}
+                  {/* Cart/Radio button (all contexts) */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if ((window as any).addToCart) {
-                        (window as any).addToCart(track);
+                      if (track.content_type === 'radio_station') {
+                        // Send radio stations to RadioWidget
+                        if ((window as any).loadRadioTrack) {
+                          (window as any).loadRadioTrack(track);
+                        }
+                      } else {
+                        // Send regular tracks to cart
+                        if ((window as any).addToCart) {
+                          (window as any).addToCart(track);
+                        }
                       }
                     }}
                     className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
-                    title="Add to cart"
+                    title={track.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to cart"}
                   >
-                    <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+                    {track.content_type === 'radio_station' ? (
+                      <Radio className="w-3.5 h-3.5 text-white" />
+                    ) : (
+                      <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    )}
                   </button>
 
                   {/* Play icon - centered */}
@@ -598,8 +610,8 @@ export default function Crate({ className = '' }: CrateProps) {
                 </div>
               )}
 
-              {/* BPM overlay for mixer (always) and store/globe (on hover) contexts */}
-              {(context === 'mixer' || ((context === 'store' || context === 'globe') && hoveredTrackId === track.id)) && (
+              {/* BPM overlay for mixer (always) and store/globe (on hover) contexts - hidden for radio stations */}
+              {track.content_type !== 'radio_station' && (context === 'mixer' || ((context === 'store' || context === 'globe') && hoveredTrackId === track.id)) && (
                 <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
                   {track.bpm || 120}
                 </div>
@@ -719,21 +731,33 @@ export default function Crate({ className = '' }: CrateProps) {
                             {packIndex + 1}
                           </div>
 
-                          {/* Cart button - bottom left - show on hover */}
+                          {/* Cart/Radio button - bottom left - show on hover */}
                           {isPackTrackHovered && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if ((window as any).addToCart) {
-                                  (window as any).addToCart(packTrack);
+                                if (packTrack.content_type === 'radio_station') {
+                                  // Send radio stations to RadioWidget
+                                  if ((window as any).loadRadioTrack) {
+                                    (window as any).loadRadioTrack(packTrack);
+                                  }
+                                } else {
+                                  // Send regular tracks to cart
+                                  if ((window as any).addToCart) {
+                                    (window as any).addToCart(packTrack);
+                                  }
                                 }
                               }}
                               className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
-                              title="Add to cart"
+                              title={packTrack.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to cart"}
                             >
-                              <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
+                              {packTrack.content_type === 'radio_station' ? (
+                                <Radio className="w-3.5 h-3.5 text-white" />
+                              ) : (
+                                <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                              )}
                             </button>
                           )}
 
@@ -757,10 +781,12 @@ export default function Crate({ className = '' }: CrateProps) {
                             </div>
                           )}
 
-                          {/* BPM */}
-                          <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
-                            {packTrack.bpm || 120}
-                          </div>
+                          {/* BPM - hidden for radio stations */}
+                          {packTrack.content_type !== 'radio_station' && (
+                            <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
+                              {packTrack.bpm || 120}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
