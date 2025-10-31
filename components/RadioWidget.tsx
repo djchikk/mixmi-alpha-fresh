@@ -25,9 +25,9 @@ export default function RadioWidget() {
   const animationFrameRef = useRef<number | null>(null);
   const audioSourceSetupRef = useRef(false);
 
-  // Set up drop zone for incoming tracks
+  // Set up drop zone for incoming tracks (from globe and crate)
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'TRACK_CARD',
+    accept: ['TRACK_CARD', 'COLLECTION_TRACK'], // Accept from both globe and crate
     drop: (item: { track: IPTrack }) => {
       console.log('📻 Radio: Dropped track:', item.track.title, item.track);
       setCurrentTrack(item.track);
@@ -35,7 +35,7 @@ export default function RadioWidget() {
 
       // Load audio but don't auto-play
       if (audioRef.current) {
-        const audioSource = item.track.stream_url || item.track.audio_url;
+        const audioSource = item.track.stream_url || item.track.audio_url || item.track.audioUrl;
         console.log('📻 Radio: Audio source:', audioSource);
         if (!audioSource) {
           console.error('📻 Radio: No audio source found!', item.track);
@@ -433,7 +433,7 @@ export default function RadioWidget() {
                       </div>
                     )}
 
-                    {/* Close/Remove button - top right */}
+                    {/* Close/Remove button - top right - only visible on hover */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -444,7 +444,7 @@ export default function RadioWidget() {
                           audioRef.current.src = '';
                         }
                       }}
-                      className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 z-10"
+                      className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 opacity-0 group-hover:opacity-100 z-10"
                       title="Remove track"
                     >
                       <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
