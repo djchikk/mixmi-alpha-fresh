@@ -30,7 +30,8 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
       content_type: track.content_type,
       duration: track.duration,
       imageUrl: track.cover_image_url || undefined, // Now uses clean Supabase Storage URLs
-      audioUrl: track.audio_url,
+      audioUrl: track.stream_url || track.audio_url, // Use stream_url for radio stations
+      stream_url: track.stream_url, // Keep stream_url for radio stations
       location: location.name, // Add location name for display
       // Include metadata fields
       tags: track.tags,
@@ -66,7 +67,8 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     content_type: track.content_type,
     duration: track.duration,
     imageUrl: track.cover_image_url || undefined, // Now uses clean Supabase Storage URLs
-    audioUrl: track.audio_url,
+    audioUrl: track.stream_url || track.audio_url, // Use stream_url for radio stations
+    stream_url: track.stream_url, // Keep stream_url for radio stations
     location: hasLocation ? track.primary_location : 'Null Island 🏝️', // Show Null Island for tracks without location
     // Include metadata fields
     tags: track.tags,
@@ -115,7 +117,7 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
     // Fetch all tracks with proper filtering for loop packs and deleted content
     const { data, error } = await supabase
       .from('ip_tracks')
-      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, cover_image_url, tags, description, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations') // Now includes cover_image_url - will contain clean URLs
+      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, cover_image_url, tags, description, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations') // Now includes cover_image_url and stream_url for radio stations
       .is('pack_id', null) // Only show standalone content and master pack/EP records
       .is('deleted_at', null) // Exclude soft-deleted tracks from globe display
       .order('created_at', { ascending: false })

@@ -12,6 +12,7 @@ export interface TrackNode {
   duration?: number;
   imageUrl?: string;
   audioUrl?: string;
+  stream_url?: string; // For radio stations
   location?: string; // Location name for display
   // Metadata fields
   tags?: string[];

@@ -209,7 +209,7 @@ export default function Crate({ className = '' }: CrateProps) {
 
     // Fetch tracks for this pack
     const packId = track.pack_id || track.id.split('-loc-')[0];
-    const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : 'full_song';
+    const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : track.content_type === 'station_pack' ? 'radio_station' : 'full_song';
 
     const { data, error } = await supabase
       .from('ip_tracks')
@@ -258,14 +258,18 @@ export default function Crate({ className = '' }: CrateProps) {
         return 'border-[#9772F4] shadow-[#9772F4]/50';
       case 'loop_pack':
         return 'border-[#9772F4] shadow-[#9772F4]/50';
+      case 'radio_station':
+        return 'border-[#FB923C] shadow-[#FB923C]/50';
+      case 'station_pack':
+        return 'border-[#FB923C] shadow-[#FB923C]/50';
       default:
         return 'border-[#9772F4] shadow-[#9772F4]/50';
     }
   };
 
-  // Determine border thickness - thicker for multi-content (loop packs and EPs)
+  // Determine border thickness - thicker for multi-content (loop packs, EPs, and station packs)
   const getBorderThickness = (track: any) => {
-    return (track.content_type === 'loop_pack' || track.content_type === 'ep') ? 'border-4' : 'border-2';
+    return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
 
@@ -573,7 +577,7 @@ export default function Crate({ className = '' }: CrateProps) {
                   </button>
 
                   {/* Play icon - centered */}
-                  {track.audioUrl && (
+                  {(track.audioUrl || track.stream_url) && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z"/>
@@ -601,26 +605,26 @@ export default function Crate({ className = '' }: CrateProps) {
                 </div>
               )}
 
-              {/* Chevron button for loop packs and EPs - always visible, far right edge */}
-              {(track.content_type === 'loop_pack' || track.content_type === 'ep') && (
+              {/* Chevron button for loop packs, EPs, and station packs - always visible, far right edge */}
+              {(track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handlePackExpansion(track);
                   }}
                   className="absolute right-[1px] top-1/2 transform -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 z-10 bg-black bg-opacity-80 rounded"
-                  title={expandedPackId === track.id ? (track.content_type === 'ep' ? "Collapse tracks" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : "Expand loops")}
+                  title={expandedPackId === track.id ? (track.content_type === 'ep' ? "Collapse tracks" : track.content_type === 'station_pack' ? "Collapse stations" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : track.content_type === 'station_pack' ? "Expand stations" : "Expand loops")}
                 >
                   {expandedPackId === track.id ? (
                     <ChevronLeft
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   ) : (
                     <ChevronRight
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   )}
@@ -650,7 +654,8 @@ export default function Crate({ className = '' }: CrateProps) {
                           artist: packTrack.artist,
                           imageUrl: getOptimizedTrackImage(packTrack, 64),
                           bpm: packTrack.bpm || 120,
-                          audioUrl: packTrack.audio_url,
+                          audioUrl: packTrack.audio_url || packTrack.stream_url,
+                          stream_url: packTrack.stream_url,
                           content_type: packTrack.content_type,
                           price_stx: packTrack.price_stx,
                           license: packTrack.license
@@ -662,7 +667,7 @@ export default function Crate({ className = '' }: CrateProps) {
                       }),
                     }), [packTrack]);
 
-                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8';
+                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8';
                     const textColor = track.content_type === 'ep' ? '#000000' : '#FFFFFF';
 
                     return (
@@ -733,7 +738,7 @@ export default function Crate({ className = '' }: CrateProps) {
                           )}
 
                           {/* Play icon - centered - show on hover */}
-                          {isPackTrackHovered && packTrack.audio_url && (
+                          {isPackTrackHovered && (packTrack.audio_url || packTrack.stream_url) && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z"/>
