@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { TrackNode } from './types';
 import { latLngToVector3 } from './Globe';
 import { ProfileNodeMesh } from './ProfileNodeMesh';
+import { RadioNodeMesh } from './RadioNodeMesh';
 
 // Node size categories based on zoom
 const ZOOM_LEVELS = {
@@ -311,7 +312,7 @@ export function GridNodeSystem({ nodes, onNodeClick, onNodeHover }: GridNodeSyst
                 finalPosition = basePosition.clone().add(offset);
               }
               
-              // Use ProfileNodeMesh for aggregated nodes, GridNode for regular
+              // Use ProfileNodeMesh for aggregated nodes
               if (node.isAggregated) {
                 return (
                   <ProfileNodeMesh
@@ -322,7 +323,21 @@ export function GridNodeSystem({ nodes, onNodeClick, onNodeHover }: GridNodeSyst
                   />
                 );
               }
-              
+
+              // Use RadioNodeMesh for radio stations
+              const isRadioStation = node.content_type === 'radio_station' || node.content_type === 'station_pack';
+              if (isRadioStation) {
+                return (
+                  <RadioNodeMesh
+                    key={node.id}
+                    node={node}
+                    onClick={() => onNodeClick?.(node)}
+                    onHover={(hovering) => onNodeHover?.(hovering ? node : null)}
+                  />
+                );
+              }
+
+              // Regular music nodes
               return (
                 <GridNode
                   key={node.id}
