@@ -212,6 +212,7 @@ export default function RadioStationModal({
       if (contentType === 'radio_station') {
         // Create single radio station
         const radioStation = {
+          id: crypto.randomUUID(), // Generate unique ID
           title: title.trim(),
           artist: title.trim(),
           description: description.trim(),
@@ -244,7 +245,9 @@ export default function RadioStationModal({
       } else {
         // Create station pack
         // First, create the parent pack record
+        const packId = crypto.randomUUID(); // Generate pack ID
         const packRecord = {
+          id: packId,
           title: title.trim(),
           artist: title.trim(),
           description: description.trim(),
@@ -277,6 +280,7 @@ export default function RadioStationModal({
         // Create individual station records for each station in the pack
         const validStations = packStations.filter(s => s.streamUrl.trim() !== '');
         const stationRecords = validStations.map((station, index) => ({
+          id: crypto.randomUUID(), // Generate unique ID for each station
           title: station.name.trim() || `Station ${index + 1}`,
           artist: title.trim(), // Use pack name as artist
           description: description.trim(),
