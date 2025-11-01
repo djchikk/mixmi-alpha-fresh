@@ -213,6 +213,7 @@ export default function CompactTrackCardWithFlip({
       title: track.title,
       content_type: track.content_type,
       isRadioStation,
+      isPlaying,
       stream_url: track.stream_url,
       audio_url: track.audio_url,
       audioSource

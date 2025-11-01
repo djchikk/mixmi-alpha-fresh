@@ -43,7 +43,7 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           imageUrl: track.imageUrl || (track as any).cover_image_url, // Use existing imageUrl or fallback
           cover_image_url: (track as any).cover_image_url, // Keep original high-res URL for preview
           bpm: track.bpm || 120,
-          audioUrl: track.audioUrl || track.audio_url, // Handle both formats like deck conversion!
+          audioUrl: track.audioUrl || track.audio_url || (track as any).stream_url, // Handle both formats, include stream_url for radio!
           audio_url: track.audio_url, // Preserve original property
           stream_url: (track as any).stream_url, // Include stream_url for radio stations
           content_type: track.content_type,
@@ -720,7 +720,7 @@ export default function Crate({ className = '' }: CrateProps) {
                           }}
                           onClick={() => handleTrackClick({
                             ...packTrack,
-                            audioUrl: packTrack.audio_url
+                            audioUrl: packTrack.audio_url || packTrack.stream_url
                           })}
                           onMouseEnter={() => setIsPackTrackHovered(true)}
                           onMouseLeave={() => setIsPackTrackHovered(false)}
