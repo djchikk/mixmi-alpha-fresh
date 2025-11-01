@@ -301,7 +301,9 @@ export default function CreatorStorePage() {
     }
   };
 
-  const handlePlayPreview = (trackId: string, audioUrl?: string) => {
+  const handlePlayPreview = (trackId: string, audioUrl?: string, isRadioStation?: boolean) => {
+    console.log('🎧 Creator Store handlePlayPreview called:', { trackId, audioUrl, isRadioStation });
+
     if (!audioUrl) return;
 
     if (playingTrack === trackId && currentAudio) {
@@ -328,20 +330,40 @@ export default function CreatorStorePage() {
     }
 
     const audio = new Audio(audioUrl);
-    audio.crossOrigin = 'anonymous';
+
+    // Only set crossOrigin for regular tracks that need audio analysis
+    // Radio stations don't need this and it causes CORS errors
+    if (!isRadioStation) {
+      audio.crossOrigin = 'anonymous';
+    }
+
     audio.volume = 0.5;
-    audio.play();
-    setCurrentAudio(audio);
-    setPlayingTrack(trackId);
 
-    const timeout = setTimeout(() => {
-      audio.pause();
-      audio.currentTime = 0;
-      setPlayingTrack(null);
-      setCurrentAudio(null);
-    }, 20000);
+    // Only set playingTrack state if audio actually starts playing
+    audio.play()
+      .then(() => {
+        console.log('✅ Creator Store audio playing successfully');
+        setCurrentAudio(audio);
+        setPlayingTrack(trackId);
 
-    setPreviewTimeout(timeout);
+        // For radio stations, don't use a timeout (they stream continuously)
+        // For regular tracks, use 20 second preview
+        if (!isRadioStation) {
+          const timeout = setTimeout(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            setPlayingTrack(null);
+            setCurrentAudio(null);
+          }, 20000);
+
+          setPreviewTimeout(timeout);
+        }
+      })
+      .catch(error => {
+        console.error('❌ Creator Store playback failed:', error);
+        setPlayingTrack(null);
+        setCurrentAudio(null);
+      });
   };
 
   const handleStopPreview = () => {

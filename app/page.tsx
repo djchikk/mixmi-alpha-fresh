@@ -467,11 +467,11 @@ export default function HomePage() {
 
       // Create fresh audio element
       const audio = new Audio();
-      audio.crossOrigin = 'anonymous';
 
-      // Radio stations: simpler approach, no preload
-      // Regular tracks: preload metadata
+      // Only set crossOrigin for regular tracks that need audio analysis
+      // Radio stations don't need this and it causes CORS errors
       if (!isRadioStation) {
+        audio.crossOrigin = 'anonymous';
         audio.preload = 'metadata';
       }
 
@@ -488,13 +488,19 @@ export default function HomePage() {
 
       if (isRadioStation) {
         // Radio stations: Just try to play immediately, don't wait for canplay
-        console.log('📻 Playing radio station stream:', url);
-        await audio.play();
-        setCurrentAudio(audio);
-        setPlayingTrackId(trackId);
+        console.log('📻 Attempting to play radio station stream:', url);
+        try {
+          await audio.play();
+          setCurrentAudio(audio);
+          setPlayingTrackId(trackId);
+          console.log('✅ Radio station playing successfully');
+        } catch (playError) {
+          console.error('❌ Radio station play error:', playError);
+          setPlayingTrackId(null);
+          setCurrentAudio(null);
+        }
 
         // No timeout for radio stations - they stream continuously
-        console.log('📻 Radio station playing');
       } else {
         // Regular tracks: Load and wait for canplay event
         audio.load();
@@ -548,12 +554,16 @@ export default function HomePage() {
   };
 
   const handlePlayPreview = (trackId: string, audioUrl?: string, isRadioStation?: boolean) => {
+    console.log('🎧 handlePlayPreview called:', { trackId, audioUrl, isRadioStation });
+
     if (!audioUrl) {
+      console.warn('⚠️ No audioUrl provided for track:', trackId);
       return;
     }
 
     // If clicking the same track that's playing, pause it
     if (playingTrackId === trackId && currentAudio) {
+      console.log('⏸️ Pausing currently playing track');
       currentAudio.pause();
       currentAudio.remove();
       setPlayingTrackId(null);

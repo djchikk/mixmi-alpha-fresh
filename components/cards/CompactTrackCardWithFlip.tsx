@@ -206,7 +206,18 @@ export default function CompactTrackCardWithFlip({
     e.stopPropagation();
     // For radio stations, use stream_url; otherwise use audio_url
     const audioSource = track.stream_url || track.audio_url;
-    const isRadioStation = track.content_type === 'radio_station';
+    const isRadioStation = track.content_type === 'radio_station' || track.content_type === 'station_pack';
+
+    console.log('🎵 Play button clicked:', {
+      trackId: track.id,
+      title: track.title,
+      content_type: track.content_type,
+      isRadioStation,
+      stream_url: track.stream_url,
+      audio_url: track.audio_url,
+      audioSource
+    });
+
     onPlayPreview(track.id, audioSource, isRadioStation);
   };
 

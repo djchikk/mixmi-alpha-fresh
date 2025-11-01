@@ -152,6 +152,9 @@ export default function Crate({ className = '' }: CrateProps) {
   const handleTrackClick = (track: any) => {
     if (!track.audioUrl) return;
 
+    const isRadioStation = track.content_type === 'radio_station' || track.content_type === 'station_pack';
+    console.log('🎧 Crate preview:', { trackId: track.id, isRadioStation, audioUrl: track.audioUrl });
+
     // If clicking the same track that's playing, pause it
     if (playingTrack === track.id && currentAudio) {
       currentAudio.pause();
@@ -167,22 +170,31 @@ export default function Crate({ className = '' }: CrateProps) {
 
     // Start new preview
     const audio = new Audio(track.audioUrl);
-    audio.crossOrigin = 'anonymous';
+
+    // Only set crossOrigin for regular tracks that need audio analysis
+    // Radio stations don't need this and it causes CORS errors
+    if (!isRadioStation) {
+      audio.crossOrigin = 'anonymous';
+    }
+
     audio.volume = 0.7;
-    
+
     audio.play()
       .then(() => {
         setPlayingTrack(track.id);
         setCurrentAudio(audio);
-        
-        // Auto-stop after 20 seconds
-        setTimeout(() => {
-          if (audio && !audio.paused) {
-            audio.pause();
-            setPlayingTrack(null);
-            setCurrentAudio(null);
-          }
-        }, 20000);
+
+        // For radio stations, don't use a timeout (they stream continuously)
+        // For regular tracks, auto-stop after 20 seconds
+        if (!isRadioStation) {
+          setTimeout(() => {
+            if (audio && !audio.paused) {
+              audio.pause();
+              setPlayingTrack(null);
+              setCurrentAudio(null);
+            }
+          }, 20000);
+        }
       })
       .catch(error => {
         console.error('Preview playback failed:', error);
