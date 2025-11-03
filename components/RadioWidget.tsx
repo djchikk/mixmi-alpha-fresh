@@ -17,6 +17,7 @@ export default function RadioWidget() {
   const [volume, setVolume] = useState(0.5);
   const [playedTracks, setPlayedTracks] = useState<Set<string>>(new Set());
   const [audioLevel, setAudioLevel] = useState(0);
+  const [showLaunchGlow, setShowLaunchGlow] = useState(true);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shouldAutoPlayRef = useRef(false);
@@ -285,6 +286,15 @@ export default function RadioWidget() {
     }
   }, [volume]);
 
+  // Launch glow animation - fade after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLaunchGlow(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Expose loadRadioTrack and clearRadio globally for FILL/RESET buttons
   useEffect(() => {
     (window as any).loadRadioTrack = (track: any) => {
@@ -330,10 +340,14 @@ export default function RadioWidget() {
 
       <div
         ref={drop}
-        className={`radio-widget relative bg-slate-900/20 backdrop-blur-sm rounded-xl shadow-2xl border transition-all duration-300 overflow-hidden ${
+        className={`radio-widget relative bg-slate-900/20 backdrop-blur-sm rounded-xl shadow-2xl border overflow-hidden ${
           isCollapsed ? 'h-10' : 'h-[200px]'
         } ${isOver ? 'border-[#81E4F2] border-2 bg-[#81E4F2]/10' : 'border-slate-700/50'}`}
-        style={{ width: isCollapsed ? '240px' : '320px' }}
+        style={{
+          width: isCollapsed ? '240px' : '320px',
+          boxShadow: (isPlaying || showLaunchGlow) ? '0 0 20px 4px rgba(255, 171, 107, 0.6)' : 'none',
+          transition: 'box-shadow 1s ease-out, width 0.3s, height 0.3s'
+        }}
       >
         {/* Collapse/Expand Button */}
         <button
@@ -491,8 +505,14 @@ export default function RadioWidget() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <p className="text-xs text-white/40">Press play to start radio</p>
+              <div className="flex-1 flex items-center justify-center px-2">
+                <p
+                  className={`text-xs text-center transition-colors duration-1000 ${
+                    showLaunchGlow ? 'text-white/90' : 'text-white/40'
+                  }`}
+                >
+                  Press play to shuffle or drag a station here
+                </p>
               </div>
             )}
 

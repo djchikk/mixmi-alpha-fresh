@@ -31,6 +31,7 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [showLaunchGlow, setShowLaunchGlow] = useState(true);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -275,6 +276,15 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
     };
   }, [isPlaying]);
 
+  // Launch glow animation - fade after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLaunchGlow(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const currentTrack = playlist[currentIndex];
 
   // Expose fillPlaylist and clearPlaylist methods for FILL/RESET buttons
@@ -331,9 +341,13 @@ const PlaylistWidget: React.FC<PlaylistWidgetProps> = ({ className = '' }) => {
       }}
     >
       <div
-        className={`relative bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border transition-all duration-300 overflow-hidden ${
+        className={`relative bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border overflow-hidden ${
           isOver ? 'border-[#81E4F2] shadow-[#81E4F2]/50' : 'border-slate-700/50'
         } ${isCollapsed ? 'h-10' : 'h-[200px]'}`}
+        style={{
+          boxShadow: (isPlaying || showLaunchGlow) ? '0 0 20px 4px rgba(255, 230, 107, 0.6)' : undefined,
+          transition: 'box-shadow 1s ease-out, height 0.3s'
+        }}
       >
         <audio
           ref={audioRef}

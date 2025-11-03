@@ -42,6 +42,7 @@ export default function WidgetLauncher({
             height: '64px',
             borderRadius: '8px',
             backgroundColor: '#000000',
+            boxShadow: isMixerVisible ? '0 0 20px 4px rgba(236, 132, 243, 0.6)' : 'none',
           }}
         >
           <div
@@ -51,28 +52,12 @@ export default function WidgetLauncher({
               opacity: isMixerVisible ? 1 : 0.65,
             }}
           />
-          <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Mix</span>
-        </button>
-
-        {/* Play Button */}
-        <button
-          onClick={onPlayClick}
-          className="group transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
-          style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '8px',
-            backgroundColor: '#000000',
-          }}
-        >
-          <div
-            className="absolute inset-0 transition-opacity duration-300"
-            style={{
-              background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)',
-              opacity: isPlaylistVisible ? 1 : 0.65,
-            }}
-          />
-          <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Play</span>
+          <span
+            className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            style={{ color: isMixerVisible ? '#4B5563' : '#FFFFFF' }}
+          >
+            Mix
+          </span>
         </button>
 
         {/* Radio Button */}
@@ -84,16 +69,49 @@ export default function WidgetLauncher({
             height: '64px',
             borderRadius: '8px',
             backgroundColor: '#000000',
+            boxShadow: isRadioVisible ? '0 0 20px 4px rgba(255, 171, 107, 0.6)' : 'none',
+          }}
+        >
+          <div
+            className="absolute inset-0 transition-opacity duration-300"
+            style={{
+              background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)',
+              opacity: isRadioVisible ? 1 : 0.65,
+            }}
+          />
+          <span
+            className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            style={{ color: isRadioVisible ? '#4B5563' : '#FFFFFF' }}
+          >
+            Radio
+          </span>
+        </button>
+
+        {/* Play Button */}
+        <button
+          onClick={onPlayClick}
+          className="group transition-all flex items-center justify-center text-white font-mono text-sm relative overflow-hidden"
+          style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '8px',
+            backgroundColor: '#000000',
+            boxShadow: isPlaylistVisible ? '0 0 20px 4px rgba(255, 230, 107, 0.6)' : 'none',
           }}
         >
           <div
             className="absolute inset-0 transition-opacity duration-300"
             style={{
               background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFF9A3 30%, #FFE66B 100%)',
-              opacity: isRadioVisible ? 1 : 0.65,
+              opacity: isPlaylistVisible ? 1 : 0.65,
             }}
           />
-          <span className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200">Radio</span>
+          <span
+            className="relative z-10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            style={{ color: isPlaylistVisible ? '#4B5563' : '#FFFFFF' }}
+          >
+            Play
+          </span>
         </button>
 
         {/* Fill/Reset Button */}

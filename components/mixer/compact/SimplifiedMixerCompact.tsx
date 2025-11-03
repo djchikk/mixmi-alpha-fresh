@@ -45,7 +45,9 @@ interface SimplifiedMixerState {
 export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMixerProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  
+  const [showLaunchGlow, setShowLaunchGlow] = useState(false);
+  const [hasBeenMountedBefore, setHasBeenMountedBefore] = useState(false);
+
   // Initialize simplified mixer state
   const [mixerState, setMixerState] = useState<SimplifiedMixerState>({
     deckA: { 
@@ -85,6 +87,26 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
       initializeAudio();
     }
   }, []); // Empty dependency array - only run once on mount
+
+  // Track if mixer has been mounted before (for launch glow)
+  useEffect(() => {
+    // Check if we've been mounted before
+    const wasMountedBefore = localStorage.getItem('mixer-has-been-mounted');
+
+    if (wasMountedBefore === 'true') {
+      // This is a re-open, show the glow
+      setShowLaunchGlow(true);
+      const timer = setTimeout(() => {
+        setShowLaunchGlow(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    } else {
+      // First time mounting, mark it
+      localStorage.setItem('mixer-has-been-mounted', 'true');
+      setHasBeenMountedBefore(true);
+    }
+  }, []);
 
   // Update current time for waveforms
   useEffect(() => {
@@ -609,43 +631,40 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
   }, []);
 
   return (
-    <div 
-      className={`simplified-mixer bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 transition-all duration-300 ${className}`}
+    <div
+      className={`simplified-mixer bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 overflow-hidden ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         padding: isCollapsed ? '0.5rem 1rem' : '1.5rem',
         height: isCollapsed ? 'auto' : 'auto',
+        boxShadow: showLaunchGlow ? '0 0 20px 4px rgba(236, 132, 243, 0.6)' : undefined,
+        transition: 'box-shadow 1s ease-out, padding 0.3s'
       }}
     >
-      {/* Collapse/Expand Button - Only visible on hover */}
-      {isHovered && (
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`absolute ${isCollapsed ? 'top-1' : 'top-2'} right-2 p-1 rounded hover:bg-white/10 transition-all duration-200 z-10`}
-          style={{
-            opacity: isHovered ? 1 : 0,
-          }}
+      {/* Collapse/Expand Button - Always visible */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className={`absolute ${isCollapsed ? 'top-1' : 'top-2'} right-2 p-1 rounded hover:bg-white/10 transition-all duration-200 z-10`}
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={`transform transition-transform ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className={`transform transition-transform ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}
-          >
-            <path
-              d="M7 14L12 9L17 14"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-gray-400"
-            />
-          </svg>
-        </button>
-      )}
+          <path
+            d="M7 14L12 9L17 14"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-white/70"
+          />
+        </svg>
+      </button>
 
       {/* Collapsed State */}
       {isCollapsed ? (
@@ -670,7 +689,18 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
           {/* Unified Mixer Container */}
           <div className="flex justify-center">
             <div className="w-[600px] relative">
-          
+
+          {/* Instructions - visible on hover or during launch glow */}
+          {(isHovered || showLaunchGlow) && (
+            <div
+              className={`text-center mb-3 transition-colors duration-1000 ${
+                showLaunchGlow ? 'text-white/90' : 'text-white/60'
+              }`}
+            >
+              <p className="text-xs">Drag single loops to Decks to mix</p>
+            </div>
+          )}
+
           {/* Transport and Loop Controls Row */}
           <div className="flex justify-center items-center gap-16 mb-5">
             {/* Deck A Loop Controls */}
