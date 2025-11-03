@@ -181,6 +181,14 @@ export default function Welcome() {
                     <p className="text-[#a8b2c3]">Compile playlists and stream previews in the player widget. Radio mode continuously plays random content from the database</p>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">📻</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Live Radio Integrations</h3>
+                    <p className="text-[#a8b2c3]">Partner stations streaming directly through the globe</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -202,7 +210,7 @@ export default function Welcome() {
               Ready to Share Your Sound?
             </h2>
             <p className="text-[#a8b2c3] text-lg mb-8">
-              Upload loops, loop packs, songs, or EPs. Pin your content anywhere on Earth.
+              Upload loops, loop packs, songs, EPs, or radio stations. Pin your content anywhere on Earth.
               Start earning with every track you share.
             </p>
 
@@ -269,14 +277,6 @@ export default function Welcome() {
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">Gen 2 Remixes</h3>
                     <p className="text-[#a8b2c3]">Remix the remixes - deeper collaboration trees with managed attribution</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">🎧</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Live Radio Integrations</h3>
-                    <p className="text-[#a8b2c3]">Partner stations streaming directly through the globe</p>
                   </div>
                 </div>
 
