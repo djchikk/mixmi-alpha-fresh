@@ -117,13 +117,13 @@ export default function ImageUploader({
     const file = acceptedFiles[0];
     const isVideo = file.type.startsWith('video/');
 
-    // Videos are only allowed in profile section
-    if (isVideo && section !== 'profile') {
+    // Videos are only allowed in profile and gallery sections
+    if (isVideo && section !== 'profile' && section !== 'gallery') {
       const sectionName = section === 'profile' ? 'Profile' :
                          section === 'gallery' ? 'Gallery' :
                          section === 'spotlight' ? 'Spotlight' :
                          section === 'shop' ? 'Shop' : section;
-      setError(`Videos are only allowed in the Profile section. ${sectionName} accepts images only.`);
+      setError(`Videos are only allowed in Profile and Gallery sections. ${sectionName} accepts images only.`);
       return;
     }
 
@@ -151,7 +151,7 @@ export default function ImageUploader({
   }, [areGifsAllowed, section, processFile]);
   
   // Configure dropzone
-  const allowedFormats = section === 'profile'
+  const allowedFormats = (section === 'profile' || section === 'gallery')
     ? {
         'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.svg'],
         'video/*': ['.mp4', '.webm']
@@ -235,6 +235,8 @@ export default function ImageUploader({
 
     if (section === 'profile') {
       baseText = "PNG, JPG, GIF, or Video (MP4/WebM, max 10MB, 5-10 seconds)";
+    } else if (section === 'gallery') {
+      baseText = "GIF or Video (MP4/WebM, max 10MB, 5-10 seconds)";
     } else if (areGifsAllowed) {
       baseText = "PNG, JPG or GIF (max 10MB)";
     } else {
@@ -463,7 +465,7 @@ export default function ImageUploader({
           <input
             ref={manualFileInputRef}
             type="file"
-            accept={section === 'profile' ? 'image/*,video/mp4,video/webm' : 'image/*'}
+            accept={(section === 'profile' || section === 'gallery') ? 'image/*,video/mp4,video/webm' : 'image/*'}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {

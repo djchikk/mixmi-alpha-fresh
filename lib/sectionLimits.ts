@@ -36,9 +36,11 @@ export const MVP_SECTION_LIMITS = {
   gallery: {
     maxItems: 3,
     maxGifs: 3, // Gallery is for creative GIF showcase
-    maxStaticImages: 0, // Gallery is GIF-only for MVP
+    maxStaticImages: 0, // Gallery is GIF-only for MVP (but videos allowed)
     maxGifSizeKB: 600, // Slightly smaller for gallery since more GIFs
-    maxImageSizeKB: 200
+    maxImageSizeKB: 200,
+    maxVideos: 3, // Videos allowed in gallery (count toward total maxItems)
+    maxVideoSizeKB: 10240 // 10MB max for videos
   },
   media: {
     maxItems: 3, // URLs only, no storage impact (limited to 3 for consistency)

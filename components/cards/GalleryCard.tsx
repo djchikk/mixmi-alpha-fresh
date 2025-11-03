@@ -12,24 +12,43 @@ interface GalleryCardProps {
 
 export default function GalleryCard({ item, onEdit, onDelete }: GalleryCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  
+
+  // Detect if the image is a video
+  const isVideo = item.image && (
+    item.image.includes('.mp4') ||
+    item.image.includes('.webm') ||
+    item.image.includes('video/')
+  );
+
   return (
-    <div 
+    <div
       className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 hover:border-accent hover:border-[3px] transition-all group bg-slate-800"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {item.image ? (
         <div className="relative w-full h-full">
-          <SafeImage 
-            src={item.image} 
-            alt="Gallery image" 
-            fill 
-            className="object-cover transition-opacity duration-200"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            priority={false}
-            onError={() => console.warn('Failed to load gallery image:', item.image)}
-          />
+          {isVideo ? (
+            <video
+              src={item.image}
+              className="w-full h-full object-cover"
+              autoPlay
+              loop
+              muted
+              playsInline
+              onError={() => console.warn('Failed to load gallery video:', item.image)}
+            />
+          ) : (
+            <SafeImage
+              src={item.image}
+              alt="Gallery image"
+              fill
+              className="object-cover transition-opacity duration-200"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              priority={false}
+              onError={() => console.warn('Failed to load gallery image:', item.image)}
+            />
+          )}
         </div>
       ) : (
         <div className="w-full h-full bg-slate-800 flex items-center justify-center">
