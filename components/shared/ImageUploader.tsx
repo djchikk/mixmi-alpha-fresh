@@ -107,31 +107,42 @@ export default function ImageUploader({
   // Handle file drop
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setError(null);
-    
+
     console.log("🔍 File drop detected:", acceptedFiles.length ? acceptedFiles[0].name : "No files");
-    
+
     if (acceptedFiles.length === 0) {
       return;
     }
-    
+
     const file = acceptedFiles[0];
-    
+    const isVideo = file.type.startsWith('video/');
+
+    // Videos are only allowed in profile section
+    if (isVideo && section !== 'profile') {
+      const sectionName = section === 'profile' ? 'Profile' :
+                         section === 'gallery' ? 'Gallery' :
+                         section === 'spotlight' ? 'Spotlight' :
+                         section === 'shop' ? 'Shop' : section;
+      setError(`Videos are only allowed in the Profile section. ${sectionName} accepts images only.`);
+      return;
+    }
+
     // Check if GIF is allowed in this section
     if (file.type === 'image/gif' && !areGifsAllowed) {
-      const sectionName = section === 'profile' ? 'Profile' : 
-                         section === 'gallery' ? 'Gallery' : 
-                         section === 'spotlight' ? 'Spotlight' : 
+      const sectionName = section === 'profile' ? 'Profile' :
+                         section === 'gallery' ? 'Gallery' :
+                         section === 'spotlight' ? 'Spotlight' :
                          section === 'shop' ? 'Shop' : section;
       setError(`GIFs are not allowed in the ${sectionName} section. Please use a static image (PNG, JPG, WebP).`);
       return;
     }
-    
-    // Check file size (10MB limit for testing large GIFs)
+
+    // Check file size (10MB limit for videos and large GIFs)
     if (file.size > 10 * 1024 * 1024) {
-      setError("Image must be less than 10MB");
+      setError(isVideo ? "Video must be less than 10MB (5-10 seconds max)" : "Image must be less than 10MB");
       return;
     }
-    
+
     // Process file using the hook
     processFile(file).catch(err => {
       setError('Failed to process file. Please try again.');
@@ -140,9 +151,14 @@ export default function ImageUploader({
   }, [areGifsAllowed, section, processFile]);
   
   // Configure dropzone
-  const allowedFormats = areGifsAllowed 
-    ? { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.svg'] }
-    : { 'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.svg'] }; // No GIF for non-GIF sections
+  const allowedFormats = section === 'profile'
+    ? {
+        'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.svg'],
+        'video/*': ['.mp4', '.webm']
+      }
+    : areGifsAllowed
+      ? { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.svg'] }
+      : { 'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.svg'] }; // No GIF for non-GIF sections
   
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
@@ -215,14 +231,20 @@ export default function ImageUploader({
   
   // Generate help text based on section and compression level
   const getHelpText = () => {
-    const baseText = areGifsAllowed
-      ? "PNG, JPG or GIF (max 10MB)"
-      : `PNG, JPG or WebP (max 10MB) - GIFs not allowed in Shop`;
+    let baseText;
+
+    if (section === 'profile') {
+      baseText = "PNG, JPG, GIF, or Video (MP4/WebM, max 10MB, 5-10 seconds)";
+    } else if (areGifsAllowed) {
+      baseText = "PNG, JPG or GIF (max 10MB)";
+    } else {
+      baseText = `PNG, JPG or WebP (max 10MB) - GIFs not allowed in Shop`;
+    }
 
     if (showCompressionOptions) {
       return getCompressionHelpText(baseText);
     }
-    
+
     return baseText;
   };
   
@@ -382,30 +404,49 @@ export default function ImageUploader({
         </div>
       )}
 
-      {/* Image preview */}
+      {/* Image/Video preview */}
       {preview && !isProcessing && (
         <div className={`relative overflow-hidden bg-slate-800 ${getAspectRatioClass()}`}>
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-full h-full object-cover"
-            onError={() => {
-              // If preview fails to load, show better error state
-              if (activeTab === "url") {
-                setUrlValidationState('invalid');
-                setUrlFeedback('Image failed to load. Please check the URL or try a different image.');
-                setPreview(null);
-                onImageChange("");
-              }
-            }}
-          />
+          {preview.includes('.mp4') || preview.includes('.webm') || preview.startsWith('blob:') && currentFile?.type.startsWith('video/') ? (
+            <video
+              src={preview}
+              className="w-full h-full object-cover"
+              autoPlay
+              loop
+              muted
+              playsInline
+              onError={() => {
+                if (activeTab === "url") {
+                  setUrlValidationState('invalid');
+                  setUrlFeedback('Video failed to load. Please check the URL or try a different video.');
+                  setPreview(null);
+                  onImageChange("");
+                }
+              }}
+            />
+          ) : (
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-full h-full object-cover"
+              onError={() => {
+                // If preview fails to load, show better error state
+                if (activeTab === "url") {
+                  setUrlValidationState('invalid');
+                  setUrlFeedback('Image failed to load. Please check the URL or try a different image.');
+                  setPreview(null);
+                  onImageChange("");
+                }
+              }}
+            />
+          )}
           <div className="absolute bottom-0 left-0 right-0 bg-black/70 py-2 px-3 flex justify-center">
-            <button 
+            <button
               onClick={handleClearImage}
               className="text-white text-sm flex items-center hover:text-[#81E4F2] transition-colors"
             >
               <Trash2 size={16} className="mr-1" />
-              Replace Image
+              Replace {preview.includes('.mp4') || preview.includes('.webm') ? 'Video' : 'Image'}
             </button>
           </div>
         </div>

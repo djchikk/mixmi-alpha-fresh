@@ -23,7 +23,14 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, onUp
     if (!isOwnProfile) return;
     setIsModalOpen(true);
   };
-  
+
+  // Detect if avatar_url is a video
+  const isVideo = profile.avatar_url && (
+    profile.avatar_url.includes('.mp4') ||
+    profile.avatar_url.includes('.webm') ||
+    profile.avatar_url.includes('video/')
+  );
+
   return (
     <>
       <div className="relative w-[400px] h-[400px] mx-auto">
@@ -36,15 +43,27 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, onUp
           <div className="relative w-full h-full">
             {profile.avatar_url ? (
               <div className="relative w-full h-full">
-                <SafeImage
-                  src={profile.avatar_url}
-                  alt={profile.name || "Profile"}
-                  fill
-                  className="object-cover rounded-[6px] transition-opacity duration-200"
-                  sizes="400px"
-                  priority
-                  onError={() => console.warn('Failed to load profile image:', profile.avatar_url)}
-                />
+                {isVideo ? (
+                  <video
+                    src={profile.avatar_url}
+                    className="w-full h-full object-cover rounded-[6px]"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onError={() => console.warn('Failed to load profile video:', profile.avatar_url)}
+                  />
+                ) : (
+                  <SafeImage
+                    src={profile.avatar_url}
+                    alt={profile.name || "Profile"}
+                    fill
+                    className="object-cover rounded-[6px] transition-opacity duration-200"
+                    sizes="400px"
+                    priority
+                    onError={() => console.warn('Failed to load profile image:', profile.avatar_url)}
+                  />
+                )}
               </div>
             ) : (
               <div className="w-full h-full bg-[#151C2A] flex items-center justify-center">

@@ -25,6 +25,7 @@ export default function ProfileImageModal({
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
   const [isGifUpload, setIsGifUpload] = useState(false);
+  const [isVideoUpload, setIsVideoUpload] = useState(false);
   
   // Initialize state when modal opens (no cleanup needed since component unmounts on close)
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function ProfileImageModal({
       setIsSaving(false);
       setSaveStatus('idle');
       setIsGifUpload(false);
+      setIsVideoUpload(false);
     }
   }, [isOpen, currentImage]); // Include currentImage to ensure preview updates when modal opens
   
@@ -80,24 +82,31 @@ export default function ProfileImageModal({
       
       // Ensure "Saving..." is visible for at least 500ms (like gallery sections)
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Detect if it's a GIF for longer delay
-      const isGif = currentImageData?.startsWith('data:image/gif') || 
+
+      // Detect if it's a GIF or Video for longer delay
+      const isGif = currentImageData?.startsWith('data:image/gif') ||
                    currentImageData?.includes('.gif') ||
                    currentImageData?.toLowerCase().includes('gif');
-      
-      console.log('🎯 Profile save completed, showing success message...', { isGif });
-      
-      // Store GIF detection result in state for consistent UI
+      const isVideo = currentImageData?.includes('.mp4') ||
+                     currentImageData?.includes('.webm') ||
+                     currentImageData?.toLowerCase().includes('video');
+
+      console.log('🎯 Profile save completed, showing success message...', { isGif, isVideo });
+
+      // Store GIF/Video detection result in state for consistent UI
       setIsGifUpload(isGif);
-      
+      setIsVideoUpload(isVideo);
+
       // Show success state
       setSaveStatus('complete');
+
+      // GIFs and Videos need more time to load and render
+      const delay = isGif || isVideo ? 3500 : 1500;
       
-      // GIFs need more time to load and render
-      const delay = isGif ? 3500 : 1500;
-      
-      console.log(`✨ Showing success message for ${delay}ms:`, isGif ? 'Profile GIF will appear momentarily!' : 'Profile image will appear momentarily!');
+      console.log(`✨ Showing success message for ${delay}ms:`,
+        isVideo ? 'Profile video will appear momentarily!' :
+        isGif ? 'Profile GIF will appear momentarily!' :
+        'Profile image will appear momentarily!');
       
       // Brief delay to show success message, then close
       setTimeout(() => {
@@ -119,7 +128,7 @@ export default function ProfileImageModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile Image">
       <div className="space-y-6">
         <p className="text-sm text-gray-400">
-          You can upload an image file or provide a URL.
+          You can upload an image, GIF, or short video (MP4/WebM, 5-10 seconds max).
         </p>
         
         <ImageUploader
@@ -145,11 +154,13 @@ export default function ProfileImageModal({
                 <div className="w-5 h-5 border-2 border-[#81E4F2] border-t-transparent rounded-full animate-spin"></div>
               )}
               <span className={`font-medium text-gray-300 ${
-                saveStatus === 'saving' ? 'text-sm' : 
-                isGifUpload ? 'text-base' : 'text-sm'
+                saveStatus === 'saving' ? 'text-sm' :
+                (isGifUpload || isVideoUpload) ? 'text-base' : 'text-sm'
               }`}>
-                {saveStatus === 'saving' ? 'Saving...' : 
-                 isGifUpload ? 'Profile GIF will appear momentarily! ✨' : 'Profile image will appear momentarily! ✨'}
+                {saveStatus === 'saving' ? 'Saving...' :
+                 isVideoUpload ? 'Profile video will appear momentarily! ✨' :
+                 isGifUpload ? 'Profile GIF will appear momentarily! ✨' :
+                 'Profile image will appear momentarily! ✨'}
               </span>
             </div>
           </div>

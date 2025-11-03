@@ -77,34 +77,36 @@ export function useImageUpload({
     try {
       setIsProcessing(true);
       setCurrentFile(file);
-      
+
       const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
       const isGif = file.type === 'image/gif';
-      
+      const isVideo = file.type.startsWith('video/');
+      const fileType = isVideo ? 'video' : isGif ? 'GIF' : 'image';
+
       // Stage 1: Analyzing
       setUploadProgress({
         stage: 'analyzing',
-        message: `Analyzing your ${isGif ? 'GIF' : 'image'}...`,
+        message: `Analyzing your ${fileType}...`,
         progress: 10,
         fileSize: `${fileSizeMB}MB`
       });
-      
+
       console.log(`📂 Processing file: ${file.name} (${fileSizeMB}MB)`);
       console.log(`🎯 Type: ${file.type} | Section: ${section}`);
-      
+
       await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Stage 2: Uploading to Supabase Storage (no more base64!)
+
+      // Stage 2: Uploading to Supabase Storage
       setUploadProgress({
         stage: 'uploading',
-        message: `Uploading to cloud storage...`,
+        message: `Uploading ${fileType} to cloud storage...`,
         progress: 30,
         fileSize: `${fileSizeMB}MB`
       });
-      
+
       // Use wallet address or fallback ID for upload
       const userId = walletAddress || 'anonymous';
-      
+
       // Upload to Supabase Storage - this returns a clean URL
       // Map section to imageType for storage service
       const imageType = section === 'profile' ? 'profile' :
@@ -115,40 +117,40 @@ export function useImageUpload({
         imageType as any,
         `${section}-${Date.now()}` // Unique item ID
       );
-      
+
       if (!uploadResult.success) {
         throw new Error(uploadResult.error || 'Upload failed');
       }
-      
+
       // Stage 3: Complete
       setUploadProgress({
         stage: 'complete',
-        message: `${isGif ? 'GIF' : 'Image'} uploaded successfully! ✨`,
+        message: `${fileType.charAt(0).toUpperCase() + fileType.slice(1)} uploaded successfully! ✨`,
         progress: 100,
         fileSize: `${fileSizeMB}MB`
       });
-      
-      console.log('✅ Image uploaded to Supabase Storage:', uploadResult.data?.publicUrl);
-      
+
+      console.log(`✅ ${fileType} uploaded to Supabase Storage:`, uploadResult.data?.publicUrl);
+
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Return the clean Supabase Storage URL (NOT base64!)
+
+      // Return the clean Supabase Storage URL
       if (uploadResult.data?.publicUrl) {
         onImageChange(uploadResult.data.publicUrl);
         resetUpload();
         return;
       }
-      
+
       throw new Error('Failed to get public URL from upload');
-      
+
     } catch (error) {
-      console.error('🚨 Image upload failed:', error);
+      console.error('🚨 Upload failed:', error);
       setIsProcessing(false);
       setCurrentFile(null);
-      setUploadProgress({ 
-        stage: 'idle', 
-        message: '', 
-        progress: 0 
+      setUploadProgress({
+        stage: 'idle',
+        message: '',
+        progress: 0
       });
       throw error;
     }
