@@ -463,7 +463,7 @@ export default function ImageUploader({
           <input
             ref={manualFileInputRef}
             type="file"
-            accept="image/*"
+            accept={section === 'profile' ? 'image/*,video/mp4,video/webm' : 'image/*'}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
