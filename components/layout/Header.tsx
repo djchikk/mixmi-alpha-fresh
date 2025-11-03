@@ -121,6 +121,22 @@ export default function Header() {
     };
   }, [showAvatarDropdown]);
 
+  // Handle Escape key for upload type modal
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showUploadTypeModal) {
+        setShowUploadTypeModal(false);
+      }
+    };
+
+    if (showUploadTypeModal) {
+      document.addEventListener('keydown', handleEscape);
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showUploadTypeModal]);
+
   return (
     <>
     <header className="bg-background py-4 px-6 flex items-center fixed top-0 left-0 right-0 z-50 border-b border-border">

@@ -169,11 +169,11 @@ function ExpandedPackTrack({
             onClick={(e) => {
               e.stopPropagation();
               if (packTrack.content_type === 'radio_station') {
-                if ((window as any).loadRadioTrack) {
+                if (typeof window !== 'undefined' && (window as any).loadRadioTrack) {
                   (window as any).loadRadioTrack(packTrack);
                 }
               } else {
-                if ((window as any).addToCart) {
+                if (typeof window !== 'undefined' && (window as any).addToCart) {
                   (window as any).addToCart(packTrack);
                 }
               }
@@ -399,6 +399,8 @@ export default function Crate({ className = '' }: CrateProps) {
     return () => {
       if (currentAudio) {
         currentAudio.pause();
+        currentAudio.src = ''; // Release the audio resource
+        currentAudio.load(); // Force browser to release memory
       }
     };
   }, [currentAudio]);
