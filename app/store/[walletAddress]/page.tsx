@@ -445,16 +445,30 @@ export default function CreatorStorePage() {
               title="Go to Profile"
             >
               {profileImage ? (
-                <img
-                  src={profileImage}
-                  alt={creatorName || 'Creator'}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.error('Failed to load profile image');
-                    // Hide the broken image and show fallback
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
+                profileImage.includes('.mp4') || profileImage.includes('.webm') || profileImage.includes('video/') ? (
+                  <video
+                    src={profileImage}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onError={() => {
+                      console.error('Failed to load profile video');
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={profileImage}
+                    alt={creatorName || 'Creator'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Failed to load profile image');
+                      // Hide the broken image and show fallback
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
                   {creatorName ? creatorName.charAt(0).toUpperCase() : 'M'}
