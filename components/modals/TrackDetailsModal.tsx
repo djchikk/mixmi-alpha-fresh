@@ -185,16 +185,16 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     }
   }, [isOpen, track.id]);
 
-  // Fetch individual loops if this is a loop pack OR individual songs if this is an EP
+  // Fetch individual loops if this is a loop pack OR individual songs if this is an EP OR individual stations if this is a station pack
   useEffect(() => {
-    if (isOpen && (track.content_type === 'loop_pack' || track.content_type === 'ep') && track.id) {
+    if (isOpen && (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') && track.id) {
       setLoadingLoops(true);
 
-      // For loop packs and EPs, use the track's own ID to find individual items
+      // For loop packs, EPs, and station packs, use the track's own ID to find individual items
       const packId = track.pack_id || track.id.split('-loc-')[0]; // Remove location suffix if present
 
       // Determine what content type to fetch
-      const contentType = track.content_type === 'loop_pack' ? 'loop' : 'full_song';
+      const contentType = track.content_type === 'loop_pack' ? 'loop' : track.content_type === 'station_pack' ? 'radio_station' : 'full_song';
 
       supabase
         .from('ip_tracks')
@@ -285,8 +285,11 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
   // Audio playback functions for individual loops
   const handleLoopPlayPause = async (loop: IPTrack) => {
-    if (!loop.audio_url) return;
-    
+    const audioSource = loop.audio_url || loop.stream_url;
+    if (!audioSource) return;
+
+    const isRadioStation = loop.content_type === 'radio_station';
+
     // If clicking the same loop that's playing, pause it
     if (playingLoopId === loop.id && currentAudio) {
       currentAudio.pause();
@@ -298,7 +301,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       }
       return;
     }
-    
+
     // Stop any currently playing audio
     if (currentAudio) {
       currentAudio.pause();
@@ -308,35 +311,45 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       clearTimeout(previewTimeout);
       setPreviewTimeout(null);
     }
-    
+
     try {
       // Create and play new audio
-      const audio = new Audio(loop.audio_url);
-      audio.crossOrigin = 'anonymous';
-      
+      const audio = new Audio(audioSource);
+
+      // Only set crossOrigin for regular tracks that need audio analysis
+      // Radio stations don't need this and it causes CORS errors
+      if (!isRadioStation) {
+        audio.crossOrigin = 'anonymous';
+      }
+
       await audio.play();
       setCurrentAudio(audio);
       setPlayingLoopId(loop.id);
-      
-      // 20-second preview timeout
-      const timeoutId = setTimeout(() => {
-        audio.pause();
-        setPlayingLoopId(null);
-        setCurrentAudio(null);
-      }, 20000);
-      setPreviewTimeout(timeoutId);
-      
-      // Handle audio end
-      audio.addEventListener('ended', () => {
-        setPlayingLoopId(null);
-        setCurrentAudio(null);
-        if (previewTimeout) {
-          clearTimeout(previewTimeout);
-        }
-      });
-      
+
+      // For radio stations, stream continuously (no timeout)
+      // For regular tracks, 20-second preview timeout
+      if (!isRadioStation) {
+        const timeoutId = setTimeout(() => {
+          audio.pause();
+          setPlayingLoopId(null);
+          setCurrentAudio(null);
+        }, 20000);
+        setPreviewTimeout(timeoutId);
+      }
+
+      // Handle audio end (only for non-radio tracks)
+      if (!isRadioStation) {
+        audio.addEventListener('ended', () => {
+          setPlayingLoopId(null);
+          setCurrentAudio(null);
+          if (previewTimeout) {
+            clearTimeout(previewTimeout);
+          }
+        });
+      }
+
     } catch (error) {
-      console.error('Loop playback failed:', error);
+      console.error('Playback failed:', error);
     }
   };
 
@@ -649,6 +662,106 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               ) : (
                 <div className="text-xs text-gray-500">
                   No individual songs found for this EP
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Individual Stations Section - For Station Packs Only */}
+          {track.content_type === 'station_pack' && (
+            <div>
+              <Divider title="INDIVIDUAL STATIONS" />
+              {loadingLoops ? (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div className="animate-spin rounded-full h-3 w-3 border border-gray-500 border-t-transparent"></div>
+                  Loading stations...
+                </div>
+              ) : packLoops.length > 0 ? (
+                <div className="space-y-2">
+                  {packLoops.map((station, index) => (
+                    <DraggableModalTrack key={station.id} track={station}>
+                      <div
+                        className="group flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors cursor-grab"
+                      >
+                      {/* Station Number */}
+                      <div className="flex-shrink-0 w-6 h-6 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#FB923C'}}>
+                        {index + 1}
+                      </div>
+
+                      {/* Station Name */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-gray-300 text-xs font-medium truncate">
+                          {station.title || `Station ${index + 1}`}
+                        </div>
+                        {station.artist && (
+                          <div className="text-gray-500 text-xs truncate">
+                            {station.artist}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Drag Handle - appears on hover */}
+                      <div
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-600 rounded transition-all cursor-grab"
+                        title="Drag to Radio Widget"
+                      >
+                        <GripVertical className="w-3 h-3 text-gray-400 hover:text-white" />
+                      </div>
+
+                      {/* Play/Pause Button */}
+                      <button
+                        onClick={() => handleLoopPlayPause(station)}
+                        disabled={!station.stream_url}
+                        className="flex-shrink-0 w-8 h-8 rounded flex items-center justify-center transition-colors disabled:bg-gray-700"
+                        style={{
+                          backgroundColor: station.stream_url ? '#FB923C' : '#374151',
+                          opacity: playingLoopId === station.id ? 0.8 : 1
+                        }}
+                        onMouseEnter={(e) => {
+                          if (station.stream_url) {
+                            (e.target as HTMLElement).style.opacity = '0.8';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (station.stream_url) {
+                            (e.target as HTMLElement).style.opacity = playingLoopId === station.id ? '0.8' : '1';
+                          }
+                        }}
+                        title={
+                          !station.stream_url
+                            ? 'Stream not available'
+                            : playingLoopId === station.id
+                              ? `Pause ${station.title}`
+                              : `Play ${station.title}`
+                        }
+                      >
+                        {playingLoopId === station.id ? (
+                          // Pause icon
+                          <svg
+                            className="w-3 h-3 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z" />
+                          </svg>
+                        ) : (
+                          // Play icon
+                          <svg
+                            className="w-3 h-3 text-white ml-0.5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M5 4v12l10-6z" />
+                          </svg>
+                        )}
+                      </button>
+                      </div>
+                    </DraggableModalTrack>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500">
+                  No individual stations found for this pack
                 </div>
               )}
             </div>
