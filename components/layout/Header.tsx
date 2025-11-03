@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SignInModal from "../modals/SignInModal";
 import IPTrackModal from "../modals/IPTrackModal";
+import RadioStationModal from "../modals/RadioStationModal";
 import { generateAvatar } from "@/lib/avatarUtils";
 
 export default function Header() {
@@ -31,7 +32,9 @@ export default function Header() {
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [showUploadTypeModal, setShowUploadTypeModal] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isRadioModalOpen, setIsRadioModalOpen] = useState(false);
   const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
   const avatarDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -167,7 +170,7 @@ export default function Header() {
           mixer
         </Link>
         <button
-          onClick={() => setIsUploadModalOpen(true)}
+          onClick={() => setShowUploadTypeModal(true)}
           className="text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95 transition-all duration-300 tracking-wide"
         >
           upload
@@ -323,7 +326,7 @@ export default function Header() {
 
             <button
               onClick={() => {
-                setIsUploadModalOpen(true);
+                setShowUploadTypeModal(true);
                 setIsMobileMenuOpen(false);
               }}
               className="text-gray-300 hover:text-white font-medium active:scale-95 transition-all duration-300 text-left"
@@ -416,12 +419,60 @@ export default function Header() {
         onClose={() => setIsSignInModalOpen(false)}
       />
 
-      {/* Upload Modal */}
+      {/* Upload Type Selection Modal */}
+      {showUploadTypeModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-slate-900 rounded-lg p-8 max-w-md w-full mx-4 border border-gray-700">
+            <h2 className="text-2xl font-bold text-white mb-6 text-center">What would you like to upload?</h2>
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  setShowUploadTypeModal(false);
+                  setIsUploadModalOpen(true);
+                }}
+                className="w-full bg-[#81E4F2] hover:bg-[#81E4F2]/90 text-black font-bold py-4 px-6 rounded-lg transition-all hover:scale-105 active:scale-95"
+              >
+                🎵 Upload Track / Loop / Song
+              </button>
+              <button
+                onClick={() => {
+                  setShowUploadTypeModal(false);
+                  setIsRadioModalOpen(true);
+                }}
+                className="w-full bg-[#FB923C] hover:bg-[#FB923C]/90 text-black font-bold py-4 px-6 rounded-lg transition-all hover:scale-105 active:scale-95"
+              >
+                📻 Upload Radio Station
+              </button>
+            </div>
+            <button
+              onClick={() => setShowUploadTypeModal(false)}
+              className="mt-6 w-full text-gray-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Track Upload Modal */}
       <IPTrackModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onSave={() => {
           setIsUploadModalOpen(false);
+          // Refresh globe data if on globe page
+          if (typeof window !== 'undefined' && (window as any).refreshGlobeData) {
+            (window as any).refreshGlobeData();
+          }
+        }}
+      />
+
+      {/* Radio Station Upload Modal */}
+      <RadioStationModal
+        isOpen={isRadioModalOpen}
+        onClose={() => setIsRadioModalOpen(false)}
+        onUploadComplete={() => {
+          setIsRadioModalOpen(false);
           // Refresh globe data if on globe page
           if (typeof window !== 'undefined' && (window as any).refreshGlobeData) {
             (window as any).refreshGlobeData();
