@@ -8,7 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "../ui/Button";
 // SyncStatus not needed for alpha version
-import { Menu, X, ShoppingCart } from "lucide-react";
+import { Menu, X, ShoppingCart, Music, Radio, Video } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SignInModal from "../modals/SignInModal";
@@ -186,7 +186,13 @@ export default function Header() {
           mixer
         </Link>
         <button
-          onClick={() => setShowUploadTypeModal(true)}
+          onClick={() => {
+            if (!isAuthenticated || !walletAddress) {
+              setIsSignInModalOpen(true);
+            } else {
+              setShowUploadTypeModal(true);
+            }
+          }}
           className="text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95 transition-all duration-300 tracking-wide"
         >
           upload
@@ -437,35 +443,77 @@ export default function Header() {
 
       {/* Upload Type Selection Modal */}
       {showUploadTypeModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-slate-900 rounded-lg p-8 max-w-md w-full mx-4 border border-gray-700">
-            <h2 className="text-2xl font-bold text-white mb-6 text-center">What would you like to upload?</h2>
-            <div className="space-y-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-[#1a2332] to-[#0f1419] rounded-xl shadow-2xl w-full max-w-2xl border border-white/10">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <h2 className="text-2xl font-bold text-white">What would you like to upload?</h2>
               <button
-                onClick={() => {
-                  setShowUploadTypeModal(false);
-                  setIsUploadModalOpen(true);
-                }}
-                className="w-full bg-[#81E4F2] hover:bg-[#81E4F2]/90 text-black font-bold py-4 px-6 rounded-lg transition-all hover:scale-105 active:scale-95"
+                onClick={() => setShowUploadTypeModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
               >
-                🎵 Upload Track / Loop / Song
-              </button>
-              <button
-                onClick={() => {
-                  setShowUploadTypeModal(false);
-                  setIsRadioModalOpen(true);
-                }}
-                className="w-full bg-[#FB923C] hover:bg-[#FB923C]/90 text-black font-bold py-4 px-6 rounded-lg transition-all hover:scale-105 active:scale-95"
-              >
-                📻 Upload Radio Station
+                <X size={24} />
               </button>
             </div>
-            <button
-              onClick={() => setShowUploadTypeModal(false)}
-              className="mt-6 w-full text-gray-400 hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
+
+            {/* Content */}
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Music Option - Purple to Gold gradient */}
+                <button
+                  onClick={() => {
+                    setShowUploadTypeModal(false);
+                    setIsUploadModalOpen(true);
+                  }}
+                  className="group relative bg-gradient-to-br from-[#9772F4]/20 via-[#C4A8F4]/15 to-[#FFE4B5]/20 hover:from-[#9772F4]/30 hover:via-[#C4A8F4]/25 hover:to-[#FFE4B5]/30 border-2 border-[#9772F4]/30 hover:border-[#C4A8F4] rounded-xl p-8 transition-all duration-300 hover:scale-105"
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#9772F4]/30 to-[#FFE4B5]/30 flex items-center justify-center group-hover:from-[#9772F4]/40 group-hover:to-[#FFE4B5]/40 transition-colors">
+                      <Music className="w-8 h-8 text-[#FFE4B5]" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-white mb-2">Music</h3>
+                      <p className="text-sm text-gray-400">Upload songs, loops, or packs</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Radio Option */}
+                <button
+                  onClick={() => {
+                    setShowUploadTypeModal(false);
+                    setIsRadioModalOpen(true);
+                  }}
+                  className="group relative bg-gradient-to-br from-[#FB923C]/20 to-[#FB923C]/5 hover:from-[#FB923C]/30 hover:to-[#FB923C]/10 border-2 border-[#FB923C]/30 hover:border-[#FB923C] rounded-xl p-8 transition-all duration-300 hover:scale-105"
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-[#FB923C]/20 flex items-center justify-center group-hover:bg-[#FB923C]/30 transition-colors">
+                      <Radio className="w-8 h-8 text-[#FB923C]" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-white mb-2">Radio</h3>
+                      <p className="text-sm text-gray-400">Add live radio stations</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Video Option (Coming Soon) */}
+                <div className="relative bg-gradient-to-br from-gray-700/20 to-gray-700/5 border-2 border-gray-700/30 rounded-xl p-8 opacity-50 cursor-not-allowed">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-gray-700/20 flex items-center justify-center">
+                      <Video className="w-8 h-8 text-gray-500" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-gray-400 mb-2">Video</h3>
+                      <p className="text-sm text-gray-500">Coming soon</p>
+                    </div>
+                  </div>
+                  <div className="absolute top-3 right-3 bg-gray-700/50 text-gray-300 text-xs px-2 py-1 rounded-full">
+                    Soon
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -35,14 +35,14 @@ export default function ContentTypeSelector({
         {/* Content */}
         <div className="p-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Music Option */}
+            {/* Music Option - Purple to Gold gradient */}
             <button
               onClick={onSelectMusic}
-              className="group relative bg-gradient-to-br from-[#9772F4]/20 to-[#9772F4]/5 hover:from-[#9772F4]/30 hover:to-[#9772F4]/10 border-2 border-[#9772F4]/30 hover:border-[#9772F4] rounded-xl p-8 transition-all duration-300 hover:scale-105"
+              className="group relative bg-gradient-to-br from-[#9772F4]/20 via-[#C4A8F4]/15 to-[#FFE4B5]/20 hover:from-[#9772F4]/30 hover:via-[#C4A8F4]/25 hover:to-[#FFE4B5]/30 border-2 border-[#9772F4]/30 hover:border-[#C4A8F4] rounded-xl p-8 transition-all duration-300 hover:scale-105"
             >
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-[#9772F4]/20 flex items-center justify-center group-hover:bg-[#9772F4]/30 transition-colors">
-                  <Music className="w-8 h-8 text-[#9772F4]" />
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#9772F4]/30 to-[#FFE4B5]/30 flex items-center justify-center group-hover:from-[#9772F4]/40 group-hover:to-[#FFE4B5]/40 transition-colors">
+                  <Music className="w-8 h-8 text-[#FFE4B5]" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-xl font-bold text-white mb-2">Music</h3>
