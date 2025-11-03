@@ -66,6 +66,162 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
   );
 }
 
+// Draggable component for expanded pack tracks
+interface ExpandedPackTrackProps {
+  packTrack: IPTrack;
+  packIndex: number;
+  parentTrack: any;
+  playingTrack: string | null;
+  handleTrackClick: (track: any) => void;
+  getBorderColor: (track: any) => string;
+  getBorderThickness: (track: any) => string;
+}
+
+function ExpandedPackTrack({
+  packTrack,
+  packIndex,
+  parentTrack,
+  playingTrack,
+  handleTrackClick,
+  getBorderColor,
+  getBorderThickness
+}: ExpandedPackTrackProps) {
+  const [isPackTrackHovered, setIsPackTrackHovered] = React.useState(false);
+  const [{ isDragging: isPackTrackDragging }, packDrag] = useDrag(() => ({
+    type: 'COLLECTION_TRACK',
+    item: () => ({
+      track: {
+        id: packTrack.id,
+        title: packTrack.title,
+        artist: packTrack.artist,
+        imageUrl: getOptimizedTrackImage(packTrack, 64),
+        cover_image_url: packTrack.cover_image_url,
+        bpm: packTrack.bpm || 120,
+        audioUrl: packTrack.audio_url || packTrack.stream_url,
+        audio_url: packTrack.audio_url,
+        stream_url: packTrack.stream_url,
+        content_type: packTrack.content_type,
+        price_stx: packTrack.price_stx,
+        license: packTrack.license
+      },
+      sourceIndex: -1
+    }),
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [packTrack]);
+
+  const badgeColor = parentTrack.content_type === 'ep' ? '#FFE4B5' : parentTrack.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8';
+  const textColor = parentTrack.content_type === 'ep' ? '#000000' : '#FFFFFF';
+
+  return (
+    <div
+      ref={packDrag}
+      style={{
+        position: 'relative',
+        flexShrink: 0,
+        opacity: isPackTrackDragging ? 0.5 : 1
+      }}
+    >
+      <div
+        className={`cursor-grab transition-all ${getBorderColor(packTrack)} ${getBorderThickness(packTrack)}`}
+        style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          position: 'relative',
+          backgroundColor: '#1a1a1a'
+        }}
+        onClick={() => handleTrackClick({
+          ...packTrack,
+          audioUrl: packTrack.audio_url || packTrack.stream_url
+        })}
+        onMouseEnter={() => setIsPackTrackHovered(true)}
+        onMouseLeave={() => setIsPackTrackHovered(false)}
+      >
+        <img
+          src={getOptimizedTrackImage(packTrack, 64)}
+          alt={packTrack.title}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+        />
+
+        {/* Dark overlay on hover */}
+        {isPackTrackHovered && (
+          <div className="absolute inset-0 bg-black bg-opacity-70" />
+        )}
+
+        {/* Track number badge */}
+        <div
+          className="absolute top-1 left-1 w-4 h-4 rounded text-xs font-bold flex items-center justify-center"
+          style={{ backgroundColor: badgeColor, color: textColor }}
+        >
+          {packIndex + 1}
+        </div>
+
+        {/* Cart/Radio button - bottom left - show on hover */}
+        {isPackTrackHovered && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (packTrack.content_type === 'radio_station') {
+                if ((window as any).loadRadioTrack) {
+                  (window as any).loadRadioTrack(packTrack);
+                }
+              } else {
+                if ((window as any).addToCart) {
+                  (window as any).addToCart(packTrack);
+                }
+              }
+            }}
+            className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
+            title={packTrack.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to cart"}
+          >
+            {packTrack.content_type === 'radio_station' ? (
+              <Radio className="w-3.5 h-3.5 text-white" />
+            ) : (
+              <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            )}
+          </button>
+        )}
+
+        {/* Play icon - centered - show on hover */}
+        {isPackTrackHovered && (packTrack.audio_url || packTrack.stream_url) && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+        )}
+
+        {/* Playing indicator when playing */}
+        {playingTrack === packTrack.id && !isPackTrackHovered && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
+            <div className="flex gap-1">
+              <div className="w-1 h-3 bg-green-400 animate-pulse" />
+              <div className="w-1 h-3 bg-green-400 animate-pulse animation-delay-200" />
+              <div className="w-1 h-3 bg-green-400 animate-pulse animation-delay-400" />
+            </div>
+          </div>
+        )}
+
+        {/* BPM - hidden for radio stations */}
+        {packTrack.content_type !== 'radio_station' && (
+          <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
+            {packTrack.bpm || 120}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Crate({ className = '' }: CrateProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -669,148 +825,18 @@ export default function Crate({ className = '' }: CrateProps) {
                   animation: 'slideInRight 0.2s ease-out'
                 }}
               >
-                {packTracks[track.id].map((packTrack: IPTrack, packIndex: number) => {
-                  const ExpandedTrackElement = () => {
-                    const [isPackTrackHovered, setIsPackTrackHovered] = React.useState(false);
-                    const [{ isDragging: isPackTrackDragging }, packDrag] = useDrag(() => ({
-                      type: 'COLLECTION_TRACK',
-                      item: () => ({
-                        track: {
-                          id: packTrack.id,
-                          title: packTrack.title,
-                          artist: packTrack.artist,
-                          imageUrl: getOptimizedTrackImage(packTrack, 64),
-                          cover_image_url: packTrack.cover_image_url, // Keep original high-res URL for preview
-                          bpm: packTrack.bpm || 120,
-                          audioUrl: packTrack.audio_url || packTrack.stream_url,
-                          audio_url: packTrack.audio_url, // Preserve original property
-                          stream_url: packTrack.stream_url,
-                          content_type: packTrack.content_type,
-                          price_stx: packTrack.price_stx,
-                          license: packTrack.license
-                        },
-                        sourceIndex: -1
-                      }),
-                      collect: (monitor) => ({
-                        isDragging: monitor.isDragging(),
-                      }),
-                    }), [packTrack]);
-
-                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8';
-                    const textColor = track.content_type === 'ep' ? '#000000' : '#FFFFFF';
-
-                    return (
-                      <div
-                        ref={packDrag}
-                        style={{
-                          position: 'relative',
-                          flexShrink: 0,
-                          opacity: isPackTrackDragging ? 0.5 : 1
-                        }}
-                      >
-                        <div
-                          className={`cursor-grab transition-all ${getBorderColor(packTrack)} ${getBorderThickness(packTrack)}`}
-                          style={{
-                            width: '64px',
-                            height: '64px',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            position: 'relative',
-                            backgroundColor: '#1a1a1a'
-                          }}
-                          onClick={() => handleTrackClick({
-                            ...packTrack,
-                            audioUrl: packTrack.audio_url || packTrack.stream_url
-                          })}
-                          onMouseEnter={() => setIsPackTrackHovered(true)}
-                          onMouseLeave={() => setIsPackTrackHovered(false)}
-                        >
-                          <img
-                            src={getOptimizedTrackImage(packTrack, 64)}
-                            alt={packTrack.title}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover'
-                            }}
-                          />
-
-                          {/* Dark overlay on hover */}
-                          {isPackTrackHovered && (
-                            <div className="absolute inset-0 bg-black bg-opacity-70" />
-                          )}
-
-                          {/* Track number badge */}
-                          <div
-                            className="absolute top-1 left-1 w-4 h-4 rounded text-xs font-bold flex items-center justify-center"
-                            style={{ backgroundColor: badgeColor, color: textColor }}
-                          >
-                            {packIndex + 1}
-                          </div>
-
-                          {/* Cart/Radio button - bottom left - show on hover */}
-                          {isPackTrackHovered && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (packTrack.content_type === 'radio_station') {
-                                  // Send radio stations to RadioWidget
-                                  if ((window as any).loadRadioTrack) {
-                                    (window as any).loadRadioTrack(packTrack);
-                                  }
-                                } else {
-                                  // Send regular tracks to cart
-                                  if ((window as any).addToCart) {
-                                    (window as any).addToCart(packTrack);
-                                  }
-                                }
-                              }}
-                              className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
-                              title={packTrack.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to cart"}
-                            >
-                              {packTrack.content_type === 'radio_station' ? (
-                                <Radio className="w-3.5 h-3.5 text-white" />
-                              ) : (
-                                <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                              )}
-                            </button>
-                          )}
-
-                          {/* Play icon - centered - show on hover */}
-                          {isPackTrackHovered && (packTrack.audio_url || packTrack.stream_url) && (
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z"/>
-                              </svg>
-                            </div>
-                          )}
-
-                          {/* Playing indicator when playing */}
-                          {playingTrack === packTrack.id && !isPackTrackHovered && (
-                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
-                              <div className="flex gap-1">
-                                <div className="w-1 h-3 bg-green-400 animate-pulse" />
-                                <div className="w-1 h-3 bg-green-400 animate-pulse animation-delay-200" />
-                                <div className="w-1 h-3 bg-green-400 animate-pulse animation-delay-400" />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* BPM - hidden for radio stations */}
-                          {packTrack.content_type !== 'radio_station' && (
-                            <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
-                              {packTrack.bpm || 120}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  };
-
-                  return <ExpandedTrackElement key={packTrack.id} />;
-                })}
+                {packTracks[track.id].map((packTrack: IPTrack, packIndex: number) => (
+                  <ExpandedPackTrack
+                    key={packTrack.id}
+                    packTrack={packTrack}
+                    packIndex={packIndex}
+                    parentTrack={track}
+                    playingTrack={playingTrack}
+                    handleTrackClick={handleTrackClick}
+                    getBorderColor={getBorderColor}
+                    getBorderThickness={getBorderThickness}
+                  />
+                ))}
               </div>
             )}
               </div>
