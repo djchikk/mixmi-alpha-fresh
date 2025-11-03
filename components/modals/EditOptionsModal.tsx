@@ -130,8 +130,8 @@ export default function EditOptionsModal({
             {/* Edit Track Details */}
             <button
               onClick={() => {
-                onClose();
                 onEditDetails();
+                // Don't call onClose() here - let the parent handle the transition
               }}
               className="w-full p-4 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors text-left border border-slate-600 hover:border-[#81E4F2] group"
             >
@@ -139,7 +139,7 @@ export default function EditOptionsModal({
                 <span className="text-2xl">✏️</span>
                 <div>
                   <div className="text-white font-medium group-hover:text-[#81E4F2]">
-                    Edit Track Details
+                    Edit Details
                   </div>
                   <div className="text-sm text-gray-400">
                     Update title, description, pricing, etc.

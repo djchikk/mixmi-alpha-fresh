@@ -31,6 +31,8 @@ interface Track {
     title: string;
     artist: string;
   };
+  stream_url?: string;
+  primary_location?: string;
 }
 
 interface CertificateViewerProps {
@@ -39,8 +41,13 @@ interface CertificateViewerProps {
 }
 
 export default function CertificateViewer({ track, onClose }: CertificateViewerProps) {
+  const isRadio = track.content_type === 'radio_station' || track.content_type === 'station_pack';
+
   // Get color based on content type
   const getBorderColor = () => {
+    if (isRadio) {
+      return '#FB923C'; // Orange for radio stations
+    }
     if (track.content_type === 'loop' || track.content_type === 'loop_pack') {
       return '#9772F4'; // Purple for remixable
     }
@@ -111,6 +118,14 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   const licenseInfo = getLicenseInfo();
 
   const getGenerationInfo = () => {
+    // Radio stations don't have generations
+    if (isRadio) {
+      return {
+        emoji: '',
+        label: ''
+      };
+    }
+
     const gen = track.generation || 0;
     const emojis = {
       0: '🌱',
@@ -137,7 +152,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>mixmi Certificate - ${track.title}</title>
+  <title>mixmi ${isRadio ? 'Registration' : 'Certificate'} - ${track.title}</title>
   <style>
     * {
       margin: 0;
@@ -291,8 +306,8 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       <div class="logo-container">
         <img src="/logos/logotype-mixmi.svg" alt="mixmi" class="logo" />
       </div>
-      <h1>CERTIFICATE</h1>
-      <div class="subtitle">Verified Upload</div>
+      <h1>${isRadio ? 'REGISTRATION CERTIFICATE' : 'CERTIFICATE'}</h1>
+      <div class="subtitle">${isRadio ? 'Radio Station Registry' : 'Verified Upload'}</div>
     </div>
 
     <div class="track-info">
@@ -300,39 +315,47 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       <div class="track-details">
         <h2>${track.title}</h2>
         <div class="artist">${track.artist}</div>
-        <span class="type">${generationInfo.emoji} ${track.content_type.replace(/_/g, ' ')} · ${generationInfo.label}</span>
+        <span class="type">${isRadio ? track.content_type.replace(/_/g, ' ') : `${generationInfo.emoji} ${track.content_type.replace(/_/g, ' ')} · ${generationInfo.label}`}</span>
       </div>
     </div>
 
     <div class="section">
-      <div class="section-title">Upload Details</div>
+      <div class="section-title">${isRadio ? 'Registration Details' : 'Upload Details'}</div>
       <div class="info-row">
-        <span class="info-label">Upload Date:</span>
+        <span class="info-label">${isRadio ? 'Registration Date:' : 'Upload Date:'}</span>
         <span class="info-value">${formatDate(track.created_at)}</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Track ID:</span>
+        <span class="info-label">${isRadio ? 'Station ID:' : 'Track ID:'}</span>
         <span class="info-value">${track.id}</span>
       </div>
       <div class="info-row">
         <span class="info-label">Uploader Wallet:</span>
         <span class="info-value">${shortenWallet(track.primary_uploader_wallet)}</span>
       </div>
-      ${track.bpm ? `<div class="info-row">
+      ${isRadio && track.stream_url ? `<div class="info-row">
+        <span class="info-label">Stream URL:</span>
+        <span class="info-value">${track.stream_url}</span>
+      </div>` : ''}
+      ${isRadio && track.primary_location ? `<div class="info-row">
+        <span class="info-label">Location:</span>
+        <span class="info-value">${track.primary_location}</span>
+      </div>` : ''}
+      ${!isRadio && track.bpm ? `<div class="info-row">
         <span class="info-label">BPM:</span>
         <span class="info-value">${track.bpm}</span>
       </div>` : ''}
-      ${track.key ? `<div class="info-row">
+      ${!isRadio && track.key ? `<div class="info-row">
         <span class="info-label">Key:</span>
         <span class="info-value">${track.key}</span>
       </div>` : ''}
-      <div class="info-row">
+      ${!isRadio ? `<div class="info-row">
         <span class="info-label">Price:</span>
         <span class="info-value">${track.price_stx} STX</span>
-      </div>
+      </div>` : ''}
     </div>
 
-    ${isRemix ? `
+    ${!isRadio && isRemix ? `
     <div class="section">
       <div class="section-title">Built From Source Loops</div>
       <div class="ip-rights">
@@ -372,7 +395,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
         </p>
       </div>
     </div>
-    ` : `
+    ` : !isRadio ? `
     <div class="section">
       <div class="section-title">Intellectual Property Rights</div>
       <div class="ip-rights">
@@ -386,9 +409,9 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
         </div>
       </div>
     </div>
-    `}
+    ` : ''}
 
-    <div class="section">
+    ${!isRadio ? `<div class="section">
       <div class="section-title">Usage Permissions</div>
       <div class="ip-rights">
         <div class="info-row">
@@ -404,10 +427,10 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
           <span class="info-value">${licenseInfo.downloadPrice}</span>
         </div>
       </div>
-    </div>
+    </div>` : ''}
 
     <div class="footer">
-      This certificate verifies the upload and attribution of this content on mixmi Alpha.<br>
+      ${isRadio ? 'This certificate verifies the registration of this radio station on mixmi Alpha.' : 'This certificate verifies the upload and attribution of this content on mixmi Alpha.'}<br>
       Generated on ${formatDate(new Date().toISOString())}<br>
       <strong>mixmi.app</strong> • Discover • Mix • Create
     </div>
@@ -427,6 +450,37 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   };
 
   const handleCopyText = () => {
+    if (isRadio) {
+      // Simplified text for radio stations
+      const text = `
+mixmi REGISTRATION CERTIFICATE
+Radio Station Registry
+═══════════════════════════════════════════
+
+Station: ${track.title}
+Artist: ${track.artist}
+Content Type: ${track.content_type.replace(/_/g, ' ')}
+Registration Date: ${formatDate(track.created_at)}
+Station ID: ${track.id}
+
+REGISTRATION DETAILS
+Uploader Wallet: ${track.primary_uploader_wallet}
+${track.stream_url ? `Stream URL: ${track.stream_url}` : ''}
+${track.primary_location ? `Location: ${track.primary_location}` : ''}
+
+This certificate verifies the registration of this
+radio station on mixmi Alpha.
+
+Generated: ${formatDate(new Date().toISOString())}
+mixmi.app • Discover • Mix • Create
+      `.trim();
+
+      navigator.clipboard.writeText(text);
+      toast.success('Certificate info copied to clipboard!');
+      return;
+    }
+
+    // Original text for tracks
     const sourceTracksText = isRemix && (track.parent_track_1 || track.parent_track_2) ? `
 BUILT FROM SOURCE LOOPS
 This ${generationInfo.label} remix combines:
@@ -526,8 +580,12 @@ mixmi.app • Discover • Mix • Create
                   className="h-4"
                 />
               </div>
-              <div className="text-3xl font-bold mb-2 tracking-wider" style={{ color: borderColor }}>CERTIFICATE</div>
-              <div className="text-sm text-gray-600 uppercase tracking-widest font-semibold">Verified Upload</div>
+              <div className="text-3xl font-bold mb-2 tracking-wider" style={{ color: borderColor }}>
+                {isRadio ? 'REGISTRATION CERTIFICATE' : 'CERTIFICATE'}
+              </div>
+              <div className="text-sm text-gray-600 uppercase tracking-widest font-semibold">
+                {isRadio ? 'Radio Station Registry' : 'Verified Upload'}
+              </div>
             </div>
 
             {/* Track Info */}
@@ -548,7 +606,10 @@ mixmi.app • Discover • Mix • Create
                     color: borderColor === '#FFE4B5' ? '#1e293b' : 'white'
                   }}
                 >
-                  {generationInfo.emoji} {track.content_type.replace(/_/g, ' ')} · {generationInfo.label}
+                  {isRadio
+                    ? track.content_type.replace(/_/g, ' ')
+                    : `${generationInfo.emoji} ${track.content_type.replace(/_/g, ' ')} · ${generationInfo.label}`
+                  }
                 </span>
               </div>
             </div>
@@ -556,19 +617,23 @@ mixmi.app • Discover • Mix • Create
             {/* Certificate Details */}
             <div className="space-y-4">
               <div>
-                <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">Upload Details</div>
+                <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                  {isRadio ? 'Registration Details' : 'Upload Details'}
+                </div>
                 <div className="space-y-2 text-sm">
-                  <DetailRow label="Upload Date" value={formatDate(track.created_at)} />
-                  <DetailRow label="Track ID" value={track.id} />
+                  <DetailRow label={isRadio ? "Registration Date" : "Upload Date"} value={formatDate(track.created_at)} />
+                  <DetailRow label={isRadio ? "Station ID" : "Track ID"} value={track.id} />
                   <DetailRow label="Uploader" value={shortenWallet(track.primary_uploader_wallet)} />
-                  {track.bpm && <DetailRow label="BPM" value={track.bpm.toString()} />}
-                  {track.key && <DetailRow label="Key" value={track.key} />}
-                  <DetailRow label="Price" value={`${track.price_stx} STX`} />
+                  {isRadio && track.stream_url && <DetailRow label="Stream URL" value={track.stream_url} />}
+                  {isRadio && track.primary_location && <DetailRow label="Location" value={track.primary_location} />}
+                  {!isRadio && track.bpm && <DetailRow label="BPM" value={track.bpm.toString()} />}
+                  {!isRadio && track.key && <DetailRow label="Key" value={track.key} />}
+                  {!isRadio && <DetailRow label="Price" value={`${track.price_stx} STX`} />}
                 </div>
               </div>
 
-              {/* Source Tracks (for remixes) */}
-              {isRemix && (track.parent_track_1 || track.parent_track_2) && (
+              {/* Source Tracks (for remixes) - Not shown for radio */}
+              {!isRadio && isRemix && (track.parent_track_1 || track.parent_track_2) && (
                 <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
                   <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
                     Built From Source Loops
@@ -611,46 +676,53 @@ mixmi.app • Discover • Mix • Create
                 </div>
               )}
 
-              {/* IP Rights */}
-              <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
-                <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
-                  Intellectual Property Rights
-                </div>
-                {isRemix ? (
-                  <>
-                    <div className="space-y-2 text-sm">
-                      <DetailRow label="Remix Created By" value={shortenWallet(track.primary_uploader_wallet)} />
-                      <DetailRow label="Commission" value="20% on sales" />
-                      <DetailRow label="IP Ownership" value="100% flows to source loop creators" />
-                    </div>
-                    <p className="text-gray-500 text-xs mt-3 italic">
-                      For detailed IP breakdown, view this track on mixmi
-                    </p>
-                  </>
-                ) : (
-                  <div className="space-y-2 text-sm">
-                    <DetailRow label="Composition Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
-                    <DetailRow label="Sound Recording Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+              {/* IP Rights - Not shown for radio */}
+              {!isRadio && (
+                <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
+                  <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                    Intellectual Property Rights
                   </div>
-                )}
-              </div>
+                  {isRemix ? (
+                    <>
+                      <div className="space-y-2 text-sm">
+                        <DetailRow label="Remix Created By" value={shortenWallet(track.primary_uploader_wallet)} />
+                        <DetailRow label="Commission" value="20% on sales" />
+                        <DetailRow label="IP Ownership" value="100% flows to source loop creators" />
+                      </div>
+                      <p className="text-gray-500 text-xs mt-3 italic">
+                        For detailed IP breakdown, view this track on mixmi
+                      </p>
+                    </>
+                  ) : (
+                    <div className="space-y-2 text-sm">
+                      <DetailRow label="Composition Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+                      <DetailRow label="Sound Recording Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* Usage Permissions */}
-              <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
-                <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
-                  Usage Permissions
+              {/* Usage Permissions - Not shown for radio */}
+              {!isRadio && (
+                <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
+                  <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                    Usage Permissions
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <DetailRow label="License Type" value={licenseInfo.type} />
+                    <DetailRow label="Platform Price" value={licenseInfo.platformPrice} />
+                    <DetailRow label="Download Price" value={licenseInfo.downloadPrice} />
+                  </div>
                 </div>
-                <div className="space-y-2 text-sm">
-                  <DetailRow label="License Type" value={licenseInfo.type} />
-                  <DetailRow label="Platform Price" value={licenseInfo.platformPrice} />
-                  <DetailRow label="Download Price" value={licenseInfo.downloadPrice} />
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8 pt-6 border-t border-gray-200">
-              This certificate verifies the upload and attribution of this content on mixmi Alpha.
+              {isRadio
+                ? 'This certificate verifies the registration of this radio station on mixmi Alpha.'
+                : 'This certificate verifies the upload and attribution of this content on mixmi Alpha.'
+              }
               <br />
               <span className="font-semibold">mixmi.app</span> • Discover • Mix • Create
             </div>

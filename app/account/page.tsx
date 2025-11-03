@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
 import CertificateViewer from "@/components/account/CertificateViewer";
 import IPTrackModal from "@/components/modals/IPTrackModal";
+import RadioStationModal from "@/components/modals/RadioStationModal";
 import TrackDetailsModal from "@/components/modals/TrackDetailsModal";
 import EditOptionsModal from "@/components/modals/EditOptionsModal";
 import InfoIcon from "@/components/shared/InfoIcon";
@@ -19,6 +20,7 @@ interface Track {
   artist: string;
   cover_image_url: string;
   audio_url?: string;
+  stream_url?: string;
   content_type: string;
   price_stx: number;
   bpm?: number;
@@ -33,7 +35,7 @@ interface Track {
 }
 
 interface ContentFilter {
-  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'hidden';
+  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'hidden';
 }
 
 export default function AccountPage() {
@@ -140,6 +142,12 @@ export default function AccountPage() {
       case 'ep':
         filtered = tracks.filter(track => track.content_type === 'ep' && !track.is_deleted);
         break;
+      case 'radio_station':
+        filtered = tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted);
+        break;
+      case 'station_pack':
+        filtered = tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted);
+        break;
       case 'hidden':
         filtered = tracks.filter(track => track.is_deleted === true);
         break;
@@ -165,6 +173,10 @@ export default function AccountPage() {
         return tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted).length;
       case 'ep':
         return tracks.filter(track => track.content_type === 'ep' && !track.is_deleted).length;
+      case 'radio_station':
+        return tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted).length;
+      case 'station_pack':
+        return tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted).length;
       case 'hidden':
         return tracks.filter(track => track.is_deleted === true).length;
       default:
@@ -270,6 +282,28 @@ export default function AccountPage() {
               </button>
 
               <button
+                onClick={() => setActiveFilter({ type: 'radio_station' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'radio_station'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Radio Stations ({getFilterCount({ type: 'radio_station' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'station_pack' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'station_pack'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Station Packs ({getFilterCount({ type: 'station_pack' })})
+              </button>
+
+              <button
                 onClick={() => setActiveFilter({ type: 'hidden' })}
                 className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                   activeFilter.type === 'hidden'
@@ -342,7 +376,7 @@ export default function AccountPage() {
                 <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
               )}
               {activeTab === "settings" && (
-                <SettingsTab />
+                <SettingsTab walletAddress={walletAddress} />
               )}
             </>
           )}
@@ -382,9 +416,16 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
     setIsEditModalOpen(true);
   };
 
+  const handleCancelEdit = () => {
+    setIsOptionsModalOpen(false);
+    setIsEditModalOpen(false);
+    setEditingTrack(null);
+  };
+
   const handleEditComplete = () => {
     setIsEditModalOpen(false);
     setEditingTrack(null);
+    setIsOptionsModalOpen(false); // Ensure options modal is also closed
     onRefresh();
   };
 
@@ -408,17 +449,30 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
         audioElement.currentTime = 0;
       }
 
+      // Get audio source - prefer audio_url, fallback to stream_url for radio stations
+      const audioSource = track.audio_url || track.stream_url;
+      if (!audioSource) return;
+
       // Play new track
-      const audio = new Audio(track.audio_url);
+      const audio = new Audio(audioSource);
+      const isRadio = track.content_type === 'radio_station' || track.content_type === 'station_pack';
+
+      // Only set crossOrigin for regular tracks, not radio (causes CORS issues)
+      if (!isRadio) {
+        audio.crossOrigin = 'anonymous';
+      }
+
       audio.play();
       setAudioElement(audio);
       setPlayingTrackId(track.id);
 
-      // Auto-stop after 20 seconds
-      setTimeout(() => {
-        audio.pause();
-        setPlayingTrackId(null);
-      }, 20000);
+      // Auto-stop after 20 seconds (but not for radio stations - let them stream)
+      if (!isRadio) {
+        setTimeout(() => {
+          audio.pause();
+          setPlayingTrackId(null);
+        }, 20000);
+      }
     }
   };
 
@@ -437,12 +491,14 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
     if (track.content_type === 'ep') return 'border-[#FFE4B5]';
     if (track.content_type === 'loop') return 'border-[#9772F4]';
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
+    if (track.content_type === 'radio_station') return 'border-[#FB923C]';
+    if (track.content_type === 'station_pack') return 'border-[#FB923C]';
     return 'border-[#9772F4]';
   };
 
-  // Get border thickness - thicker for multi-content (loop packs and EPs)
+  // Get border thickness - thicker for multi-content (packs and EPs)
   const getBorderThickness = (track: Track) => {
-    return (track.content_type === 'loop_pack' || track.content_type === 'ep') ? 'border-4' : 'border-2';
+    return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
   return (
@@ -512,7 +568,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
 
                     {/* Center: Play Button - Absolutely centered */}
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                      {track.audio_url && (
+                      {(track.audio_url || track.stream_url) && (
                         <button
                           onClick={(e) => handlePlayClick(track, e)}
                           className="transition-all hover:scale-110"
@@ -578,7 +634,8 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
                             );
                           }
                         }
-                        return null;
+                        // Return spacer for proper centering when no badge
+                        return <div className="w-12"></div>;
                       })()}
 
                       {/* Content Type Badge (center) with generation indicators */}
@@ -599,6 +656,8 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
                           </>
                         )}
                         {track.content_type === 'full_song' && 'SONG'}
+                        {track.content_type === 'radio_station' && 'RADIO'}
+                        {track.content_type === 'station_pack' && 'PACK'}
                         {!track.content_type && 'TRACK'}
                       </span>
 
@@ -629,26 +688,39 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
         <EditOptionsModal
           track={editingTrack}
           isOpen={isOptionsModalOpen}
-          onClose={() => {
-            setIsOptionsModalOpen(false);
-            setEditingTrack(null);
-          }}
+          onClose={handleCancelEdit}
           onEditDetails={handleOpenEditModal}
           onRefresh={onRefresh}
         />
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Modal - Conditional based on content type */}
       {editingTrack && (
-        <IPTrackModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setEditingTrack(null);
-          }}
-          track={editingTrack as any}
-          onSave={handleEditComplete}
-        />
+        <>
+          {/* Show RadioStationModal for radio content types */}
+          {(editingTrack.content_type === 'radio_station' || editingTrack.content_type === 'station_pack') ? (
+            <RadioStationModal
+              isOpen={isEditModalOpen}
+              onClose={() => {
+                setIsEditModalOpen(false);
+                setEditingTrack(null);
+              }}
+              track={editingTrack as any}
+              onSave={handleEditComplete}
+            />
+          ) : (
+            /* Show IPTrackModal for other content types */
+            <IPTrackModal
+              isOpen={isEditModalOpen}
+              onClose={() => {
+                setIsEditModalOpen(false);
+                setEditingTrack(null);
+              }}
+              track={editingTrack as any}
+              onSave={handleEditComplete}
+            />
+          )}
+        </>
       )}
 
       {/* Track Details Modal */}
@@ -758,7 +830,7 @@ function UploadHistoryTab({ tracks, onViewCertificate }: { tracks: Track[]; onVi
   );
 }
 
-function SettingsTab() {
+function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
   return (
     <div>
       <div className="max-w-2xl space-y-6">
@@ -777,8 +849,15 @@ function SettingsTab() {
           <p className="text-gray-400 text-sm mb-4">
             Your connected wallet is used for all transactions and as your identity on mixmi.
           </p>
-          <div className="text-xs text-gray-500 font-mono">
-            Connected: Connected wallet address will appear here
+          <div className="text-xs text-gray-500 font-mono bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
+            {walletAddress ? (
+              <div>
+                <span className="text-gray-400">Connected: </span>
+                <span className="text-[#81E4F2]">{walletAddress}</span>
+              </div>
+            ) : (
+              <span className="text-gray-600">No wallet connected</span>
+            )}
           </div>
         </div>
 

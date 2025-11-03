@@ -18,13 +18,18 @@ interface RadioStationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUploadComplete?: () => void;
+  track?: any; // For edit mode
+  onSave?: () => void; // For edit mode
 }
 
 export default function RadioStationModal({
   isOpen,
   onClose,
-  onUploadComplete
+  onUploadComplete,
+  track,
+  onSave
 }: RadioStationModalProps) {
+  const isEditMode = !!track;
   const { walletAddress, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
@@ -66,7 +71,7 @@ export default function RadioStationModal({
     limit: 5
   });
 
-  // Reset form when modal opens/closes
+  // Reset or populate form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       setContentType('radio_station');
@@ -85,8 +90,33 @@ export default function RadioStationModal({
       setShowLocationDropdown(false);
       setTermsAccepted(false);
       clearSuggestions();
+    } else if (isOpen && track) {
+      // Edit mode - populate form with existing track data
+      setContentType(track.content_type || 'radio_station');
+      setTitle(track.title || '');
+      setDescription(track.description || '');
+      setNotes(track.notes || '');
+      setStreamUrl(track.stream_url || '');
+      setCoverImageUrl(track.cover_image_url || '');
+      setTags(track.tags || []);
+      setLocation(track.primary_location || '');
+      setMetadataApiUrl(track.metadata_api_url || '');
+
+      // Set location coordinates if available
+      if (track.location_lat && track.location_lng) {
+        setLocationCoords({
+          lat: track.location_lat,
+          lng: track.location_lng
+        });
+      }
+
+      // For station packs, we don't populate individual stations in edit mode
+      // (editing individual stations within a pack is more complex)
+      setPackStations([{ name: '', streamUrl: '' }]);
+
+      setTermsAccepted(true); // Already accepted when originally uploaded
     }
-  }, [isOpen, clearSuggestions]);
+  }, [isOpen, track, clearSuggestions]);
 
   // Station pack handlers
   const MAX_STATIONS_PER_PACK = 5;
@@ -118,8 +148,8 @@ export default function RadioStationModal({
     }
     if (!description.trim()) newErrors.description = 'Description is required';
 
-    // Stream URL only required for single stations
-    if (contentType === 'radio_station') {
+    // Stream URL only required for single stations (and only in create mode or if editing a single station)
+    if (contentType === 'radio_station' && !isEditMode) {
       if (!streamUrl.trim()) newErrors.streamUrl = 'Stream URL is required';
 
       // Validate stream URL format
@@ -128,8 +158,9 @@ export default function RadioStationModal({
       }
     }
 
-    // For station packs, validate pack stations
-    if (contentType === 'station_pack') {
+    // For station packs in CREATE mode only, validate pack stations
+    // In EDIT mode, we don't show or validate pack stations (only metadata)
+    if (contentType === 'station_pack' && !isEditMode) {
       const validStations = packStations.filter(s => s.streamUrl.trim() !== '');
       if (validStations.length === 0) {
         newErrors.packStations = 'At least one station with a stream URL is required';
@@ -211,6 +242,35 @@ export default function RadioStationModal({
         }
       }
 
+      // EDIT MODE - Update existing track
+      if (isEditMode && track) {
+        const updatedTrack = {
+          title: title.trim(),
+          artist: title.trim(),
+          description: description.trim(),
+          notes: notes.trim() || null,
+          stream_url: streamUrl.trim() || track.stream_url, // Keep existing if not changed
+          metadata_api_url: metadataApiUrl.trim() || null,
+          cover_image_url: coverImageUrl,
+          tags: tags,
+          ...locationData,
+          updated_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase
+          .from('ip_tracks')
+          .update(updatedTrack)
+          .eq('id', track.id);
+
+        if (error) throw error;
+
+        showToast('✅ Radio station updated successfully!', 'success');
+        onSave?.();
+        onClose();
+        return;
+      }
+
+      // CREATE MODE - Insert new track(s)
       if (contentType === 'radio_station') {
         // Create single radio station
         const radioStation = {
@@ -340,7 +400,10 @@ export default function RadioStationModal({
               <Radio className="w-5 h-5 text-[#FB923C]" />
             </div>
             <h2 className="text-2xl font-bold text-white">
-              {contentType === 'station_pack' ? 'Add Station Pack' : 'Add Radio Station'}
+              {isEditMode
+                ? (contentType === 'station_pack' ? 'Edit Station Pack' : 'Edit Radio Station')
+                : contentType === 'station_pack' ? 'Add Station Pack' : 'Add Radio Station'
+              }
             </h2>
           </div>
           <button
@@ -354,7 +417,8 @@ export default function RadioStationModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 pb-24 space-y-6">
-          {/* Content Type Selection */}
+          {/* Content Type Selection - Hide in edit mode */}
+          {!isEditMode && (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-3">Content Type</label>
             <div className="grid grid-cols-2 gap-3">
@@ -395,6 +459,7 @@ export default function RadioStationModal({
               </button>
             </div>
           </div>
+          )}
 
           {/* Station/Pack Name */}
           <div>
@@ -471,8 +536,8 @@ export default function RadioStationModal({
           </div>
           )}
 
-          {/* Station Pack - Multiple Stations */}
-          {contentType === 'station_pack' && (
+          {/* Station Pack - Multiple Stations - Hide in edit mode */}
+          {contentType === 'station_pack' && !isEditMode && (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Stations in Pack <span className="text-red-400">*</span>
@@ -741,6 +806,11 @@ export default function RadioStationModal({
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   <span>{contentType === 'station_pack' ? 'Adding Pack...' : 'Adding Station...'}</span>
+                </>
+              ) : isEditMode ? (
+                <>
+                  <Upload size={20} />
+                  <span>Save Changes</span>
                 </>
               ) : (
                 <>
