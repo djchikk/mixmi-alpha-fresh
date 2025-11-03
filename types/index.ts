@@ -79,10 +79,14 @@ export interface IPTrack {
   description?: string;
   tell_us_more?: string; // New field for additional context
   tags: string[];
-  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix';
-  loop_category?: string; // Only for loops: 'vocals', 'beats', 'instrumentals', 'field_recording', or custom
+  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix' | 'radio_station' | 'station_pack';
+  loop_category?: string; // Only for loops: 'vocals', 'beats', 'instrumental', 'stem', 'other'
   sample_type: string; // Legacy field - will be replaced by content_type + loop_category
   bpm?: number; // Beats per minute - optional for full songs, essential for loops
+
+  // Radio Station fields (for content_type: 'radio_station')
+  stream_url?: string; // Direct audio stream endpoint
+  metadata_api_url?: string; // Optional API for "Now Playing" info
   key?: string; // Musical key signature - optional for both
   isrc?: string;
   social_urls?: Record<string, string>;

@@ -12,9 +12,11 @@ import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus } from 'lucide-react';
 import IPTrackModal from '@/components/modals/IPTrackModal';
+import ContentTypeSelector from '@/components/modals/ContentTypeSelector';
+import RadioStationModal from '@/components/modals/RadioStationModal';
 
 interface ContentFilter {
-  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'hidden';
+  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'hidden';
   category?: string;
 }
 
@@ -32,7 +34,9 @@ export default function CreatorStorePage() {
   const [creatorName, setCreatorName] = useState<string>('');
   const [actualWalletAddress, setActualWalletAddress] = useState<string>('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isContentTypeSelectorOpen, setIsContentTypeSelectorOpen] = useState(false);
+  const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
+  const [isRadioModalOpen, setIsRadioModalOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -212,6 +216,12 @@ export default function CreatorStorePage() {
       case 'ep':
         filtered = tracks.filter(track => track.content_type === 'ep' && !track.is_deleted);
         break;
+      case 'radio_station':
+        filtered = tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted);
+        break;
+      case 'station_pack':
+        filtered = tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted);
+        break;
       case 'hidden':
         filtered = tracks.filter(track => track.is_deleted === true);
         break;
@@ -280,6 +290,10 @@ export default function CreatorStorePage() {
         return tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted).length;
       case 'ep':
         return tracks.filter(track => track.content_type === 'ep' && !track.is_deleted).length;
+      case 'radio_station':
+        return tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted).length;
+      case 'station_pack':
+        return tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted).length;
       case 'hidden':
         return tracks.filter(track => track.is_deleted === true).length;
       default:
@@ -287,7 +301,9 @@ export default function CreatorStorePage() {
     }
   };
 
-  const handlePlayPreview = (trackId: string, audioUrl?: string) => {
+  const handlePlayPreview = (trackId: string, audioUrl?: string, isRadioStation?: boolean) => {
+    console.log('🎧 Creator Store handlePlayPreview called:', { trackId, audioUrl, isRadioStation });
+
     if (!audioUrl) return;
 
     if (playingTrack === trackId && currentAudio) {
@@ -314,20 +330,40 @@ export default function CreatorStorePage() {
     }
 
     const audio = new Audio(audioUrl);
-    audio.crossOrigin = 'anonymous';
+
+    // Only set crossOrigin for regular tracks that need audio analysis
+    // Radio stations don't need this and it causes CORS errors
+    if (!isRadioStation) {
+      audio.crossOrigin = 'anonymous';
+    }
+
     audio.volume = 0.5;
-    audio.play();
-    setCurrentAudio(audio);
-    setPlayingTrack(trackId);
 
-    const timeout = setTimeout(() => {
-      audio.pause();
-      audio.currentTime = 0;
-      setPlayingTrack(null);
-      setCurrentAudio(null);
-    }, 20000);
+    // Only set playingTrack state if audio actually starts playing
+    audio.play()
+      .then(() => {
+        console.log('✅ Creator Store audio playing successfully');
+        setCurrentAudio(audio);
+        setPlayingTrack(trackId);
 
-    setPreviewTimeout(timeout);
+        // For radio stations, don't use a timeout (they stream continuously)
+        // For regular tracks, use 20 second preview
+        if (!isRadioStation) {
+          const timeout = setTimeout(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            setPlayingTrack(null);
+            setCurrentAudio(null);
+          }, 20000);
+
+          setPreviewTimeout(timeout);
+        }
+      })
+      .catch(error => {
+        console.error('❌ Creator Store playback failed:', error);
+        setPlayingTrack(null);
+        setCurrentAudio(null);
+      });
   };
 
   const handleStopPreview = () => {
@@ -451,7 +487,7 @@ export default function CreatorStorePage() {
           {isOwnStore && (
             <div className="flex justify-start mb-6">
               <button
-                onClick={() => setIsUploadModalOpen(true)}
+                onClick={() => setIsContentTypeSelectorOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
               >
                 <Plus size={18} />
@@ -515,6 +551,28 @@ export default function CreatorStorePage() {
                 }`}
               >
                 EPs ({getFilterCount({ type: 'ep' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'radio_station' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'radio_station'
+                    ? 'bg-[#FB923C] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Radio Stations ({getFilterCount({ type: 'radio_station' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'station_pack' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'station_pack'
+                    ? 'bg-[#FB923C] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Radio Packs ({getFilterCount({ type: 'station_pack' })})
               </button>
 
               {isOwnStore && (
@@ -717,6 +775,60 @@ export default function CreatorStorePage() {
                     </div>
                   </div>
                 )}
+
+                {/* Radio Stations Section */}
+                {filteredTracks.filter(t => t.content_type === 'radio_station').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <h2 className="font-mono text-2xl font-bold text-[#FB923C] tracking-wide">radio stations</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FB923C]/50 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                      {filteredTracks
+                        .filter(t => t.content_type === 'radio_station')
+                        .slice(0, visibleCards)
+                        .map((track, index) => (
+                          <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
+                            <CompactTrackCardWithFlip
+                              track={track}
+                              isPlaying={playingTrack === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={isOwnStore}
+                              onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Radio Packs Section */}
+                {filteredTracks.filter(t => t.content_type === 'station_pack').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <h2 className="font-mono text-2xl font-bold text-[#FB923C] tracking-wide">radio packs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FB923C]/50 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+                      {filteredTracks
+                        .filter(t => t.content_type === 'station_pack')
+                        .slice(0, visibleCards)
+                        .map((track, index) => (
+                          <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
+                            <CompactTrackCardWithFlip
+                              track={track}
+                              isPlaying={playingTrack === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={isOwnStore}
+                              onDeleteTrack={isOwnStore ? handleDeleteTrack : undefined}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               /* Filtered view - single grid */
@@ -763,11 +875,36 @@ export default function CreatorStorePage() {
 
       <Crate />
 
-      {/* Upload Modal */}
+      {/* Content Type Selector */}
+      {isOwnStore && (
+        <ContentTypeSelector
+          isOpen={isContentTypeSelectorOpen}
+          onClose={() => setIsContentTypeSelectorOpen(false)}
+          onSelectMusic={() => {
+            setIsContentTypeSelectorOpen(false);
+            setIsMusicModalOpen(true);
+          }}
+          onSelectRadio={() => {
+            setIsContentTypeSelectorOpen(false);
+            setIsRadioModalOpen(true);
+          }}
+        />
+      )}
+
+      {/* Music Upload Modal */}
       {isOwnStore && (
         <IPTrackModal
-          isOpen={isUploadModalOpen}
-          onClose={() => setIsUploadModalOpen(false)}
+          isOpen={isMusicModalOpen}
+          onClose={() => setIsMusicModalOpen(false)}
+          onUploadComplete={refreshTracks}
+        />
+      )}
+
+      {/* Radio Station Upload Modal */}
+      {isOwnStore && (
+        <RadioStationModal
+          isOpen={isRadioModalOpen}
+          onClose={() => setIsRadioModalOpen(false)}
           onUploadComplete={refreshTracks}
         />
       )}

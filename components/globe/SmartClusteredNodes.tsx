@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { Text } from '@react-three/drei';
 import { TrackNode } from './types';
 import { NodeMesh } from './NodeMesh';
+import { RadioNodeMesh } from './RadioNodeMesh';
 import { latLngToVector3 } from './Globe';
 
 interface SmartClusteredNodesProps {
@@ -99,18 +100,30 @@ export function SmartClusteredNodes({ nodes, onNodeClick, onNodeHover }: SmartCl
     return null;
   }
   
+  // Helper function to render the appropriate node mesh
+  const renderNode = (node: TrackNode, onClick: () => void, onHover: (hovering: boolean) => void) => {
+    const isRadioStation = node.content_type === 'radio_station' || node.content_type === 'station_pack';
+    const NodeComponent = isRadioStation ? RadioNodeMesh : NodeMesh;
+
+    return (
+      <NodeComponent
+        key={node.id}
+        node={node}
+        onClick={onClick}
+        onHover={onHover}
+      />
+    );
+  };
+
   // If grouping fails, render nodes directly
   if (locationGroups.length === 0) {
     console.log('⚠️ Grouping failed, rendering nodes directly');
     return (
       <>
-        {nodes.map((node) => (
-          <NodeMesh
-            key={node.id}
-            node={node}
-            onClick={() => onNodeClick?.(node)}
-            onHover={(hovering) => onNodeHover?.(hovering ? node : null)}
-          />
+        {nodes.map((node) => renderNode(
+          node,
+          () => onNodeClick?.(node),
+          (hovering) => onNodeHover?.(hovering ? node : null)
         ))}
       </>
     );
@@ -123,16 +136,13 @@ export function SmartClusteredNodes({ nodes, onNodeClick, onNodeHover }: SmartCl
         
         if (group.nodes.length === 1) {
           // Single node - render normally
-          return (
-            <NodeMesh
-              key={group.nodes[0].id}
-              node={group.nodes[0]}
-              onClick={() => onNodeClick?.(group.nodes[0])}
-              onHover={(hovering) => {
-                setHoveredGroup(hovering ? group.key : null);
-                onNodeHover?.(hovering ? group.nodes[0] : null);
-              }}
-            />
+          return renderNode(
+            group.nodes[0],
+            () => onNodeClick?.(group.nodes[0]),
+            (hovering) => {
+              setHoveredGroup(hovering ? group.key : null);
+              onNodeHover?.(hovering ? group.nodes[0] : null);
+            }
           );
         }
         
@@ -161,14 +171,14 @@ export function SmartClusteredNodes({ nodes, onNodeClick, onNodeHover }: SmartCl
               
               return (
                 <group key={node.id} position={position}>
-                  <NodeMesh
-                    node={node}
-                    onClick={() => onNodeClick?.(node)}
-                    onHover={(hovering) => {
+                  {renderNode(
+                    node,
+                    () => onNodeClick?.(node),
+                    (hovering) => {
                       setHoveredGroup(hovering ? group.key : null);
                       onNodeHover?.(hovering ? node : null);
-                    }}
-                  />
+                    }
+                  )}
                 </group>
               );
             })}

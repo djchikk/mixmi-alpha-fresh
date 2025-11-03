@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, X, Play, Plus, Check, GripVertical } from 'lucide-react';
+import { Search, X, Play, Plus, Check, GripVertical, Radio } from 'lucide-react';
 import { TrackNode } from './types';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDrag } from 'react-dnd';
 
 interface GlobeSearchProps {
   nodes: TrackNode[];
-  onPlayPreview: (trackId: string, audioUrl?: string) => void;
+  onPlayPreview: (trackId: string, audioUrl?: string, isRadioStation?: boolean) => void;
   playingTrackId: string | null;
   onAddToCollection?: (track: TrackNode) => void;
 }
@@ -17,8 +17,9 @@ interface GlobeSearchProps {
 const FILTER_TYPES = [
   { id: 'loops', label: 'Loops' },
   { id: 'loop_pack', label: 'Loop Packs' },
-  { id: 'ep', label: 'EPs' }, // NEW: For EP content!
+  { id: 'ep', label: 'EPs' },
   { id: 'songs', label: 'Songs' },
+  { id: 'radio', label: 'Radio' }, // NEW: For radio stations!
   { id: 'instrumental', label: 'Instrumental' },
   { id: 'beats', label: 'Beats' },
   { id: 'vocal', label: 'Vocal' },
@@ -37,7 +38,17 @@ function DraggableSearchResult({ track, children }: DraggableSearchResultProps) 
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
-      return { track };
+      // Prepare complete track data with all necessary properties
+      return {
+        track: {
+          ...track,
+          imageUrl: track.imageUrl,
+          cover_image_url: track.imageUrl, // Ensure cover_image_url is set for image preview
+          audioUrl: track.audioUrl || track.stream_url,
+          audio_url: track.audioUrl, // Preserve original property
+          stream_url: track.stream_url, // Include stream_url for radio stations
+        }
+      };
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
@@ -171,11 +182,12 @@ export default function GlobeSearch({
     if (activeFilters.size > 0) {
       filtered = filtered.filter(track => {
         const tags = Array.isArray(track.tags) ? track.tags : [];
-        
+
         if (activeFilters.has('loops') && track.content_type === 'loop') return true;
         if (activeFilters.has('loop_pack') && track.content_type === 'loop_pack') return true;
         if (activeFilters.has('ep') && track.content_type === 'ep') return true;
         if (activeFilters.has('songs') && track.content_type === 'full_song') return true;
+        if (activeFilters.has('radio') && track.content_type === 'radio_station') return true;
         if (activeFilters.has('instrumental') && tags.includes('instrumental')) return true;
         if (activeFilters.has('beats') && tags.includes('beats')) return true;
         if (activeFilters.has('vocal') && tags.includes('vocal')) return true;
@@ -403,7 +415,7 @@ export default function GlobeSearch({
                     </div>
                     
                     <button
-                      onClick={() => onPlayPreview(track.id, track.audioUrl)}
+                      onClick={() => onPlayPreview(track.id, track.audioUrl, track.content_type === 'radio_station')}
                       className="
                         p-1 opacity-0 group-hover:opacity-100
                         hover:bg-[#252a3a] rounded transition-all
@@ -418,17 +430,38 @@ export default function GlobeSearch({
                     </button>
                     <button
                       onClick={() => {
-                        // Add to cart via global function
-                        if ((window as any).addToCart) {
-                          (window as any).addToCart(track);
+                        // Prepare complete track data with all necessary properties
+                        const completeTrack = {
+                          ...track,
+                          imageUrl: track.imageUrl,
+                          cover_image_url: track.imageUrl, // Ensure cover_image_url is set for image display
+                          audioUrl: track.audioUrl || track.stream_url,
+                          audio_url: track.audioUrl, // Preserve original property
+                          stream_url: track.stream_url, // Include stream_url for radio stations
+                        };
+
+                        if (track.content_type === 'radio_station') {
+                          // Send radio stations to RadioWidget
+                          if ((window as any).loadRadioTrack) {
+                            (window as any).loadRadioTrack(completeTrack);
+                          }
+                        } else {
+                          // Add regular tracks to cart
+                          if ((window as any).addToCart) {
+                            (window as any).addToCart(completeTrack);
+                          }
                         }
                       }}
                       className="p-1 opacity-0 group-hover:opacity-100 hover:bg-[#252a3a] rounded transition-all"
-                      title="Add to Cart"
+                      title={track.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to Cart"}
                     >
-                      <svg className="w-3 h-3 text-gray-200" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
+                      {track.content_type === 'radio_station' ? (
+                        <Radio className="w-3 h-3 text-gray-200" />
+                      ) : (
+                        <svg className="w-3 h-3 text-gray-200" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      )}
                     </button>
                     <button
                       onClick={() => handleAddToCollection(track)}

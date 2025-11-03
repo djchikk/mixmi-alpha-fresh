@@ -8,7 +8,7 @@ import TrackDetailsModal from '../modals/TrackDetailsModal';
 import { useDrag } from 'react-dnd';
 import InfoIcon from '../shared/InfoIcon';
 import SafeImage from '../shared/SafeImage';
-import { GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { GripVertical, ChevronDown, ChevronUp, Radio } from 'lucide-react';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -16,7 +16,7 @@ import { supabase } from '@/lib/supabase';
 interface CompactTrackCardWithFlipProps {
   track: IPTrack;
   isPlaying: boolean;
-  onPlayPreview: (trackId: string, audioUrl?: string) => void;
+  onPlayPreview: (trackId: string, audioUrl?: string, isRadioStation?: boolean) => void;
   onStopPreview?: () => void;
   showEditControls: boolean;
   onPurchase?: (track: IPTrack) => void;
@@ -64,10 +64,10 @@ export default function CompactTrackCardWithFlip({
     fetchUsername();
   }, [track.primary_uploader_wallet]);
 
-  // Fetch loops when pack is expanded (for loop_pack) or tracks when EP is expanded
+  // Fetch loops when pack is expanded (for loop_pack) or tracks when EP is expanded or stations when station_pack is expanded
   useEffect(() => {
     const fetchPackTracks = async () => {
-      if (!isPackExpanded || (track.content_type !== 'loop_pack' && track.content_type !== 'ep')) {
+      if (!isPackExpanded || (track.content_type !== 'loop_pack' && track.content_type !== 'ep' && track.content_type !== 'station_pack')) {
         console.log('🔍 Not fetching pack tracks:', { isPackExpanded, content_type: track.content_type });
         return;
       }
@@ -80,8 +80,8 @@ export default function CompactTrackCardWithFlip({
       const packId = track.pack_id || track.id.split('-loc-')[0];
       console.log('🔍 Fetching pack tracks for:', packId, track.content_type);
 
-      // For loop packs, fetch loops. For EPs, fetch full songs
-      const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : 'full_song';
+      // For loop packs, fetch loops. For EPs, fetch full songs. For station packs, fetch radio stations
+      const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : track.content_type === 'station_pack' ? 'radio_station' : 'full_song';
 
       const { data, error } = await supabase
         .from('ip_tracks')
@@ -117,8 +117,9 @@ export default function CompactTrackCardWithFlip({
         loopAudio.pause();
       }
 
-      // Play new loop
-      const audio = new Audio(loop.audio_url);
+      // Play new loop (support both audio_url and stream_url for radio stations)
+      const audioSource = loop.stream_url || loop.audio_url;
+      const audio = new Audio(audioSource);
       audio.play();
       setLoopAudio(audio);
       setPlayingLoopId(loop.id);
@@ -150,8 +151,8 @@ export default function CompactTrackCardWithFlip({
         ...track,
         imageUrl: getOptimizedTrackImage(track, 64),
         cover_image_url: track.cover_image_url, // CRITICAL: Keep original high-res URL
-        // Ensure we have audioUrl for mixer compatibility
-        audioUrl: track.audio_url
+        // Ensure we have audioUrl for mixer compatibility (use stream_url for radio stations)
+        audioUrl: track.stream_url || track.audio_url
       };
 
       return { track: optimizedTrack };
@@ -173,8 +174,12 @@ export default function CompactTrackCardWithFlip({
     if (track.content_type === 'loop_pack') {
       return `Loop Pack (${(track as any).loops_per_pack || '?'} loops)`;
     }
-    return track.sample_type === 'vocals' ? 'Vocal' : 
-           track.sample_type === 'instrumentals' ? 'Instrumental' : 
+    if (track.content_type === 'radio_station') return 'Radio Station';
+    if (track.content_type === 'station_pack') {
+      return `Station Pack (${track.total_loops || '?'} stations)`;
+    }
+    return track.sample_type === 'vocals' ? 'Vocal' :
+           track.sample_type === 'instrumentals' ? 'Instrumental' :
            'Track';
   };
 
@@ -184,20 +189,37 @@ export default function CompactTrackCardWithFlip({
     if (track.content_type === 'ep') return 'border-[#FFE4B5]';
     if (track.content_type === 'loop') return 'border-[#9772F4]';
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
+    if (track.content_type === 'radio_station') return 'border-[#FB923C]';
+    if (track.content_type === 'station_pack') return 'border-[#FB923C]';
     // Fallback for legacy data
     return track.sample_type === 'vocals' ? 'border-[#9772F4]' : 'border-[#FFE4B5]';
   };
 
-  // Get border thickness - thicker for multi-content (loop packs and EPs)
+  // Get border thickness - thicker for multi-content (loop packs, EPs, and station packs)
   const getBorderThickness = () => {
-    return (track.content_type === 'loop_pack' || track.content_type === 'ep') ? 'border-4' : 'border-2';
+    return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
 
-  // Handle play click
+  // Handle play click - supports both audio_url (tracks) and stream_url (radio)
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onPlayPreview(track.id, track.audio_url);
+    // For radio stations, use stream_url; otherwise use audio_url
+    const audioSource = track.stream_url || track.audio_url;
+    const isRadioStation = track.content_type === 'radio_station' || track.content_type === 'station_pack';
+
+    console.log('🎵 Play button clicked:', {
+      trackId: track.id,
+      title: track.title,
+      content_type: track.content_type,
+      isRadioStation,
+      isPlaying,
+      stream_url: track.stream_url,
+      audio_url: track.audio_url,
+      audioSource
+    });
+
+    onPlayPreview(track.id, audioSource, isRadioStation);
   };
 
   // Handle purchase click - add to cart
@@ -352,12 +374,14 @@ export default function CompactTrackCardWithFlip({
 
                     {/* Center: Play Button - Absolutely centered */}
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                      {/* Play Button - centered */}
-                      {track.audio_url && (
+                      {/* Play Button - centered (for tracks with audio_url or radio stations with stream_url) */}
+                      {(track.audio_url || track.stream_url) && (
                         <button
                           onClick={handlePlayClick}
                           onMouseLeave={() => {
-                            if (isPlaying && onStopPreview) {
+                            // Only stop preview on mouse leave for regular tracks, not radio stations
+                            const isRadioStation = track.content_type === 'radio_station';
+                            if (isPlaying && onStopPreview && !isRadioStation) {
                               onStopPreview();
                             }
                           }}
@@ -376,20 +400,20 @@ export default function CompactTrackCardWithFlip({
                       )}
                     </div>
 
-                    {/* Chevron Button - for loop packs and EPs - positioned on right side, vertically centered */}
-                    {(track.content_type === 'loop_pack' || track.content_type === 'ep') && (
+                    {/* Chevron Button - for loop packs, EPs, and station packs - positioned on right side, vertically centered */}
+                    {(track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsPackExpanded(!isPackExpanded);
                         }}
                         className="absolute right-1 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center transition-all hover:scale-110 z-10"
-                        title={isPackExpanded ? (track.content_type === 'ep' ? "Collapse tracks" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : "Expand loops")}
+                        title={isPackExpanded ? (track.content_type === 'ep' ? "Collapse tracks" : track.content_type === 'station_pack' ? "Collapse stations" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : track.content_type === 'station_pack' ? "Expand stations" : "Expand loops")}
                       >
                         {isPackExpanded ? (
-                          <ChevronUp className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }} strokeWidth={3} />
+                          <ChevronUp className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }} strokeWidth={3} />
                         ) : (
-                          <ChevronDown className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }} strokeWidth={3} />
+                          <ChevronDown className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }} strokeWidth={3} />
                         )}
                       </button>
                     )}
@@ -397,8 +421,9 @@ export default function CompactTrackCardWithFlip({
                     {/* Payment Pending Warning - REMOVED: No longer needed for simplified payment model */}
 
                     {/* Bottom Section: Price/Remix Icon, Content Type Badge, BPM */}
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
+                    <div className="absolute bottom-2 left-0 right-0 flex items-center justify-between">
                       {/* Buy Button OR Remix Icon (left) - compact */}
+                      <div className="pl-2">
                       {(() => {
                         // Songs and EPs ALWAYS show download price (never mixer icon)
                         if (track.content_type === 'full_song' || track.content_type === 'ep') {
@@ -608,6 +633,24 @@ export default function CompactTrackCardWithFlip({
                           );
                         }
 
+                        // For RADIO STATIONS: Show Radio icon button to send to RadioWidget
+                        if (track.content_type === 'radio_station' || track.content_type === 'station_pack') {
+                          return (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if ((window as any).loadRadioTrack) {
+                                  (window as any).loadRadioTrack(track);
+                                }
+                              }}
+                              className="text-white hover:text-[#81E4F2] transition-colors p-0 flex items-center"
+                              title="Add to Radio Widget"
+                            >
+                              <Radio className="w-5 h-5" />
+                            </button>
+                          );
+                        }
+
                         // Fallback for unknown content types: check for price_stx
                         if (track.price_stx) {
                           return (
@@ -624,9 +667,10 @@ export default function CompactTrackCardWithFlip({
                         // Ultimate fallback: no price info
                         return null;
                       })()}
+                      </div>
 
                       {/* Content Type Badge (center) with generation indicators */}
-                      <span className="text-xs font-mono font-medium text-white">
+                      <span className="text-xs font-mono font-medium text-white absolute left-1/2 transform -translate-x-1/2">
                         {track.content_type === 'ep' && 'EP'}
                         {track.content_type === 'loop_pack' && 'PACK'}
                         {track.content_type === 'loop' && (
@@ -654,11 +698,21 @@ export default function CompactTrackCardWithFlip({
                           </>
                         )}
                         {track.content_type === 'full_song' && 'SONG'}
+                        {track.content_type === 'radio_station' && 'RADIO'}
+                        {track.content_type === 'station_pack' && '📻 PACK'}
                         {!track.content_type && 'TRACK'}
                       </span>
-                      
-                      {/* BPM Badge (right) - hide for EPs since they have multiple songs with different BPMs */}
-                      {track.bpm && track.content_type !== 'ep' ? (
+
+                      {/* BPM Badge OR LIVE indicator (right) - hide for EPs since they have multiple songs with different BPMs */}
+                      <div className="pr-2">
+                      {(track.content_type === 'radio_station' || track.content_type === 'station_pack') ? (
+                        <span
+                          className="text-[#FB923C] font-bold text-xs"
+                          title="Live radio stream"
+                        >
+                          LIVE
+                        </span>
+                      ) : track.bpm && track.content_type !== 'ep' ? (
                         <span
                           className="text-sm font-mono font-bold text-white"
                           title="BPM"
@@ -668,6 +722,7 @@ export default function CompactTrackCardWithFlip({
                       ) : (
                         <div className="w-12"></div>
                       )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -675,12 +730,12 @@ export default function CompactTrackCardWithFlip({
             </div>
         </div>
 
-        {/* Expandable Drawer - For loop packs and EPs */}
-        {(track.content_type === 'loop_pack' || track.content_type === 'ep') && isPackExpanded && (
+        {/* Expandable Drawer - For loop packs, EPs, and station packs */}
+        {(track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') && isPackExpanded && (
           <div
             className="w-[160px] bg-slate-900 border-2 border-t-0 rounded-b-lg overflow-hidden"
             style={{
-              borderColor: track.content_type === 'ep' ? '#FFE4B5' : '#9772F4',
+              borderColor: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#9772F4',
               animation: 'slideDown 0.2s ease-out'
             }}
           >
@@ -709,7 +764,7 @@ export default function CompactTrackCardWithFlip({
                       }),
                     }), [loop]);
 
-                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : '#9772F4';
+                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#9772F4';
                     const textColor = track.content_type === 'ep' ? '#000000' : '#FFFFFF';
 
                     return (
@@ -758,7 +813,7 @@ export default function CompactTrackCardWithFlip({
               </div>
             ) : (
               <div className="p-2 text-xs text-gray-500 text-center">
-                {track.content_type === 'ep' ? 'No tracks found' : 'No loops found'}
+                {track.content_type === 'ep' ? 'No tracks found' : track.content_type === 'station_pack' ? 'No stations found' : 'No loops found'}
               </div>
             )}
           </div>

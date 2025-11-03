@@ -452,64 +452,92 @@ export default function HomePage() {
   };
 
   // Audio playback functions (same as Creator Store)
-  const playAudioRobust = async (url: string, trackId: string) => {
+  const playAudioRobust = async (url: string, trackId: string, isRadioStation?: boolean) => {
     try {
       // Stop any currently playing audio
       if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
       }
-      
+
       // Clear any existing timeout
       if (previewTimeout) {
         clearTimeout(previewTimeout);
       }
-      
+
       // Create fresh audio element
       const audio = new Audio();
-      audio.crossOrigin = 'anonymous';
-      audio.preload = 'metadata';
-      
+
+      // Only set crossOrigin for regular tracks that need audio analysis
+      // Radio stations don't need this and it causes CORS errors
+      if (!isRadioStation) {
+        audio.crossOrigin = 'anonymous';
+        audio.preload = 'metadata';
+      }
+
       // Set up event handlers before setting src
-      audio.addEventListener('error', (e) => console.error('Audio playback error:', e, 'for track:', trackId));
-      
-      // Set source and load
-      audio.src = url;
-      audio.load();
-      
-      // Wait for canplay event
-      await new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Audio loading timeout'));
-        }, 5000);
-        
-        audio.addEventListener('canplay', () => {
-          clearTimeout(timeoutId);
-          resolve(audio);
-        }, { once: true });
-        
-        audio.addEventListener('error', () => {
-          clearTimeout(timeoutId);
-          reject(new Error('Audio loading failed'));
-        }, { once: true });
-      });
-      
-      // Play the audio
-      await audio.play();
-      setCurrentAudio(audio);
-      setPlayingTrackId(trackId);
-      
-      // Set 20-second preview timeout
-      const timeoutId = setTimeout(() => {
-        audio.pause();
-        audio.currentTime = 0;
+      audio.addEventListener('error', (e) => {
+        console.error('Audio playback error:', e, 'for track:', trackId);
+        // Clear playing state when audio errors occur
         setPlayingTrackId(null);
         setCurrentAudio(null);
-      }, 20000);
-      
-      setPreviewTimeout(timeoutId);
-      
-      // Handle audio end
+      });
+
+      // Set source
+      audio.src = url;
+
+      if (isRadioStation) {
+        // Radio stations: Just try to play immediately, don't wait for canplay
+        console.log('📻 Attempting to play radio station stream:', url);
+        try {
+          await audio.play();
+          setCurrentAudio(audio);
+          setPlayingTrackId(trackId);
+          console.log('✅ Radio station playing successfully');
+        } catch (playError) {
+          console.error('❌ Radio station play error:', playError);
+          setPlayingTrackId(null);
+          setCurrentAudio(null);
+        }
+
+        // No timeout for radio stations - they stream continuously
+      } else {
+        // Regular tracks: Load and wait for canplay event
+        audio.load();
+
+        await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Audio loading timeout'));
+          }, 5000);
+
+          audio.addEventListener('canplay', () => {
+            clearTimeout(timeoutId);
+            resolve(audio);
+          }, { once: true });
+
+          audio.addEventListener('error', () => {
+            clearTimeout(timeoutId);
+            reject(new Error('Audio loading failed'));
+          }, { once: true });
+        });
+
+        // Play the audio
+        await audio.play();
+        setCurrentAudio(audio);
+        setPlayingTrackId(trackId);
+
+        // Set 20-second preview timeout (only for regular tracks)
+        const timeoutId = setTimeout(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          setPlayingTrackId(null);
+          setCurrentAudio(null);
+        }, 20000);
+
+        setPreviewTimeout(timeoutId);
+      }
+
+      // Handle audio end (for both radio and regular tracks)
       audio.addEventListener('ended', () => {
         setPlayingTrackId(null);
         setCurrentAudio(null);
@@ -517,7 +545,7 @@ export default function HomePage() {
           clearTimeout(previewTimeout);
         }
       });
-      
+
     } catch (error) {
       console.error('Audio playback failed:', error);
       setPlayingTrackId(null);
@@ -525,13 +553,17 @@ export default function HomePage() {
     }
   };
 
-  const handlePlayPreview = (trackId: string, audioUrl?: string) => {
+  const handlePlayPreview = (trackId: string, audioUrl?: string, isRadioStation?: boolean) => {
+    console.log('🎧 handlePlayPreview called:', { trackId, audioUrl, isRadioStation });
+
     if (!audioUrl) {
+      console.warn('⚠️ No audioUrl provided for track:', trackId);
       return;
     }
-    
+
     // If clicking the same track that's playing, pause it
     if (playingTrackId === trackId && currentAudio) {
+      console.log('⏸️ Pausing currently playing track');
       currentAudio.pause();
       currentAudio.remove();
       setPlayingTrackId(null);
@@ -542,21 +574,21 @@ export default function HomePage() {
       }
       return;
     }
-    
+
     // Stop any currently playing audio
     if (currentAudio) {
       currentAudio.pause();
       currentAudio.remove();
       setCurrentAudio(null);
     }
-    
+
     if (previewTimeout) {
       clearTimeout(previewTimeout);
       setPreviewTimeout(null);
     }
-    
+
     // Use robust audio playback approach
-    return playAudioRobust(audioUrl, trackId);
+    return playAudioRobust(audioUrl, trackId, isRadioStation);
   };
 
   const handleStopPreview = () => {
@@ -709,6 +741,7 @@ export default function HomePage() {
                     artist: leftComparisonTrack.artist,
                     cover_image_url: leftComparisonTrack.imageUrl || leftComparisonTrack.cover_image_url || '',
                     audio_url: leftComparisonTrack.audioUrl || leftComparisonTrack.audio_url || '',
+                    stream_url: leftComparisonTrack.stream_url, // For radio stations
                     price_stx: leftComparisonTrack.price_stx || '5 STX',
                     content_type: leftComparisonTrack.content_type || leftComparisonTrack.genre || 'loop',
                     bpm: leftComparisonTrack.bpm, // Don't default to 128 for songs
@@ -726,7 +759,7 @@ export default function HomePage() {
                     social_links: {},
                     contact_email: ''
                   }}
-                  isPlaying={playingTrackId === leftComparisonTrack.id}
+                  isPlaying={playingTrackId !== null && playingTrackId === leftComparisonTrack.id}
                   onPlayPreview={handlePlayPreview}
                   onStopPreview={handleStopPreview}
                   showEditControls={false}
@@ -765,6 +798,7 @@ export default function HomePage() {
                     artist: rightComparisonTrack.artist,
                     cover_image_url: rightComparisonTrack.imageUrl || rightComparisonTrack.cover_image_url || '',
                     audio_url: rightComparisonTrack.audioUrl || rightComparisonTrack.audio_url || '',
+                    stream_url: rightComparisonTrack.stream_url, // For radio stations
                     price_stx: rightComparisonTrack.price_stx || '5 STX',
                     content_type: rightComparisonTrack.content_type || rightComparisonTrack.genre || 'loop',
                     bpm: rightComparisonTrack.bpm, // Don't default to 128 for songs
@@ -782,7 +816,7 @@ export default function HomePage() {
                     social_links: {},
                     contact_email: ''
                   }}
-                  isPlaying={playingTrackId === rightComparisonTrack.id}
+                  isPlaying={playingTrackId !== null && playingTrackId === rightComparisonTrack.id}
                   onPlayPreview={handlePlayPreview}
                   onStopPreview={handleStopPreview}
                   showEditControls={false}
@@ -821,6 +855,7 @@ export default function HomePage() {
                     artist: centerTrackCard.artist,
                     cover_image_url: centerTrackCard.imageUrl || centerTrackCard.cover_image_url || '',
                     audio_url: centerTrackCard.audioUrl || centerTrackCard.audio_url || '',
+                    stream_url: centerTrackCard.stream_url, // For radio stations
                     price_stx: centerTrackCard.price_stx || '5 STX',
                     content_type: centerTrackCard.content_type || centerTrackCard.genre || 'loop',
                     bpm: centerTrackCard.bpm,
@@ -837,7 +872,7 @@ export default function HomePage() {
                     social_links: {},
                     contact_email: ''
                   }}
-                  isPlaying={playingTrackId === centerTrackCard.id}
+                  isPlaying={playingTrackId !== null && playingTrackId === centerTrackCard.id}
                   onPlayPreview={handlePlayPreview}
                   onStopPreview={handleStopPreview}
                   showEditControls={false}
@@ -906,6 +941,7 @@ export default function HomePage() {
                           cover_image_url: track.imageUrl || track.cover_image_url || '',
                           imageUrl: track.imageUrl || track.cover_image_url || '', // Ensure fallback exists
                           audio_url: track.audioUrl,
+                          stream_url: track.stream_url, // For radio stations
                           content_type: track.content_type,
                           tags: track.tags || [],
                           price_stx: track.price_stx,
@@ -915,7 +951,7 @@ export default function HomePage() {
                           primary_location: track.location,
                           primary_uploader_wallet: track.uploaderAddress || track.wallet_address
                         } as any}
-                        isPlaying={playingTrackId === track.id}
+                        isPlaying={playingTrackId !== null && playingTrackId === track.id}
                         onPlayPreview={handlePlayPreview}
                         onStopPreview={handleStopPreview}
                         showEditControls={false}
@@ -955,6 +991,7 @@ export default function HomePage() {
                       artist: displayTrack.artist,
                       cover_image_url: displayTrack.imageUrl || '',
                       audio_url: displayTrack.audioUrl || '',
+                      stream_url: displayTrack.stream_url, // For radio stations
                       price_stx: displayTrack.price_stx || '5 STX',
                       content_type: displayTrack.content_type || displayTrack.genre || 'loop',
                       bpm: displayTrack.bpm, // Don't default to 128 - preserve NULL for songs
@@ -972,7 +1009,7 @@ export default function HomePage() {
                       social_links: {},
                       contact_email: ''
                     }}
-                    isPlaying={playingTrackId === displayTrack.id}
+                    isPlaying={playingTrackId !== null && playingTrackId === displayTrack.id}
                     onPlayPreview={handlePlayPreview}
                     onStopPreview={handleStopPreview}
                     showEditControls={false}

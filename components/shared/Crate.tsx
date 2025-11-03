@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useMixer } from '@/contexts/MixerContext';
 import { useDrop, useDrag } from 'react-dnd';
 import { IPTrack } from '@/types';
-import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft, Radio } from 'lucide-react';
 import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
@@ -40,9 +40,12 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           id: track.id,
           title: track.title,
           artist: track.artist,
-          imageUrl: (track as any).cover_image_url || track.imageUrl, // Prefer original cover_image_url
+          imageUrl: track.imageUrl || (track as any).cover_image_url, // Use existing imageUrl or fallback
+          cover_image_url: (track as any).cover_image_url, // Keep original high-res URL for preview
           bpm: track.bpm || 120,
-          audioUrl: track.audioUrl || track.audio_url, // Handle both formats like deck conversion!
+          audioUrl: track.audioUrl || track.audio_url || (track as any).stream_url, // Handle both formats, include stream_url for radio!
+          audio_url: track.audio_url, // Preserve original property
+          stream_url: (track as any).stream_url, // Include stream_url for radio stations
           content_type: track.content_type,
           price_stx: track.price_stx,
           license: track.license,
@@ -149,6 +152,9 @@ export default function Crate({ className = '' }: CrateProps) {
   const handleTrackClick = (track: any) => {
     if (!track.audioUrl) return;
 
+    const isRadioStation = track.content_type === 'radio_station' || track.content_type === 'station_pack';
+    console.log('🎧 Crate preview:', { trackId: track.id, isRadioStation, audioUrl: track.audioUrl });
+
     // If clicking the same track that's playing, pause it
     if (playingTrack === track.id && currentAudio) {
       currentAudio.pause();
@@ -164,22 +170,31 @@ export default function Crate({ className = '' }: CrateProps) {
 
     // Start new preview
     const audio = new Audio(track.audioUrl);
-    audio.crossOrigin = 'anonymous';
+
+    // Only set crossOrigin for regular tracks that need audio analysis
+    // Radio stations don't need this and it causes CORS errors
+    if (!isRadioStation) {
+      audio.crossOrigin = 'anonymous';
+    }
+
     audio.volume = 0.7;
-    
+
     audio.play()
       .then(() => {
         setPlayingTrack(track.id);
         setCurrentAudio(audio);
-        
-        // Auto-stop after 20 seconds
-        setTimeout(() => {
-          if (audio && !audio.paused) {
-            audio.pause();
-            setPlayingTrack(null);
-            setCurrentAudio(null);
-          }
-        }, 20000);
+
+        // For radio stations, don't use a timeout (they stream continuously)
+        // For regular tracks, auto-stop after 20 seconds
+        if (!isRadioStation) {
+          setTimeout(() => {
+            if (audio && !audio.paused) {
+              audio.pause();
+              setPlayingTrack(null);
+              setCurrentAudio(null);
+            }
+          }, 20000);
+        }
       })
       .catch(error => {
         console.error('Preview playback failed:', error);
@@ -209,7 +224,7 @@ export default function Crate({ className = '' }: CrateProps) {
 
     // Fetch tracks for this pack
     const packId = track.pack_id || track.id.split('-loc-')[0];
-    const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : 'full_song';
+    const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : track.content_type === 'station_pack' ? 'radio_station' : 'full_song';
 
     const { data, error } = await supabase
       .from('ip_tracks')
@@ -258,14 +273,18 @@ export default function Crate({ className = '' }: CrateProps) {
         return 'border-[#9772F4] shadow-[#9772F4]/50';
       case 'loop_pack':
         return 'border-[#9772F4] shadow-[#9772F4]/50';
+      case 'radio_station':
+        return 'border-[#FB923C] shadow-[#FB923C]/50';
+      case 'station_pack':
+        return 'border-[#FB923C] shadow-[#FB923C]/50';
       default:
         return 'border-[#9772F4] shadow-[#9772F4]/50';
     }
   };
 
-  // Determine border thickness - thicker for multi-content (loop packs and EPs)
+  // Determine border thickness - thicker for multi-content (loop packs, EPs, and station packs)
   const getBorderThickness = (track: any) => {
-    return (track.content_type === 'loop_pack' || track.content_type === 'ep') ? 'border-4' : 'border-2';
+    return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
 
@@ -556,24 +575,36 @@ export default function Crate({ className = '' }: CrateProps) {
                     </svg>
                   </button>
 
-                  {/* Cart button (all contexts) */}
+                  {/* Cart/Radio button (all contexts) */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if ((window as any).addToCart) {
-                        (window as any).addToCart(track);
+                      if (track.content_type === 'radio_station') {
+                        // Send radio stations to RadioWidget
+                        if ((window as any).loadRadioTrack) {
+                          (window as any).loadRadioTrack(track);
+                        }
+                      } else {
+                        // Send regular tracks to cart
+                        if ((window as any).addToCart) {
+                          (window as any).addToCart(track);
+                        }
                       }
                     }}
                     className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
-                    title="Add to cart"
+                    title={track.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to cart"}
                   >
-                    <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+                    {track.content_type === 'radio_station' ? (
+                      <Radio className="w-3.5 h-3.5 text-white" />
+                    ) : (
+                      <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    )}
                   </button>
 
                   {/* Play icon - centered */}
-                  {track.audioUrl && (
+                  {(track.audioUrl || track.stream_url) && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z"/>
@@ -594,33 +625,33 @@ export default function Crate({ className = '' }: CrateProps) {
                 </div>
               )}
 
-              {/* BPM overlay for mixer (always) and store/globe (on hover) contexts */}
-              {(context === 'mixer' || ((context === 'store' || context === 'globe') && hoveredTrackId === track.id)) && (
+              {/* BPM overlay for mixer (always) and store/globe (on hover) contexts - hidden for radio stations */}
+              {track.content_type !== 'radio_station' && (context === 'mixer' || ((context === 'store' || context === 'globe') && hoveredTrackId === track.id)) && (
                 <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
                   {track.bpm || 120}
                 </div>
               )}
 
-              {/* Chevron button for loop packs and EPs - always visible, far right edge */}
-              {(track.content_type === 'loop_pack' || track.content_type === 'ep') && (
+              {/* Chevron button for loop packs, EPs, and station packs - always visible, far right edge */}
+              {(track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handlePackExpansion(track);
                   }}
                   className="absolute right-[1px] top-1/2 transform -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-all hover:scale-110 z-10 bg-black bg-opacity-80 rounded"
-                  title={expandedPackId === track.id ? (track.content_type === 'ep' ? "Collapse tracks" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : "Expand loops")}
+                  title={expandedPackId === track.id ? (track.content_type === 'ep' ? "Collapse tracks" : track.content_type === 'station_pack' ? "Collapse stations" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : track.content_type === 'station_pack' ? "Expand stations" : "Expand loops")}
                 >
                   {expandedPackId === track.id ? (
                     <ChevronLeft
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   ) : (
                     <ChevronRight
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   )}
@@ -649,8 +680,11 @@ export default function Crate({ className = '' }: CrateProps) {
                           title: packTrack.title,
                           artist: packTrack.artist,
                           imageUrl: getOptimizedTrackImage(packTrack, 64),
+                          cover_image_url: packTrack.cover_image_url, // Keep original high-res URL for preview
                           bpm: packTrack.bpm || 120,
-                          audioUrl: packTrack.audio_url,
+                          audioUrl: packTrack.audio_url || packTrack.stream_url,
+                          audio_url: packTrack.audio_url, // Preserve original property
+                          stream_url: packTrack.stream_url,
                           content_type: packTrack.content_type,
                           price_stx: packTrack.price_stx,
                           license: packTrack.license
@@ -662,7 +696,7 @@ export default function Crate({ className = '' }: CrateProps) {
                       }),
                     }), [packTrack]);
 
-                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : '#C4AEF8';
+                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8';
                     const textColor = track.content_type === 'ep' ? '#000000' : '#FFFFFF';
 
                     return (
@@ -686,7 +720,7 @@ export default function Crate({ className = '' }: CrateProps) {
                           }}
                           onClick={() => handleTrackClick({
                             ...packTrack,
-                            audioUrl: packTrack.audio_url
+                            audioUrl: packTrack.audio_url || packTrack.stream_url
                           })}
                           onMouseEnter={() => setIsPackTrackHovered(true)}
                           onMouseLeave={() => setIsPackTrackHovered(false)}
@@ -714,26 +748,38 @@ export default function Crate({ className = '' }: CrateProps) {
                             {packIndex + 1}
                           </div>
 
-                          {/* Cart button - bottom left - show on hover */}
+                          {/* Cart/Radio button - bottom left - show on hover */}
                           {isPackTrackHovered && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if ((window as any).addToCart) {
-                                  (window as any).addToCart(packTrack);
+                                if (packTrack.content_type === 'radio_station') {
+                                  // Send radio stations to RadioWidget
+                                  if ((window as any).loadRadioTrack) {
+                                    (window as any).loadRadioTrack(packTrack);
+                                  }
+                                } else {
+                                  // Send regular tracks to cart
+                                  if ((window as any).addToCart) {
+                                    (window as any).addToCart(packTrack);
+                                  }
                                 }
                               }}
                               className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
-                              title="Add to cart"
+                              title={packTrack.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to cart"}
                             >
-                              <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
+                              {packTrack.content_type === 'radio_station' ? (
+                                <Radio className="w-3.5 h-3.5 text-white" />
+                              ) : (
+                                <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                              )}
                             </button>
                           )}
 
                           {/* Play icon - centered - show on hover */}
-                          {isPackTrackHovered && packTrack.audio_url && (
+                          {isPackTrackHovered && (packTrack.audio_url || packTrack.stream_url) && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z"/>
@@ -752,10 +798,12 @@ export default function Crate({ className = '' }: CrateProps) {
                             </div>
                           )}
 
-                          {/* BPM */}
-                          <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
-                            {packTrack.bpm || 120}
-                          </div>
+                          {/* BPM - hidden for radio stations */}
+                          {packTrack.content_type !== 'radio_station' && (
+                            <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
+                              {packTrack.bpm || 120}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

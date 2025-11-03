@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Instagram, Youtube, Music, Github, Twitch, Clipboard, Edit2 } from "lucide-react";
 import {
@@ -19,6 +18,7 @@ interface ProfileInfoProps {
     bio?: string | null;
     show_wallet_address?: boolean;
     show_btc_address?: boolean;
+    btc_address?: string | null;
   };
   links: Array<{
     platform: string;
@@ -40,7 +40,6 @@ export default function ProfileInfo({
   isOwnProfile,
   onUpdate
 }: ProfileInfoProps) {
-  const { walletAddress, btcAddress } = useAuth();
   const { showToast } = useToast();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
@@ -145,29 +144,29 @@ export default function ProfileInfo({
       )}
 
       {/* Wallet addresses */}
-      {((profile.show_wallet_address && walletAddress) || (profile.show_btc_address && btcAddress)) && (
+      {((profile.show_wallet_address && targetWallet) || (profile.show_btc_address && profile.btc_address)) && (
         <div className="flex flex-col items-center gap-2 mb-8 max-w-[350px]">
-          {profile.show_wallet_address && walletAddress && (
+          {profile.show_wallet_address && targetWallet && (
             <div className="bg-[#0f172a] py-2 px-4 rounded-md w-full border border-[#1e293b] flex items-center">
               <span className="text-xs text-gray-500 shrink-0 font-medium">STX:</span>
-              <span className="text-xs text-gray-400 ml-2 truncate flex-1">{`${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`}</span>
-              <button 
+              <span className="text-xs text-gray-400 ml-2 truncate flex-1">{`${targetWallet.slice(0, 8)}...${targetWallet.slice(-8)}`}</span>
+              <button
                 className="text-gray-400 hover:text-[#81E4F2] ml-1 p-1 shrink-0 transition-colors"
-                onClick={() => copyToClipboard(walletAddress)}
+                onClick={() => copyToClipboard(targetWallet)}
                 title="Copy address"
               >
                 <Clipboard size={14} />
               </button>
             </div>
           )}
-          
-          {profile.show_btc_address && btcAddress && (
+
+          {profile.show_btc_address && profile.btc_address && (
             <div className="bg-[#0f172a] py-2 px-4 rounded-md w-full border border-[#1e293b] flex items-center">
               <span className="text-xs text-gray-500 shrink-0 font-medium">BTC:</span>
-              <span className="text-xs text-gray-400 ml-2 truncate flex-1">{`${btcAddress.slice(0, 8)}...${btcAddress.slice(-8)}`}</span>
-              <button 
+              <span className="text-xs text-gray-400 ml-2 truncate flex-1">{`${profile.btc_address.slice(0, 8)}...${profile.btc_address.slice(-8)}`}</span>
+              <button
                 className="text-gray-400 hover:text-[#81E4F2] ml-1 p-1 shrink-0 transition-colors"
-                onClick={() => copyToClipboard(btcAddress)}
+                onClick={() => copyToClipboard(profile.btc_address)}
                 title="Copy address"
               >
                 <Clipboard size={14} />
