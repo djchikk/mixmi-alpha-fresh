@@ -32,6 +32,7 @@ export default function RadioStationModal({
   const [contentType, setContentType] = useState<'radio_station' | 'station_pack'>('radio_station');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [notes, setNotes] = useState('');
   const [streamUrl, setStreamUrl] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -71,6 +72,7 @@ export default function RadioStationModal({
       setContentType('radio_station');
       setTitle('');
       setDescription('');
+      setNotes('');
       setStreamUrl('');
       setCoverImageUrl('');
       setTags([]);
@@ -216,6 +218,7 @@ export default function RadioStationModal({
           title: title.trim(),
           artist: title.trim(),
           description: description.trim(),
+          notes: notes.trim() || null,
           stream_url: streamUrl.trim(),
           metadata_api_url: metadataApiUrl.trim() || null,
           cover_image_url: coverImageUrl,
@@ -251,6 +254,7 @@ export default function RadioStationModal({
           title: title.trim(),
           artist: title.trim(),
           description: description.trim(),
+          notes: notes.trim() || null,
           stream_url: '', // Empty for packs
           metadata_api_url: null,
           cover_image_url: coverImageUrl,
@@ -284,6 +288,7 @@ export default function RadioStationModal({
           title: station.name.trim() || `Station ${index + 1}`,
           artist: title.trim(), // Use pack name as artist
           description: description.trim(),
+          notes: notes.trim() || null,
           stream_url: station.streamUrl.trim(),
           metadata_api_url: null,
           cover_image_url: coverImageUrl,
@@ -425,6 +430,24 @@ export default function RadioStationModal({
               disabled={isUploading}
             />
             {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Notes <span className="text-gray-500 text-xs">(Optional - for AI-enabled semantic search)</span>
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C] resize-none"
+              placeholder="Add additional context about your station(s)... genres, languages, history, special programming, etc. This helps users discover your content through semantic search."
+              disabled={isUploading}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              This field is used for AI-powered search to help listeners find your station based on meaning, not just keywords.
+            </p>
           </div>
 
           {/* Stream URL - Only for single stations */}

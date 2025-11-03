@@ -972,8 +972,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             </div>
           )}
 
-          {/* Metadata - Hide BPM/Key for EPs since multiple songs have different values */}
-          {(track.bpm || track.key || track.duration) && track.content_type !== 'ep' && (
+          {/* Metadata - Hide BPM/Key for EPs since multiple songs have different values - Skip for radio stations */}
+          {(track.bpm || track.key || track.duration) && track.content_type !== 'ep' && !isRadioStation && (
             <div>
               <Divider title="METADATA" />
               <div className="space-y-1 text-xs">
@@ -1013,8 +1013,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           )}
 
 
-          {/* Description */}
-          {track.description && (
+          {/* Description - Skip for radio stations (already shown in BASIC INFO) */}
+          {track.description && !isRadioStation && (
             <div>
               <Divider title="DESCRIPTION" />
               <p className="text-xs text-gray-300 leading-relaxed">
