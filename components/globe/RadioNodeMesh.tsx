@@ -14,7 +14,6 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   const wave1Ref = useRef<THREE.Mesh>(null);
   const wave2Ref = useRef<THREE.Mesh>(null);
   const wave3Ref = useRef<THREE.Mesh>(null);
-  const towerRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const { camera } = useThree();
 
@@ -26,6 +25,15 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
 
   // Calculate position
   const dynamicPosition = latLngToVector3(node.coordinates.lat, node.coordinates.lng, 1.02);
+
+  // Calculate rotation to make circles face outward from globe surface
+  // The circles should be perpendicular to the radius vector (surface normal)
+  const surfaceNormal = dynamicPosition.clone().normalize();
+  const upVector = new THREE.Vector3(0, 1, 0);
+
+  // Create a quaternion that orients the circle to face along the surface normal
+  const quaternion = new THREE.Quaternion();
+  quaternion.setFromUnitVectors(upVector, surfaceNormal);
 
   // Update animations
   useFrame((state, delta) => {
@@ -51,32 +59,26 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
     hoverTransition.current.scale += (targetScale - hoverTransition.current.scale) * delta * transitionSpeed;
     hoverTransition.current.intensity += (targetIntensity - hoverTransition.current.intensity) * delta * transitionSpeed;
 
-    // Animate the tower with subtle pulsing
-    if (towerRef.current) {
-      const pulse = Math.sin(time * 3) * 0.05 + 1;
-      towerRef.current.scale.setScalar(hoverTransition.current.scale * pulse);
-    }
-
     // Animate broadcast waves - expanding and fading
     if (wave1Ref.current) {
-      const wave1Progress = (time * 1.2) % 2;
-      wave1Ref.current.scale.setScalar(1 + wave1Progress * 1.5);
+      const wave1Progress = (time * 1.0) % 2;
+      wave1Ref.current.scale.setScalar(1 + wave1Progress * 1.2);
       (wave1Ref.current.material as THREE.MeshBasicMaterial).opacity =
-        Math.max(0, (1 - wave1Progress / 2) * 0.6 * hoverTransition.current.intensity);
+        Math.max(0, (1 - wave1Progress / 2) * 0.8 * hoverTransition.current.intensity);
     }
 
     if (wave2Ref.current) {
-      const wave2Progress = ((time * 1.2) + 0.66) % 2;
-      wave2Ref.current.scale.setScalar(1 + wave2Progress * 1.5);
+      const wave2Progress = ((time * 1.0) + 0.66) % 2;
+      wave2Ref.current.scale.setScalar(1 + wave2Progress * 1.2);
       (wave2Ref.current.material as THREE.MeshBasicMaterial).opacity =
-        Math.max(0, (1 - wave2Progress / 2) * 0.6 * hoverTransition.current.intensity);
+        Math.max(0, (1 - wave2Progress / 2) * 0.8 * hoverTransition.current.intensity);
     }
 
     if (wave3Ref.current) {
-      const wave3Progress = ((time * 1.2) + 1.33) % 2;
-      wave3Ref.current.scale.setScalar(1 + wave3Progress * 1.5);
+      const wave3Progress = ((time * 1.0) + 1.33) % 2;
+      wave3Ref.current.scale.setScalar(1 + wave3Progress * 1.2);
       (wave3Ref.current.material as THREE.MeshBasicMaterial).opacity =
-        Math.max(0, (1 - wave3Progress / 2) * 0.6 * hoverTransition.current.intensity);
+        Math.max(0, (1 - wave3Progress / 2) * 0.8 * hoverTransition.current.intensity);
     }
   });
 
@@ -99,110 +101,61 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   };
 
   return (
-    <group ref={groupRef} position={dynamicPosition}>
+    <group ref={groupRef} position={dynamicPosition} quaternion={quaternion}>
       {/* Broadcast wave 1 - outermost */}
-      <mesh ref={wave1Ref} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.015, 0.02, 32]} />
+      <mesh
+        ref={wave1Ref}
+        onClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
+        <circleGeometry args={[0.015, 32]} />
         <meshBasicMaterial
           color={RADIO_ORANGE}
           transparent
+          opacity={0.8}
           side={THREE.DoubleSide}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
 
       {/* Broadcast wave 2 - middle */}
-      <mesh ref={wave2Ref} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.015, 0.02, 32]} />
+      <mesh
+        ref={wave2Ref}
+        onClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
+        <circleGeometry args={[0.015, 32]} />
         <meshBasicMaterial
           color={RADIO_ORANGE}
           transparent
+          opacity={0.8}
           side={THREE.DoubleSide}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
 
       {/* Broadcast wave 3 - innermost */}
-      <mesh ref={wave3Ref} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.015, 0.02, 32]} />
+      <mesh
+        ref={wave3Ref}
+        onClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
+        <circleGeometry args={[0.015, 32]} />
         <meshBasicMaterial
           color={RADIO_ORANGE}
           transparent
+          opacity={0.8}
           side={THREE.DoubleSide}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
 
-      {/* Glow effect around tower */}
-      <mesh
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <sphereGeometry args={[0.035, 16, 16]} />
-        <meshBasicMaterial
-          color={RADIO_ORANGE}
-          opacity={hovered ? 0.5 : 0.3}
-          transparent
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-
-      {/* Tower base - larger cylinder */}
-      <mesh
-        position={[0, -0.005, 0]}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <cylinderGeometry args={[0.012, 0.015, 0.015, 8]} />
-        <meshStandardMaterial
-          color={RADIO_ORANGE}
-          emissive={RADIO_ORANGE}
-          emissiveIntensity={hovered ? 0.8 : 0.5}
-          metalness={0.6}
-          roughness={0.3}
-        />
-      </mesh>
-
-      {/* Tower mast - thin cylinder */}
-      <mesh
-        position={[0, 0.01, 0]}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <cylinderGeometry args={[0.004, 0.006, 0.025, 6]} />
-        <meshStandardMaterial
-          color={RADIO_ORANGE}
-          emissive={RADIO_ORANGE}
-          emissiveIntensity={hovered ? 1.0 : 0.6}
-          metalness={0.7}
-          roughness={0.2}
-        />
-      </mesh>
-
-      {/* Tower tip - small sphere */}
-      <mesh
-        ref={towerRef}
-        position={[0, 0.024, 0]}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <sphereGeometry args={[0.008, 16, 16]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive={RADIO_ORANGE}
-          emissiveIntensity={hovered ? 1.5 : 1.0}
-          metalness={0.8}
-          roughness={0.1}
-        />
-      </mesh>
-
       {/* Aggregation indicator - show track count for aggregated nodes */}
       {node.isAggregated && node.trackCount && node.trackCount > 1 && (
-        <group position={[0, 0.045, 0]}>
+        <group position={[0, 0.03, 0]}>
           {/* Background circle for better visibility */}
           <mesh>
             <circleGeometry args={[0.018, 16]} />

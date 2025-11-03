@@ -325,7 +325,22 @@ export function GridNodeSystem({ nodes, onNodeClick, onNodeHover }: GridNodeSyst
               }
 
               // Use RadioNodeMesh for radio stations
-              const isRadioStation = node.content_type === 'radio_station' || node.content_type === 'station_pack';
+              // Check for radio station content types OR cluster nodes that contain radio stations
+              let isRadioStation =
+                node.content_type === 'radio_station' ||
+                node.content_type === 'station_pack';
+
+              // For clusters, check if all tracks in the cluster are radio stations
+              if (node.content_type === 'cluster' && (node as any).tracks) {
+                const tracks = (node as any).tracks;
+                const allRadio = tracks.every((t: any) =>
+                  t.content_type === 'radio_station' || t.content_type === 'station_pack'
+                );
+                if (allRadio) {
+                  isRadioStation = true;
+                }
+              }
+
               if (isRadioStation) {
                 return (
                   <RadioNodeMesh
