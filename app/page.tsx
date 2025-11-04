@@ -494,13 +494,19 @@ export default function HomePage() {
           setCurrentAudio(audio);
           setPlayingTrackId(trackId);
           console.log('✅ Radio station playing successfully');
+
+          // 20-second preview timeout for radio stations (only Radio Widget plays indefinitely)
+          const timeoutId = setTimeout(() => {
+            audio.pause();
+            setPlayingTrackId(null);
+            setCurrentAudio(null);
+          }, 20000);
+          setPreviewTimeout(timeoutId);
         } catch (playError) {
           console.error('❌ Radio station play error:', playError);
           setPlayingTrackId(null);
           setCurrentAudio(null);
         }
-
-        // No timeout for radio stations - they stream continuously
       } else {
         // Regular tracks: Load and wait for canplay event
         audio.load();

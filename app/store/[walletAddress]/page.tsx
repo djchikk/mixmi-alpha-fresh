@@ -346,18 +346,18 @@ export default function CreatorStorePage() {
         setCurrentAudio(audio);
         setPlayingTrack(trackId);
 
-        // For radio stations, don't use a timeout (they stream continuously)
-        // For regular tracks, use 20 second preview
-        if (!isRadioStation) {
-          const timeout = setTimeout(() => {
-            audio.pause();
-            audio.currentTime = 0;
-            setPlayingTrack(null);
-            setCurrentAudio(null);
-          }, 20000);
+        // 20-second preview timeout for all tracks (including radio stations)
+        // Only the Radio Widget should play indefinitely
+        const timeout = setTimeout(() => {
+          audio.pause();
+          if (!isRadioStation) {
+            audio.currentTime = 0; // Only reset position for regular tracks
+          }
+          setPlayingTrack(null);
+          setCurrentAudio(null);
+        }, 20000);
 
-          setPreviewTimeout(timeout);
-        }
+        setPreviewTimeout(timeout);
       })
       .catch(error => {
         console.error('❌ Creator Store playback failed:', error);

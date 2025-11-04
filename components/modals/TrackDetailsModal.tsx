@@ -326,16 +326,14 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       setCurrentAudio(audio);
       setPlayingLoopId(loop.id);
 
-      // For radio stations, stream continuously (no timeout)
-      // For regular tracks, 20-second preview timeout
-      if (!isRadioStation) {
-        const timeoutId = setTimeout(() => {
-          audio.pause();
-          setPlayingLoopId(null);
-          setCurrentAudio(null);
-        }, 20000);
-        setPreviewTimeout(timeoutId);
-      }
+      // 20-second preview timeout for ALL tracks (including radio stations)
+      // Only the Radio Widget should play indefinitely
+      const timeoutId = setTimeout(() => {
+        audio.pause();
+        setPlayingLoopId(null);
+        setCurrentAudio(null);
+      }, 20000);
+      setPreviewTimeout(timeoutId);
 
       // Handle audio end (only for non-radio tracks)
       if (!isRadioStation) {

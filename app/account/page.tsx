@@ -466,13 +466,12 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
       setAudioElement(audio);
       setPlayingTrackId(track.id);
 
-      // Auto-stop after 20 seconds (but not for radio stations - let them stream)
-      if (!isRadio) {
-        setTimeout(() => {
-          audio.pause();
-          setPlayingTrackId(null);
-        }, 20000);
-      }
+      // 20-second preview timeout for all tracks (including radio stations)
+      // Only the Radio Widget should play indefinitely
+      setTimeout(() => {
+        audio.pause();
+        setPlayingTrackId(null);
+      }, 20000);
     }
   };
 
@@ -754,13 +753,30 @@ function UploadHistoryTab({ tracks, onViewCertificate }: { tracks: Track[]; onVi
         audioElement.currentTime = 0;
       }
 
-      // Play new track
-      const audio = new Audio(track.audio_url);
+      // Play new track (support both audio_url and stream_url for radio stations)
+      const audioSource = track.audio_url || track.stream_url;
+      if (!audioSource) return;
+
+      const audio = new Audio(audioSource);
+      const isRadio = track.content_type === 'radio_station' || track.content_type === 'station_pack';
+
+      // Only set crossOrigin for regular tracks, not radio (causes CORS issues)
+      if (!isRadio) {
+        audio.crossOrigin = 'anonymous';
+      }
+
       audio.play();
       setAudioElement(audio);
       setPlayingTrackId(track.id);
 
-      // Handle track ending
+      // 20-second preview timeout for all tracks (including radio stations)
+      // Only the Radio Widget should play indefinitely
+      setTimeout(() => {
+        audio.pause();
+        setPlayingTrackId(null);
+      }, 20000);
+
+      // Handle track ending (for regular tracks that end naturally)
       audio.onended = () => {
         setPlayingTrackId(null);
       };
