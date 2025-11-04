@@ -29,8 +29,54 @@ export default function RadioWidget() {
   // Set up drop zone for incoming tracks (from globe and crate)
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ['TRACK_CARD', 'COLLECTION_TRACK'], // Accept from both globe and crate
-    drop: (item: { track: IPTrack }) => {
+    drop: async (item: { track: IPTrack }) => {
       console.log('📻 Radio: Dropped track:', item.track.title, item.track);
+
+      // Handle Radio Packs: load the first station in the pack
+      if (item.track.content_type === 'station_pack') {
+        console.log('📻 Radio: Detected station pack, fetching first station...');
+        const packId = item.track.pack_id || item.track.id.split('-loc-')[0];
+
+        // Fetch the first station from the pack
+        const { data: stations, error } = await supabase
+          .from('ip_tracks')
+          .select('*')
+          .eq('pack_id', packId)
+          .eq('content_type', 'radio_station')
+          .order('pack_position', { ascending: true })
+          .limit(1);
+
+        if (error) {
+          console.error('📻 Radio: Error fetching stations from pack:', error);
+          return;
+        }
+
+        if (!stations || stations.length === 0) {
+          console.error('📻 Radio: No stations found in pack!');
+          return;
+        }
+
+        const firstStation = stations[0];
+        console.log('📻 Radio: Loading first station from pack:', firstStation.title);
+        setCurrentTrack(firstStation);
+        setPlayedTracks(prev => new Set([...prev, firstStation.id]));
+
+        // Load the station's audio
+        if (audioRef.current) {
+          const audioSource = firstStation.stream_url || firstStation.audio_url;
+          if (!audioSource) {
+            console.error('📻 Radio: No audio source found for station!', firstStation);
+            return;
+          }
+          audioRef.current.src = audioSource;
+          audioRef.current.volume = volume;
+          audioRef.current.load();
+          console.log('📻 Radio: First station from pack loaded, waiting for user to press play');
+        }
+        return;
+      }
+
+      // Handle regular tracks (non-packs)
       setCurrentTrack(item.track);
       setPlayedTracks(prev => new Set([...prev, item.track.id]));
 
