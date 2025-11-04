@@ -210,11 +210,22 @@ export default function Header() {
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
                 <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-accent/50">
-                  <img
-                    src={avatarUrl || generateAvatar(walletAddress)}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
+                  {avatarUrl && (avatarUrl.includes('.mp4') || avatarUrl.includes('.webm') || avatarUrl.includes('video/')) ? (
+                    <video
+                      src={avatarUrl}
+                      className="w-full h-full object-cover"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={avatarUrl || generateAvatar(walletAddress)}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
               </button>
 
@@ -225,11 +236,22 @@ export default function Header() {
                   <div className="p-4 border-b border-[#1E293B]">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent/50">
-                        <img
-                          src={avatarUrl || generateAvatar(walletAddress)}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
+                        {avatarUrl && (avatarUrl.includes('.mp4') || avatarUrl.includes('.webm') || avatarUrl.includes('video/')) ? (
+                          <video
+                            src={avatarUrl}
+                            className="w-full h-full object-cover"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <img
+                            src={avatarUrl || generateAvatar(walletAddress)}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-white truncate">
@@ -363,11 +385,22 @@ export default function Header() {
                   {/* User Info */}
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-accent/50">
-                      <img
-                        src={avatarUrl || generateAvatar(walletAddress)}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
+                      {avatarUrl && (avatarUrl.includes('.mp4') || avatarUrl.includes('.webm') || avatarUrl.includes('video/')) ? (
+                        <video
+                          src={avatarUrl}
+                          className="w-full h-full object-cover"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                        />
+                      ) : (
+                        <img
+                          src={avatarUrl || generateAvatar(walletAddress)}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white truncate">
