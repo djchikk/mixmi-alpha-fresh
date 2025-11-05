@@ -88,6 +88,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const deckADestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
   const deckBDestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
 
+  // Track grabbing state for button feedback
+  const [isGrabbingDeckA, setIsGrabbingDeckA] = React.useState(false);
+  const [isGrabbingDeckB, setIsGrabbingDeckB] = React.useState(false);
+
   // Use the mixer audio hook
   const {
     audioInitialized,
@@ -764,6 +768,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const handleGrab = async (deck: 'A' | 'B') => {
     console.log(`🎯 GRAB triggered for Deck ${deck}!`);
 
+    // Set grabbing state for visual feedback
+    if (deck === 'A') {
+      setIsGrabbingDeckA(true);
+    } else {
+      setIsGrabbingDeckB(true);
+    }
+
     const recorder = deck === 'A' ? deckARecorderRef.current : deckBRecorderRef.current;
     const chunks = deck === 'A' ? deckAChunksRef.current : deckBChunksRef.current;
 
@@ -859,6 +870,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
 
     console.log(`✅ GRAB complete! Deck ${deck} now playing grabbed radio loop!`);
+
+    // Clear grabbing state
+    if (deck === 'A') {
+      setIsGrabbingDeckA(false);
+    } else {
+      setIsGrabbingDeckB(false);
+    }
   };
 
   // Start recording when radio loads
@@ -1036,14 +1054,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackClear={clearDeckA}
                   deck="A"
                 />
-                {/* Tiny GRAB button for radio */}
+                {/* GRAB button for radio - styled like widget buttons */}
                 {mixerState.deckA.contentType === 'radio_station' && mixerState.deckA.playing && (
                   <button
                     onClick={() => handleGrab('A')}
-                    className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold bg-orange-500 hover:bg-orange-600 text-white rounded shadow-lg transition-all duration-200 hover:scale-110"
-                    title="Grab last ~10 seconds as loop"
+                    disabled={isGrabbingDeckA}
+                    className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-[32px] h-[18px] flex items-center justify-center text-[9px] font-bold tracking-wider rounded border transition-all duration-200 hover:scale-105 shadow-lg ${
+                      isGrabbingDeckA
+                        ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
+                        : 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
+                    }`}
+                    title={isGrabbingDeckA ? 'Grabbing audio...' : 'Grab audio from radio'}
                   >
-                    🎯 GRAB
+                    {isGrabbingDeckA ? 'REC' : 'GRAB'}
                   </button>
                 )}
               </div>
@@ -1095,14 +1118,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackClear={clearDeckB}
                   deck="B"
                 />
-                {/* Tiny GRAB button for radio */}
+                {/* GRAB button for radio - styled like widget buttons */}
                 {mixerState.deckB.contentType === 'radio_station' && mixerState.deckB.playing && (
                   <button
                     onClick={() => handleGrab('B')}
-                    className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold bg-orange-500 hover:bg-orange-600 text-white rounded shadow-lg transition-all duration-200 hover:scale-110"
-                    title="Grab last ~10 seconds as loop"
+                    className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-[32px] h-[18px] flex items-center justify-center text-[9px] font-bold tracking-wider rounded border transition-all duration-200 hover:scale-105 shadow-lg ${
+                      deckBRecorderRef.current && deckBRecorderRef.current.state === 'recording'
+                        ? 'bg-red-600 border-red-400 text-white animate-pulse'
+                        : 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
+                    }`}
+                    title={deckBRecorderRef.current && deckBRecorderRef.current.state === 'recording' ? 'Recording...' : 'Grab audio from radio'}
                   >
-                    🎯 GRAB
+                    {deckBRecorderRef.current && deckBRecorderRef.current.state === 'recording' ? 'REC' : 'GRAB'}
                   </button>
                 )}
               </div>
