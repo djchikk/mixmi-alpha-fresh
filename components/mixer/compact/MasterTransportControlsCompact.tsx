@@ -11,7 +11,7 @@ interface MasterTransportControlsProps {
   deckABPM: number;
   syncActive: boolean;
   recordingRemix: boolean;
-  
+
   // Control handlers
   onMasterPlay: () => void;
   onMasterPlayAfterCountIn: () => void;
@@ -19,11 +19,14 @@ interface MasterTransportControlsProps {
   onRecordToggle: () => void;
   onSyncToggle: () => void;
   onMasterSyncReset: () => void;
-  
+
   // Optional variant and BPM display
   variant?: 'full' | 'simplified';
   masterBPM?: number;
-  
+
+  // Visual feedback
+  highlightPlayButton?: boolean; // Show cyan glow when grabbed loop is ready
+
   className?: string;
 }
 
@@ -43,6 +46,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   onMasterSyncReset,
   variant = 'full',
   masterBPM,
+  highlightPlayButton = false,
   className = ""
 }: MasterTransportControlsProps) {
   const [countingIn, setCountingIn] = useState(false);
@@ -134,15 +138,19 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
             ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
             : countingIn
             ? 'bg-[#81E4F2]/50 border-2 border-[#81E4F2] text-slate-900 animate-pulse cursor-wait'
+            : highlightPlayButton
+            ? 'border-2 border-cyan-400 text-cyan-400 hover:border-cyan-300 hover:text-cyan-300 animate-pulse shadow-lg shadow-cyan-500/50'
             : deckALoaded || deckBLoaded
             ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:shadow-[#81E4F2]/20'
             : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
         }`}
         title={
-          countingIn 
-            ? `Counting in... ${countBeat}/4` 
-            : anyPlaying 
-            ? 'Pause & Reset to Beginning' 
+          countingIn
+            ? `Counting in... ${countBeat}/4`
+            : anyPlaying
+            ? 'Pause & Reset to Beginning'
+            : highlightPlayButton
+            ? 'Play your grabbed loop! ▶'
             : 'Play All (with count-in)'
         }
       >

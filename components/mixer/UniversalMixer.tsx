@@ -92,6 +92,16 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const [isGrabbingDeckA, setIsGrabbingDeckA] = React.useState(false);
   const [isGrabbingDeckB, setIsGrabbingDeckB] = React.useState(false);
 
+  // Track radio play time to know when GRAB is ready (need 10+ seconds)
+  const deckARadioStartTimeRef = React.useRef<number | null>(null);
+  const deckBRadioStartTimeRef = React.useRef<number | null>(null);
+  const [deckARadioPlayTime, setDeckARadioPlayTime] = React.useState(0);
+  const [deckBRadioPlayTime, setDeckBRadioPlayTime] = React.useState(0);
+
+  // Track if user just grabbed (to show feedback)
+  const [deckAJustGrabbed, setDeckAJustGrabbed] = React.useState(false);
+  const [deckBJustGrabbed, setDeckBJustGrabbed] = React.useState(false);
+
   // Use the mixer audio hook
   const {
     audioInitialized,
@@ -164,6 +174,40 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     const interval = setInterval(updateCurrentTime, 100);
     return () => clearInterval(interval);
   }, [mixerState.deckA.playing, mixerState.deckB.playing]);
+
+  // Track radio play time for GRAB button readiness
+  useEffect(() => {
+    const updateRadioPlayTime = () => {
+      const now = Date.now();
+
+      // Update Deck A radio play time
+      if (mixerState.deckA.contentType === 'radio_station' && mixerState.deckA.playing) {
+        if (deckARadioStartTimeRef.current === null) {
+          deckARadioStartTimeRef.current = now;
+        }
+        const elapsed = (now - deckARadioStartTimeRef.current) / 1000; // seconds
+        setDeckARadioPlayTime(elapsed);
+      } else {
+        deckARadioStartTimeRef.current = null;
+        setDeckARadioPlayTime(0);
+      }
+
+      // Update Deck B radio play time
+      if (mixerState.deckB.contentType === 'radio_station' && mixerState.deckB.playing) {
+        if (deckBRadioStartTimeRef.current === null) {
+          deckBRadioStartTimeRef.current = now;
+        }
+        const elapsed = (now - deckBRadioStartTimeRef.current) / 1000; // seconds
+        setDeckBRadioPlayTime(elapsed);
+      } else {
+        deckBRadioStartTimeRef.current = null;
+        setDeckBRadioPlayTime(0);
+      }
+    };
+
+    const interval = setInterval(updateRadioPlayTime, 100);
+    return () => clearInterval(interval);
+  }, [mixerState.deckA.contentType, mixerState.deckA.playing, mixerState.deckB.contentType, mixerState.deckB.playing]);
 
   // Volume change handlers
   const handleDeckAVolumeChange = (volume: number) => {
@@ -764,6 +808,16 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
   };
 
+  // Handle PLAY button click for radio (starts playback)
+  const handleRadioPlay = (deck: 'A' | 'B') => {
+    console.log(`▶️ Starting radio playback for Deck ${deck}`);
+    if (deck === 'A') {
+      handleDeckAPlayPause();
+    } else {
+      handleDeckBPlayPause();
+    }
+  };
+
   // GRAB the last ~8 bars from radio stream
   const handleGrab = async (deck: 'A' | 'B') => {
     console.log(`🎯 GRAB triggered for Deck ${deck}!`);
@@ -871,11 +925,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
     console.log(`✅ GRAB complete! Deck ${deck} now playing grabbed radio loop!`);
 
-    // Clear grabbing state
+    // Clear grabbing state and set "just grabbed" state
     if (deck === 'A') {
       setIsGrabbingDeckA(false);
+      setDeckAJustGrabbed(true);
+      // Clear "just grabbed" state after 3 seconds
+      setTimeout(() => setDeckAJustGrabbed(false), 3000);
     } else {
       setIsGrabbingDeckB(false);
+      setDeckBJustGrabbed(true);
+      // Clear "just grabbed" state after 3 seconds
+      setTimeout(() => setDeckBJustGrabbed(false), 3000);
     }
   };
 
@@ -1023,6 +1083,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
               syncActive={mixerState.syncActive}
               recordingRemix={false}
+              highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
               onMasterPlay={handleMasterPlay}
               onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
               onMasterStop={handleMasterStop}
@@ -1054,19 +1115,37 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackClear={clearDeckA}
                   deck="A"
                 />
-                {/* GRAB button for radio - styled like widget buttons */}
-                {mixerState.deckA.contentType === 'radio_station' && mixerState.deckA.playing && (
+                {/* Radio control button - PLAY (green) → GRAB (orange) → Done (cyan) */}
+                {mixerState.deckA.contentType === 'radio_station' && (
                   <button
-                    onClick={() => handleGrab('A')}
-                    disabled={isGrabbingDeckA}
+                    onClick={() => {
+                      if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
+                        handleRadioPlay('A');
+                      } else if (deckARadioPlayTime >= 10 && !deckAJustGrabbed) {
+                        handleGrab('A');
+                      }
+                    }}
+                    disabled={isGrabbingDeckA || deckAJustGrabbed}
                     className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-[32px] h-[18px] flex items-center justify-center text-[9px] font-bold tracking-wider rounded border transition-all duration-200 hover:scale-105 shadow-lg ${
-                      isGrabbingDeckA
+                      deckAJustGrabbed
+                        ? 'bg-cyan-500 border-cyan-300 text-white cursor-default'
+                        : isGrabbingDeckA
                         ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
-                        : 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
+                        : deckARadioPlayTime >= 10
+                        ? 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
+                        : 'bg-gradient-to-br from-green-600 to-green-700 border-green-400/50 text-white hover:from-green-500 hover:to-green-600'
                     }`}
-                    title={isGrabbingDeckA ? 'Grabbing audio...' : 'Grab audio from radio'}
+                    title={
+                      deckAJustGrabbed
+                        ? 'Grabbed! Now press play in the transport'
+                        : isGrabbingDeckA
+                        ? 'Grabbing audio...'
+                        : deckARadioPlayTime >= 10
+                        ? 'Grab audio from radio'
+                        : 'Start radio playback'
+                    }
                   >
-                    {isGrabbingDeckA ? 'REC' : 'GRAB'}
+                    {deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}
                   </button>
                 )}
               </div>
@@ -1118,18 +1197,37 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackClear={clearDeckB}
                   deck="B"
                 />
-                {/* GRAB button for radio - styled like widget buttons */}
-                {mixerState.deckB.contentType === 'radio_station' && mixerState.deckB.playing && (
+                {/* Radio control button - PLAY (green) → GRAB (orange) → Done (cyan) */}
+                {mixerState.deckB.contentType === 'radio_station' && (
                   <button
-                    onClick={() => handleGrab('B')}
+                    onClick={() => {
+                      if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
+                        handleRadioPlay('B');
+                      } else if (deckBRadioPlayTime >= 10 && !deckBJustGrabbed) {
+                        handleGrab('B');
+                      }
+                    }}
+                    disabled={isGrabbingDeckB || deckBJustGrabbed}
                     className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-[32px] h-[18px] flex items-center justify-center text-[9px] font-bold tracking-wider rounded border transition-all duration-200 hover:scale-105 shadow-lg ${
-                      deckBRecorderRef.current && deckBRecorderRef.current.state === 'recording'
-                        ? 'bg-red-600 border-red-400 text-white animate-pulse'
-                        : 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
+                      deckBJustGrabbed
+                        ? 'bg-cyan-500 border-cyan-300 text-white cursor-default'
+                        : isGrabbingDeckB
+                        ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
+                        : deckBRadioPlayTime >= 10
+                        ? 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
+                        : 'bg-gradient-to-br from-green-600 to-green-700 border-green-400/50 text-white hover:from-green-500 hover:to-green-600'
                     }`}
-                    title={deckBRecorderRef.current && deckBRecorderRef.current.state === 'recording' ? 'Recording...' : 'Grab audio from radio'}
+                    title={
+                      deckBJustGrabbed
+                        ? 'Grabbed! Now press play in the transport'
+                        : isGrabbingDeckB
+                        ? 'Grabbing audio...'
+                        : deckBRadioPlayTime >= 10
+                        ? 'Grab audio from radio'
+                        : 'Start radio playback'
+                    }
                   >
-                    {deckBRecorderRef.current && deckBRecorderRef.current.state === 'recording' ? 'REC' : 'GRAB'}
+                    {deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}
                   </button>
                 )}
               </div>
