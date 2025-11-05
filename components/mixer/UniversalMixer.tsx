@@ -176,6 +176,37 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }));
   };
 
+  // Determine master BPM based on content-type hierarchy
+  // Priority: Loop > Song > Radio/Grabbed Radio
+  const determineMasterBPM = (deckA: typeof mixerState.deckA, deckB: typeof mixerState.deckB): number => {
+    const getPriority = (contentType?: string): number => {
+      if (contentType === 'loop') return 3;
+      if (contentType === 'full_song') return 2;
+      if (contentType === 'radio_station' || contentType === 'grabbed_radio') return 1;
+      return 0;
+    };
+
+    const priorityA = getPriority(deckA.contentType);
+    const priorityB = getPriority(deckB.contentType);
+
+    // Higher priority deck sets BPM
+    if (priorityA > priorityB && deckA.track?.bpm) {
+      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (${deckA.contentType})`);
+      return deckA.track.bpm;
+    } else if (priorityB > priorityA && deckB.track?.bpm) {
+      console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (${deckB.contentType})`);
+      return deckB.track.bpm;
+    } else if (priorityA === priorityB && deckA.track?.bpm) {
+      // Same priority, use Deck A
+      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (same priority)`);
+      return deckA.track.bpm;
+    }
+
+    // Default to 120 BPM
+    console.log(`🎵 Master BPM: 120 (default)`);
+    return 120;
+  };
+
   // Clear Deck A
   const clearDeckA = () => {
     console.log('🗑️ Clearing Deck A');
@@ -288,22 +319,29 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           audioState.audio.volume = mixerState.deckA.volume / 100;
         }
 
+        const isGrabbedRadio = contentType === 'grabbed_radio';
+
         // For radio stations, disable looping; for loops/songs, apply loop settings
         if (audioControls) {
           if (isRadio) {
             audioControls.setLoopEnabled(false);
             console.log('📻 Radio station: looping disabled');
           } else {
-            audioControls.setLoopEnabled(mixerState.deckA.loopEnabled);
+            audioControls.setLoopEnabled(true);
             audioControls.setLoopLength(mixerState.deckA.loopLength);
             audioControls.setLoopPosition(0);
           }
         }
 
-        setMixerState(prev => ({
-          ...prev,
-          masterBPM: trackBPM,
-          deckA: {
+        // For grabbed radio, force playbackRate to 1.0 (no time-stretching)
+        if (isGrabbedRadio && audioState.audio) {
+          audioState.audio.playbackRate = 1.0;
+          console.log('📻 Grabbed radio: playbackRate locked to 1.0 (no time-stretching)');
+        }
+
+        // Update state with new track
+        setMixerState(prev => {
+          const newDeckAState = {
             ...prev.deckA,
             track,
             playing: false,
@@ -313,8 +351,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             loopPosition: 0,
             contentType,
             loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
-          }
-        }));
+          };
+
+          // Determine master BPM based on both decks
+          const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB);
+
+          return {
+            ...prev,
+            masterBPM: newMasterBPM,
+            deckA: newDeckAState
+          };
+        });
       }
     } catch (error) {
       console.error('❌ Failed to load Deck A:', error);
@@ -391,21 +438,29 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           audioState.audio.volume = mixerState.deckB.volume / 100;
         }
 
+        const isGrabbedRadio = contentType === 'grabbed_radio';
+
         // For radio stations, disable looping; for loops/songs, apply loop settings
         if (audioControls) {
           if (isRadio) {
             audioControls.setLoopEnabled(false);
             console.log('📻 Radio station: looping disabled');
           } else {
-            audioControls.setLoopEnabled(mixerState.deckB.loopEnabled);
+            audioControls.setLoopEnabled(true);
             audioControls.setLoopLength(mixerState.deckB.loopLength);
             audioControls.setLoopPosition(0);
           }
         }
 
-        setMixerState(prev => ({
-          ...prev,
-          deckB: {
+        // For grabbed radio, force playbackRate to 1.0 (no time-stretching)
+        if (isGrabbedRadio && audioState.audio) {
+          audioState.audio.playbackRate = 1.0;
+          console.log('📻 Grabbed radio: playbackRate locked to 1.0 (no time-stretching)');
+        }
+
+        // Update state with new track
+        setMixerState(prev => {
+          const newDeckBState = {
             ...prev.deckB,
             track,
             playing: false,
@@ -415,8 +470,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             loopPosition: 0,
             contentType,
             loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
-          }
-        }));
+          };
+
+          // Determine master BPM based on both decks
+          const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState);
+
+          return {
+            ...prev,
+            masterBPM: newMasterBPM,
+            deckB: newDeckBState
+          };
+        });
       }
     } catch (error) {
       console.error('❌ Failed to load Deck B:', error);
@@ -754,6 +818,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       }
     }
 
+    // Determine BPM for grabbed audio based on other deck
+    const otherDeck = deck === 'A' ? mixerState.deckB : mixerState.deckA;
+    const grabbedBPM = otherDeck.track?.bpm || 120;
+
     // Create a pseudo-track for the grabbed audio
     const grabbedTrack: Track = {
       id: `grabbed-${Date.now()}`,
@@ -761,11 +829,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       artist: mixerState[deck === 'A' ? 'deckA' : 'deckB'].track?.artist || 'Unknown',
       imageUrl: mixerState[deck === 'A' ? 'deckA' : 'deckB'].track?.imageUrl || '',
       audioUrl: audioUrl,
-      bpm: 120, // Default BPM
-      content_type: 'loop',
+      bpm: grabbedBPM,
+      content_type: 'grabbed_radio', // Mark as grabbed radio, not regular loop
       price_stx: 0,
       primary_uploader_wallet: ''
     };
+
+    console.log(`🎵 Grabbed audio will use BPM: ${grabbedBPM}`);
 
     console.log(`🎵 Loading grabbed audio into Deck ${deck}...`);
 
