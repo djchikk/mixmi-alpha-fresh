@@ -829,37 +829,38 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       setIsGrabbingDeckB(true);
     }
 
-    const recorder = deck === 'A' ? deckARecorderRef.current : deckBRecorderRef.current;
-    const chunks = deck === 'A' ? deckAChunksRef.current : deckBChunksRef.current;
+    try {
+      const recorder = deck === 'A' ? deckARecorderRef.current : deckBRecorderRef.current;
+      const chunks = deck === 'A' ? deckAChunksRef.current : deckBChunksRef.current;
 
-    if (!recorder || recorder.state === 'inactive') {
-      console.log('⚠️ No active recording, start recording first');
-      return;
-    }
+      if (!recorder || recorder.state === 'inactive') {
+        console.log('⚠️ No active recording, start recording first');
+        return;
+      }
 
-    // Stop current recording and wait for it to finalize
-    console.log(`🎙️ Stopping recorder for Deck ${deck}...`);
+      // Stop current recording and wait for it to finalize
+      console.log(`🎙️ Stopping recorder for Deck ${deck}...`);
 
-    await new Promise<void>((resolve) => {
-      recorder.addEventListener('stop', () => {
-        console.log(`🎙️ Recorder stopped for Deck ${deck}`);
-        resolve();
-      }, { once: true });
+      await new Promise<void>((resolve) => {
+        recorder.addEventListener('stop', () => {
+          console.log(`🎙️ Recorder stopped for Deck ${deck}`);
+          resolve();
+        }, { once: true });
 
-      recorder.stop();
-    });
+        recorder.stop();
+      });
 
-    // Give it a moment to flush final chunks
-    await new Promise(resolve => setTimeout(resolve, 200));
+      // Give it a moment to flush final chunks
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-    console.log(`📦 Have ${chunks.length} chunks to merge (total recording)`);
+      console.log(`📦 Have ${chunks.length} chunks to merge (total recording)`);
 
-    if (chunks.length === 0) {
-      console.log('⚠️ No audio chunks recorded');
-      // Restart recording for next grab
-      startRecording(deck);
-      return;
-    }
+      if (chunks.length === 0) {
+        console.log('⚠️ No audio chunks recorded');
+        // Restart recording for next grab
+        startRecording(deck);
+        return;
+      }
 
     // Create blob from ALL recorded chunks
     // The first chunk contains the initialization segment needed to decode the rest
@@ -923,19 +924,27 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       }, 500);
     }
 
-    console.log(`✅ GRAB complete! Deck ${deck} now playing grabbed radio loop!`);
+      console.log(`✅ GRAB complete! Deck ${deck} now playing grabbed radio loop!`);
 
-    // Clear grabbing state and set "just grabbed" state
-    if (deck === 'A') {
-      setIsGrabbingDeckA(false);
-      setDeckAJustGrabbed(true);
-      // Clear "just grabbed" state after 3 seconds
-      setTimeout(() => setDeckAJustGrabbed(false), 3000);
-    } else {
-      setIsGrabbingDeckB(false);
-      setDeckBJustGrabbed(true);
-      // Clear "just grabbed" state after 3 seconds
-      setTimeout(() => setDeckBJustGrabbed(false), 3000);
+      // Set "just grabbed" state for user feedback
+      if (deck === 'A') {
+        setDeckAJustGrabbed(true);
+        // Clear "just grabbed" state after 3 seconds
+        setTimeout(() => setDeckAJustGrabbed(false), 3000);
+      } else {
+        setDeckBJustGrabbed(true);
+        // Clear "just grabbed" state after 3 seconds
+        setTimeout(() => setDeckBJustGrabbed(false), 3000);
+      }
+    } catch (error) {
+      console.error(`❌ GRAB failed for Deck ${deck}:`, error);
+    } finally {
+      // ALWAYS clear grabbing state, even if there was an error
+      if (deck === 'A') {
+        setIsGrabbingDeckA(false);
+      } else {
+        setIsGrabbingDeckB(false);
+      }
     }
   };
 
