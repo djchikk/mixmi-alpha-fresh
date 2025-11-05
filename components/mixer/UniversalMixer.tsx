@@ -639,6 +639,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           if (chunks.current.length > 20) {
             chunks.current.shift();
           }
+          // Log first chunk to verify recording
+          if (chunks.current.length === 1) {
+            console.log(`🎙️ First chunk recorded for ${deck}: ${e.data.size} bytes, type: ${e.data.type}`);
+          }
         }
       };
 
@@ -674,11 +678,14 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
 
     // Create blob from recorded chunks
-    const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+    // Try different MIME types for better compatibility
+    const audioBlob = new Blob(chunks, { type: 'audio/webm;codecs=opus' });
     console.log(`📦 Created audio blob: ${audioBlob.size} bytes (~${chunks.length * 0.5}s of audio)`);
+    console.log(`📦 Blob type: ${audioBlob.type}`);
 
     // Convert blob to URL
     const audioUrl = URL.createObjectURL(audioBlob);
+    console.log(`📦 Blob URL created: ${audioUrl}`);
 
     // Create a pseudo-track for the grabbed audio
     const grabbedTrack: Track = {

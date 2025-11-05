@@ -1023,16 +1023,34 @@ export class MixerAudioEngine {
       // Wait for audio to be ready with proper cleanup on failure
       try {
         await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Audio load timeout')), 10000);
+          const timeout = setTimeout(() => {
+            console.error(`🚨 Deck ${deckId} audio load timeout after 10s`);
+            console.error(`🚨 Audio state:`, {
+              readyState: audio.readyState,
+              networkState: audio.networkState,
+              error: audio.error,
+              src: audio.src
+            });
+            reject(new Error('Audio load timeout'));
+          }, 10000);
 
           audio.addEventListener('canplaythrough', () => {
             clearTimeout(timeout);
+            console.log(`✅ Deck ${deckId} audio ready (canplaythrough)`);
             resolve(true);
           }, { once: true });
 
           audio.addEventListener('error', (e) => {
             clearTimeout(timeout);
-            reject(new Error(`Audio load error: ${e.message || 'Unknown error'}`));
+            const errorDetails = {
+              code: audio.error?.code,
+              message: audio.error?.message,
+              networkState: audio.networkState,
+              readyState: audio.readyState,
+              src: audio.src
+            };
+            console.error(`🚨 Deck ${deckId} audio error event:`, errorDetails);
+            reject(new Error(`Audio load error: ${audio.error?.message || `Code ${audio.error?.code}` || 'Unknown error'}`));
           }, { once: true });
         });
       } catch (loadError) {
