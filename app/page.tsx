@@ -29,12 +29,12 @@ const Globe = dynamic(() => import('@/components/globe/Globe'), {
 });
 
 
-// Dynamically import SimplifiedMixerCompact - the tiny mixer!
-const SimplifiedMixerCompact = dynamic(() => import('@/components/mixer/compact/SimplifiedMixerCompact'), {
+// Dynamically import UniversalMixer - the universal mixer!
+const UniversalMixer = dynamic(() => import('@/components/mixer/UniversalMixer'), {
   ssr: false,
   loading: () => (
     <div className="h-[120px] flex items-center justify-center">
-      <div className="text-gray-400">Loading tiny mixer...</div>
+      <div className="text-gray-400">Loading mixer...</div>
     </div>
   )
 });
@@ -1110,10 +1110,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Tiny Mixer - Always centered */}
+      {/* Universal Mixer - Always centered */}
       {isMixerVisible && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
-          <SimplifiedMixerCompact />
+          <UniversalMixer />
         </div>
       )}
 
