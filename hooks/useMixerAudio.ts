@@ -72,14 +72,16 @@ export function useMixerAudio(): UseMixerAudioReturn {
   }, []);
 
   // Extract audio loading logic
-  const loadAudioForDeck = useCallback(async (track: Track, deckName: string): Promise<LoadAudioResult | null> => {
+  const loadAudioForDeck = useCallback(async (track: Track, deckName: string, contentType?: string): Promise<LoadAudioResult | null> => {
     if (!track.audioUrl) return null;
-    
-    console.log(`🎵 Loading audio for ${deckName}:`, track.audioUrl.substring(0, 50) + '...');
-    
+
+    const isRadio = contentType === 'radio_station';
+    console.log(`🎵 Loading audio for ${deckName}:`, track.audioUrl.substring(0, 50) + '...', isRadio ? '📻 RADIO' : '');
+
     const { state: audioState, controls: audioControls } = await createMixerAudio(
-      track.audioUrl, 
-      deckName.slice(-1) as 'A' | 'B'
+      track.audioUrl,
+      deckName.slice(-1) as 'A' | 'B',
+      isRadio
     );
     
     // Set BPM and gain reference

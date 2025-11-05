@@ -63,13 +63,13 @@ export default function SimplifiedDeckCompact({
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
         
-        // 🎛️ SMART FILTERING: Only allow loops in mixer
-        if (item.track.content_type !== 'loop') {
+        // 🎛️ SMART FILTERING: Allow loops and radio stations in mixer
+        if (item.track.content_type !== 'loop' && item.track.content_type !== 'radio_station') {
           const contentTypeName = item.track.content_type === 'loop_pack' ? 'Loop Pack'
             : item.track.content_type === 'ep' ? 'EP'
             : item.track.content_type === 'full_song' ? 'Song' : 'content';
 
-          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops allowed`);
+          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops and radio allowed`);
 
           // Show user-friendly error message with specific guidance
           let message = '';

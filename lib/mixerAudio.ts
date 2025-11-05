@@ -983,11 +983,16 @@ export class MixerAudioEngine {
     // 🔄 REMOVED: No longer using basic browser looping
     // audio.loop = true; // Replaced with PreciseLooper
 
-    // Add cache-busting parameter only if needed (check for existing query params)
-    // Use version param instead of timestamp for better caching across sessions
-    const separator = src.includes('?') ? '&' : '?';
-    const cacheBusterSrc = `${src}${separator}v=${Date.now()}`;
-    audio.src = cacheBusterSrc;
+    // Add cache-busting parameter for HTTP URLs only (not blob URLs!)
+    const isBlob = src.startsWith('blob:');
+    let finalSrc = src;
+
+    if (!isBlob) {
+      const separator = src.includes('?') ? '&' : '?';
+      finalSrc = `${src}${separator}v=${Date.now()}`;
+    }
+
+    audio.src = finalSrc;
 
     // 🚨 CRITICAL: Append to DOM for proper CORS handling (MC Claude's solution)
     document.body.appendChild(audio);
@@ -1002,11 +1007,11 @@ export class MixerAudioEngine {
   }
 
   // Create a complete mixer audio deck with Web Audio API integration
-  static async createMixerDeck(audioUrl: string, deckId: 'A' | 'B'): Promise<{
+  static async createMixerDeck(audioUrl: string, deckId: 'A' | 'B', isRadio: boolean = false): Promise<{
     state: MixerAudioState;
     controls: MixerAudioControls;
   }> {
-    console.log(`🎛️ Creating mixer deck ${deckId} with audio:`, audioUrl.substring(0, 50) + '...');
+    console.log(`🎛️ Creating mixer deck ${deckId} with audio:`, audioUrl.substring(0, 50) + '...', isRadio ? '📻 RADIO MODE' : '');
     
     try {
       // Initialize audio context
@@ -1089,18 +1094,22 @@ export class MixerAudioEngine {
         preciseLooper: new PreciseLooper(audioContext, audio, 120, deckId, 8)
       };
 
-      // 🎵 NEW: Load audio buffer for content analysis
-      try {
-        console.log(`🎵 Deck ${deckId} loading audio buffer for content analysis...`);
-        const response = await fetch(audioUrl);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        
-        state.audioBuffer = audioBuffer;
-        console.log(`🎵 Deck ${deckId} audio buffer loaded: ${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.sampleRate}Hz`);
-      } catch (bufferError) {
-        console.warn(`⚠️ Deck ${deckId} could not load audio buffer for analysis:`, bufferError);
-        // Continue without buffer - will use mathematical calculations
+      // 🎵 NEW: Load audio buffer for content analysis (skip for radio streams)
+      if (!isRadio) {
+        try {
+          console.log(`🎵 Deck ${deckId} loading audio buffer for content analysis...`);
+          const response = await fetch(audioUrl);
+          const arrayBuffer = await response.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+          state.audioBuffer = audioBuffer;
+          console.log(`🎵 Deck ${deckId} audio buffer loaded: ${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.sampleRate}Hz`);
+        } catch (bufferError) {
+          console.warn(`⚠️ Deck ${deckId} could not load audio buffer for analysis:`, bufferError);
+          // Continue without buffer - will use mathematical calculations
+        }
+      } else {
+        console.log(`📻 Deck ${deckId} is radio stream - skipping buffer load`);
       }
 
       // Create controls interface

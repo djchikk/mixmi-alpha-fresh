@@ -27,6 +27,7 @@ interface UniversalMixerState {
     loopLength: number;
     loopPosition: number;
     volume: number; // 0-100
+    contentType?: string; // 'loop', 'song', 'radio_station', etc.
   };
   deckB: {
     track: Track | null;
@@ -38,6 +39,7 @@ interface UniversalMixerState {
     loopLength: number;
     loopPosition: number;
     volume: number; // 0-100
+    contentType?: string; // 'loop', 'song', 'radio_station', etc.
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -75,6 +77,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
   // Sync engine reference
   const syncEngineRef = React.useRef<SimpleLoopSync | null>(null);
+
+  // Audio recording buffers for GRAB feature
+  const deckARecorderRef = React.useRef<MediaRecorder | null>(null);
+  const deckBRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const deckAChunksRef = React.useRef<Blob[]>([]);
+  const deckBChunksRef = React.useRef<Blob[]>([]);
 
   // Use the mixer audio hook
   const {
@@ -219,10 +227,23 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       return;
     }
 
-    // Ensure we have audioUrl
-    const audioUrl = track.audioUrl || (track as any).audio_url;
+    // Detect content type
+    const contentType = (track as any).content_type || 'loop';
+    const isRadio = contentType === 'radio_station';
+
+    console.log(`🎵 Content type: ${contentType}, isRadio: ${isRadio}`);
+
+    // For radio stations, use stream_url; for others, use audioUrl
+    let audioUrl;
+    if (isRadio) {
+      audioUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
+      console.log('📻 Radio station detected, using audio URL:', audioUrl);
+    } else {
+      audioUrl = track.audioUrl || (track as any).audio_url;
+    }
+
     if (!audioUrl) {
-      console.error('❌ Track missing audioUrl:', track);
+      console.error(`❌ Track missing ${isRadio ? 'stream_url' : 'audioUrl'}:`, track);
       return;
     }
 
@@ -253,7 +274,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         }
       }
 
-      const audioResult = await loadAudioForDeck(track, 'Deck A');
+      const audioResult = await loadAudioForDeck(track, 'Deck A', contentType);
 
       if (audioResult) {
         const { audioState, audioControls, trackBPM } = audioResult;
@@ -263,10 +284,16 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           audioState.audio.volume = mixerState.deckA.volume / 100;
         }
 
+        // For radio stations, disable looping; for loops/songs, apply loop settings
         if (audioControls) {
-          audioControls.setLoopEnabled(mixerState.deckA.loopEnabled);
-          audioControls.setLoopLength(mixerState.deckA.loopLength);
-          audioControls.setLoopPosition(0);
+          if (isRadio) {
+            audioControls.setLoopEnabled(false);
+            console.log('📻 Radio station: looping disabled');
+          } else {
+            audioControls.setLoopEnabled(mixerState.deckA.loopEnabled);
+            audioControls.setLoopLength(mixerState.deckA.loopLength);
+            audioControls.setLoopPosition(0);
+          }
         }
 
         setMixerState(prev => ({
@@ -279,7 +306,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             audioState,
             audioControls,
             loading: false,
-            loopPosition: 0
+            loopPosition: 0,
+            contentType,
+            loopEnabled: isRadio ? false : prev.deckA.loopEnabled
           }
         }));
       }
@@ -301,9 +330,23 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       return;
     }
 
-    const audioUrl = track.audioUrl || (track as any).audio_url;
+    // Detect content type
+    const contentType = (track as any).content_type || 'loop';
+    const isRadio = contentType === 'radio_station';
+
+    console.log(`🎵 Content type: ${contentType}, isRadio: ${isRadio}`);
+
+    // For radio stations, use stream_url; for others, use audioUrl
+    let audioUrl;
+    if (isRadio) {
+      audioUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
+      console.log('📻 Radio station detected, using audio URL:', audioUrl);
+    } else {
+      audioUrl = track.audioUrl || (track as any).audio_url;
+    }
+
     if (!audioUrl) {
-      console.error('❌ Track missing audioUrl:', track);
+      console.error(`❌ Track missing ${isRadio ? 'stream_url' : 'audioUrl'}:`, track);
       return;
     }
 
@@ -334,7 +377,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         }
       }
 
-      const audioResult = await loadAudioForDeck(track, 'Deck B');
+      const audioResult = await loadAudioForDeck(track, 'Deck B', contentType);
 
       if (audioResult) {
         const { audioState, audioControls } = audioResult;
@@ -344,10 +387,16 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           audioState.audio.volume = mixerState.deckB.volume / 100;
         }
 
+        // For radio stations, disable looping; for loops/songs, apply loop settings
         if (audioControls) {
-          audioControls.setLoopEnabled(mixerState.deckB.loopEnabled);
-          audioControls.setLoopLength(mixerState.deckB.loopLength);
-          audioControls.setLoopPosition(0);
+          if (isRadio) {
+            audioControls.setLoopEnabled(false);
+            console.log('📻 Radio station: looping disabled');
+          } else {
+            audioControls.setLoopEnabled(mixerState.deckB.loopEnabled);
+            audioControls.setLoopLength(mixerState.deckB.loopLength);
+            audioControls.setLoopPosition(0);
+          }
         }
 
         setMixerState(prev => ({
@@ -359,7 +408,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             audioState,
             audioControls,
             loading: false,
-            loopPosition: 0
+            loopPosition: 0,
+            contentType,
+            loopEnabled: isRadio ? false : prev.deckB.loopEnabled
           }
         }));
       }
@@ -562,6 +613,123 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
   };
 
+  // Start recording radio stream (for GRAB feature)
+  const startRecording = (deck: 'A' | 'B') => {
+    const deckState = deck === 'A' ? mixerState.deckA : mixerState.deckB;
+
+    if (!deckState.audioState?.gainNode || deckState.contentType !== 'radio_station') {
+      return;
+    }
+
+    try {
+      // Tap into existing audio graph - connect from gain node to MediaStreamDestination
+      const audioContext = deckState.audioState.audioContext;
+      const dest = audioContext.createMediaStreamDestination();
+
+      // Connect the existing gain node to our destination (audio is already flowing through gainNode)
+      deckState.audioState.gainNode.connect(dest);
+
+      const recorder = new MediaRecorder(dest.stream);
+      const chunks = deck === 'A' ? deckAChunksRef : deckBChunksRef;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.current.push(e.data);
+          // Keep only last ~10 seconds of chunks (500ms chunks, so 20 = 10s)
+          if (chunks.current.length > 20) {
+            chunks.current.shift();
+          }
+        }
+      };
+
+      recorder.start(500); // Record in 500ms chunks
+
+      if (deck === 'A') {
+        deckARecorderRef.current = recorder;
+      } else {
+        deckBRecorderRef.current = recorder;
+      }
+
+      console.log(`🎙️ Started recording ${deck === 'A' ? 'Deck A' : 'Deck B'} for GRAB feature`);
+    } catch (error) {
+      console.error(`❌ Failed to start recording ${deck}:`, error);
+    }
+  };
+
+  // GRAB the last ~8 bars from radio stream
+  const handleGrab = async (deck: 'A' | 'B') => {
+    console.log(`🎯 GRAB triggered for Deck ${deck}!`);
+
+    const chunks = deck === 'A' ? deckAChunksRef.current : deckBChunksRef.current;
+
+    if (chunks.length === 0) {
+      console.log('⚠️ No audio recorded yet, start recording first');
+      return;
+    }
+
+    // Stop recording
+    const recorder = deck === 'A' ? deckARecorderRef.current : deckBRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+    }
+
+    // Create blob from recorded chunks
+    const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+    console.log(`📦 Created audio blob: ${audioBlob.size} bytes (~${chunks.length * 0.5}s of audio)`);
+
+    // Convert blob to URL
+    const audioUrl = URL.createObjectURL(audioBlob);
+
+    // Create a pseudo-track for the grabbed audio
+    const grabbedTrack: Track = {
+      id: `grabbed-${Date.now()}`,
+      title: `Grabbed from Radio (${deck})`,
+      artist: mixerState[deck === 'A' ? 'deckA' : 'deckB'].track?.artist || 'Unknown',
+      imageUrl: mixerState[deck === 'A' ? 'deckA' : 'deckB'].track?.imageUrl || '',
+      audioUrl: audioUrl,
+      bpm: 120, // Default BPM
+      content_type: 'loop',
+      price_stx: 0,
+      primary_uploader_wallet: ''
+    };
+
+    console.log(`🎵 Loading grabbed audio into Deck ${deck}...`);
+
+    // Reload the deck with the grabbed audio as a loop
+    if (deck === 'A') {
+      await loadTrackToDeckA(grabbedTrack);
+      // Auto-play the grabbed loop after a short delay
+      setTimeout(() => {
+        if (mixerState.deckA.audioControls && !mixerState.deckA.playing) {
+          handleDeckAPlayPause();
+        }
+      }, 500);
+    } else {
+      await loadTrackToDeckB(grabbedTrack);
+      // Auto-play the grabbed loop after a short delay
+      setTimeout(() => {
+        if (mixerState.deckB.audioControls && !mixerState.deckB.playing) {
+          handleDeckBPlayPause();
+        }
+      }, 500);
+    }
+
+    console.log(`✅ GRAB complete! Deck ${deck} now playing grabbed radio loop!`);
+  };
+
+  // Start recording when radio loads
+  useEffect(() => {
+    if (mixerState.deckA.contentType === 'radio_station' && mixerState.deckA.audioState?.audio && !deckARecorderRef.current) {
+      startRecording('A');
+    }
+  }, [mixerState.deckA.contentType, mixerState.deckA.audioState]);
+
+  useEffect(() => {
+    if (mixerState.deckB.contentType === 'radio_station' && mixerState.deckB.audioState?.audio && !deckBRecorderRef.current) {
+      startRecording('B');
+    }
+  }, [mixerState.deckB.contentType, mixerState.deckB.audioState]);
+
   // Expose loadMixerTracks and clearMixerDecks methods
   useEffect(() => {
     (window as any).loadMixerTracks = async (trackA: any, trackB: any) => {
@@ -680,7 +848,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               onLoopChange={(length) => handleLoopLengthChange('A', length)}
               onLoopToggle={() => handleLoopToggle('A')}
               color="cyan"
-              disabled={!mixerState.deckA.track}
+              disabled={!mixerState.deckA.track || mixerState.deckA.contentType === 'radio_station'}
             />
 
             <MasterTransportControlsCompact
@@ -707,7 +875,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               onLoopChange={(length) => handleLoopLengthChange('B', length)}
               onLoopToggle={() => handleLoopToggle('B')}
               color="cyan"
-              disabled={!mixerState.deckB.track}
+              disabled={!mixerState.deckB.track || mixerState.deckB.contentType === 'radio_station'}
             />
           </div>
 
@@ -724,6 +892,16 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackClear={clearDeckA}
                   deck="A"
                 />
+                {/* Tiny GRAB button for radio */}
+                {mixerState.deckA.contentType === 'radio_station' && mixerState.deckA.playing && (
+                  <button
+                    onClick={() => handleGrab('A')}
+                    className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold bg-orange-500 hover:bg-orange-600 text-white rounded shadow-lg transition-all duration-200 hover:scale-110"
+                    title="Grab last ~10 seconds as loop"
+                  >
+                    🎯 GRAB
+                  </button>
+                )}
               </div>
 
               {/* Waveforms */}
@@ -773,6 +951,16 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackClear={clearDeckB}
                   deck="B"
                 />
+                {/* Tiny GRAB button for radio */}
+                {mixerState.deckB.contentType === 'radio_station' && mixerState.deckB.playing && (
+                  <button
+                    onClick={() => handleGrab('B')}
+                    className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold bg-orange-500 hover:bg-orange-600 text-white rounded shadow-lg transition-all duration-200 hover:scale-110"
+                    title="Grab last ~10 seconds as loop"
+                  >
+                    🎯 GRAB
+                  </button>
+                )}
               </div>
             </div>
 
