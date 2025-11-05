@@ -83,6 +83,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const deckBRecorderRef = React.useRef<MediaRecorder | null>(null);
   const deckAChunksRef = React.useRef<Blob[]>([]);
   const deckBChunksRef = React.useRef<Blob[]>([]);
+  const deckAMimeTypeRef = React.useRef<string>('');
+  const deckBMimeTypeRef = React.useRef<string>('');
+  const deckADestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
+  const deckBDestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
 
   // Use the mixer audio hook
   const {
@@ -308,7 +312,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             loading: false,
             loopPosition: 0,
             contentType,
-            loopEnabled: isRadio ? false : prev.deckA.loopEnabled
+            loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
           }
         }));
       }
@@ -410,7 +414,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             loading: false,
             loopPosition: 0,
             contentType,
-            loopEnabled: isRadio ? false : prev.deckB.loopEnabled
+            loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
           }
         }));
       }
@@ -626,19 +630,55 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       const audioContext = deckState.audioState.audioContext;
       const dest = audioContext.createMediaStreamDestination();
 
+      // Store destination reference for cleanup
+      if (deck === 'A') {
+        deckADestinationRef.current = dest;
+      } else {
+        deckBDestinationRef.current = dest;
+      }
+
       // Connect the existing gain node to our destination (audio is already flowing through gainNode)
       deckState.audioState.gainNode.connect(dest);
 
-      const recorder = new MediaRecorder(dest.stream);
+      // Try to find a supported MIME type for better compatibility
+      let mimeType = '';
+      const types = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4'
+      ];
+
+      for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          mimeType = type;
+          console.log(`🎙️ Using MIME type: ${type}`);
+          break;
+        }
+      }
+
+      const recorder = mimeType
+        ? new MediaRecorder(dest.stream, { mimeType })
+        : new MediaRecorder(dest.stream);
+
+      console.log(`🎙️ MediaRecorder created with MIME type: ${recorder.mimeType}`);
+
+      // Store the MIME type for later blob creation
+      if (deck === 'A') {
+        deckAMimeTypeRef.current = recorder.mimeType;
+        deckARecorderRef.current = recorder;
+        deckAChunksRef.current = []; // Clear previous chunks
+      } else {
+        deckBMimeTypeRef.current = recorder.mimeType;
+        deckBRecorderRef.current = recorder;
+        deckBChunksRef.current = []; // Clear previous chunks
+      }
+
       const chunks = deck === 'A' ? deckAChunksRef : deckBChunksRef;
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunks.current.push(e.data);
-          // Keep only last ~10 seconds of chunks (500ms chunks, so 20 = 10s)
-          if (chunks.current.length > 20) {
-            chunks.current.shift();
-          }
           // Log first chunk to verify recording
           if (chunks.current.length === 1) {
             console.log(`🎙️ First chunk recorded for ${deck}: ${e.data.size} bytes, type: ${e.data.type}`);
@@ -646,15 +686,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         }
       };
 
-      recorder.start(500); // Record in 500ms chunks
+      // CRITICAL FIX: Record continuously without timeslice
+      // This ensures we get a complete WebM file with proper initialization segment
+      recorder.start();
 
-      if (deck === 'A') {
-        deckARecorderRef.current = recorder;
-      } else {
-        deckBRecorderRef.current = recorder;
-      }
-
-      console.log(`🎙️ Started recording ${deck === 'A' ? 'Deck A' : 'Deck B'} for GRAB feature`);
+      console.log(`🎙️ Started continuous recording ${deck === 'A' ? 'Deck A' : 'Deck B'} for GRAB feature`);
     } catch (error) {
       console.error(`❌ Failed to start recording ${deck}:`, error);
     }
@@ -664,28 +700,59 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const handleGrab = async (deck: 'A' | 'B') => {
     console.log(`🎯 GRAB triggered for Deck ${deck}!`);
 
+    const recorder = deck === 'A' ? deckARecorderRef.current : deckBRecorderRef.current;
     const chunks = deck === 'A' ? deckAChunksRef.current : deckBChunksRef.current;
 
-    if (chunks.length === 0) {
-      console.log('⚠️ No audio recorded yet, start recording first');
+    if (!recorder || recorder.state === 'inactive') {
+      console.log('⚠️ No active recording, start recording first');
       return;
     }
 
-    // Stop recording
-    const recorder = deck === 'A' ? deckARecorderRef.current : deckBRecorderRef.current;
-    if (recorder && recorder.state !== 'inactive') {
+    // Stop current recording and wait for it to finalize
+    console.log(`🎙️ Stopping recorder for Deck ${deck}...`);
+
+    await new Promise<void>((resolve) => {
+      recorder.addEventListener('stop', () => {
+        console.log(`🎙️ Recorder stopped for Deck ${deck}`);
+        resolve();
+      }, { once: true });
+
       recorder.stop();
+    });
+
+    // Give it a moment to flush final chunks
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    console.log(`📦 Have ${chunks.length} chunks to merge (total recording)`);
+
+    if (chunks.length === 0) {
+      console.log('⚠️ No audio chunks recorded');
+      // Restart recording for next grab
+      startRecording(deck);
+      return;
     }
 
-    // Create blob from recorded chunks
-    // Try different MIME types for better compatibility
-    const audioBlob = new Blob(chunks, { type: 'audio/webm;codecs=opus' });
-    console.log(`📦 Created audio blob: ${audioBlob.size} bytes (~${chunks.length * 0.5}s of audio)`);
-    console.log(`📦 Blob type: ${audioBlob.type}`);
+    // Create blob from ALL recorded chunks
+    // The first chunk contains the initialization segment needed to decode the rest
+    const mimeType = deck === 'A' ? deckAMimeTypeRef.current : deckBMimeTypeRef.current;
+    const audioBlob = new Blob(chunks, { type: mimeType });
+    console.log(`📦 Created audio blob: ${audioBlob.size} bytes, ${chunks.length} chunks`);
+    console.log(`📦 Blob type: ${audioBlob.type} (from recorder: ${mimeType})`);
 
     // Convert blob to URL
     const audioUrl = URL.createObjectURL(audioBlob);
     console.log(`📦 Blob URL created: ${audioUrl}`);
+
+    // Disconnect the recording tap to avoid feedback
+    const deckState = deck === 'A' ? mixerState.deckA : mixerState.deckB;
+    const destination = deck === 'A' ? deckADestinationRef.current : deckBDestinationRef.current;
+    if (deckState.audioState?.gainNode && destination) {
+      try {
+        deckState.audioState.gainNode.disconnect(destination);
+      } catch (e) {
+        // Already disconnected, ignore
+      }
+    }
 
     // Create a pseudo-track for the grabbed audio
     const grabbedTrack: Track = {
