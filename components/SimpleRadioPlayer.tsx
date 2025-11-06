@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Radio, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Radio, Play, Pause, Volume2, VolumeX, X } from 'lucide-react';
+import { useDrop } from 'react-dnd';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 
@@ -10,6 +11,7 @@ export default function SimpleRadioPlayer() {
   const [currentStation, setCurrentStation] = useState<IPTrack | null>(null);
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -23,6 +25,7 @@ export default function SimpleRadioPlayer() {
       (window as any).loadRadioTrack = (track: IPTrack) => {
         console.log('📻 SimpleRadioPlayer: Loading radio station:', track.title);
         setCurrentStation(track);
+        setIsExpanded(true); // Auto-expand when loading from card
 
         if (audioRef.current) {
           const audioSource = track.stream_url || track.audio_url;
@@ -108,24 +111,78 @@ export default function SimpleRadioPlayer() {
     }
   }, [volume, isMuted]);
 
-  // Don't render if no station is loaded
-  if (!currentStation) {
-    return null;
-  }
+  // Drop functionality for radio stations
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD'],
+    drop: (item: { track: any }) => {
+      console.log('📻 Radio Player received drop:', item);
+
+      // Check if it's a station pack - unpack it to crate first
+      if (item.track.content_type === 'station_pack') {
+        console.log('📦 Station pack detected, unpacking to crate:', item.track);
+
+        // Add pack to crate (which will unpack it)
+        if ((window as any).addPackToCrate) {
+          (window as any).addPackToCrate(item.track);
+        }
+
+        // Then load the first track from the pack to play
+        if ((window as any).loadRadioTrack) {
+          (window as any).loadRadioTrack(item.track);
+        }
+      } else if (item.track.content_type === 'radio_station') {
+        // Single radio station - just load it
+        if ((window as any).loadRadioTrack) {
+          (window as any).loadRadioTrack(item.track);
+        }
+      }
+    },
+    canDrop: (item) => {
+      return item.track.content_type === 'radio_station' || item.track.content_type === 'station_pack';
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  }));
 
   return (
-    <div
-      className="fixed bottom-24 right-6 z-[999]"
-      style={{
-        background: 'rgba(10, 10, 11, 0.95)',
-        backdropFilter: 'blur(12px)',
-        borderRadius: '12px',
-        border: '1px solid rgba(251, 146, 60, 0.3)',
-        boxShadow: '0 8px 32px rgba(251, 146, 60, 0.2)',
-        width: '280px',
-        padding: '12px'
-      }}
-    >
+    <div className="fixed bottom-[100px] right-6 z-[999]">
+      {/* Radio Icon Button - Always Visible like cart/search icons */}
+      {!isExpanded && (
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="p-1.5 hover:bg-[#1E293B] rounded transition-colors"
+          title="Open Radio Player"
+        >
+          <Radio className="w-6 h-6 text-gray-200" strokeWidth={2.5} />
+        </button>
+      )}
+
+      {/* Expanded Radio Player */}
+      {isExpanded && (
+        <div
+          ref={drop as any}
+          className="relative"
+          style={{
+            background: 'rgba(10, 10, 11, 0.95)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: '12px',
+            border: isOver && canDrop ? '2px solid rgba(251, 146, 60, 0.8)' : '1px solid rgba(251, 146, 60, 0.3)',
+            boxShadow: '0 8px 32px rgba(251, 146, 60, 0.2)',
+            width: '280px',
+            padding: '12px'
+          }}
+        >
+          {/* Close Button */}
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="absolute top-2 right-2 p-1 hover:bg-gray-800 rounded transition-colors z-10"
+            title="Close"
+          >
+            <X className="w-4 h-4 text-gray-400 hover:text-white" />
+          </button>
+
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
         <Radio className="w-4 h-4 text-orange-400" />
@@ -134,6 +191,30 @@ export default function SimpleRadioPlayer() {
         </span>
       </div>
 
+      {/* Empty State or Station Info */}
+      {!currentStation ? (
+        <div className="flex gap-3" style={{ height: '60px' }}>
+          {/* Empty artwork placeholder */}
+          <div
+            className="flex-shrink-0 rounded-lg overflow-hidden flex items-center justify-center"
+            style={{
+              width: '60px',
+              height: '60px',
+              border: '2px solid rgba(251, 146, 60, 0.3)',
+              backgroundColor: 'rgba(251, 146, 60, 0.1)'
+            }}
+          >
+            <Radio className="w-8 h-8 text-gray-600" />
+          </div>
+
+          {/* Empty text */}
+          <div className="flex-1 flex flex-col justify-center min-w-0">
+            <p className="text-sm text-gray-400">No station loaded</p>
+            <p className="text-xs text-gray-500">Drag stations here</p>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Station Info & Controls */}
       <div className="flex gap-3">
         {/* Station Artwork */}
@@ -169,13 +250,13 @@ export default function SimpleRadioPlayer() {
             {/* Play/Pause Button */}
             <button
               onClick={togglePlayPause}
-              className="w-8 h-8 rounded-full bg-orange-500 hover:bg-orange-600 flex items-center justify-center transition-all hover:scale-105"
+              className="text-orange-400 hover:text-orange-500 transition-colors"
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
-                <Pause className="w-4 h-4 text-white" fill="white" />
+                <Pause className="w-5 h-5" fill="currentColor" />
               ) : (
-                <Play className="w-4 h-4 text-white ml-0.5" fill="white" />
+                <Play className="w-5 h-5" fill="currentColor" />
               )}
             </button>
 
@@ -215,6 +296,10 @@ export default function SimpleRadioPlayer() {
           <span className="text-xs text-gray-400 uppercase tracking-wider">
             Live
           </span>
+        </div>
+      )}
+        </>
+      )}
         </div>
       )}
     </div>
