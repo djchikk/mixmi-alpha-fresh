@@ -65,6 +65,8 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     cover_image_url: ipTrack.cover_image_url, // CRITICAL: Preserve original cover_image_url for high-res display
     bpm: ipTrack.bpm || 120,
     audioUrl: (ipTrack as any).audioUrl || ipTrack.audio_url, // Handle both audioUrl and audio_url
+    audio_url: ipTrack.audio_url, // Preserve audio_url field
+    stream_url: (ipTrack as any).stream_url, // Preserve stream_url for radio stations
     content_type: ipTrack.content_type || 'loop', // Preserve original content type!
     price_stx: ipTrack.price_stx, // Preserve price for cart functionality
     download_price_stx: ipTrack.download_price_stx, // Preserve new pricing model
