@@ -209,10 +209,12 @@ export default function SimplifiedDeckCompact({
                 style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
               />
 
-              {/* BPM display - always visible in lower right */}
-              <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none pointer-events-none">
-                {currentTrack.bpm || 120}
-              </div>
+              {/* BPM display - always visible in lower right (except for radio stations) */}
+              {contentType !== 'radio_station' && (
+                <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none pointer-events-none">
+                  {currentTrack.bpm || 120}
+                </div>
+              )}
 
               {/* Remove button - top right, only on hover */}
               {isHovered && onTrackClear && (
