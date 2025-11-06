@@ -119,12 +119,17 @@ export default function SimplifiedDeckCompact({
         });
 
         // Convert IPTrack format to mixer Track format if needed
+        // For radio stations, prioritize stream_url
+        const audioUrl = item.track.content_type === 'radio_station'
+          ? (item.track.stream_url || item.track.audioUrl || item.track.audio_url)
+          : (item.track.audioUrl || item.track.audio_url);
+
         const mixerTrack = {
           id: item.track.id,
           title: item.track.title,
           artist: item.track.artist || item.track.artist_name,
           imageUrl: optimizedImageUrl,
-          audioUrl: item.track.audioUrl || item.track.audio_url,
+          audioUrl: audioUrl,
           bpm: item.track.bpm || 120,
           content_type: item.track.content_type
         };
