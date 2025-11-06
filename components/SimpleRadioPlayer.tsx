@@ -163,16 +163,7 @@ export default function SimpleRadioPlayer() {
       {isExpanded && (
         <div
           ref={drop as any}
-          className="relative"
-          style={{
-            background: 'rgba(10, 10, 11, 0.95)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: '12px',
-            border: isOver && canDrop ? '2px solid #FB923C' : '1px solid #FB923C',
-            boxShadow: '0 8px 32px rgba(251, 146, 60, 0.2)',
-            width: '280px',
-            padding: '12px'
-          }}
+          className={`relative radio-player-container ${isOver && canDrop ? 'drop-active' : ''}`}
         >
           {/* Close Button */}
           <button
@@ -195,15 +186,7 @@ export default function SimpleRadioPlayer() {
       {!currentStation ? (
         <div className="flex gap-3" style={{ height: '60px' }}>
           {/* Empty artwork placeholder */}
-          <div
-            className="flex-shrink-0 rounded-lg overflow-hidden flex items-center justify-center"
-            style={{
-              width: '60px',
-              height: '60px',
-              border: '2px solid #FB923C',
-              backgroundColor: 'rgba(251, 146, 60, 0.1)'
-            }}
-          >
+          <div className="empty-radio-artwork flex-shrink-0 rounded-lg flex items-center justify-center">
             <Radio className="w-8 h-8 text-gray-600" />
           </div>
 
@@ -218,14 +201,7 @@ export default function SimpleRadioPlayer() {
       {/* Station Info & Controls */}
       <div className="flex gap-3">
         {/* Station Artwork */}
-        <div
-          className="flex-shrink-0 rounded-lg overflow-hidden"
-          style={{
-            width: '60px',
-            height: '60px',
-            border: '2px solid #FB923C'
-          }}
-        >
+        <div className="loaded-radio-artwork flex-shrink-0 rounded-lg overflow-hidden">
           <img
             src={getOptimizedTrackImage(currentStation, 60)}
             alt={currentStation.title}
@@ -302,6 +278,52 @@ export default function SimpleRadioPlayer() {
       )}
         </div>
       )}
+
+      {/* Radio Player Styles */}
+      <style jsx>{`
+        .radio-player-container {
+          position: relative;
+          background: rgba(15, 23, 42, 0.3);
+          backdrop-filter: blur(8px);
+          border-radius: 0.75rem;
+          width: 280px;
+          padding: 12px;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+
+        /* Drop active state - subtle orange highlight */
+        .radio-player-container.drop-active {
+          border-color: rgba(251, 146, 60, 0.6);
+          box-shadow: 0 0 20px rgba(251, 146, 60, 0.3);
+        }
+
+        /* Empty artwork placeholder with orange pulse */
+        .empty-radio-artwork {
+          width: 60px;
+          height: 60px;
+          border: 2px dashed #64748B;
+          background-color: rgba(100, 116, 139, 0.1);
+          animation: artwork-pulse 3s ease-in-out infinite;
+        }
+
+        /* Pulse animation for empty artwork - from grayscale to orange */
+        @keyframes artwork-pulse {
+          0%, 100% {
+            border-color: #64748B;
+          }
+          50% {
+            border-color: #FB923C;
+          }
+        }
+
+        /* Loaded artwork - solid orange border */
+        .loaded-radio-artwork {
+          width: 60px;
+          height: 60px;
+          border: 2px solid #FB923C;
+        }
+      `}</style>
     </div>
   );
 }
