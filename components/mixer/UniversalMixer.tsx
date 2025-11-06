@@ -9,7 +9,7 @@ import WaveformDisplayCompact from './compact/WaveformDisplayCompact';
 import CrossfaderControlCompact from './compact/CrossfaderControlCompact';
 import MasterTransportControlsCompact from './compact/MasterTransportControlsCompact';
 import LoopControlsCompact from './compact/LoopControlsCompact';
-import { Music } from 'lucide-react';
+import { Music, Radio } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -1356,14 +1356,49 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
           {/* Transport and Loop Controls Row */}
           <div className="flex justify-center items-center gap-16 mb-5">
-            <LoopControlsCompact
-              loopLength={mixerState.deckA.loopLength}
-              loopEnabled={mixerState.deckA.loopEnabled}
-              onLoopChange={(length) => handleLoopLengthChange('A', length)}
-              onLoopToggle={() => handleLoopToggle('A')}
-              color="cyan"
-              disabled={!mixerState.deckA.track || mixerState.deckA.contentType === 'radio_station'}
-            />
+            {/* Deck A: Show radio button for radio stations, loop controls for loops */}
+            {(mixerState.deckA.contentType === 'radio_station' || deckAJustGrabbed) ? (
+              <button
+                onClick={() => {
+                  if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
+                    handleRadioPlay('A');
+                  } else if (deckARadioPlayTime >= 10 && !deckAJustGrabbed) {
+                    handleGrab('A');
+                  }
+                }}
+                disabled={isGrabbingDeckA || deckAJustGrabbed}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-full border transition-all duration-200 hover:scale-105 shadow-lg ${
+                  deckAJustGrabbed
+                    ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 cursor-default'
+                    : isGrabbingDeckA
+                    ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
+                    : deckARadioPlayTime >= 10
+                    ? 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
+                    : 'bg-gradient-to-br from-green-600 to-green-700 border-green-400/50 text-white hover:from-green-500 hover:to-green-600'
+                }`}
+                title={
+                  deckAJustGrabbed
+                    ? 'Grabbed! Now press play in the transport'
+                    : isGrabbingDeckA
+                    ? 'Grabbing audio...'
+                    : deckARadioPlayTime >= 10
+                    ? 'Grab audio from radio'
+                    : 'Start radio playback'
+                }
+              >
+                <Radio size={12} />
+                <span>{deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}</span>
+              </button>
+            ) : (
+              <LoopControlsCompact
+                loopLength={mixerState.deckA.loopLength}
+                loopEnabled={mixerState.deckA.loopEnabled}
+                onLoopChange={(length) => handleLoopLengthChange('A', length)}
+                onLoopToggle={() => handleLoopToggle('A')}
+                color="cyan"
+                disabled={!mixerState.deckA.track}
+              />
+            )}
 
             <MasterTransportControlsCompact
               variant="simplified"
@@ -1384,14 +1419,49 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               onMasterSyncReset={handleMasterSyncReset}
             />
 
-            <LoopControlsCompact
-              loopLength={mixerState.deckB.loopLength}
-              loopEnabled={mixerState.deckB.loopEnabled}
-              onLoopChange={(length) => handleLoopLengthChange('B', length)}
-              onLoopToggle={() => handleLoopToggle('B')}
-              color="cyan"
-              disabled={!mixerState.deckB.track || mixerState.deckB.contentType === 'radio_station'}
-            />
+            {/* Deck B: Show radio button for radio stations, loop controls for loops */}
+            {(mixerState.deckB.contentType === 'radio_station' || deckBJustGrabbed) ? (
+              <button
+                onClick={() => {
+                  if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
+                    handleRadioPlay('B');
+                  } else if (deckBRadioPlayTime >= 10 && !deckBJustGrabbed) {
+                    handleGrab('B');
+                  }
+                }}
+                disabled={isGrabbingDeckB || deckBJustGrabbed}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-full border transition-all duration-200 hover:scale-105 shadow-lg ${
+                  deckBJustGrabbed
+                    ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 cursor-default'
+                    : isGrabbingDeckB
+                    ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
+                    : deckBRadioPlayTime >= 10
+                    ? 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
+                    : 'bg-gradient-to-br from-green-600 to-green-700 border-green-400/50 text-white hover:from-green-500 hover:to-green-600'
+                }`}
+                title={
+                  deckBJustGrabbed
+                    ? 'Grabbed! Now press play in the transport'
+                    : isGrabbingDeckB
+                    ? 'Grabbing audio...'
+                    : deckBRadioPlayTime >= 10
+                    ? 'Grab audio from radio'
+                    : 'Start radio playback'
+                }
+              >
+                <Radio size={12} />
+                <span>{deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}</span>
+              </button>
+            ) : (
+              <LoopControlsCompact
+                loopLength={mixerState.deckB.loopLength}
+                loopEnabled={mixerState.deckB.loopEnabled}
+                onLoopChange={(length) => handleLoopLengthChange('B', length)}
+                onLoopToggle={() => handleLoopToggle('B')}
+                color="cyan"
+                disabled={!mixerState.deckB.track}
+              />
+            )}
           </div>
 
           {/* Decks, Waveforms, and Crossfader Section */}
@@ -1409,39 +1479,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   deck="A"
                   contentType={mixerState.deckA.contentType}
                 />
-                {/* Radio control button - PLAY (green) → GRAB (orange) → Done (cyan) */}
-                {(mixerState.deckA.contentType === 'radio_station' || deckAJustGrabbed) && (
-                  <button
-                    onClick={() => {
-                      if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
-                        handleRadioPlay('A');
-                      } else if (deckARadioPlayTime >= 10 && !deckAJustGrabbed) {
-                        handleGrab('A');
-                      }
-                    }}
-                    disabled={isGrabbingDeckA || deckAJustGrabbed}
-                    className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-[32px] h-[18px] flex items-center justify-center text-[9px] font-bold tracking-wider rounded border transition-all duration-200 hover:scale-105 shadow-lg ${
-                      deckAJustGrabbed
-                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 cursor-default'
-                        : isGrabbingDeckA
-                        ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
-                        : deckARadioPlayTime >= 10
-                        ? 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
-                        : 'bg-gradient-to-br from-green-600 to-green-700 border-green-400/50 text-white hover:from-green-500 hover:to-green-600'
-                    }`}
-                    title={
-                      deckAJustGrabbed
-                        ? 'Grabbed! Now press play in the transport'
-                        : isGrabbingDeckA
-                        ? 'Grabbing audio...'
-                        : deckARadioPlayTime >= 10
-                        ? 'Grab audio from radio'
-                        : 'Start radio playback'
-                    }
-                  >
-                    {deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}
-                  </button>
-                )}
               </div>
 
               {/* Waveforms */}
@@ -1493,39 +1530,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   deck="B"
                   contentType={mixerState.deckB.contentType}
                 />
-                {/* Radio control button - PLAY (green) → GRAB (orange) → Done (cyan) */}
-                {(mixerState.deckB.contentType === 'radio_station' || deckBJustGrabbed) && (
-                  <button
-                    onClick={() => {
-                      if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
-                        handleRadioPlay('B');
-                      } else if (deckBRadioPlayTime >= 10 && !deckBJustGrabbed) {
-                        handleGrab('B');
-                      }
-                    }}
-                    disabled={isGrabbingDeckB || deckBJustGrabbed}
-                    className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-[32px] h-[18px] flex items-center justify-center text-[9px] font-bold tracking-wider rounded border transition-all duration-200 hover:scale-105 shadow-lg ${
-                      deckBJustGrabbed
-                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 cursor-default'
-                        : isGrabbingDeckB
-                        ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
-                        : deckBRadioPlayTime >= 10
-                        ? 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
-                        : 'bg-gradient-to-br from-green-600 to-green-700 border-green-400/50 text-white hover:from-green-500 hover:to-green-600'
-                    }`}
-                    title={
-                      deckBJustGrabbed
-                        ? 'Grabbed! Now press play in the transport'
-                        : isGrabbingDeckB
-                        ? 'Grabbing audio...'
-                        : deckBRadioPlayTime >= 10
-                        ? 'Grab audio from radio'
-                        : 'Start radio playback'
-                    }
-                  >
-                    {deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}
-                  </button>
-                )}
               </div>
             </div>
 

@@ -703,15 +703,19 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
 
           {/* Transport and Loop Controls Row */}
           <div className="flex justify-center items-center gap-16 mb-5">
-            {/* Deck A Loop Controls */}
-            <LoopControlsCompact
-              loopLength={mixerState.deckA.loopLength}
-              loopEnabled={mixerState.deckA.loopEnabled}
-              onLoopChange={(length) => handleLoopLengthChange('A', length)}
-              onLoopToggle={() => handleLoopToggle('A')}
-              color="cyan"
-              disabled={!mixerState.deckA.track}
-            />
+            {/* Deck A Loop Controls - Only show for loopable content */}
+            {mixerState.deckA.track?.content_type !== 'radio_station' && mixerState.deckA.track?.content_type !== 'grabbed_radio' ? (
+              <LoopControlsCompact
+                loopLength={mixerState.deckA.loopLength}
+                loopEnabled={mixerState.deckA.loopEnabled}
+                onLoopChange={(length) => handleLoopLengthChange('A', length)}
+                onLoopToggle={() => handleLoopToggle('A')}
+                color="cyan"
+                disabled={!mixerState.deckA.track}
+              />
+            ) : (
+              <div className="w-[100px]" />
+            )}
 
             {/* Master Transport */}
             <MasterTransportControlsCompact
@@ -731,15 +735,19 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
               onSyncToggle={handleSync}
               onMasterSyncReset={handleMasterSyncReset}
             />
-            {/* Deck B Loop Controls */}
-            <LoopControlsCompact
-              loopLength={mixerState.deckB.loopLength}
-              loopEnabled={mixerState.deckB.loopEnabled}
-              onLoopChange={(length) => handleLoopLengthChange('B', length)}
-              onLoopToggle={() => handleLoopToggle('B')}
-              color="cyan"
-              disabled={!mixerState.deckB.track}
-            />
+            {/* Deck B Loop Controls - Only show for loopable content */}
+            {mixerState.deckB.track?.content_type !== 'radio_station' && mixerState.deckB.track?.content_type !== 'grabbed_radio' ? (
+              <LoopControlsCompact
+                loopLength={mixerState.deckB.loopLength}
+                loopEnabled={mixerState.deckB.loopEnabled}
+                onLoopChange={(length) => handleLoopLengthChange('B', length)}
+                onLoopToggle={() => handleLoopToggle('B')}
+                color="cyan"
+                disabled={!mixerState.deckB.track}
+              />
+            ) : (
+              <div className="w-[100px]" />
+            )}
           </div>
 
           {/* Decks, Waveforms, and Crossfader Section */}
