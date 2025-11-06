@@ -119,8 +119,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     loadAudioForDeck
   } = useMixerAudio();
 
-  // Use mixer context for crate management
-  const { addTrackToCrate } = useMixer();
+  // Use mixer context for crate (collection) management
+  const { addTrackToCollection } = useMixer();
 
   // Use toast for notifications
   const { showToast } = useToast();
@@ -615,9 +615,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
   };
 
-  // Handle pack drop - unpack contents to crate and load first item
+  // Handle pack drop - unpack contents to persistent crate and load first item to deck
   const handlePackDrop = async (packTrack: any, deck: 'A' | 'B') => {
-    console.log(`📦 Unpacking ${packTrack.content_type} to Deck ${deck} crate:`, packTrack);
+    console.log(`📦 Unpacking ${packTrack.content_type} to crate:`, packTrack);
 
     try {
       // Determine what type of content to fetch
@@ -649,10 +649,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
       console.log(`✅ Found ${data.length} tracks in pack`);
 
-      // Add all tracks to the appropriate crate
-      data.forEach((track: IPTrack) => {
-        addTrackToCrate(track, deck);
+      // Add all tracks to the crate (collection)
+      data.forEach((track: IPTrack, index: number) => {
+        console.log(`➕ Adding track ${index + 1}/${data.length} to crate:`, track.title);
+        addTrackToCollection(track);
       });
+
+      console.log(`✅ All ${data.length} tracks added to crate`);
 
       // Load the first track to the deck
       const firstTrack = data[0];
@@ -682,7 +685,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         : packTrack.content_type === 'ep' ? 'tracks'
         : 'loops';
 
-      showToast(`${emoji} ${data.length} ${itemName} unpacked to Deck ${deck} crate!`, 'success');
+      showToast(`${emoji} ${data.length} ${itemName} unpacked to crate!`, 'success');
 
     } catch (error) {
       console.error('❌ Error unpacking pack:', error);
