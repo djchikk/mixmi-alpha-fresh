@@ -794,8 +794,12 @@ export default function Crate({ className = '' }: CrateProps) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (track.content_type === 'radio_station') {
-                        // Send radio stations to RadioWidget
+                      // Check if this is radio content (station or pack)
+                      const isRadioContent = track.content_type === 'radio_station' ||
+                                           track.content_type === 'station_pack';
+
+                      if (isRadioContent) {
+                        // Send radio stations and packs to RadioWidget
                         if ((window as any).loadRadioTrack) {
                           (window as any).loadRadioTrack(track);
                         }
@@ -807,9 +811,9 @@ export default function Crate({ className = '' }: CrateProps) {
                       }
                     }}
                     className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110"
-                    title={track.content_type === 'radio_station' ? "Add to Radio Widget" : "Add to cart"}
+                    title={track.content_type === 'radio_station' || track.content_type === 'station_pack' ? "Add to Radio Widget" : "Add to cart"}
                   >
-                    {track.content_type === 'radio_station' ? (
+                    {track.content_type === 'radio_station' || track.content_type === 'station_pack' ? (
                       <Radio className="w-3.5 h-3.5 text-white" />
                     ) : (
                       <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">

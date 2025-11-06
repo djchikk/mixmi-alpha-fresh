@@ -1084,8 +1084,9 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Widget Launcher - Always visible */}
-      <WidgetLauncher
+      {/* Widget Launcher - Temporarily hidden for pre-deploy polish */}
+      {/* TODO: Re-enable after implementing simplified radio widget UI */}
+      {/* <WidgetLauncher
         onMixClick={() => setIsMixerVisible(!isMixerVisible)}
         onPlayClick={() => setIsPlaylistVisible(!isPlaylistVisible)}
         onRadioClick={() => setIsRadioVisible(!isRadioVisible)}
@@ -1094,7 +1095,7 @@ export default function HomePage() {
         isPlaylistVisible={isPlaylistVisible}
         isRadioVisible={isRadioVisible}
         isFilled={isFilled}
-      />
+      /> */}
 
       {/* Reset Confirmation Modal */}
       <ResetConfirmModal
