@@ -11,7 +11,7 @@ import MasterTransportControlsCompact from './compact/MasterTransportControlsCom
 import LoopControlsCompact from './compact/LoopControlsCompact';
 import { Music } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
-import { createClient } from '@/utils/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { IPTrack } from '@/types';
 
@@ -124,9 +124,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
   // Use toast for notifications
   const { showToast } = useToast();
-
-  // Supabase client for fetching pack contents
-  const supabase = createClient();
 
   // Initialize audio on mount
   useEffect(() => {
