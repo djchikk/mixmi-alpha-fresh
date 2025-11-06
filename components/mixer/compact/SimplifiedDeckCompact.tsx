@@ -14,6 +14,7 @@ interface SimplifiedDeckProps {
   onTrackDrop?: (track: Track) => void;
   onTrackClear?: () => void; // New prop for clearing deck
   deck: 'A' | 'B';
+  contentType?: string; // Content type for dynamic border colors
   className?: string;
 }
 
@@ -24,6 +25,7 @@ export default function SimplifiedDeckCompact({
   onTrackDrop,
   onTrackClear,
   deck,
+  contentType,
   className = ''
 }: SimplifiedDeckProps) {
   const { showToast } = useToast();
@@ -31,6 +33,24 @@ export default function SimplifiedDeckCompact({
   const [previousTrackId, setPreviousTrackId] = useState(currentTrack?.id);
   const [isHovered, setIsHovered] = useState(false);
   const [dropZoneActive, setDropZoneActive] = useState(false);
+
+  // Get border color based on content type
+  const getBorderColor = () => {
+    switch (contentType) {
+      case 'loop':
+        return '#9772F4'; // Purple - loops
+      case 'radio_station':
+        return '#FF6B35'; // Orange - live radio
+      case 'grabbed_radio':
+        return '#F72585'; // Hot pink - grabbed moments
+      case 'full_song':
+        return '#4CC9F0'; // Cyan - songs
+      default:
+        return '#9772F4'; // Default purple
+    }
+  };
+
+  const borderColor = getBorderColor();
 
   // Drag functionality for deck tracks back to Crate
   const [{ isDragging }, dragRef] = useDrag(() => ({
@@ -154,8 +174,9 @@ export default function SimplifiedDeckCompact({
           key={currentTrack?.id || 'empty'}
           className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging && !currentTrack ? 'drop-target' : ''}`}
           style={{
-            border: isOver && canDrop && !isDragging && !currentTrack ? '3px solid #9772F4' : undefined
-          }}
+            border: isOver && canDrop && !isDragging && !currentTrack ? `3px solid ${borderColor}` : undefined,
+            '--border-color': borderColor
+          } as React.CSSProperties & { '--border-color': string }}
         >
           {isLoading ? (
             <div className="deck-empty">
@@ -251,16 +272,16 @@ export default function SimplifiedDeckCompact({
         }
 
         .carousel-track.current.has-track {
-          border: 2px solid #9772F4;
+          border: 2px solid var(--border-color, #9772F4);
         }
 
         .carousel-track.current.new-track-loaded {
-          border-color: #9772F4 !important;
+          border-color: var(--border-color, #9772F4) !important;
         }
 
 
         .carousel-track.current.playing {
-          border-color: #9772F4 !important;
+          border-color: var(--border-color, #9772F4) !important;
         }
 
         .loading-spinner {
@@ -268,7 +289,7 @@ export default function SimplifiedDeckCompact({
           height: 24px;
           border: 2px solid rgba(255, 255, 255, 0.2);
           border-radius: 50%;
-          border-top-color: #9772F4;
+          border-top-color: var(--border-color, #9772F4);
           animation: spin 0.8s linear infinite;
         }
         
@@ -307,7 +328,7 @@ export default function SimplifiedDeckCompact({
         
         .carousel-track.drop-target {
           transform: scale(1.05);
-          border-color: #9772F4 !important;
+          border-color: var(--border-color, #9772F4) !important;
           box-shadow: 0 0 20px rgba(151, 114, 244, 0.3);
         }
       `}</style>

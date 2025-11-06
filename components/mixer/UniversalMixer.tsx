@@ -1169,6 +1169,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackDrop={loadTrackToDeckA}
                   onTrackClear={clearDeckA}
                   deck="A"
+                  contentType={mixerState.deckA.contentType}
                 />
                 {/* Radio control button - PLAY (green) → GRAB (orange) → Done (cyan) */}
                 {mixerState.deckA.contentType === 'radio_station' && (
@@ -1251,6 +1252,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackDrop={loadTrackToDeckB}
                   onTrackClear={clearDeckB}
                   deck="B"
+                  contentType={mixerState.deckB.contentType}
                 />
                 {/* Radio control button - PLAY (green) → GRAB (orange) → Done (cyan) */}
                 {mixerState.deckB.contentType === 'radio_station' && (
