@@ -263,9 +263,22 @@ export default function Crate({ className = '' }: CrateProps) {
       if (!exists) {
         // Add to collection (always to the end)
         addTrackToCollection(item.track);
+
         // Show drop animation
         setShowDropAnimation(true);
         setTimeout(() => setShowDropAnimation(false), 600);
+
+        // Check if this is a pack - if so, auto-expand it!
+        const isPack = item.track.content_type === 'loop_pack' ||
+                       item.track.content_type === 'ep' ||
+                       item.track.content_type === 'station_pack';
+
+        if (isPack && (window as any).expandPackInCrate) {
+          console.log('📦 Auto-expanding pack dropped to crate:', item.track.title);
+          setTimeout(() => {
+            (window as any).expandPackInCrate(item.track);
+          }, 300); // Small delay to let the pack container render first
+        }
       }
     },
     collect: (monitor) => ({
