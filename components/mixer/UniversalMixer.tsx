@@ -10,6 +10,10 @@ import CrossfaderControlCompact from './compact/CrossfaderControlCompact';
 import MasterTransportControlsCompact from './compact/MasterTransportControlsCompact';
 import LoopControlsCompact from './compact/LoopControlsCompact';
 import { Music } from 'lucide-react';
+import { useMixer } from '@/contexts/MixerContext';
+import { createClient } from '@/utils/supabase/client';
+import { useToast } from '@/contexts/ToastContext';
+import { IPTrack } from '@/types';
 
 interface UniversalMixerProps {
   className?: string;
@@ -114,6 +118,15 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     cleanupDeckAudio,
     loadAudioForDeck
   } = useMixerAudio();
+
+  // Use mixer context for crate management
+  const { addTrackToCrate } = useMixer();
+
+  // Use toast for notifications
+  const { showToast } = useToast();
+
+  // Supabase client for fetching pack contents
+  const supabase = createClient();
 
   // Initialize audio on mount
   useEffect(() => {
@@ -602,6 +615,81 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         ...prev,
         deckB: { ...prev.deckB, loading: false }
       }));
+    }
+  };
+
+  // Handle pack drop - unpack contents to crate and load first item
+  const handlePackDrop = async (packTrack: any, deck: 'A' | 'B') => {
+    console.log(`📦 Unpacking ${packTrack.content_type} to Deck ${deck} crate:`, packTrack);
+
+    try {
+      // Determine what type of content to fetch
+      const contentTypeToFetch = packTrack.content_type === 'loop_pack' ? 'loop'
+        : packTrack.content_type === 'station_pack' ? 'radio_station'
+        : 'full_song';
+
+      const packId = packTrack.pack_id || packTrack.id.split('-loc-')[0];
+
+      // Fetch all child tracks from the pack
+      const { data, error } = await supabase
+        .from('tracks')
+        .select('*')
+        .eq('pack_id', packId)
+        .eq('content_type', contentTypeToFetch)
+        .order('pack_position', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error fetching pack contents:', error);
+        showToast('Failed to load pack contents', 'error');
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.warn('⚠️ No tracks found in pack');
+        showToast('No tracks found in pack', 'warning');
+        return;
+      }
+
+      console.log(`✅ Found ${data.length} tracks in pack`);
+
+      // Add all tracks to the appropriate crate
+      data.forEach((track: IPTrack) => {
+        addTrackToCrate(track, deck);
+      });
+
+      // Load the first track to the deck
+      const firstTrack = data[0];
+      const loadFunction = deck === 'A' ? loadTrackToDeckA : loadTrackToDeckB;
+
+      // Convert IPTrack to Track format
+      const mixerTrack: Track = {
+        id: firstTrack.id,
+        title: firstTrack.title,
+        artist: firstTrack.artist || 'Unknown Artist',
+        imageUrl: firstTrack.cover_image_url || '',
+        audioUrl: contentTypeToFetch === 'radio_station'
+          ? ((firstTrack as any).stream_url || firstTrack.audio_url)
+          : firstTrack.audio_url,
+        bpm: firstTrack.bpm || 120,
+        content_type: firstTrack.content_type,
+        pack_position: firstTrack.pack_position
+      };
+
+      await loadFunction(mixerTrack);
+
+      // Show success toast
+      const emoji = packTrack.content_type === 'station_pack' ? '📻'
+        : packTrack.content_type === 'ep' ? '🎵'
+        : '🔁';
+      const itemName = packTrack.content_type === 'station_pack' ? 'stations'
+        : packTrack.content_type === 'ep' ? 'tracks'
+        : 'loops';
+
+      showToast(`${emoji} ${data.length} ${itemName} unpacked to Deck ${deck} crate!`, 'success');
+
+    } catch (error) {
+      console.error('❌ Error unpacking pack:', error);
+      showToast('Failed to unpack content', 'error');
     }
   };
 
@@ -1210,6 +1298,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   isPlaying={mixerState.deckA.playing}
                   isLoading={mixerState.deckA.loading}
                   onTrackDrop={loadTrackToDeckA}
+                  onPackDrop={(pack) => handlePackDrop(pack, 'A')}
                   onTrackClear={clearDeckA}
                   deck="A"
                   contentType={mixerState.deckA.contentType}
@@ -1293,6 +1382,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   isPlaying={mixerState.deckB.playing}
                   isLoading={mixerState.deckB.loading}
                   onTrackDrop={loadTrackToDeckB}
+                  onPackDrop={(pack) => handlePackDrop(pack, 'B')}
                   onTrackClear={clearDeckB}
                   deck="B"
                   contentType={mixerState.deckB.contentType}

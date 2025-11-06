@@ -12,6 +12,7 @@ interface SimplifiedDeckProps {
   isPlaying: boolean;
   isLoading?: boolean;
   onTrackDrop?: (track: Track) => void;
+  onPackDrop?: (pack: any) => void; // New prop for handling pack drops
   onTrackClear?: () => void; // New prop for clearing deck
   deck: 'A' | 'B';
   contentType?: string; // Content type for dynamic border colors
@@ -23,6 +24,7 @@ export default function SimplifiedDeckCompact({
   isPlaying,
   isLoading = false,
   onTrackDrop,
+  onPackDrop,
   onTrackClear,
   deck,
   contentType,
@@ -80,26 +82,31 @@ export default function SimplifiedDeckCompact({
     drop: (item: { track: any; sourceDeck?: string; sourceIndex: number }) => {
       console.log(`🎯 Deck ${deck} received drop:`, item);
       
+      // 📦 Check if this is a pack - if so, unpack it!
+      if (item.track.content_type === 'loop_pack' ||
+          item.track.content_type === 'ep' ||
+          item.track.content_type === 'station_pack') {
+        console.log(`📦 Pack detected, unpacking to Deck ${deck} crate:`, item.track);
+        if (onPackDrop) {
+          onPackDrop(item.track);
+        }
+        return;
+      }
+
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
-        
+
         // 🎛️ SMART FILTERING: Allow loops, radio stations, and grabbed radio in mixer
         if (item.track.content_type !== 'loop' &&
             item.track.content_type !== 'radio_station' &&
             item.track.content_type !== 'grabbed_radio') {
-          const contentTypeName = item.track.content_type === 'loop_pack' ? 'Loop Pack'
-            : item.track.content_type === 'ep' ? 'EP'
-            : item.track.content_type === 'full_song' ? 'Song' : 'content';
+          const contentTypeName = item.track.content_type === 'full_song' ? 'Song' : 'content';
 
           console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops and radio allowed`);
 
           // Show user-friendly error message with specific guidance
           let message = '';
-          if (item.track.content_type === 'loop_pack') {
-            message = '🎛️ This is a Loop Pack! Click the chevron to expand it, or drag it to the Crate or Playlist to add all loops at once.';
-          } else if (item.track.content_type === 'ep') {
-            message = '🎛️ This is an EP! Click the chevron to expand it, or drag it to the Crate or Playlist to add all songs at once.';
-          } else if (item.track.content_type === 'full_song') {
+          if (item.track.content_type === 'full_song') {
             message = '🎵 Songs can\'t be mixed! Only 8-bar loops work in the mixer. Try dragging songs to the Crate or Playlist instead.';
           } else {
             message = `🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate or Playlist instead.`;
@@ -131,7 +138,8 @@ export default function SimplifiedDeckCompact({
           imageUrl: optimizedImageUrl,
           audioUrl: audioUrl,
           bpm: item.track.bpm || 120,
-          content_type: item.track.content_type
+          content_type: item.track.content_type,
+          pack_position: item.track.pack_position // Preserve for number badges
         };
         
         console.log('🔄 Converted track for mixer:', mixerTrack);
@@ -195,6 +203,19 @@ export default function SimplifiedDeckCompact({
               onMouseLeave={() => setIsHovered(false)}
             >
               <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
+
+              {/* Pack position badge - top left */}
+              {currentTrack.pack_position && (
+                <div
+                  className="absolute top-1 left-1 w-5 h-5 rounded text-xs font-bold flex items-center justify-center pointer-events-none z-10"
+                  style={{
+                    backgroundColor: contentType === 'radio_station' ? '#FB923C' : '#9772F4',
+                    color: '#FFFFFF'
+                  }}
+                >
+                  {currentTrack.pack_position}
+                </div>
+              )}
 
               {/* Dark overlay on hover */}
               {isHovered && (
