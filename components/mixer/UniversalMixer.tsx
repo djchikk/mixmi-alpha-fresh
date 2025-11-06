@@ -1215,7 +1215,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   contentType={mixerState.deckA.contentType}
                 />
                 {/* Radio control button - PLAY (green) → GRAB (orange) → Done (cyan) */}
-                {mixerState.deckA.contentType === 'radio_station' && (
+                {(mixerState.deckA.contentType === 'radio_station' || deckAJustGrabbed) && (
                   <button
                     onClick={() => {
                       if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
@@ -1298,7 +1298,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   contentType={mixerState.deckB.contentType}
                 />
                 {/* Radio control button - PLAY (green) → GRAB (orange) → Done (cyan) */}
-                {mixerState.deckB.contentType === 'radio_station' && (
+                {(mixerState.deckB.contentType === 'radio_station' || deckBJustGrabbed) && (
                   <button
                     onClick={() => {
                       if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
