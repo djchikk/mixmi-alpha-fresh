@@ -781,9 +781,9 @@ export default function CompactTrackCardWithFlip({
                           {index + 1}
                         </div>
 
-                        {/* BPM */}
-                        <div className="flex-1 text-white text-xs font-mono text-center">
-                          {loop.bpm || 120}
+                        {/* BPM (for loops/songs) or Station Title (for radio stations) */}
+                        <div className="flex-1 text-white text-xs text-center" style={{ fontFamily: track.content_type === 'station_pack' ? 'inherit' : 'monospace' }}>
+                          {track.content_type === 'station_pack' ? loop.title : (loop.bpm || 120)}
                         </div>
 
                         {/* Play/Pause button */}
