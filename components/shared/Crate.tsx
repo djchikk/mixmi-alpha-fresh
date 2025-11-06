@@ -275,9 +275,22 @@ export default function Crate({ className = '' }: CrateProps) {
 
         if (isPack && (window as any).expandPackInCrate) {
           console.log('📦 Auto-expanding pack dropped to crate:', item.track.title);
-          setTimeout(() => {
-            (window as any).expandPackInCrate(item.track);
-          }, 300); // Small delay to let the pack container render first
+
+          // Use requestAnimationFrame for reliable timing after render
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              // Double RAF ensures DOM is fully updated
+              try {
+                if ((window as any).expandPackInCrate) {
+                  (window as any).expandPackInCrate(item.track);
+                } else {
+                  console.warn('⚠️ expandPackInCrate not available');
+                }
+              } catch (error) {
+                console.error('❌ Failed to auto-expand pack:', error);
+              }
+            });
+          });
         }
       }
     },

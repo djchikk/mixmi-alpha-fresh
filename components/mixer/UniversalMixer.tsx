@@ -742,12 +742,25 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       console.log(`📦 Adding pack container to crate:`, packTrack.title);
       addTrackToCollection(packTrack);
 
-      // Auto-expand the pack in the crate
+      // Auto-expand the pack in the crate - wait for next render cycle
       if ((window as any).expandPackInCrate) {
         console.log(`🎯 Triggering auto-expand for pack:`, packTrack.id);
-        setTimeout(() => {
-          (window as any).expandPackInCrate(packTrack);
-        }, 300); // Small delay to let the pack container render first
+
+        // Use requestAnimationFrame for reliable timing after render
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            // Double RAF ensures DOM is fully updated
+            try {
+              if ((window as any).expandPackInCrate) {
+                (window as any).expandPackInCrate(packTrack);
+              } else {
+                console.warn('⚠️ expandPackInCrate not available');
+              }
+            } catch (error) {
+              console.error('❌ Failed to auto-expand pack:', error);
+            }
+          });
+        });
       }
 
       // Load the first track to the deck
