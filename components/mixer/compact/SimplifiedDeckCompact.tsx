@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useDrop, useDrag } from 'react-dnd';
 import { Track } from '../types';
 import { useToast } from '@/contexts/ToastContext';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Radio } from 'lucide-react';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 
 interface SimplifiedDeckProps {
@@ -42,9 +42,9 @@ export default function SimplifiedDeckCompact({
       case 'loop':
         return '#9772F4'; // Purple - loops
       case 'radio_station':
-        return '#FF6B35'; // Orange - live radio
+        return '#FB923C'; // Orange - live radio (official radio orange)
       case 'grabbed_radio':
-        return '#F72585'; // Hot pink - grabbed moments
+        return '#FB923C'; // Orange - grabbed moments (official radio orange)
       case 'full_song':
         return '#FFE4B5'; // Gold - songs
       default:
@@ -231,10 +231,27 @@ export default function SimplifiedDeckCompact({
               />
 
               {/* BPM display - always visible in lower right (except for radio stations) */}
-              {contentType !== 'radio_station' && (
+              {contentType !== 'radio_station' && contentType !== 'grabbed_radio' && (
                 <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none pointer-events-none">
                   {currentTrack.bpm || 120}
                 </div>
+              )}
+
+              {/* Radio icon - lower left on hover for radio stations */}
+              {(contentType === 'radio_station' || contentType === 'grabbed_radio') && isHovered && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Send to radio player
+                    if (typeof window !== 'undefined' && (window as any).loadRadioTrack) {
+                      (window as any).loadRadioTrack(currentTrack);
+                    }
+                  }}
+                  className="absolute bottom-0.5 left-0.5 transition-all hover:scale-110 z-10"
+                  title="Send station to radio player for continuous play"
+                >
+                  <Radio className="w-3.5 h-3.5 text-white" />
+                </button>
               )}
 
               {/* Remove button - top right, only on hover */}

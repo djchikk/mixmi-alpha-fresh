@@ -168,7 +168,7 @@ export default function SimpleRadioPlayer() {
             background: 'rgba(10, 10, 11, 0.95)',
             backdropFilter: 'blur(12px)',
             borderRadius: '12px',
-            border: isOver && canDrop ? '2px solid rgba(251, 146, 60, 0.8)' : '1px solid rgba(251, 146, 60, 0.3)',
+            border: isOver && canDrop ? '2px solid #FB923C' : '1px solid #FB923C',
             boxShadow: '0 8px 32px rgba(251, 146, 60, 0.2)',
             width: '280px',
             padding: '12px'
@@ -185,7 +185,7 @@ export default function SimpleRadioPlayer() {
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
-        <Radio className="w-4 h-4 text-orange-400" />
+        <Radio className="w-4 h-4" style={{ color: '#FB923C' }} />
         <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
           Live Radio
         </span>
@@ -200,7 +200,7 @@ export default function SimpleRadioPlayer() {
             style={{
               width: '60px',
               height: '60px',
-              border: '2px solid rgba(251, 146, 60, 0.3)',
+              border: '2px solid #FB923C',
               backgroundColor: 'rgba(251, 146, 60, 0.1)'
             }}
           >
@@ -223,7 +223,7 @@ export default function SimpleRadioPlayer() {
           style={{
             width: '60px',
             height: '60px',
-            border: '2px solid rgba(251, 146, 60, 0.5)'
+            border: '2px solid #FB923C'
           }}
         >
           <img
@@ -250,7 +250,7 @@ export default function SimpleRadioPlayer() {
             {/* Play/Pause Button */}
             <button
               onClick={togglePlayPause}
-              className="text-orange-400 hover:text-orange-500 transition-colors"
+              className="text-gray-300 hover:text-white transition-colors"
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
@@ -282,7 +282,7 @@ export default function SimpleRadioPlayer() {
               onChange={handleVolumeChange}
               className="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
               style={{
-                accentColor: '#FB923C'
+                accentColor: '#D1D5DB'
               }}
             />
           </div>
