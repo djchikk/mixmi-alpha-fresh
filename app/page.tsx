@@ -54,6 +54,11 @@ const GlobeSearch = dynamic(() => import('@/components/globe/GlobeSearch'), {
   ssr: false
 });
 
+// Dynamically import SimpleRadioPlayer - simplified radio UI
+const SimpleRadioPlayer = dynamic(() => import('@/components/SimpleRadioPlayer'), {
+  ssr: false
+});
+
 export default function HomePage() {
   // Alpha app - no auth required for globe viewing
   const [selectedNode, setSelectedNode] = useState<TrackNode | null>(null);
@@ -1127,6 +1132,9 @@ export default function HomePage() {
 
       {/* Crate - Persistent across all pages */}
       <Crate />
+
+      {/* Simple Radio Player - Always available, shows when station loaded */}
+      <SimpleRadioPlayer />
     </>
   );
 }
