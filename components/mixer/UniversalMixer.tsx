@@ -615,9 +615,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
   };
 
-  // Handle pack drop - unpack contents to persistent crate and load first item to deck
+  // Handle pack drop - add pack to crate and auto-expand, load first item to deck
   const handlePackDrop = async (packTrack: any, deck: 'A' | 'B') => {
-    console.log(`📦 Unpacking ${packTrack.content_type} to crate:`, packTrack);
+    console.log(`📦 Adding pack to crate with auto-expand:`, packTrack);
 
     try {
       // Determine what type of content to fetch
@@ -627,7 +627,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
       const packId = packTrack.pack_id || packTrack.id.split('-loc-')[0];
 
-      // Fetch all child tracks from the pack
+      // Fetch child tracks to load first one to deck
       const { data, error } = await supabase
         .from('ip_tracks')
         .select('*')
@@ -649,13 +649,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
       console.log(`✅ Found ${data.length} tracks in pack`);
 
-      // Add all tracks to the crate (collection)
-      data.forEach((track: IPTrack, index: number) => {
-        console.log(`➕ Adding track ${index + 1}/${data.length} to crate:`, track.title);
-        addTrackToCollection(track);
-      });
+      // Add the pack container to the crate (not individual tracks)
+      console.log(`📦 Adding pack container to crate:`, packTrack.title);
+      addTrackToCollection(packTrack);
 
-      console.log(`✅ All ${data.length} tracks added to crate`);
+      // Auto-expand the pack in the crate
+      if ((window as any).expandPackInCrate) {
+        console.log(`🎯 Triggering auto-expand for pack:`, packTrack.id);
+        setTimeout(() => {
+          (window as any).expandPackInCrate(packTrack);
+        }, 300); // Small delay to let the pack container render first
+      }
 
       // Load the first track to the deck
       const firstTrack = data[0];

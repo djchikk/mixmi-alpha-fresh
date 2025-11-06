@@ -297,12 +297,43 @@ export default function Crate({ className = '' }: CrateProps) {
       clearCollection();
     };
 
+    // Expose pack expansion function
+    (window as any).expandPackInCrate = async (packTrack: any) => {
+      console.log('📦 Crate: Auto-expanding pack:', packTrack.id);
+
+      // Set expanded state
+      setExpandedPackId(packTrack.id);
+
+      // If we already have the tracks cached, no need to fetch
+      if (packTracks[packTrack.id]) {
+        return;
+      }
+
+      // Fetch tracks for this pack
+      const packId = packTrack.pack_id || packTrack.id.split('-loc-')[0];
+      const contentTypeToFetch = packTrack.content_type === 'loop_pack' ? 'loop'
+        : packTrack.content_type === 'station_pack' ? 'radio_station'
+        : 'full_song';
+
+      const { data, error } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('pack_id', packId)
+        .eq('content_type', contentTypeToFetch)
+        .order('pack_position', { ascending: true });
+
+      if (data) {
+        setPackTracks(prev => ({ ...prev, [packTrack.id]: data as IPTrack[] }));
+      }
+    };
+
     return () => {
       delete (window as any).addToCollection;
       delete (window as any).removeFromCollection;
       delete (window as any).clearCollection;
+      delete (window as any).expandPackInCrate;
     };
-  }, [collection, addTrackToCollection, removeTrackFromCollection, clearCollection]);
+  }, [collection, addTrackToCollection, removeTrackFromCollection, clearCollection, packTracks]);
 
   // Handle track preview
   const handleTrackClick = (track: any) => {
