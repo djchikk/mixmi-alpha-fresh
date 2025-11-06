@@ -85,6 +85,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const deckBChunksRef = React.useRef<Blob[]>([]);
   const deckAMimeTypeRef = React.useRef<string>('');
   const deckBMimeTypeRef = React.useRef<string>('');
+  const deckARecordingStartTimeRef = React.useRef<number>(0);
+  const deckBRecordingStartTimeRef = React.useRef<number>(0);
+  const deckARestartTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const deckBRestartTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const deckADestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
   const deckBDestinationRef = React.useRef<MediaStreamAudioDestinationNode | null>(null);
 
@@ -365,6 +369,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       // Clear old chunks
       deckAChunksRef.current = [];
       deckAMimeTypeRef.current = '';
+      // Clear restart timer
+      if (deckARestartTimerRef.current) {
+        clearTimeout(deckARestartTimerRef.current);
+        deckARestartTimerRef.current = null;
+      }
       // Disconnect old destination
       if (deckADestinationRef.current) {
         deckADestinationRef.current = null;
@@ -510,6 +519,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       // Clear old chunks
       deckBChunksRef.current = [];
       deckBMimeTypeRef.current = '';
+      // Clear restart timer
+      if (deckBRestartTimerRef.current) {
+        clearTimeout(deckBRestartTimerRef.current);
+        deckBRestartTimerRef.current = null;
+      }
       // Disconnect old destination
       if (deckBDestinationRef.current) {
         deckBDestinationRef.current = null;
@@ -790,19 +804,29 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
 
     try {
-      // Tap into existing audio graph - connect from gain node to MediaStreamDestination
-      const audioContext = deckState.audioState.audioContext;
-      const dest = audioContext.createMediaStreamDestination();
-
-      // Store destination reference for cleanup
-      if (deck === 'A') {
-        deckADestinationRef.current = dest;
-      } else {
-        deckBDestinationRef.current = dest;
+      // Clear any existing restart timer
+      const restartTimerRef = deck === 'A' ? deckARestartTimerRef : deckBRestartTimerRef;
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = null;
       }
 
-      // Connect the existing gain node to our destination (audio is already flowing through gainNode)
-      deckState.audioState.gainNode.connect(dest);
+      // Tap into existing audio graph - connect from gain node to MediaStreamDestination
+      const audioContext = deckState.audioState.audioContext;
+
+      // Reuse existing destination if available, otherwise create new one
+      let dest = deck === 'A' ? deckADestinationRef.current : deckBDestinationRef.current;
+      if (!dest) {
+        dest = audioContext.createMediaStreamDestination();
+        // Store destination reference for cleanup
+        if (deck === 'A') {
+          deckADestinationRef.current = dest;
+        } else {
+          deckBDestinationRef.current = dest;
+        }
+        // Connect the existing gain node to our destination (audio is already flowing through gainNode)
+        deckState.audioState.gainNode.connect(dest);
+      }
 
       // Try to find a supported MIME type for better compatibility
       let mimeType = '';
@@ -816,7 +840,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       for (const type of types) {
         if (MediaRecorder.isTypeSupported(type)) {
           mimeType = type;
-          console.log(`🎙️ Using MIME type: ${type}`);
           break;
         }
       }
@@ -825,17 +848,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         ? new MediaRecorder(dest.stream, { mimeType })
         : new MediaRecorder(dest.stream);
 
-      console.log(`🎙️ MediaRecorder created with MIME type: ${recorder.mimeType}`);
-
-      // Store the MIME type for later blob creation
+      // Store the MIME type and recorder reference
       if (deck === 'A') {
         deckAMimeTypeRef.current = recorder.mimeType;
         deckARecorderRef.current = recorder;
         deckAChunksRef.current = []; // Clear previous chunks
+        deckARecordingStartTimeRef.current = Date.now();
       } else {
         deckBMimeTypeRef.current = recorder.mimeType;
         deckBRecorderRef.current = recorder;
         deckBChunksRef.current = []; // Clear previous chunks
+        deckBRecordingStartTimeRef.current = Date.now();
       }
 
       const chunks = deck === 'A' ? deckAChunksRef : deckBChunksRef;
@@ -845,7 +868,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           chunks.current.push(e.data);
           // Log first chunk to verify recording
           if (chunks.current.length === 1) {
-            console.log(`🎙️ First chunk recorded for ${deck}: ${e.data.size} bytes, type: ${e.data.type}`);
+            console.log(`🎙️ First chunk recorded for Deck ${deck}: ${e.data.size} bytes`);
           }
         }
       };
@@ -854,7 +877,21 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       // This ensures we get a complete WebM file with proper initialization segment
       recorder.start();
 
-      console.log(`🎙️ Started continuous recording ${deck === 'A' ? 'Deck A' : 'Deck B'} for GRAB feature`);
+      console.log(`🎙️ Started recording Deck ${deck} for GRAB feature`);
+
+      // 🔄 ROLLING BUFFER: Restart recording every 20 seconds to keep buffer fresh
+      // This prevents accumulating old silence and keeps grabbed audio recent
+      const BUFFER_DURATION = 20000; // 20 seconds - enough for 8 bars at any reasonable BPM
+      restartTimerRef.current = setTimeout(() => {
+        console.log(`🔄 Rolling buffer: Restarting Deck ${deck} recording after 20s`);
+        // Stop current recorder
+        if (recorder.state === 'recording') {
+          recorder.stop();
+        }
+        // Start a fresh recording session (will have new initialization segment)
+        setTimeout(() => startRecording(deck), 100);
+      }, BUFFER_DURATION);
+
     } catch (error) {
       console.error(`❌ Failed to start recording ${deck}:`, error);
     }
