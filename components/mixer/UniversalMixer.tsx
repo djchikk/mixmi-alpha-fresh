@@ -347,6 +347,29 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
       await cleanupDeckAudio(mixerState.deckA.audioControls, 'Deck A');
 
+      // Clean up old recorder if replacing a radio station
+      if (deckARecorderRef.current) {
+        console.log('🧹 Cleaning up old Deck A recorder');
+        try {
+          if (deckARecorderRef.current.state === 'recording') {
+            deckARecorderRef.current.stop();
+          }
+          deckARecorderRef.current = null;
+        } catch (e) {
+          console.warn('⚠️ Error stopping old recorder:', e);
+        }
+      }
+      // Clear old chunks
+      deckAChunksRef.current = [];
+      deckAMimeTypeRef.current = '';
+      // Disconnect old destination
+      if (deckADestinationRef.current) {
+        deckADestinationRef.current = null;
+      }
+      // Reset play time tracking
+      deckARadioStartTimeRef.current = null;
+      setDeckARadioPlayTime(0);
+
       if (syncWasActive && syncEngineRef.current) {
         syncEngineRef.current.disableSync();
         syncEngineRef.current = null;
@@ -465,6 +488,29 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       }
 
       await cleanupDeckAudio(mixerState.deckB.audioControls, 'Deck B');
+
+      // Clean up old recorder if replacing a radio station
+      if (deckBRecorderRef.current) {
+        console.log('🧹 Cleaning up old Deck B recorder');
+        try {
+          if (deckBRecorderRef.current.state === 'recording') {
+            deckBRecorderRef.current.stop();
+          }
+          deckBRecorderRef.current = null;
+        } catch (e) {
+          console.warn('⚠️ Error stopping old recorder:', e);
+        }
+      }
+      // Clear old chunks
+      deckBChunksRef.current = [];
+      deckBMimeTypeRef.current = '';
+      // Disconnect old destination
+      if (deckBDestinationRef.current) {
+        deckBDestinationRef.current = null;
+      }
+      // Reset play time tracking
+      deckBRadioStartTimeRef.current = null;
+      setDeckBRadioPlayTime(0);
 
       if (syncWasActive && syncEngineRef.current) {
         syncEngineRef.current.disableSync();
