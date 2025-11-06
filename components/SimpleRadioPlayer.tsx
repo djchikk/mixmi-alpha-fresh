@@ -176,7 +176,7 @@ export default function SimpleRadioPlayer() {
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
-        <Radio className="w-4 h-4" style={{ color: '#FB923C' }} />
+        <Radio className="w-4 h-4 text-gray-300" />
         <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
           Live Radio
         </span>
