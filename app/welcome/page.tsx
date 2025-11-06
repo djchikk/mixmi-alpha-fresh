@@ -189,6 +189,14 @@ export default function Welcome() {
                     <p className="text-[#a8b2c3]">Partner stations streaming directly through the globe</p>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#81E4F2] text-lg mt-0.5">📻</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Simplified Radio Player</h3>
+                    <p className="text-[#a8b2c3]">Persistent radio player with drag & drop support for stations and packs - auto-unpacks station packs to your crate</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -301,6 +309,14 @@ export default function Welcome() {
                   <div>
                     <h3 className="text-[#e1e5f0] font-semibold mb-1">Streaming Earnings</h3>
                     <p className="text-[#a8b2c3]">Monetized streaming for full tracks and playlists - artists earn when listeners stream their complete works</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
+                  <span className="text-[#9772F4] text-lg mt-0.5">🎵</span>
+                  <div>
+                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Full Song Playback in Mixer</h3>
+                    <p className="text-[#a8b2c3]">Mix complete songs and EPs in the DJ decks - currently supports 8-bar loops and radio stations</p>
                   </div>
                 </div>
               </div>
