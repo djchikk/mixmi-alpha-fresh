@@ -132,6 +132,71 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
   }, []); // Empty dependency array - only run once on mount
 
+  // Comprehensive cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      console.log('🧹 UniversalMixer: Cleaning up on unmount');
+
+      // Clean up audio elements
+      if (mixerState.deckA.audioState?.audio) {
+        const audio = mixerState.deckA.audioState.audio;
+        audio.pause();
+        audio.src = '';
+        audio.load();
+      }
+      if (mixerState.deckB.audioState?.audio) {
+        const audio = mixerState.deckB.audioState.audio;
+        audio.pause();
+        audio.src = '';
+        audio.load();
+      }
+
+      // Clean up deck audio connections
+      cleanupDeckAudio('A');
+      cleanupDeckAudio('B');
+
+      // Clear restart timers
+      if (deckARestartTimerRef.current) {
+        clearTimeout(deckARestartTimerRef.current);
+        deckARestartTimerRef.current = null;
+      }
+      if (deckBRestartTimerRef.current) {
+        clearTimeout(deckBRestartTimerRef.current);
+        deckBRestartTimerRef.current = null;
+      }
+
+      // Stop and cleanup MediaRecorders
+      if (deckARecorderRef.current && deckARecorderRef.current.state !== 'inactive') {
+        deckARecorderRef.current.stop();
+        deckARecorderRef.current = null;
+      }
+      if (deckBRecorderRef.current && deckBRecorderRef.current.state !== 'inactive') {
+        deckBRecorderRef.current.stop();
+        deckBRecorderRef.current = null;
+      }
+
+      // Cleanup MediaStreamAudioDestinationNodes
+      if (deckADestinationRef.current) {
+        deckADestinationRef.current = null;
+      }
+      if (deckBDestinationRef.current) {
+        deckBDestinationRef.current = null;
+      }
+
+      // Clear recording buffers
+      deckAChunksRef.current = [];
+      deckBChunksRef.current = [];
+
+      // Stop sync engine
+      if (syncEngineRef.current) {
+        syncEngineRef.current.stop();
+        syncEngineRef.current = null;
+      }
+
+      console.log('✅ UniversalMixer: Cleanup complete');
+    };
+  }, []); // Run only on unmount
+
   // Track if mixer has been mounted before (for launch glow)
   useEffect(() => {
     // Check if we've been mounted before
@@ -273,11 +338,23 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const clearDeckA = () => {
     console.log('🗑️ Clearing Deck A');
 
-    // Stop audio if playing
+    // Properly cleanup audio to prevent memory leaks
     if (mixerState.deckA.audioState?.audio) {
-      mixerState.deckA.audioState.audio.pause();
-      mixerState.deckA.audioState.audio.currentTime = 0;
+      const audio = mixerState.deckA.audioState.audio;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = ''; // Release audio source
+      audio.load(); // Force browser to release resources
     }
+
+    // Clear restart timer if running
+    if (deckARestartTimerRef.current) {
+      clearTimeout(deckARestartTimerRef.current);
+      deckARestartTimerRef.current = null;
+    }
+
+    // Clean up deck audio connections
+    cleanupDeckAudio('A');
 
     setMixerState(prev => ({
       ...prev,
@@ -296,11 +373,23 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const clearDeckB = () => {
     console.log('🗑️ Clearing Deck B');
 
-    // Stop audio if playing
+    // Properly cleanup audio to prevent memory leaks
     if (mixerState.deckB.audioState?.audio) {
-      mixerState.deckB.audioState.audio.pause();
-      mixerState.deckB.audioState.audio.currentTime = 0;
+      const audio = mixerState.deckB.audioState.audio;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = ''; // Release audio source
+      audio.load(); // Force browser to release resources
     }
+
+    // Clear restart timer if running
+    if (deckBRestartTimerRef.current) {
+      clearTimeout(deckBRestartTimerRef.current);
+      deckBRestartTimerRef.current = null;
+    }
+
+    // Clean up deck audio connections
+    cleanupDeckAudio('B');
 
     setMixerState(prev => ({
       ...prev,
