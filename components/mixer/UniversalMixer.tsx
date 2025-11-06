@@ -1227,7 +1227,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     disabled={isGrabbingDeckA || deckAJustGrabbed}
                     className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-[32px] h-[18px] flex items-center justify-center text-[9px] font-bold tracking-wider rounded border transition-all duration-200 hover:scale-105 shadow-lg ${
                       deckAJustGrabbed
-                        ? 'bg-cyan-500 border-cyan-300 text-white cursor-default'
+                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 cursor-default'
                         : isGrabbingDeckA
                         ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
                         : deckARadioPlayTime >= 10
@@ -1310,7 +1310,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     disabled={isGrabbingDeckB || deckBJustGrabbed}
                     className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-[32px] h-[18px] flex items-center justify-center text-[9px] font-bold tracking-wider rounded border transition-all duration-200 hover:scale-105 shadow-lg ${
                       deckBJustGrabbed
-                        ? 'bg-cyan-500 border-cyan-300 text-white cursor-default'
+                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 cursor-default'
                         : isGrabbingDeckB
                         ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
                         : deckBRadioPlayTime >= 10
