@@ -319,8 +319,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // For radio stations, use stream_url; for others, use audioUrl
     let audioUrl;
     if (isRadio) {
-      audioUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
-      console.log('📻 Radio station detected, using audio URL:', audioUrl);
+      const rawStreamUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
+      // Proxy radio streams through our API to avoid CORS issues
+      audioUrl = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+      console.log('📻 Radio station detected, using proxied URL:', audioUrl);
+      console.log('📻 Original stream URL:', rawStreamUrl);
     } else {
       audioUrl = track.audioUrl || (track as any).audio_url;
     }
@@ -461,8 +464,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // For radio stations, use stream_url; for others, use audioUrl
     let audioUrl;
     if (isRadio) {
-      audioUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
-      console.log('📻 Radio station detected, using audio URL:', audioUrl);
+      const rawStreamUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
+      // Proxy radio streams through our API to avoid CORS issues
+      audioUrl = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+      console.log('📻 Radio station detected, using proxied URL:', audioUrl);
+      console.log('📻 Original stream URL:', rawStreamUrl);
     } else {
       audioUrl = track.audioUrl || (track as any).audio_url;
     }
