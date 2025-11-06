@@ -104,12 +104,12 @@ export default function SimplifiedDeckCompact({
 
           console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops and radio allowed`);
 
-          // Show user-friendly error message with specific guidance
+          // Show user-friendly message about upcoming functionality
           let message = '';
-          if (item.track.content_type === 'full_song') {
-            message = '🎵 Songs can\'t be mixed! Only 8-bar loops work in the mixer. Try dragging songs to the Crate or Playlist instead.';
+          if (item.track.content_type === 'full_song' || item.track.content_type === 'ep') {
+            message = '🎵 Song functionality coming soon! For now, only 8-bar loops and radio stations work in the mixer.';
           } else {
-            message = `🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate or Playlist instead.`;
+            message = `🎛️ Only 8-bar loops and radio stations work in the mixer for now. Try dragging ${contentTypeName}s to the Crate or Playlist instead.`;
           }
 
           showToast(message, 'info', 5000); // Show for 5 seconds

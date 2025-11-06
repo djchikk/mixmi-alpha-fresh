@@ -54,6 +54,11 @@ const GlobeSearch = dynamic(() => import('@/components/globe/GlobeSearch'), {
   ssr: false
 });
 
+// Dynamically import SimpleRadioPlayer - simplified radio UI
+const SimpleRadioPlayer = dynamic(() => import('@/components/SimpleRadioPlayer'), {
+  ssr: false
+});
+
 export default function HomePage() {
   // Alpha app - no auth required for globe viewing
   const [selectedNode, setSelectedNode] = useState<TrackNode | null>(null);
@@ -1084,8 +1089,9 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Widget Launcher - Always visible */}
-      <WidgetLauncher
+      {/* Widget Launcher - Temporarily hidden for pre-deploy polish */}
+      {/* TODO: Re-enable after implementing simplified radio widget UI */}
+      {/* <WidgetLauncher
         onMixClick={() => setIsMixerVisible(!isMixerVisible)}
         onPlayClick={() => setIsPlaylistVisible(!isPlaylistVisible)}
         onRadioClick={() => setIsRadioVisible(!isRadioVisible)}
@@ -1094,7 +1100,7 @@ export default function HomePage() {
         isPlaylistVisible={isPlaylistVisible}
         isRadioVisible={isRadioVisible}
         isFilled={isFilled}
-      />
+      /> */}
 
       {/* Reset Confirmation Modal */}
       <ResetConfirmModal
@@ -1126,6 +1132,9 @@ export default function HomePage() {
 
       {/* Crate - Persistent across all pages */}
       <Crate />
+
+      {/* Simple Radio Player - Always available, shows when station loaded */}
+      <SimpleRadioPlayer />
     </>
   );
 }
