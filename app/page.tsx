@@ -39,11 +39,6 @@ const UniversalMixer = dynamic(() => import('@/components/mixer/UniversalMixer')
   )
 });
 
-// Dynamically import RadioWidget - the radio player!
-const RadioWidget = dynamic(() => import('@/components/RadioWidget'), {
-  ssr: false
-});
-
 // Dynamically import PlaylistWidget - the playlist player!
 const PlaylistWidget = dynamic(() => import('@/components/PlaylistWidget'), {
   ssr: false
@@ -1120,13 +1115,6 @@ export default function HomePage() {
       {isMixerVisible && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
           <UniversalMixer />
-        </div>
-      )}
-
-      {/* Radio Widget - Fixed right position (24px right of center) */}
-      {isRadioVisible && (
-        <div className="fixed bottom-20 z-30" style={{ left: 'calc(50% + 324px)' }}>
-          <RadioWidget />
         </div>
       )}
 
