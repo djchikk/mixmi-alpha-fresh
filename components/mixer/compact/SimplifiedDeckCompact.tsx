@@ -44,7 +44,7 @@ export default function SimplifiedDeckCompact({
       case 'grabbed_radio':
         return '#F72585'; // Hot pink - grabbed moments
       case 'full_song':
-        return '#4CC9F0'; // Cyan - songs
+        return '#FFE4B5'; // Gold - songs
       default:
         return '#9772F4'; // Default purple
     }
