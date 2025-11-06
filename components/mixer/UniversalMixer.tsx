@@ -629,7 +629,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
       // Fetch all child tracks from the pack
       const { data, error } = await supabase
-        .from('tracks')
+        .from('ip_tracks')
         .select('*')
         .eq('pack_id', packId)
         .eq('content_type', contentTypeToFetch)
