@@ -365,17 +365,30 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // Clean up deck audio connections
     cleanupDeckAudio('A');
 
-    setMixerState(prev => ({
-      ...prev,
-      deckA: {
-        ...prev.deckA,
-        track: null,
-        playing: false,
-        loading: false,
-        audioState: undefined,
-        audioControls: undefined
+    setMixerState(prev => {
+      // Reset masterDeck if Deck A was master or if neither deck will be eligible
+      const shouldResetMaster = prev.masterDeck === 'A' || !isMasterEligible(prev.deckB.contentType);
+      const newMasterDeck = shouldResetMaster ? null : prev.masterDeck;
+      const newMasterBPM = shouldResetMaster ? 120 : prev.masterBPM;
+
+      if (shouldResetMaster) {
+        console.log('🔄 Reset masterDeck: Deck A cleared');
       }
-    }));
+
+      return {
+        ...prev,
+        masterDeck: newMasterDeck,
+        masterBPM: newMasterBPM,
+        deckA: {
+          ...prev.deckA,
+          track: null,
+          playing: false,
+          loading: false,
+          audioState: undefined,
+          audioControls: undefined
+        }
+      };
+    });
   };
 
   // Clear Deck B
@@ -400,17 +413,30 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // Clean up deck audio connections
     cleanupDeckAudio('B');
 
-    setMixerState(prev => ({
-      ...prev,
-      deckB: {
-        ...prev.deckB,
-        track: null,
-        playing: false,
-        loading: false,
-        audioState: undefined,
-        audioControls: undefined
+    setMixerState(prev => {
+      // Reset masterDeck if Deck B was master or if neither deck will be eligible
+      const shouldResetMaster = prev.masterDeck === 'B' || !isMasterEligible(prev.deckA.contentType);
+      const newMasterDeck = shouldResetMaster ? null : prev.masterDeck;
+      const newMasterBPM = shouldResetMaster ? 120 : prev.masterBPM;
+
+      if (shouldResetMaster) {
+        console.log('🔄 Reset masterDeck: Deck B cleared');
       }
-    }));
+
+      return {
+        ...prev,
+        masterDeck: newMasterDeck,
+        masterBPM: newMasterBPM,
+        deckB: {
+          ...prev.deckB,
+          track: null,
+          playing: false,
+          loading: false,
+          audioState: undefined,
+          audioControls: undefined
+        }
+      };
+    });
   };
 
   // Load track to Deck A
@@ -562,13 +588,27 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
           };
 
-          // Determine master BPM based on both decks
-          const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB, prev.masterDeck);
+          // Determine master deck state
+          let newMasterDeck = prev.masterDeck;
 
+          // Reset masterDeck if neither deck is master-eligible
+          if (!isMasterEligible(newDeckAState.contentType) && !isMasterEligible(prev.deckB.contentType)) {
+            newMasterDeck = null;
+            console.log('🔄 Reset masterDeck: neither deck is master-eligible');
+          }
           // Auto-set master deck if both are master-eligible and masterDeck not yet set
-          const newMasterDeck = (prev.masterDeck === null && isMasterEligible(newDeckAState.contentType) && isMasterEligible(prev.deckB.contentType))
-            ? 'A'
-            : prev.masterDeck;
+          else if (prev.masterDeck === null && isMasterEligible(newDeckAState.contentType) && isMasterEligible(prev.deckB.contentType)) {
+            newMasterDeck = 'A';
+            console.log('🎚️ Auto-set masterDeck to A: both decks master-eligible');
+          }
+          // Reset masterDeck if it was pointing to this deck but new content is not eligible
+          else if (prev.masterDeck === 'A' && !isMasterEligible(newDeckAState.contentType)) {
+            newMasterDeck = null;
+            console.log('🔄 Reset masterDeck: Deck A no longer master-eligible');
+          }
+
+          // Determine master BPM based on both decks
+          const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB, newMasterDeck);
 
           return {
             ...prev,
@@ -736,13 +776,27 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
           };
 
-          // Determine master BPM based on both decks
-          const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState, prev.masterDeck);
+          // Determine master deck state
+          let newMasterDeck = prev.masterDeck;
 
+          // Reset masterDeck if neither deck is master-eligible
+          if (!isMasterEligible(prev.deckA.contentType) && !isMasterEligible(newDeckBState.contentType)) {
+            newMasterDeck = null;
+            console.log('🔄 Reset masterDeck: neither deck is master-eligible');
+          }
           // Auto-set master deck if both are master-eligible and masterDeck not yet set
-          const newMasterDeck = (prev.masterDeck === null && isMasterEligible(prev.deckA.contentType) && isMasterEligible(newDeckBState.contentType))
-            ? 'A' // Default to A when both become master-eligible
-            : prev.masterDeck;
+          else if (prev.masterDeck === null && isMasterEligible(prev.deckA.contentType) && isMasterEligible(newDeckBState.contentType)) {
+            newMasterDeck = 'A';
+            console.log('🎚️ Auto-set masterDeck to A: both decks master-eligible');
+          }
+          // Reset masterDeck if it was pointing to this deck but new content is not eligible
+          else if (prev.masterDeck === 'B' && !isMasterEligible(newDeckBState.contentType)) {
+            newMasterDeck = null;
+            console.log('🔄 Reset masterDeck: Deck B no longer master-eligible');
+          }
+
+          // Determine master BPM based on both decks
+          const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState, newMasterDeck);
 
           return {
             ...prev,
