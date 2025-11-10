@@ -400,12 +400,9 @@ export default function TrackCard({
                 {/* Bottom Section: BPM, Collection, Price (horizontal) */}
                 <div className="flex items-center justify-between">
                   {/* BPM Badge (left) */}
-                  {track.bpm && (
-                    <span className="text-xs bg-slate-700 px-2 py-1 rounded text-gray-300">
-                      {track.bpm} BPM
-                    </span>
-                  )}
-                  {!track.bpm && <div className="w-16"></div>} {/* Spacer if no BPM */}
+                  <span className="text-xs bg-slate-700 px-2 py-1 rounded text-gray-300">
+                    {track.bpm || '~'} BPM
+                  </span>
                   
                   {/* Collection Button (center) - Now for both loops and songs */}
                   <button

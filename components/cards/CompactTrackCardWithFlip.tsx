@@ -712,12 +712,12 @@ export default function CompactTrackCardWithFlip({
                         >
                           LIVE
                         </span>
-                      ) : track.bpm && track.content_type !== 'ep' ? (
+                      ) : track.content_type !== 'ep' ? (
                         <span
                           className="text-sm font-mono font-bold text-white"
                           title="BPM"
                         >
-                          {track.bpm}
+                          {track.bpm || '~'}
                         </span>
                       ) : (
                         <div className="w-12"></div>
