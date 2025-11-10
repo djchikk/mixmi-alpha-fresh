@@ -371,6 +371,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // Properly cleanup audio to prevent memory leaks
     if (mixerState.deckA.audioState?.audio) {
       const audio = mixerState.deckA.audioState.audio;
+
+      // Cancel section loop checker if running
+      if ((audio as any)._sectionLoopChecker) {
+        clearInterval((audio as any)._sectionLoopChecker);
+        delete (audio as any)._sectionLoopChecker;
+      }
+
       audio.pause();
       audio.currentTime = 0;
       audio.src = ''; // Release audio source
@@ -424,6 +431,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // Properly cleanup audio to prevent memory leaks
     if (mixerState.deckB.audioState?.audio) {
       const audio = mixerState.deckB.audioState.audio;
+
+      // Cancel section loop checker if running
+      if ((audio as any)._sectionLoopChecker) {
+        clearInterval((audio as any)._sectionLoopChecker);
+        delete (audio as any)._sectionLoopChecker;
+      }
+
       audio.pause();
       audio.currentTime = 0;
       audio.src = ''; // Release audio source
@@ -1092,7 +1106,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
   /**
    * Apply section looping to an audio element
-   * Uses timeupdate event to jump back to section start when reaching end
+   * Uses precise timing similar to PreciseLooper for seamless loops
    */
   const applySectionLoop = (
     audio: HTMLAudioElement,
@@ -1100,11 +1114,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     bpm: number,
     enabled: boolean
   ) => {
-    // Remove any existing section loop listener
-    const existingListener = (audio as any)._sectionLoopListener;
-    if (existingListener) {
-      audio.removeEventListener('timeupdate', existingListener);
-      delete (audio as any)._sectionLoopListener;
+    // Remove any existing section loop checker
+    const existingChecker = (audio as any)._sectionLoopChecker;
+    if (existingChecker) {
+      clearInterval(existingChecker);
+      delete (audio as any)._sectionLoopChecker;
     }
 
     if (!enabled) {
@@ -1117,20 +1131,21 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     const timeRange = SectionLoopManager.getSectionTimeRange(sectionIndex, bpm);
     console.log(`🔁 Section loop enabled: ${SectionLoopManager.getSectionInfo(sectionIndex, bpm)}`);
 
-    // Create new listener
-    const sectionLoopListener = () => {
-      if (audio.currentTime >= timeRange.endTime) {
-        // Jump back to section start
+    // Use high-frequency interval checking (every 10ms) for precise looping
+    // Similar to PreciseLooper's 25ms interval but even more frequent for songs
+    const scheduleInterval = 10; // 10ms = 100Hz checking
+    const loopBuffer = 0.015; // 15ms buffer before end (tighter than before)
+
+    const checkLoop = () => {
+      if (!audio.paused && audio.currentTime >= (timeRange.endTime - loopBuffer)) {
+        // Jump back to section start for seamless loop
         audio.currentTime = timeRange.startTime;
-        console.log(`🔁 Looped back to section ${sectionIndex + 1} start: ${timeRange.startTime.toFixed(2)}s`);
+        console.log(`🔁 Looped section ${sectionIndex + 1}: ${timeRange.endTime.toFixed(3)}s → ${timeRange.startTime.toFixed(3)}s`);
       }
     };
 
-    // Store listener reference on audio element for cleanup
-    (audio as any)._sectionLoopListener = sectionLoopListener;
-
-    // Add listener
-    audio.addEventListener('timeupdate', sectionLoopListener);
+    // Start the loop checker with setInterval (more reliable than requestAnimationFrame for audio)
+    (audio as any)._sectionLoopChecker = setInterval(checkLoop, scheduleInterval);
 
     // Jump to section start if not already in range
     if (audio.currentTime < timeRange.startTime || audio.currentTime >= timeRange.endTime) {
@@ -1162,6 +1177,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
     const newEnabled = !deckState.sectionLoop.enabled;
 
+    // Apply section loop to audio BEFORE state update
+    if (deckState.audioState?.audio && deckState.track?.bpm) {
+      applySectionLoop(
+        deckState.audioState.audio,
+        deckState.sectionLoop.currentSection,
+        deckState.track.bpm,
+        newEnabled
+      );
+    }
+
+    // Update state
     setMixerState(prev => {
       const targetDeck = deck === 'A' ? prev.deckA : prev.deckB;
       const updatedDeck = {
@@ -1171,16 +1197,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           enabled: newEnabled
         }
       };
-
-      // Apply to audio element if available
-      if (targetDeck.audioState?.audio && targetDeck.track?.bpm) {
-        applySectionLoop(
-          targetDeck.audioState.audio,
-          targetDeck.sectionLoop.currentSection,
-          targetDeck.track.bpm,
-          newEnabled
-        );
-      }
 
       return {
         ...prev,
@@ -1221,6 +1237,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       return;
     }
 
+    // Apply new section loop BEFORE state update (whether enabled or not - always jump to section)
+    if (deckState.audioState?.audio && deckState.track?.bpm) {
+      applySectionLoop(
+        deckState.audioState.audio,
+        newSection,
+        deckState.track.bpm,
+        deckState.sectionLoop.enabled // Keep current enabled state
+      );
+    }
+
+    // Update state
     setMixerState(prev => {
       const targetDeck = deck === 'A' ? prev.deckA : prev.deckB;
       const updatedDeck = {
@@ -1230,16 +1257,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           currentSection: newSection
         }
       };
-
-      // Apply new section loop if enabled
-      if (targetDeck.audioState?.audio && targetDeck.track?.bpm && targetDeck.sectionLoop.enabled) {
-        applySectionLoop(
-          targetDeck.audioState.audio,
-          newSection,
-          targetDeck.track.bpm,
-          true
-        );
-      }
 
       return {
         ...prev,
