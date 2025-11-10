@@ -432,26 +432,21 @@ export function useIPTrackSubmit({
         content_type: formData.content_type === 'loop_pack' ? 'loop' : formData.content_type, // Save loop packs as loops for now
         loop_category: formData.content_type === 'loop' ? formData.loop_category : null,
         sample_type: formData.content_type === 'loop' ? 'instrumentals' : 'FULL SONGS',
-        // BPM handling: completely optional for songs, user-provided integers only for loops/packs
+        // BPM handling: optional for songs, required for loops, accepts user-provided integers
         bpm: (() => {
-          console.log('🎵 BPM DEBUG:', { 
-            content_type: formData.content_type, 
-            original_bpm: formData.bpm, 
-            bpm_type: typeof formData.bpm 
+          console.log('🎵 BPM DEBUG:', {
+            content_type: formData.content_type,
+            original_bpm: formData.bpm,
+            bpm_type: typeof formData.bpm
           });
-          
-          if (formData.content_type === 'full_song' || formData.content_type === 'song') {
-            // Songs: BPM is completely optional, always null
-            console.log('🎵 Song detected - setting BPM to null');
-            return null;
-          } else {
-            // Loops/packs: ONLY accept user-provided integer values, NO ROUNDING
-            // If user enters decimal, validation should catch it and show error
-            const bpmValue = Number(formData.bpm);
-            const result = (bpmValue && Number.isInteger(bpmValue)) ? bpmValue : null;
-            console.log('🎵 Loop/pack BPM result:', result);
-            return result;
-          }
+
+          // For both songs and loops: accept user-provided integer values if provided
+          // Songs: BPM is optional (null is okay)
+          // Loops/packs: BPM is required (validation happens in IPTrackModal)
+          const bpmValue = Number(formData.bpm);
+          const result = (bpmValue && Number.isInteger(bpmValue)) ? bpmValue : null;
+          console.log(`🎵 ${formData.content_type} BPM result:`, result);
+          return result;
         })(),
         key: formData.key || null,
         duration: formData.duration ? Math.round(Number(formData.duration)) : null,
