@@ -43,11 +43,18 @@ export class SectionLoopManager {
    *
    * @param sectionIndex - Zero-based section index
    * @param bpm - Beats per minute
+   * @param nudgeOffsetBars - Nudge offset in bars (can be fractional, e.g., 0.125 for 1/8 bar)
    * @returns Time range object with start, end, and duration
    */
-  static getSectionTimeRange(sectionIndex: number, bpm: number): SectionTimeRange {
+  static getSectionTimeRange(sectionIndex: number, bpm: number, nudgeOffsetBars: number = 0): SectionTimeRange {
     const sectionDuration = this.getSectionDuration(bpm);
-    const startTime = sectionIndex * sectionDuration;
+
+    // Calculate nudge offset in seconds
+    const secondsPerBar = (this.BEATS_PER_BAR / bpm) * 60;
+    const nudgeOffsetSeconds = nudgeOffsetBars * secondsPerBar;
+
+    // Apply nudge offset to section boundaries
+    const startTime = (sectionIndex * sectionDuration) + nudgeOffsetSeconds;
     const endTime = startTime + sectionDuration;
 
     return {

@@ -37,6 +37,8 @@ interface UniversalMixerState {
       enabled: boolean; // Whether section looping is active for this song
       currentSection: number; // Zero-based section index
       totalSections: number; // Total number of 8-bar sections in the song
+      nudgeOffset: number; // Nudge offset in bars (can be fractional)
+      nudgeSize: number; // Current nudge increment size in bars (0.125, 0.25, 1, 2)
     };
   };
   deckB: {
@@ -54,6 +56,8 @@ interface UniversalMixerState {
       enabled: boolean; // Whether section looping is active for this song
       currentSection: number; // Zero-based section index
       totalSections: number; // Total number of 8-bar sections in the song
+      nudgeOffset: number; // Nudge offset in bars (can be fractional)
+      nudgeSize: number; // Current nudge increment size in bars (0.125, 0.25, 1, 2)
     };
   };
   masterBPM: number;
@@ -86,7 +90,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       sectionLoop: {
         enabled: false,
         currentSection: 0,
-        totalSections: 0
+        totalSections: 0,
+        nudgeOffset: 0,
+        nudgeSize: 0.125 // Default to 1/8 bar
       }
     },
     deckB: {
@@ -99,7 +105,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       sectionLoop: {
         enabled: false,
         currentSection: 0,
-        totalSections: 0
+        totalSections: 0,
+        nudgeOffset: 0,
+        nudgeSize: 0.125 // Default to 1/8 bar
       }
     },
     masterBPM: 120,
@@ -625,7 +633,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           let sectionLoopData = {
             enabled: false,
             currentSection: 0,
-            totalSections: 0
+            totalSections: 0,
+            nudgeOffset: 0,
+            nudgeSize: 0.125
           };
 
           if (isSong && audioState.audio && track.bpm) {
@@ -635,7 +645,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               sectionLoopData = {
                 enabled: false, // Not enabled by default
                 currentSection: 0, // Start at first section
-                totalSections
+                totalSections,
+                nudgeOffset: 0,
+                nudgeSize: 0.125 // Default to 1/8 bar
               };
               console.log(`🎵 Song sections calculated: ${totalSections} sections (${track.bpm} BPM, ${songDuration.toFixed(2)}s)`);
             }
@@ -834,7 +846,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           let sectionLoopData = {
             enabled: false,
             currentSection: 0,
-            totalSections: 0
+            totalSections: 0,
+            nudgeOffset: 0,
+            nudgeSize: 0.125
           };
 
           if (isSong && audioState.audio && track.bpm) {
@@ -844,7 +858,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               sectionLoopData = {
                 enabled: false, // Not enabled by default
                 currentSection: 0, // Start at first section
-                totalSections
+                totalSections,
+                nudgeOffset: 0,
+                nudgeSize: 0.125 // Default to 1/8 bar
               };
               console.log(`🎵 Song sections calculated: ${totalSections} sections (${track.bpm} BPM, ${songDuration.toFixed(2)}s)`);
             }
@@ -1112,7 +1128,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     audio: HTMLAudioElement,
     sectionIndex: number,
     bpm: number,
-    enabled: boolean
+    enabled: boolean,
+    nudgeOffset: number = 0
   ) => {
     // Remove any existing section loop checker
     const existingChecker = (audio as any)._sectionLoopChecker;
@@ -1127,9 +1144,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       return;
     }
 
-    // Get section time range
-    const timeRange = SectionLoopManager.getSectionTimeRange(sectionIndex, bpm);
-    console.log(`🔁 Section loop enabled: ${SectionLoopManager.getSectionInfo(sectionIndex, bpm)}`);
+    // Get section time range with nudge offset
+    const timeRange = SectionLoopManager.getSectionTimeRange(sectionIndex, bpm, nudgeOffset);
+    const nudgeInfo = nudgeOffset !== 0 ? ` (nudged ${nudgeOffset > 0 ? '+' : ''}${nudgeOffset} bars)` : '';
+    console.log(`🔁 Section loop enabled: ${SectionLoopManager.getSectionInfo(sectionIndex, bpm)}${nudgeInfo}`);
 
     // Use high-frequency interval checking (every 10ms) for precise looping
     // Similar to PreciseLooper's 25ms interval but even more frequent for songs
@@ -1183,7 +1201,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         deckState.audioState.audio,
         deckState.sectionLoop.currentSection,
         deckState.track.bpm,
-        newEnabled
+        newEnabled,
+        deckState.sectionLoop.nudgeOffset
       );
     }
 
@@ -1243,7 +1262,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         deckState.audioState.audio,
         newSection,
         deckState.track.bpm,
-        deckState.sectionLoop.enabled // Keep current enabled state
+        deckState.sectionLoop.enabled, // Keep current enabled state
+        deckState.sectionLoop.nudgeOffset // Keep current nudge offset
       );
     }
 
@@ -1265,6 +1285,112 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     });
 
     showToast(`⏭️ Section ${newSection + 1} of ${totalSections}`, 'info', 1500);
+  };
+
+  /**
+   * Nudge the section loop position
+   */
+  const handleNudge = (deck: 'A' | 'B', direction: 1 | -1) => {
+    const deckState = deck === 'A' ? mixerState.deckA : mixerState.deckB;
+
+    if (deckState.contentType !== 'full_song' || !deckState.track?.bpm) {
+      return;
+    }
+
+    const newOffset = deckState.sectionLoop.nudgeOffset + (direction * deckState.sectionLoop.nudgeSize);
+
+    // Re-apply section loop with new offset
+    if (deckState.audioState?.audio && deckState.track?.bpm && deckState.sectionLoop.enabled) {
+      applySectionLoop(
+        deckState.audioState.audio,
+        deckState.sectionLoop.currentSection,
+        deckState.track.bpm,
+        true,
+        newOffset
+      );
+    }
+
+    // Update state
+    setMixerState(prev => {
+      const targetDeck = deck === 'A' ? prev.deckA : prev.deckB;
+      const updatedDeck = {
+        ...targetDeck,
+        sectionLoop: {
+          ...targetDeck.sectionLoop,
+          nudgeOffset: newOffset
+        }
+      };
+
+      return {
+        ...prev,
+        [deck === 'A' ? 'deckA' : 'deckB']: updatedDeck
+      };
+    });
+
+    const offsetDisplay = newOffset > 0 ? `+${newOffset}` : newOffset.toString();
+    showToast(`↔️ Nudged ${offsetDisplay} bars`, 'info', 1000);
+  };
+
+  /**
+   * Change nudge size
+   */
+  const handleNudgeSizeChange = (deck: 'A' | 'B', size: number) => {
+    setMixerState(prev => {
+      const targetDeck = deck === 'A' ? prev.deckA : prev.deckB;
+      const updatedDeck = {
+        ...targetDeck,
+        sectionLoop: {
+          ...targetDeck.sectionLoop,
+          nudgeSize: size
+        }
+      };
+
+      return {
+        ...prev,
+        [deck === 'A' ? 'deckA' : 'deckB']: updatedDeck
+      };
+    });
+  };
+
+  /**
+   * Reset nudge offset to zero
+   */
+  const handleResetNudge = (deck: 'A' | 'B') => {
+    const deckState = deck === 'A' ? mixerState.deckA : mixerState.deckB;
+
+    if (deckState.sectionLoop.nudgeOffset === 0) {
+      return; // Already at zero
+    }
+
+    // Re-apply section loop with zero offset
+    if (deckState.audioState?.audio && deckState.track?.bpm && deckState.sectionLoop.enabled) {
+      applySectionLoop(
+        deckState.audioState.audio,
+        deckState.sectionLoop.currentSection,
+        deckState.track.bpm,
+        true,
+        0
+      );
+    }
+
+    // Update state
+    setMixerState(prev => {
+      const targetDeck = deck === 'A' ? prev.deckA : prev.deckB;
+      const updatedDeck = {
+        ...targetDeck,
+        sectionLoop: {
+          ...targetDeck.sectionLoop,
+          nudgeOffset: 0
+        }
+      };
+
+      return {
+        ...prev,
+        [deck === 'A' ? 'deckA' : 'deckB']: updatedDeck
+      };
+    });
+
+    showToast(`🔄 Nudge reset to 0`, 'info', 1000);
   };
 
   // Sync toggle
@@ -1924,39 +2050,87 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
                   {/* Section loop controls - only show if song has BPM and sections */}
                   {mixerState.deckA.track?.bpm && mixerState.deckA.sectionLoop.totalSections > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      {/* Previous section */}
-                      <button
-                        onClick={() => handleChangeSection('A', 'prev')}
-                        disabled={mixerState.deckA.sectionLoop.currentSection === 0}
-                        className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
-                        title="Previous section"
-                      >
-                        ◀
-                      </button>
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      {/* Section selector row */}
+                      <div className="flex items-center gap-1">
+                        {/* Previous section */}
+                        <button
+                          onClick={() => handleChangeSection('A', 'prev')}
+                          disabled={mixerState.deckA.sectionLoop.currentSection === 0}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
+                          title="Previous section"
+                        >
+                          ◀
+                        </button>
 
-                      {/* Section loop toggle */}
-                      <button
-                        onClick={() => handleToggleSectionLoop('A')}
-                        className={`px-2 py-0.5 text-[8px] border rounded transition-colors ${
-                          mixerState.deckA.sectionLoop.enabled
-                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
-                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-cyan-500'
-                        }`}
-                        title={mixerState.deckA.sectionLoop.enabled ? 'Disable section loop' : 'Enable section loop'}
-                      >
-                        {mixerState.deckA.sectionLoop.currentSection + 1}/{mixerState.deckA.sectionLoop.totalSections}
-                      </button>
+                        {/* Section loop toggle */}
+                        <button
+                          onClick={() => handleToggleSectionLoop('A')}
+                          className={`px-2 py-0.5 text-[8px] border rounded transition-colors ${
+                            mixerState.deckA.sectionLoop.enabled
+                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
+                              : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-cyan-500'
+                          }`}
+                          title={mixerState.deckA.sectionLoop.enabled ? 'Disable section loop' : 'Enable section loop'}
+                        >
+                          {mixerState.deckA.sectionLoop.currentSection + 1}/{mixerState.deckA.sectionLoop.totalSections}
+                        </button>
 
-                      {/* Next section */}
-                      <button
-                        onClick={() => handleChangeSection('A', 'next')}
-                        disabled={mixerState.deckA.sectionLoop.currentSection === mixerState.deckA.sectionLoop.totalSections - 1}
-                        className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
-                        title="Next section"
-                      >
-                        ▶
-                      </button>
+                        {/* Next section */}
+                        <button
+                          onClick={() => handleChangeSection('A', 'next')}
+                          disabled={mixerState.deckA.sectionLoop.currentSection === mixerState.deckA.sectionLoop.totalSections - 1}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
+                          title="Next section"
+                        >
+                          ▶
+                        </button>
+                      </div>
+
+                      {/* Nudge controls row */}
+                      <div className="flex items-center gap-1">
+                        {/* Nudge left */}
+                        <button
+                          onClick={() => handleNudge('A', -1)}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-orange-500 transition-colors"
+                          title="Nudge earlier"
+                        >
+                          ◀
+                        </button>
+
+                        {/* Nudge size selector + reset */}
+                        <select
+                          value={mixerState.deckA.sectionLoop.nudgeSize}
+                          onChange={(e) => handleNudgeSizeChange('A', parseFloat(e.target.value))}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded text-gray-400 hover:border-orange-500 transition-colors"
+                          title="Nudge size"
+                        >
+                          <option value={0.125}>1/8 bar</option>
+                          <option value={0.25}>1/4 bar</option>
+                          <option value={1}>1 bar</option>
+                          <option value={2}>2 bars</option>
+                        </select>
+
+                        {/* Reset nudge */}
+                        {mixerState.deckA.sectionLoop.nudgeOffset !== 0 && (
+                          <button
+                            onClick={() => handleResetNudge('A')}
+                            className="px-1 py-0.5 text-[8px] bg-orange-500/20 border border-orange-500 rounded text-orange-400 hover:bg-orange-500/30 transition-colors"
+                            title="Reset nudge to 0"
+                          >
+                            {mixerState.deckA.sectionLoop.nudgeOffset > 0 ? '+' : ''}{mixerState.deckA.sectionLoop.nudgeOffset.toFixed(3)}
+                          </button>
+                        )}
+
+                        {/* Nudge right */}
+                        <button
+                          onClick={() => handleNudge('A', 1)}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-orange-500 transition-colors"
+                          title="Nudge later"
+                        >
+                          ▶
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2060,39 +2234,87 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
                   {/* Section loop controls - only show if song has BPM and sections */}
                   {mixerState.deckB.track?.bpm && mixerState.deckB.sectionLoop.totalSections > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      {/* Previous section */}
-                      <button
-                        onClick={() => handleChangeSection('B', 'prev')}
-                        disabled={mixerState.deckB.sectionLoop.currentSection === 0}
-                        className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
-                        title="Previous section"
-                      >
-                        ◀
-                      </button>
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      {/* Section selector row */}
+                      <div className="flex items-center gap-1">
+                        {/* Previous section */}
+                        <button
+                          onClick={() => handleChangeSection('B', 'prev')}
+                          disabled={mixerState.deckB.sectionLoop.currentSection === 0}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
+                          title="Previous section"
+                        >
+                          ◀
+                        </button>
 
-                      {/* Section loop toggle */}
-                      <button
-                        onClick={() => handleToggleSectionLoop('B')}
-                        className={`px-2 py-0.5 text-[8px] border rounded transition-colors ${
-                          mixerState.deckB.sectionLoop.enabled
-                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
-                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-cyan-500'
-                        }`}
-                        title={mixerState.deckB.sectionLoop.enabled ? 'Disable section loop' : 'Enable section loop'}
-                      >
-                        {mixerState.deckB.sectionLoop.currentSection + 1}/{mixerState.deckB.sectionLoop.totalSections}
-                      </button>
+                        {/* Section loop toggle */}
+                        <button
+                          onClick={() => handleToggleSectionLoop('B')}
+                          className={`px-2 py-0.5 text-[8px] border rounded transition-colors ${
+                            mixerState.deckB.sectionLoop.enabled
+                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
+                              : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-cyan-500'
+                          }`}
+                          title={mixerState.deckB.sectionLoop.enabled ? 'Disable section loop' : 'Enable section loop'}
+                        >
+                          {mixerState.deckB.sectionLoop.currentSection + 1}/{mixerState.deckB.sectionLoop.totalSections}
+                        </button>
 
-                      {/* Next section */}
-                      <button
-                        onClick={() => handleChangeSection('B', 'next')}
-                        disabled={mixerState.deckB.sectionLoop.currentSection === mixerState.deckB.sectionLoop.totalSections - 1}
-                        className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
-                        title="Next section"
-                      >
-                        ▶
-                      </button>
+                        {/* Next section */}
+                        <button
+                          onClick={() => handleChangeSection('B', 'next')}
+                          disabled={mixerState.deckB.sectionLoop.currentSection === mixerState.deckB.sectionLoop.totalSections - 1}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
+                          title="Next section"
+                        >
+                          ▶
+                        </button>
+                      </div>
+
+                      {/* Nudge controls row */}
+                      <div className="flex items-center gap-1">
+                        {/* Nudge left */}
+                        <button
+                          onClick={() => handleNudge('B', -1)}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-orange-500 transition-colors"
+                          title="Nudge earlier"
+                        >
+                          ◀
+                        </button>
+
+                        {/* Nudge size selector + reset */}
+                        <select
+                          value={mixerState.deckB.sectionLoop.nudgeSize}
+                          onChange={(e) => handleNudgeSizeChange('B', parseFloat(e.target.value))}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded text-gray-400 hover:border-orange-500 transition-colors"
+                          title="Nudge size"
+                        >
+                          <option value={0.125}>1/8 bar</option>
+                          <option value={0.25}>1/4 bar</option>
+                          <option value={1}>1 bar</option>
+                          <option value={2}>2 bars</option>
+                        </select>
+
+                        {/* Reset nudge */}
+                        {mixerState.deckB.sectionLoop.nudgeOffset !== 0 && (
+                          <button
+                            onClick={() => handleResetNudge('B')}
+                            className="px-1 py-0.5 text-[8px] bg-orange-500/20 border border-orange-500 rounded text-orange-400 hover:bg-orange-500/30 transition-colors"
+                            title="Reset nudge to 0"
+                          >
+                            {mixerState.deckB.sectionLoop.nudgeOffset > 0 ? '+' : ''}{mixerState.deckB.sectionLoop.nudgeOffset.toFixed(3)}
+                          </button>
+                        )}
+
+                        {/* Nudge right */}
+                        <button
+                          onClick={() => handleNudge('B', 1)}
+                          className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-orange-500 transition-colors"
+                          title="Nudge later"
+                        >
+                          ▶
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
