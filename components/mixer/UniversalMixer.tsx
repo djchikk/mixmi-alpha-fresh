@@ -1212,11 +1212,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         const masterBPM = masterState.track?.bpm;
         const slaveBPM = slaveState.track?.bpm;
 
-        // Re-apply sync with new master (for songs)
+        // Reset new master to 1.0x if it's a song (it might have been time-stretched when it was slave)
+        if (masterState.contentType === 'full_song' && masterState.audioState?.audio) {
+          masterState.audioState.audio.playbackRate = 1.0;
+          console.log(`🎵 Reset new master (Deck ${newMasterDeck}) to 1.0x playbackRate`);
+        }
+
+        // Re-apply sync to slave (for songs)
         if (slaveState.contentType === 'full_song' && masterBPM && slaveBPM && slaveState.audioState?.audio) {
           const playbackRate = masterBPM / slaveBPM;
           slaveState.audioState.audio.playbackRate = playbackRate;
-          console.log(`🎵 Re-synced to new master: ${slaveBPM} BPM → ${masterBPM} BPM (${playbackRate.toFixed(3)}x)`);
+          console.log(`🎵 Re-synced slave (Deck ${newMasterDeck === 'A' ? 'B' : 'A'}): ${slaveBPM} BPM → ${masterBPM} BPM (${playbackRate.toFixed(3)}x)`);
         }
       }
 
