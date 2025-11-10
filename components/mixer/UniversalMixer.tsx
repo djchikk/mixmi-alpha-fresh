@@ -14,6 +14,7 @@ import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { IPTrack } from '@/types';
+import { SectionLoopManager } from '@/lib/sectionLoopManager';
 
 interface UniversalMixerProps {
   className?: string;
@@ -32,6 +33,11 @@ interface UniversalMixerState {
     loopPosition: number;
     volume: number; // 0-100
     contentType?: string; // 'loop', 'song', 'radio_station', etc.
+    sectionLoop: {
+      enabled: boolean; // Whether section looping is active for this song
+      currentSection: number; // Zero-based section index
+      totalSections: number; // Total number of 8-bar sections in the song
+    };
   };
   deckB: {
     track: Track | null;
@@ -44,6 +50,11 @@ interface UniversalMixerState {
     loopPosition: number;
     volume: number; // 0-100
     contentType?: string; // 'loop', 'song', 'radio_station', etc.
+    sectionLoop: {
+      enabled: boolean; // Whether section looping is active for this song
+      currentSection: number; // Zero-based section index
+      totalSections: number; // Total number of 8-bar sections in the song
+    };
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -71,7 +82,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       loopEnabled: true,
       loopLength: 8,
       loopPosition: 0,
-      volume: 80 // Default 80%
+      volume: 80, // Default 80%
+      sectionLoop: {
+        enabled: false,
+        currentSection: 0,
+        totalSections: 0
+      }
     },
     deckB: {
       track: null,
@@ -79,7 +95,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       loopEnabled: true,
       loopLength: 8,
       loopPosition: 0,
-      volume: 80 // Default 80%
+      volume: 80, // Default 80%
+      sectionLoop: {
+        enabled: false,
+        currentSection: 0,
+        totalSections: 0
+      }
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -385,7 +406,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           playing: false,
           loading: false,
           audioState: undefined,
-          audioControls: undefined
+          audioControls: undefined,
+          sectionLoop: {
+            enabled: false,
+            currentSection: 0,
+            totalSections: 0
+          }
         }
       };
     });
@@ -433,7 +459,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           playing: false,
           loading: false,
           audioState: undefined,
-          audioControls: undefined
+          audioControls: undefined,
+          sectionLoop: {
+            enabled: false,
+            currentSection: 0,
+            totalSections: 0
+          }
         }
       };
     });
@@ -576,6 +607,26 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
         // Update state with new track
         setMixerState(prev => {
+          // Calculate section loop data for songs
+          let sectionLoopData = {
+            enabled: false,
+            currentSection: 0,
+            totalSections: 0
+          };
+
+          if (isSong && audioState.audio && track.bpm) {
+            const songDuration = audioState.audio.duration;
+            if (songDuration && !isNaN(songDuration)) {
+              const totalSections = SectionLoopManager.getTotalSections(songDuration, track.bpm);
+              sectionLoopData = {
+                enabled: false, // Not enabled by default
+                currentSection: 0, // Start at first section
+                totalSections
+              };
+              console.log(`🎵 Song sections calculated: ${totalSections} sections (${track.bpm} BPM, ${songDuration.toFixed(2)}s)`);
+            }
+          }
+
           const newDeckAState = {
             ...prev.deckA,
             track,
@@ -585,7 +636,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             loading: false,
             loopPosition: 0,
             contentType,
-            loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
+            loopEnabled: isRadio ? false : true,  // Enable looping for non-radio content
+            sectionLoop: sectionLoopData
           };
 
           // Determine master deck state
@@ -764,6 +816,26 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
         // Update state with new track
         setMixerState(prev => {
+          // Calculate section loop data for songs
+          let sectionLoopData = {
+            enabled: false,
+            currentSection: 0,
+            totalSections: 0
+          };
+
+          if (isSong && audioState.audio && track.bpm) {
+            const songDuration = audioState.audio.duration;
+            if (songDuration && !isNaN(songDuration)) {
+              const totalSections = SectionLoopManager.getTotalSections(songDuration, track.bpm);
+              sectionLoopData = {
+                enabled: false, // Not enabled by default
+                currentSection: 0, // Start at first section
+                totalSections
+              };
+              console.log(`🎵 Song sections calculated: ${totalSections} sections (${track.bpm} BPM, ${songDuration.toFixed(2)}s)`);
+            }
+          }
+
           const newDeckBState = {
             ...prev.deckB,
             track,
@@ -773,7 +845,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             loading: false,
             loopPosition: 0,
             contentType,
-            loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
+            loopEnabled: isRadio ? false : true,  // Enable looping for non-radio content
+            sectionLoop: sectionLoopData
           };
 
           // Determine master deck state
@@ -1012,6 +1085,169 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       deckA: { ...prev.deckA, playing: false },
       deckB: { ...prev.deckB, playing: false }
     }));
+  };
+
+  // Section Loop Handlers
+  // ======================
+
+  /**
+   * Apply section looping to an audio element
+   * Uses timeupdate event to jump back to section start when reaching end
+   */
+  const applySectionLoop = (
+    audio: HTMLAudioElement,
+    sectionIndex: number,
+    bpm: number,
+    enabled: boolean
+  ) => {
+    // Remove any existing section loop listener
+    const existingListener = (audio as any)._sectionLoopListener;
+    if (existingListener) {
+      audio.removeEventListener('timeupdate', existingListener);
+      delete (audio as any)._sectionLoopListener;
+    }
+
+    if (!enabled) {
+      // Section looping disabled - let song play normally (no loop)
+      audio.loop = false;
+      return;
+    }
+
+    // Get section time range
+    const timeRange = SectionLoopManager.getSectionTimeRange(sectionIndex, bpm);
+    console.log(`🔁 Section loop enabled: ${SectionLoopManager.getSectionInfo(sectionIndex, bpm)}`);
+
+    // Create new listener
+    const sectionLoopListener = () => {
+      if (audio.currentTime >= timeRange.endTime) {
+        // Jump back to section start
+        audio.currentTime = timeRange.startTime;
+        console.log(`🔁 Looped back to section ${sectionIndex + 1} start: ${timeRange.startTime.toFixed(2)}s`);
+      }
+    };
+
+    // Store listener reference on audio element for cleanup
+    (audio as any)._sectionLoopListener = sectionLoopListener;
+
+    // Add listener
+    audio.addEventListener('timeupdate', sectionLoopListener);
+
+    // Jump to section start if not already in range
+    if (audio.currentTime < timeRange.startTime || audio.currentTime >= timeRange.endTime) {
+      audio.currentTime = timeRange.startTime;
+      console.log(`⏭️ Jumped to section ${sectionIndex + 1} start: ${timeRange.startTime.toFixed(2)}s`);
+    }
+  };
+
+  /**
+   * Toggle section looping for a deck
+   */
+  const handleToggleSectionLoop = (deck: 'A' | 'B') => {
+    const deckState = deck === 'A' ? mixerState.deckA : mixerState.deckB;
+
+    if (deckState.contentType !== 'full_song') {
+      console.warn('⚠️ Section looping only available for songs');
+      return;
+    }
+
+    if (!deckState.track?.bpm) {
+      showToast('⚠️ Song needs BPM for section looping', 'warning');
+      return;
+    }
+
+    if (deckState.sectionLoop.totalSections === 0) {
+      showToast('⚠️ No sections available', 'warning');
+      return;
+    }
+
+    const newEnabled = !deckState.sectionLoop.enabled;
+
+    setMixerState(prev => {
+      const targetDeck = deck === 'A' ? prev.deckA : prev.deckB;
+      const updatedDeck = {
+        ...targetDeck,
+        sectionLoop: {
+          ...targetDeck.sectionLoop,
+          enabled: newEnabled
+        }
+      };
+
+      // Apply to audio element if available
+      if (targetDeck.audioState?.audio && targetDeck.track?.bpm) {
+        applySectionLoop(
+          targetDeck.audioState.audio,
+          targetDeck.sectionLoop.currentSection,
+          targetDeck.track.bpm,
+          newEnabled
+        );
+      }
+
+      return {
+        ...prev,
+        [deck === 'A' ? 'deckA' : 'deckB']: updatedDeck
+      };
+    });
+
+    showToast(
+      newEnabled
+        ? `🔁 Section ${deckState.sectionLoop.currentSection + 1} looping enabled`
+        : '⏹️ Section looping disabled',
+      'success'
+    );
+  };
+
+  /**
+   * Change to a specific section
+   */
+  const handleChangeSection = (deck: 'A' | 'B', direction: 'prev' | 'next') => {
+    const deckState = deck === 'A' ? mixerState.deckA : mixerState.deckB;
+
+    if (deckState.contentType !== 'full_song' || !deckState.track?.bpm) {
+      return;
+    }
+
+    const currentSection = deckState.sectionLoop.currentSection;
+    const totalSections = deckState.sectionLoop.totalSections;
+
+    let newSection = currentSection;
+    if (direction === 'next') {
+      newSection = Math.min(currentSection + 1, totalSections - 1);
+    } else {
+      newSection = Math.max(currentSection - 1, 0);
+    }
+
+    if (newSection === currentSection) {
+      // Already at boundary
+      return;
+    }
+
+    setMixerState(prev => {
+      const targetDeck = deck === 'A' ? prev.deckA : prev.deckB;
+      const updatedDeck = {
+        ...targetDeck,
+        sectionLoop: {
+          ...targetDeck.sectionLoop,
+          currentSection: newSection
+        }
+      };
+
+      // Apply new section loop if enabled
+      if (targetDeck.audioState?.audio && targetDeck.track?.bpm && targetDeck.sectionLoop.enabled) {
+        applySectionLoop(
+          targetDeck.audioState.audio,
+          newSection,
+          targetDeck.track.bpm,
+          true
+        );
+      }
+
+      return {
+        ...prev,
+        [deck === 'A' ? 'deckA' : 'deckB']: updatedDeck
+      };
+    });
+
+    showToast(`⏭️ Section ${newSection + 1} of ${totalSections}`, 'info', 1500);
   };
 
   // Sync toggle
@@ -1657,12 +1893,53 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 </button>
               ) : mixerState.deckA.contentType === 'full_song' ? (
                 <div className="flex flex-col items-center gap-1">
+                  {/* Time progress */}
                   <div className="text-[10px] font-mono text-gray-400">
                     {formatTime(mixerState.deckA.audioState?.currentTime || 0)} / {formatTime(mixerState.deckA.audioState?.audio?.duration || 0)}
                   </div>
+
+                  {/* Playback rate when synced */}
                   {mixerState.syncActive && mixerState.deckA.audioState?.audio && (
                     <div className="text-[9px] font-bold text-cyan-400">
                       {mixerState.deckA.audioState.audio.playbackRate.toFixed(2)}x
+                    </div>
+                  )}
+
+                  {/* Section loop controls - only show if song has BPM and sections */}
+                  {mixerState.deckA.track?.bpm && mixerState.deckA.sectionLoop.totalSections > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      {/* Previous section */}
+                      <button
+                        onClick={() => handleChangeSection('A', 'prev')}
+                        disabled={mixerState.deckA.sectionLoop.currentSection === 0}
+                        className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
+                        title="Previous section"
+                      >
+                        ◀
+                      </button>
+
+                      {/* Section loop toggle */}
+                      <button
+                        onClick={() => handleToggleSectionLoop('A')}
+                        className={`px-2 py-0.5 text-[8px] border rounded transition-colors ${
+                          mixerState.deckA.sectionLoop.enabled
+                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
+                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-cyan-500'
+                        }`}
+                        title={mixerState.deckA.sectionLoop.enabled ? 'Disable section loop' : 'Enable section loop'}
+                      >
+                        {mixerState.deckA.sectionLoop.currentSection + 1}/{mixerState.deckA.sectionLoop.totalSections}
+                      </button>
+
+                      {/* Next section */}
+                      <button
+                        onClick={() => handleChangeSection('A', 'next')}
+                        disabled={mixerState.deckA.sectionLoop.currentSection === mixerState.deckA.sectionLoop.totalSections - 1}
+                        className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
+                        title="Next section"
+                      >
+                        ▶
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1752,12 +2029,53 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 </button>
               ) : mixerState.deckB.contentType === 'full_song' ? (
                 <div className="flex flex-col items-center gap-1">
+                  {/* Time progress */}
                   <div className="text-[10px] font-mono text-gray-400">
                     {formatTime(mixerState.deckB.audioState?.currentTime || 0)} / {formatTime(mixerState.deckB.audioState?.audio?.duration || 0)}
                   </div>
+
+                  {/* Playback rate when synced */}
                   {mixerState.syncActive && mixerState.deckB.audioState?.audio && (
                     <div className="text-[9px] font-bold text-cyan-400">
                       {mixerState.deckB.audioState.audio.playbackRate.toFixed(2)}x
+                    </div>
+                  )}
+
+                  {/* Section loop controls - only show if song has BPM and sections */}
+                  {mixerState.deckB.track?.bpm && mixerState.deckB.sectionLoop.totalSections > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      {/* Previous section */}
+                      <button
+                        onClick={() => handleChangeSection('B', 'prev')}
+                        disabled={mixerState.deckB.sectionLoop.currentSection === 0}
+                        className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
+                        title="Previous section"
+                      >
+                        ◀
+                      </button>
+
+                      {/* Section loop toggle */}
+                      <button
+                        onClick={() => handleToggleSectionLoop('B')}
+                        className={`px-2 py-0.5 text-[8px] border rounded transition-colors ${
+                          mixerState.deckB.sectionLoop.enabled
+                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
+                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-cyan-500'
+                        }`}
+                        title={mixerState.deckB.sectionLoop.enabled ? 'Disable section loop' : 'Enable section loop'}
+                      >
+                        {mixerState.deckB.sectionLoop.currentSection + 1}/{mixerState.deckB.sectionLoop.totalSections}
+                      </button>
+
+                      {/* Next section */}
+                      <button
+                        onClick={() => handleChangeSection('B', 'next')}
+                        disabled={mixerState.deckB.sectionLoop.currentSection === mixerState.deckB.sectionLoop.totalSections - 1}
+                        className="px-1 py-0.5 text-[8px] bg-gray-800 border border-gray-700 rounded hover:border-cyan-500 disabled:opacity-30 disabled:hover:border-gray-700 transition-colors"
+                        title="Next section"
+                      >
+                        ▶
+                      </button>
                     </div>
                   )}
                 </div>
