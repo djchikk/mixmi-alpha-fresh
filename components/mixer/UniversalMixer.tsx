@@ -1064,16 +1064,22 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           }
         }
       } else if (!deckAIsSong && !deckBIsSong) {
-        // Both are loops or other - use existing loop sync
+        // Both are loops - use existing loop sync
+        // Respect master deck order: master first, slave second
+        const masterDeck = mixerState.masterDeck || 'A'; // Default to A if not set
         const audioContext = mixerState.deckA.audioState.audioContext;
+
+        const masterDeckState = masterDeck === 'A' ? mixerState.deckA : mixerState.deckB;
+        const slaveDeckState = masterDeck === 'A' ? mixerState.deckB : mixerState.deckA;
 
         syncEngineRef.current = new SimpleLoopSync(
           audioContext,
-          { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
-          { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track }
+          { ...masterDeckState.audioState, audioControls: masterDeckState.audioControls, track: masterDeckState.track },
+          { ...slaveDeckState.audioState, audioControls: slaveDeckState.audioControls, track: slaveDeckState.track }
         );
 
         await syncEngineRef.current.enableSync();
+        console.log(`🔄 Loop sync enabled: Deck ${masterDeck} is master`);
       } else if (deckAIsSong && deckBIsSong) {
         // Both are songs - sync to master deck's BPM
         const masterDeck = mixerState.masterDeck || 'A'; // Default to A if not set
@@ -1183,11 +1189,16 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   };
 
   // Toggle master deck selection
-  const handleMasterDeckToggle = () => {
-    setMixerState(prev => {
-      // Toggle between A and B
-      const newMasterDeck = prev.masterDeck === 'A' ? 'B' : 'A';
+  const handleMasterDeckToggle = async () => {
+    const currentSyncActive = mixerState.syncActive;
+    const deckAIsLoop = mixerState.deckA.contentType === 'loop';
+    const deckBIsLoop = mixerState.deckB.contentType === 'loop';
+    const bothAreLoops = deckAIsLoop && deckBIsLoop;
 
+    // Calculate new master deck before state update
+    const newMasterDeck = mixerState.masterDeck === 'A' ? 'B' : 'A';
+
+    setMixerState(prev => {
       // Recalculate master BPM with new selection
       const newMasterBPM = determineMasterBPM(prev.deckA, prev.deckB, newMasterDeck);
 
@@ -1215,6 +1226,31 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         masterBPM: newMasterBPM
       };
     });
+
+    // For loops, we need to re-create the SimpleLoopSync engine with new master
+    if (currentSyncActive && bothAreLoops && mixerState.deckA.audioState && mixerState.deckB.audioState) {
+      // Disable current sync
+      if (syncEngineRef.current) {
+        syncEngineRef.current.disableSync();
+        syncEngineRef.current = null;
+      }
+
+      // Re-create sync with new master order
+      const audioContext = mixerState.deckA.audioState.audioContext;
+
+      // Pass decks in order: master first, slave second
+      const masterDeckState = newMasterDeck === 'A' ? mixerState.deckA : mixerState.deckB;
+      const slaveDeckState = newMasterDeck === 'A' ? mixerState.deckB : mixerState.deckA;
+
+      syncEngineRef.current = new SimpleLoopSync(
+        audioContext,
+        { ...masterDeckState.audioState, audioControls: masterDeckState.audioControls, track: masterDeckState.track },
+        { ...slaveDeckState.audioState, audioControls: slaveDeckState.audioControls, track: slaveDeckState.track }
+      );
+
+      await syncEngineRef.current.enableSync();
+      console.log(`🔄 Re-synced loops: Deck ${newMasterDeck} is now master`);
+    }
   };
 
   // Start recording radio stream (for GRAB feature)
