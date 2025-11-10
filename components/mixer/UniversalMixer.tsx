@@ -48,6 +48,7 @@ interface UniversalMixerState {
   masterBPM: number;
   crossfaderPosition: number;
   syncActive: boolean;
+  masterDeck: 'A' | 'B' | null; // Which deck is tempo master (null = auto-determined by priority)
 }
 
 // Helper function to format time in MM:SS
@@ -82,7 +83,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     },
     masterBPM: 120,
     crossfaderPosition: 50,
-    syncActive: false
+    syncActive: false,
+    masterDeck: null // Auto-determined initially
   });
 
   // Sync engine reference
@@ -290,9 +292,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }));
   };
 
-  // Determine master BPM based on content-type hierarchy
-  // Priority: Loop > Song > Radio/Grabbed Radio
-  const determineMasterBPM = (deckA: typeof mixerState.deckA, deckB: typeof mixerState.deckB): number => {
+  // Check if content type is eligible to be tempo master
+  const isMasterEligible = (contentType?: string): boolean => {
+    return contentType === 'loop' || contentType === 'full_song';
+  };
+
+  // Determine master BPM based on content-type hierarchy and user selection
+  // Priority: Loop (3) > Song (2) > Radio/Grabbed Radio (1)
+  // If both decks have same priority, user can select master via masterDeck
+  const determineMasterBPM = (
+    deckA: typeof mixerState.deckA,
+    deckB: typeof mixerState.deckB,
+    masterDeckSelection: 'A' | 'B' | null = null
+  ): number => {
     const getPriority = (contentType?: string): number => {
       if (contentType === 'loop') return 3;
       if (contentType === 'full_song') return 2;
@@ -303,7 +315,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     const priorityA = getPriority(deckA.contentType);
     const priorityB = getPriority(deckB.contentType);
 
-    // Higher priority deck sets BPM
+    // If user has explicitly selected a master deck, and it's master-eligible, use it
+    if (masterDeckSelection === 'A' && isMasterEligible(deckA.contentType) && deckA.track?.bpm) {
+      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (user selected)`);
+      return deckA.track.bpm;
+    }
+    if (masterDeckSelection === 'B' && isMasterEligible(deckB.contentType) && deckB.track?.bpm) {
+      console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (user selected)`);
+      return deckB.track.bpm;
+    }
+
+    // Otherwise, use priority system
     if (priorityA > priorityB && deckA.track?.bpm) {
       console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (${deckA.contentType})`);
       return deckA.track.bpm;
@@ -311,12 +333,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (${deckB.contentType})`);
       return deckB.track.bpm;
     } else if (priorityA === priorityB && deckA.track?.bpm) {
-      // Same priority, use Deck A
+      // Same priority, default to Deck A (unless user selected B)
       console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (same priority)`);
       return deckA.track.bpm;
     }
 
-    // Default to 120 BPM
+    // Default to 120 BPM (e.g., Radio + Radio)
     console.log(`🎵 Master BPM: 120 (default)`);
     return 120;
   };
@@ -541,11 +563,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           };
 
           // Determine master BPM based on both decks
-          const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB);
+          const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB, prev.masterDeck);
+
+          // Auto-set master deck if both are master-eligible and masterDeck not yet set
+          const newMasterDeck = (prev.masterDeck === null && isMasterEligible(newDeckAState.contentType) && isMasterEligible(prev.deckB.contentType))
+            ? 'A'
+            : prev.masterDeck;
 
           return {
             ...prev,
             masterBPM: newMasterBPM,
+            masterDeck: newMasterDeck,
             deckA: newDeckAState
           };
         });
@@ -709,11 +737,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           };
 
           // Determine master BPM based on both decks
-          const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState);
+          const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState, prev.masterDeck);
+
+          // Auto-set master deck if both are master-eligible and masterDeck not yet set
+          const newMasterDeck = (prev.masterDeck === null && isMasterEligible(prev.deckA.contentType) && isMasterEligible(newDeckBState.contentType))
+            ? 'A' // Default to A when both become master-eligible
+            : prev.masterDeck;
 
           return {
             ...prev,
             masterBPM: newMasterBPM,
+            masterDeck: newMasterDeck,
             deckB: newDeckBState
           };
         });
@@ -931,6 +965,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     const newSyncState = !mixerState.syncActive;
 
     if (newSyncState && mixerState.deckA.audioState && mixerState.deckB.audioState) {
+      // Check if both decks are radio/non-master-eligible
+      const deckAEligible = isMasterEligible(mixerState.deckA.contentType);
+      const deckBEligible = isMasterEligible(mixerState.deckB.contentType);
+
+      if (!deckAEligible && !deckBEligible) {
+        // Both are radio or other non-master content - cannot sync
+        console.warn(`⚠️ Cannot sync: neither deck has master-eligible content (loop or song)`);
+        showToast('⚠️ Cannot sync radio streams', 'warning');
+        return;
+      }
+
       const deckAIsSong = mixerState.deckA.contentType === 'full_song';
       const deckBIsSong = mixerState.deckB.contentType === 'full_song';
       const deckAIsLoop = mixerState.deckA.contentType === 'loop';
@@ -976,21 +1021,27 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
         await syncEngineRef.current.enableSync();
       } else if (deckAIsSong && deckBIsSong) {
-        // Both are songs - sync B to A's BPM
-        const songABPM = mixerState.deckA.track?.bpm;
-        const songBBPM = mixerState.deckB.track?.bpm;
+        // Both are songs - sync to master deck's BPM
+        const masterDeck = mixerState.masterDeck || 'A'; // Default to A if not set
+        const slaveDeck = masterDeck === 'A' ? 'B' : 'A';
 
-        if (!songABPM || !songBBPM) {
+        const masterState = masterDeck === 'A' ? mixerState.deckA : mixerState.deckB;
+        const slaveState = slaveDeck === 'A' ? mixerState.deckA : mixerState.deckB;
+
+        const masterBPM = masterState.track?.bpm;
+        const slaveBPM = slaveState.track?.bpm;
+
+        if (!masterBPM || !slaveBPM) {
           console.warn(`⚠️ One or both songs have no BPM metadata`);
           showToast('⚠️ Songs have no BPM and cannot sync', 'warning');
           return;
         }
 
-        const playbackRate = songABPM / songBBPM;
-        if (mixerState.deckB.audioState?.audio) {
-          mixerState.deckB.audioState.audio.playbackRate = playbackRate;
-          console.log(`🎵 Deck B song synced to Deck A: ${songBBPM} BPM → ${songABPM} BPM (${playbackRate.toFixed(3)}x)`);
-          showToast(`🎵 Songs synced to ${songABPM} BPM`, 'success');
+        const playbackRate = masterBPM / slaveBPM;
+        if (slaveState.audioState?.audio) {
+          slaveState.audioState.audio.playbackRate = playbackRate;
+          console.log(`🎵 Deck ${slaveDeck} song synced to Deck ${masterDeck}: ${slaveBPM} BPM → ${masterBPM} BPM (${playbackRate.toFixed(3)}x)`);
+          showToast(`🎵 Songs synced to ${masterBPM} BPM (Deck ${masterDeck} master)`, 'success');
         }
       }
     } else if (!newSyncState) {
@@ -1075,6 +1126,41 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     if (audioControls && audioControls.setLoopPosition) {
       audioControls.setLoopPosition(position);
     }
+  };
+
+  // Toggle master deck selection
+  const handleMasterDeckToggle = () => {
+    setMixerState(prev => {
+      // Toggle between A and B
+      const newMasterDeck = prev.masterDeck === 'A' ? 'B' : 'A';
+
+      // Recalculate master BPM with new selection
+      const newMasterBPM = determineMasterBPM(prev.deckA, prev.deckB, newMasterDeck);
+
+      console.log(`🎚️ Master deck toggled to: ${newMasterDeck}`);
+
+      // If SYNC is active, need to re-sync to new master
+      if (prev.syncActive) {
+        const masterState = newMasterDeck === 'A' ? prev.deckA : prev.deckB;
+        const slaveState = newMasterDeck === 'A' ? prev.deckB : prev.deckA;
+
+        const masterBPM = masterState.track?.bpm;
+        const slaveBPM = slaveState.track?.bpm;
+
+        // Re-apply sync with new master (for songs)
+        if (slaveState.contentType === 'full_song' && masterBPM && slaveBPM && slaveState.audioState?.audio) {
+          const playbackRate = masterBPM / slaveBPM;
+          slaveState.audioState.audio.playbackRate = playbackRate;
+          console.log(`🎵 Re-synced to new master: ${slaveBPM} BPM → ${masterBPM} BPM (${playbackRate.toFixed(3)}x)`);
+        }
+      }
+
+      return {
+        ...prev,
+        masterDeck: newMasterDeck,
+        masterBPM: newMasterBPM
+      };
+    });
   };
 
   // Start recording radio stream (for GRAB feature)
@@ -1514,6 +1600,25 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               onSyncToggle={handleSync}
               onMasterSyncReset={handleMasterSyncReset}
             />
+
+            {/* Master Deck Selector - only show when both decks are master-eligible */}
+            {isMasterEligible(mixerState.deckA.contentType) && isMasterEligible(mixerState.deckB.contentType) && (
+              <div className="absolute" style={{ top: '60px', left: '50%', transform: 'translateX(-50%)' }}>
+                <button
+                  onClick={handleMasterDeckToggle}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-gray-900/50 border border-gray-700 rounded hover:border-cyan-500 transition-all"
+                  title="Toggle master deck"
+                >
+                  <span className={`text-[9px] font-bold transition-colors ${mixerState.masterDeck === 'A' ? 'text-cyan-400' : 'text-gray-600'}`}>
+                    A
+                  </span>
+                  <span className="text-[8px] text-gray-500">Master</span>
+                  <span className={`text-[9px] font-bold transition-colors ${mixerState.masterDeck === 'B' ? 'text-cyan-400' : 'text-gray-600'}`}>
+                    B
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Deck B Controls - Fixed width container to prevent shifting */}
             <div className="w-[100px] flex justify-center">
