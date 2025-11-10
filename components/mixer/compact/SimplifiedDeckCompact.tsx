@@ -96,20 +96,21 @@ export default function SimplifiedDeckCompact({
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
 
-        // 🎛️ SMART FILTERING: Allow loops, radio stations, and grabbed radio in mixer
+        // 🎛️ SMART FILTERING: Allow loops, songs, radio stations, and grabbed radio in mixer
         if (item.track.content_type !== 'loop' &&
+            item.track.content_type !== 'full_song' &&
             item.track.content_type !== 'radio_station' &&
             item.track.content_type !== 'grabbed_radio') {
-          const contentTypeName = item.track.content_type === 'full_song' ? 'Song' : 'content';
+          const contentTypeName = item.track.content_type === 'ep' ? 'EP' : 'content';
 
-          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops and radio allowed`);
+          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops, songs, and radio allowed`);
 
-          // Show user-friendly message about upcoming functionality
+          // Show user-friendly message about unsupported content
           let message = '';
-          if (item.track.content_type === 'full_song' || item.track.content_type === 'ep') {
-            message = '🎵 Song functionality coming soon! For now, only 8-bar loops and radio stations work in the mixer.';
+          if (item.track.content_type === 'ep') {
+            message = '📀 Drag individual songs from the EP instead. Click the chevron to expand tracks.';
           } else {
-            message = `🎛️ Only 8-bar loops and radio stations work in the mixer for now. Try dragging ${contentTypeName}s to the Crate or Playlist instead.`;
+            message = `🎛️ Only loops, songs, and radio stations work in the mixer. Try dragging ${contentTypeName}s to the Crate or Playlist instead.`;
           }
 
           showToast(message, 'info', 5000); // Show for 5 seconds
