@@ -50,6 +50,14 @@ interface UniversalMixerState {
   syncActive: boolean;
 }
 
+// Helper function to format time in MM:SS
+const formatTime = (seconds: number): string => {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
 export default function UniversalMixer({ className = "" }: UniversalMixerProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -481,13 +489,20 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         }
 
         const isGrabbedRadio = contentType === 'grabbed_radio';
+        const isSong = contentType === 'full_song';
 
-        // For radio stations, disable looping; for loops/songs, apply loop settings
+        // Configure looping based on content type
         if (audioControls) {
           if (isRadio) {
+            // Radio: no looping (continuous stream)
             audioControls.setLoopEnabled(false);
             console.log('📻 Radio station: looping disabled');
+          } else if (isSong) {
+            // Songs: no looping (play to end)
+            audioControls.setLoopEnabled(false);
+            console.log('🎵 Song: looping disabled (will play to end)');
           } else {
+            // Loops and grabbed radio: enable looping
             audioControls.setLoopEnabled(true);
             audioControls.setLoopLength(mixerState.deckA.loopLength);
             audioControls.setLoopPosition(0);
@@ -498,6 +513,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         if (isGrabbedRadio && audioState.audio) {
           audioState.audio.playbackRate = 1.0;
           console.log('📻 Grabbed radio: playbackRate locked to 1.0 (no time-stretching)');
+        }
+
+        // For songs, add 'ended' event listener to stop playback when finished
+        if (isSong && audioState.audio) {
+          audioState.audio.addEventListener('ended', () => {
+            console.log('🎵 Song finished playing');
+            setMixerState(prev => ({
+              ...prev,
+              deckA: { ...prev.deckA, playing: false }
+            }));
+          });
         }
 
         // Update state with new track
@@ -631,13 +657,20 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         }
 
         const isGrabbedRadio = contentType === 'grabbed_radio';
+        const isSong = contentType === 'full_song';
 
-        // For radio stations, disable looping; for loops/songs, apply loop settings
+        // Configure looping based on content type
         if (audioControls) {
           if (isRadio) {
+            // Radio: no looping (continuous stream)
             audioControls.setLoopEnabled(false);
             console.log('📻 Radio station: looping disabled');
+          } else if (isSong) {
+            // Songs: no looping (play to end)
+            audioControls.setLoopEnabled(false);
+            console.log('🎵 Song: looping disabled (will play to end)');
           } else {
+            // Loops and grabbed radio: enable looping
             audioControls.setLoopEnabled(true);
             audioControls.setLoopLength(mixerState.deckB.loopLength);
             audioControls.setLoopPosition(0);
@@ -648,6 +681,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         if (isGrabbedRadio && audioState.audio) {
           audioState.audio.playbackRate = 1.0;
           console.log('📻 Grabbed radio: playbackRate locked to 1.0 (no time-stretching)');
+        }
+
+        // For songs, add 'ended' event listener to stop playback when finished
+        if (isSong && audioState.audio) {
+          audioState.audio.addEventListener('ended', () => {
+            console.log('🎵 Song finished playing');
+            setMixerState(prev => ({
+              ...prev,
+              deckB: { ...prev.deckB, playing: false }
+            }));
+          });
         }
 
         // Update state with new track
@@ -887,22 +931,87 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     const newSyncState = !mixerState.syncActive;
 
     if (newSyncState && mixerState.deckA.audioState && mixerState.deckB.audioState) {
-      const audioContext = mixerState.deckA.audioState.audioContext;
+      const deckAIsSong = mixerState.deckA.contentType === 'full_song';
+      const deckBIsSong = mixerState.deckB.contentType === 'full_song';
+      const deckAIsLoop = mixerState.deckA.contentType === 'loop';
+      const deckBIsLoop = mixerState.deckB.contentType === 'loop';
 
-      syncEngineRef.current = new SimpleLoopSync(
-        audioContext,
-        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
-        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track }
-      );
+      // Handle song + loop sync (time-stretch song to match loop)
+      if ((deckAIsSong && deckBIsLoop) || (deckBIsSong && deckAIsLoop)) {
+        const songDeck = deckAIsSong ? 'A' : 'B';
+        const loopDeck = deckAIsLoop ? 'A' : 'B';
 
-      await syncEngineRef.current.enableSync();
-    } else if (!newSyncState && syncEngineRef.current) {
-      syncEngineRef.current.disableSync();
-      syncEngineRef.current = null;
+        const songState = songDeck === 'A' ? mixerState.deckA : mixerState.deckB;
+        const loopState = loopDeck === 'A' ? mixerState.deckA : mixerState.deckB;
+
+        const songBPM = songState.track?.bpm;
+        const loopBPM = loopState.track?.bpm;
+
+        if (!songBPM) {
+          // Song has no BPM - show warning
+          console.warn(`⚠️ Song has no BPM metadata, cannot sync`);
+          showToast('⚠️ Song has no BPM and cannot sync', 'warning');
+          return; // Don't enable sync
+        }
+
+        if (songBPM && loopBPM) {
+          // Time-stretch song to match loop BPM
+          const playbackRate = loopBPM / songBPM;
+
+          if (songState.audioState?.audio) {
+            songState.audioState.audio.playbackRate = playbackRate;
+            console.log(`🎵 Song synced: ${songBPM} BPM → ${loopBPM} BPM (${playbackRate.toFixed(3)}x)`);
+            showToast(`🎵 Synced to ${loopBPM} BPM (${playbackRate.toFixed(2)}x)`, 'success');
+          }
+        }
+      } else if (!deckAIsSong && !deckBIsSong) {
+        // Both are loops or other - use existing loop sync
+        const audioContext = mixerState.deckA.audioState.audioContext;
+
+        syncEngineRef.current = new SimpleLoopSync(
+          audioContext,
+          { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
+          { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track }
+        );
+
+        await syncEngineRef.current.enableSync();
+      } else if (deckAIsSong && deckBIsSong) {
+        // Both are songs - sync B to A's BPM
+        const songABPM = mixerState.deckA.track?.bpm;
+        const songBBPM = mixerState.deckB.track?.bpm;
+
+        if (!songABPM || !songBBPM) {
+          console.warn(`⚠️ One or both songs have no BPM metadata`);
+          showToast('⚠️ Songs have no BPM and cannot sync', 'warning');
+          return;
+        }
+
+        const playbackRate = songABPM / songBBPM;
+        if (mixerState.deckB.audioState?.audio) {
+          mixerState.deckB.audioState.audio.playbackRate = playbackRate;
+          console.log(`🎵 Deck B song synced to Deck A: ${songBBPM} BPM → ${songABPM} BPM (${playbackRate.toFixed(3)}x)`);
+          showToast(`🎵 Songs synced to ${songABPM} BPM`, 'success');
+        }
+      }
+    } else if (!newSyncState) {
+      // Disable sync - reset playback rates
+      if (mixerState.deckA.contentType === 'full_song' && mixerState.deckA.audioState?.audio) {
+        mixerState.deckA.audioState.audio.playbackRate = 1.0;
+        console.log('🎵 Deck A song playback rate reset to 1.0x');
+      }
+      if (mixerState.deckB.contentType === 'full_song' && mixerState.deckB.audioState?.audio) {
+        mixerState.deckB.audioState.audio.playbackRate = 1.0;
+        console.log('🎵 Deck B song playback rate reset to 1.0x');
+      }
+
+      if (syncEngineRef.current) {
+        syncEngineRef.current.disableSync();
+        syncEngineRef.current = null;
+      }
     }
 
     setMixerState(prev => ({ ...prev, syncActive: newSyncState }));
-  }, [mixerState]);
+  }, [mixerState, showToast]);
 
   // Crossfader handler
   const handleCrossfaderChange = useCallback((position: number) => {
@@ -1364,6 +1473,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   <Radio size={12} />
                   <span>{deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}</span>
                 </button>
+              ) : mixerState.deckA.contentType === 'full_song' ? (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-[10px] font-mono text-gray-400">
+                    {formatTime(mixerState.deckA.audioState?.currentTime || 0)} / {formatTime(mixerState.deckA.audioState?.audio?.duration || 0)}
+                  </div>
+                  {mixerState.syncActive && mixerState.deckA.audioState?.audio && (
+                    <div className="text-[9px] font-bold text-cyan-400">
+                      {mixerState.deckA.audioState.audio.playbackRate.toFixed(2)}x
+                    </div>
+                  )}
+                </div>
               ) : (
                 <LoopControlsCompact
                   loopLength={mixerState.deckA.loopLength}
@@ -1429,6 +1549,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   <Radio size={12} />
                   <span>{deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}</span>
                 </button>
+              ) : mixerState.deckB.contentType === 'full_song' ? (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-[10px] font-mono text-gray-400">
+                    {formatTime(mixerState.deckB.audioState?.currentTime || 0)} / {formatTime(mixerState.deckB.audioState?.audio?.duration || 0)}
+                  </div>
+                  {mixerState.syncActive && mixerState.deckB.audioState?.audio && (
+                    <div className="text-[9px] font-bold text-cyan-400">
+                      {mixerState.deckB.audioState.audio.playbackRate.toFixed(2)}x
+                    </div>
+                  )}
+                </div>
               ) : (
                 <LoopControlsCompact
                   loopLength={mixerState.deckB.loopLength}
