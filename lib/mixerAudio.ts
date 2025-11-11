@@ -878,9 +878,29 @@ class PreciseLooper {
       bpmString: newBPM.toString(),
       bpmFixed: Number(newBPM).toFixed(10)
     });
+
+    const wasLooping = this.isLooping;
     this.bpm = newBPM;
     this.loopDuration = this.calculateLoopDuration();
     console.log(`🔄 Deck ${this.deckId} BPM updated to ${newBPM}, new loop duration: ${this.loopDuration.toFixed(2)}s`);
+
+    // 🔄 FIX: Reschedule if actively looping (BPM changed mid-loop, e.g., during SYNC)
+    if (wasLooping) {
+      // Calculate new nextLoopTime based on current audio position and new loop duration
+      const currentAudioTime = this.audioElement.currentTime;
+      const barDuration = (60 / this.bpm) * 4;
+      const loopStartTime = this.loopStartPosition * barDuration;
+      const timeIntoLoop = (currentAudioTime - loopStartTime) % this.loopDuration;
+      const timeUntilNextLoopAudio = this.loopDuration - timeIntoLoop;
+
+      // Convert from audio time to real-time (account for playbackRate)
+      const playbackRate = this.audioElement.playbackRate || 1.0;
+      const timeUntilNextLoopReal = timeUntilNextLoopAudio / playbackRate;
+
+      // Set nextLoopTime relative to audioContext.currentTime (which is real-time)
+      this.nextLoopTime = this.audioContext.currentTime + timeUntilNextLoopReal;
+      console.log(`🔄 Deck ${this.deckId} BPM change during loop - rescheduled next loop to ${this.nextLoopTime.toFixed(3)}s (${timeUntilNextLoopReal.toFixed(3)}s real-time, ${timeUntilNextLoopAudio.toFixed(3)}s audio-time, playbackRate: ${playbackRate.toFixed(3)}x)`);
+    }
   }
 
   // 🔄 NEW: Update loop length and recalculate duration
