@@ -11,6 +11,14 @@ interface LoopBoundaries {
   confidence: number;
 }
 
+interface SectionLoop {
+  enabled: boolean;
+  currentSection: number;
+  totalSections: number;
+  nudgeOffset: number;
+  nudgeSize: number;
+}
+
 interface WaveformDisplayProps {
   audioBuffer?: AudioBuffer;
   loopBoundaries?: LoopBoundaries | null;
@@ -26,6 +34,9 @@ interface WaveformDisplayProps {
   loopPosition?: number;
   onLoopPositionChange?: (position: number) => void;
   waveformColor?: string; // Custom waveform color
+  // 🎵 NEW: Section loop props for songs
+  contentType?: string;
+  sectionLoop?: SectionLoop;
 }
 
 const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
@@ -42,7 +53,10 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
   loopLength = 8,
   loopPosition = 0,
   onLoopPositionChange,
-  waveformColor = '#64748B' // Default slate gray
+  waveformColor = '#64748B', // Default slate gray
+  // 🎵 NEW: Section loop props for songs
+  contentType,
+  sectionLoop
 }: WaveformDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
@@ -157,23 +171,70 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       const channelData = audioBuffer.getChannelData(0); // Use first channel
       const sampleRate = audioBuffer.sampleRate;
       const duration = audioBuffer.duration;
-      
+
+      // 🎵 NEW: Section loop - extract only the selected section for songs
+      let startSample = 0;
+      let endSample = channelData.length;
+
+      console.log('🔍 Waveform extraction check:', {
+        contentType,
+        hasSectionLoop: !!sectionLoop,
+        totalSections: sectionLoop?.totalSections,
+        currentSection: sectionLoop?.currentSection,
+        trackBPM,
+        willZoom: contentType === 'full_song' && sectionLoop && sectionLoop.totalSections > 0
+      });
+
+      if (contentType === 'full_song' && sectionLoop && sectionLoop.totalSections > 0) {
+        // Calculate section time range with nudge offset
+        const secondsPerBar = (4 / trackBPM) * 60; // 4 beats per bar
+        const secondsPerSection = 8 * secondsPerBar; // 8 bars per section
+        const nudgeOffsetSeconds = sectionLoop.nudgeOffset * secondsPerBar;
+
+        const sectionStartTime = (sectionLoop.currentSection * secondsPerSection) + nudgeOffsetSeconds;
+        const sectionEndTime = sectionStartTime + secondsPerSection;
+
+        // Convert to sample positions
+        startSample = Math.floor(sectionStartTime * sampleRate);
+        endSample = Math.floor(sectionEndTime * sampleRate);
+
+        // Clamp to buffer bounds
+        startSample = Math.max(0, Math.min(startSample, channelData.length));
+        endSample = Math.max(startSample, Math.min(endSample, channelData.length));
+
+        const sectionDurationSeconds = (endSample - startSample) / sampleRate;
+        const sectionBars = sectionDurationSeconds / ((4 / trackBPM) * 60);
+
+        console.log(`🎵 Waveform ZOOMED to section ${sectionLoop.currentSection + 1}/${sectionLoop.totalSections}:`, {
+          timeRange: `${sectionStartTime.toFixed(2)}s - ${sectionEndTime.toFixed(2)}s`,
+          sampleRange: `${startSample} - ${endSample}`,
+          durationSeconds: sectionDurationSeconds.toFixed(2),
+          durationBars: sectionBars.toFixed(2),
+          fullSongSamples: channelData.length
+        });
+      } else {
+        console.log(`🎵 Waveform showing FULL audio: ${(channelData.length / sampleRate).toFixed(2)}s, ${((channelData.length / sampleRate) / ((4 / trackBPM) * 60)).toFixed(2)} bars`);
+      }
+
+      const sectionLength = endSample - startSample;
+
       // Downsample to reasonable resolution (1 pixel per sample group)
-      const samplesPerPixel = Math.ceil(channelData.length / width);
+      const samplesPerPixel = Math.ceil(sectionLength / width);
       const waveform = new Float32Array(width);
-      
+
       // Extract RMS values for each pixel
       for (let i = 0; i < width; i++) {
-        const startSample = i * samplesPerPixel;
-        const endSample = Math.min(startSample + samplesPerPixel, channelData.length);
-        
+        // Calculate pixel sample range, offset by section start
+        const pixelStartSample = startSample + (i * samplesPerPixel);
+        const pixelEndSample = Math.min(pixelStartSample + samplesPerPixel, endSample);
+
         let sum = 0;
         let count = 0;
-        for (let j = startSample; j < endSample; j++) {
+        for (let j = pixelStartSample; j < pixelEndSample; j++) {
           sum += channelData[j] * channelData[j];
           count++;
         }
-        
+
         // RMS calculation for more accurate amplitude representation
         waveform[i] = count > 0 ? Math.sqrt(sum / count) : 0;
       }
@@ -183,7 +244,7 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
     };
 
     extractWaveformData();
-  }, [audioBuffer, width]);
+  }, [audioBuffer, width, contentType, sectionLoop, trackBPM]);
 
   // Draw waveform and overlays
   useEffect(() => {
@@ -319,15 +380,35 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
 
     // 🎵 Draw playback position
     if (isPlaying && audioBuffer) {
-      const duration = audioBuffer.duration;
-      const playbackX = (currentTime / duration) * width;
-      
-      ctx.strokeStyle = '#00FF00'; // Green playback line
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(playbackX, 0);
-      ctx.lineTo(playbackX, height);
-      ctx.stroke();
+      let playbackX = 0;
+
+      // 🎵 NEW: For zoomed sections, calculate position relative to section
+      if (contentType === 'full_song' && sectionLoop && sectionLoop.totalSections > 0) {
+        const secondsPerBar = (4 / trackBPM) * 60;
+        const secondsPerSection = 8 * secondsPerBar;
+        const nudgeOffsetSeconds = sectionLoop.nudgeOffset * secondsPerBar;
+
+        const sectionStartTime = (sectionLoop.currentSection * secondsPerSection) + nudgeOffsetSeconds;
+        const sectionEndTime = sectionStartTime + secondsPerSection;
+
+        // Calculate position within the section (0 to 1)
+        const positionInSection = (currentTime - sectionStartTime) / (sectionEndTime - sectionStartTime);
+        playbackX = positionInSection * width;
+      } else {
+        // Default: position relative to full duration
+        const duration = audioBuffer.duration;
+        playbackX = (currentTime / duration) * width;
+      }
+
+      // Only draw if position is within visible range
+      if (playbackX >= 0 && playbackX <= width) {
+        ctx.strokeStyle = '#00FF00'; // Green playback line
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(playbackX, 0);
+        ctx.lineTo(playbackX, height);
+        ctx.stroke();
+      }
     }
 
     // 🎯 REMOVED: Debug strategy indicators - keeping clean professional look
@@ -395,7 +476,7 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       ctx.fillText(labelText, labelX, height - 15);
     }
 
-  }, [waveformData, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging]);
+  }, [waveformData, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging, contentType, sectionLoop, trackBPM]);
 
   // Get human-readable strategy description
   const getStrategyText = (boundaries: LoopBoundaries): string => {
@@ -472,7 +553,11 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
     prevProps.loopLength === nextProps.loopLength &&
     prevProps.width === nextProps.width &&
     prevProps.height === nextProps.height &&
-    prevProps.waveformColor === nextProps.waveformColor
+    prevProps.waveformColor === nextProps.waveformColor &&
+    prevProps.contentType === nextProps.contentType &&
+    prevProps.sectionLoop?.currentSection === nextProps.sectionLoop?.currentSection &&
+    prevProps.sectionLoop?.nudgeOffset === nextProps.sectionLoop?.nudgeOffset &&
+    prevProps.trackBPM === nextProps.trackBPM
   );
 });
 

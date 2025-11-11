@@ -2365,6 +2365,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       height={28}
                       waveformColor="#FF6B6B"
                       className="border border-emerald-500/30"
+                      // Section loop props for songs
+                      contentType={mixerState.deckA.contentType}
+                      sectionLoop={mixerState.deckA.sectionLoop}
                     />
                   </div>
 
@@ -2381,6 +2384,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     height={28}
                     waveformColor="#FF6B6B"
                     className="border border-blue-500/30"
+                    // Section loop props for songs
+                    contentType={mixerState.deckB.contentType}
+                    sectionLoop={mixerState.deckB.sectionLoop}
                   />
                 </div>
               </div>
