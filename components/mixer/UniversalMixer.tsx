@@ -1663,8 +1663,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       };
     });
 
-    // For loops, we need to re-create the SimpleLoopSync engine with new master
-    if (currentSyncActive && bothAreLoops && mixerState.deckA.audioState && mixerState.deckB.audioState) {
+    // 🔄 FIX: Re-create SimpleLoopSync for ALL sync scenarios (not just loop+loop)
+    // Previously only recreated for loop+loop, causing chaos when toggling with song+loop
+    if (currentSyncActive && mixerState.deckA.audioState && mixerState.deckB.audioState) {
       // Disable current sync
       if (syncEngineRef.current) {
         syncEngineRef.current.disableSync();
@@ -1685,7 +1686,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       );
 
       await syncEngineRef.current.enableSync();
-      console.log(`🔄 Re-synced loops: Deck ${newMasterDeck} is now master`);
+      console.log(`🔄 Re-synced with new master: Deck ${newMasterDeck} is now master`);
     }
   };
 

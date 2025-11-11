@@ -1183,11 +1183,12 @@ export class MixerAudioEngine {
             
             await audio.play();
             state.isPlaying = true;
-            
-            // 🔄 NEW: Track loop start time for sync calculations
-            state.loopStartTime = audioContext.currentTime;
-            
-            console.log(`🎵 Deck ${deckId} audio.play() completed, loopStartTime: ${state.loopStartTime.toFixed(3)}s`);
+
+            // 🔄 FIX: Track loop start time accounting for audio's starting position
+            // For songs with section looping + nudge, audio.currentTime != 0 when play() is called
+            state.loopStartTime = audioContext.currentTime - audio.currentTime;
+
+            console.log(`🎵 Deck ${deckId} audio.play() completed, loopStartTime: ${state.loopStartTime.toFixed(3)}s (audio started at ${audio.currentTime.toFixed(3)}s)`);
             
             // 🔄 NEW: Start precise looping when audio plays
             if (state.preciseLooper) {
