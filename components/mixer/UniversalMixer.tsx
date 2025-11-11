@@ -1015,7 +1015,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
   // Play/pause handlers
   const handleDeckAPlayPause = useCallback(async () => {
-    const { audioControls, playing } = mixerState.deckA;
+    const { audioControls, playing, sectionLoop, track, contentType, audioState } = mixerState.deckA;
 
     if (!audioControls) return;
 
@@ -1027,6 +1027,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           deckA: { ...prev.deckA, playing: false }
         }));
       } else {
+        // 🎵 NEW: Jump to section start if section looping is enabled
+        if (contentType === 'full_song' && sectionLoop.enabled && track?.bpm && audioState?.audio) {
+          const timeRange = SectionLoopManager.getSectionTimeRange(
+            sectionLoop.currentSection,
+            track.bpm,
+            sectionLoop.nudgeOffset
+          );
+          audioState.audio.currentTime = timeRange.startTime;
+          console.log(`⏭️ Jumped to section ${sectionLoop.currentSection + 1} start: ${timeRange.startTime.toFixed(2)}s`);
+        }
+
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('audioSourcePlaying', { detail: { source: 'mixer' } }));
         }
@@ -1042,7 +1053,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   }, [mixerState.deckA]);
 
   const handleDeckBPlayPause = useCallback(async () => {
-    const { audioControls, playing } = mixerState.deckB;
+    const { audioControls, playing, sectionLoop, track, contentType, audioState } = mixerState.deckB;
 
     if (!audioControls) return;
 
@@ -1054,6 +1065,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           deckB: { ...prev.deckB, playing: false }
         }));
       } else {
+        // 🎵 NEW: Jump to section start if section looping is enabled
+        if (contentType === 'full_song' && sectionLoop.enabled && track?.bpm && audioState?.audio) {
+          const timeRange = SectionLoopManager.getSectionTimeRange(
+            sectionLoop.currentSection,
+            track.bpm,
+            sectionLoop.nudgeOffset
+          );
+          audioState.audio.currentTime = timeRange.startTime;
+          console.log(`⏭️ Jumped to section ${sectionLoop.currentSection + 1} start: ${timeRange.startTime.toFixed(2)}s`);
+        }
+
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('audioSourcePlaying', { detail: { source: 'mixer' } }));
         }
@@ -1414,7 +1436,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       const deckAIsLoop = mixerState.deckA.contentType === 'loop';
       const deckBIsLoop = mixerState.deckB.contentType === 'loop';
 
-      // Handle song + loop sync (time-stretch song to match loop)
+      // Handle song + loop sync - respect master deck selection
       if ((deckAIsSong && deckBIsLoop) || (deckBIsSong && deckAIsLoop)) {
         const songDeck = deckAIsSong ? 'A' : 'B';
         const loopDeck = deckAIsLoop ? 'A' : 'B';
@@ -1433,13 +1455,20 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         }
 
         if (songBPM && loopBPM) {
-          // Time-stretch song to match loop BPM
-          const playbackRate = loopBPM / songBPM;
+          // Determine master deck (default to loop if not set for backwards compatibility)
+          const masterDeck = mixerState.masterDeck || loopDeck;
+          const masterBPM = masterDeck === songDeck ? songBPM : loopBPM;
+          const slaveDeck = masterDeck === 'A' ? 'B' : 'A';
+          const slaveState = slaveDeck === 'A' ? mixerState.deckA : mixerState.deckB;
+          const slaveBPM = slaveDeck === songDeck ? songBPM : loopBPM;
 
-          if (songState.audioState?.audio) {
-            songState.audioState.audio.playbackRate = playbackRate;
-            console.log(`🎵 Song synced: ${songBPM} BPM → ${loopBPM} BPM (${playbackRate.toFixed(3)}x)`);
-            showToast(`🎵 Synced to ${loopBPM} BPM (${playbackRate.toFixed(2)}x)`, 'success');
+          // Time-stretch slave to match master BPM
+          const playbackRate = masterBPM / slaveBPM;
+
+          if (slaveState.audioState?.audio) {
+            slaveState.audioState.audio.playbackRate = playbackRate;
+            console.log(`🎵 Deck ${slaveDeck} synced to Deck ${masterDeck}: ${slaveBPM} BPM → ${masterBPM} BPM (${playbackRate.toFixed(3)}x)`);
+            showToast(`🎵 Synced to ${masterBPM} BPM (Deck ${masterDeck} master)`, 'success');
           }
         }
       } else if (!deckAIsSong && !deckBIsSong) {
