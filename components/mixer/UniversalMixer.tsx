@@ -1436,7 +1436,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       const deckAIsLoop = mixerState.deckA.contentType === 'loop';
       const deckBIsLoop = mixerState.deckB.contentType === 'loop';
 
-      // Handle song + loop sync - respect master deck selection
+      // Handle song + loop sync - use SimpleLoopSync for proper phase alignment
       if ((deckAIsSong && deckBIsLoop) || (deckBIsSong && deckAIsLoop)) {
         const songDeck = deckAIsSong ? 'A' : 'B';
         const loopDeck = deckAIsLoop ? 'A' : 'B';
@@ -1447,30 +1447,31 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         const songBPM = songState.track?.bpm;
         const loopBPM = loopState.track?.bpm;
 
-        if (!songBPM) {
-          // Song has no BPM - show warning
-          console.warn(`⚠️ Song has no BPM metadata, cannot sync`);
-          showToast('⚠️ Song has no BPM and cannot sync', 'warning');
+        if (!songBPM || !loopBPM) {
+          // Missing BPM - show warning
+          console.warn(`⚠️ Missing BPM metadata, cannot sync`);
+          showToast('⚠️ Cannot sync without BPM', 'warning');
           return; // Don't enable sync
         }
 
-        if (songBPM && loopBPM) {
-          // Determine master deck (default to loop if not set for backwards compatibility)
-          const masterDeck = mixerState.masterDeck || loopDeck;
-          const masterBPM = masterDeck === songDeck ? songBPM : loopBPM;
-          const slaveDeck = masterDeck === 'A' ? 'B' : 'A';
-          const slaveState = slaveDeck === 'A' ? mixerState.deckA : mixerState.deckB;
-          const slaveBPM = slaveDeck === songDeck ? songBPM : loopBPM;
+        // Determine master deck (default to loop if not set for backwards compatibility)
+        const masterDeck = mixerState.masterDeck || loopDeck;
+        const audioContext = mixerState.deckA.audioState.audioContext;
 
-          // Time-stretch slave to match master BPM
-          const playbackRate = masterBPM / slaveBPM;
+        const masterDeckState = masterDeck === 'A' ? mixerState.deckA : mixerState.deckB;
+        const slaveDeckState = masterDeck === 'A' ? mixerState.deckB : mixerState.deckA;
 
-          if (slaveState.audioState?.audio) {
-            slaveState.audioState.audio.playbackRate = playbackRate;
-            console.log(`🎵 Deck ${slaveDeck} synced to Deck ${masterDeck}: ${slaveBPM} BPM → ${masterBPM} BPM (${playbackRate.toFixed(3)}x)`);
-            showToast(`🎵 Synced to ${masterBPM} BPM (Deck ${masterDeck} master)`, 'success');
-          }
-        }
+        // 🔄 Use SimpleLoopSync for proper phase alignment (same as loop+loop)
+        // This ensures BPM sync + beat alignment, not just playback rate adjustment
+        syncEngineRef.current = new SimpleLoopSync(
+          audioContext,
+          { ...masterDeckState.audioState, audioControls: masterDeckState.audioControls, track: masterDeckState.track },
+          { ...slaveDeckState.audioState, audioControls: slaveDeckState.audioControls, track: slaveDeckState.track }
+        );
+
+        await syncEngineRef.current.enableSync();
+        console.log(`🔄 Song+Loop sync enabled: Deck ${masterDeck} is master`);
+        showToast(`🎵 Synced to Deck ${masterDeck}`, 'success');
       } else if (!deckAIsSong && !deckBIsSong) {
         // Both are loops - use existing loop sync
         // Respect master deck order: master first, slave second

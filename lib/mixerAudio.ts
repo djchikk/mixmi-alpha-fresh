@@ -418,9 +418,14 @@ class SimpleLoopSync {
       this.isActive = true;
       return nextBeatTime;
     } else {
-      // ENHANCED: Direct activation without beat alignment
-      console.log('🎵 SYNC: No preciseLooper, activating immediately');
-      this.activateSync();
+      // ENHANCED: Direct activation with delay for audio stabilization
+      console.log('🎵 SYNC: No preciseLooper, waiting for audio to stabilize...');
+
+      // Wait a short time for audio to stabilize, then activate sync
+      setTimeout(() => {
+        this.activateSync();
+      }, 100);
+
       this.isActive = true;
       return this.audioContext.currentTime;
     }
@@ -456,11 +461,28 @@ class SimpleLoopSync {
     // Apply smooth BPM transition (prevents chipmunk effect)
     this.smoothBPMTransition(targetRate);
     
-    // ENHANCED: Skip beat alignment if no preciseLooper
+    // ENHANCED: Perform beat alignment even without preciseLooper (for songs)
     if (this.deckA.preciseLooper && this.deckB.preciseLooper) {
       this.alignBeats();
     } else {
-      console.log('🎵 SYNC: Skipping beat alignment (no preciseLooper)');
+      // Manual phase alignment for songs without preciseLooper
+      console.log('🎵 SYNC: Performing manual phase alignment (no preciseLooper)');
+
+      if (!this.deckB.audio.paused && !this.deckA.audio.paused) {
+        // Calculate target position based on master's current position
+        const masterTime = this.deckA.audio.currentTime;
+        const beatDuration = 60 / masterBPM;
+
+        // Snap to nearest beat boundary
+        const beatsElapsed = Math.floor(masterTime / beatDuration);
+        const targetPosition = beatsElapsed * beatDuration;
+
+        // Align slave deck to master's beat
+        this.deckB.audio.currentTime = targetPosition;
+        console.log(`🎵 SYNC: Manual alignment - slave set to ${targetPosition.toFixed(3)}s (beat ${beatsElapsed})`);
+      } else {
+        console.log('🎵 SYNC: Skipping alignment - one or both decks not playing yet');
+      }
     }
     
     console.log('✅ SYNC: Dynamic loop sync activated!');
