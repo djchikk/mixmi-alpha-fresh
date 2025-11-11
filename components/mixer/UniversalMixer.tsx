@@ -1098,6 +1098,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const handleMasterPlayAfterCountIn = useCallback(async () => {
     const deckACanPlay = mixerState.deckA.audioControls && mixerState.deckA.track;
     const deckBCanPlay = mixerState.deckB.audioControls && mixerState.deckB.track;
+    const syncActive = mixerState.syncActive;
 
     if (deckACanPlay && !mixerState.deckA.playing) {
       await handleDeckAPlayPause();
@@ -1105,6 +1106,26 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
     if (deckBCanPlay && !mixerState.deckB.playing) {
       await handleDeckBPlayPause();
+    }
+
+    // 🔄 FIX: If SYNC is active, re-align beats after both decks start playing
+    // The sequential await causes a timing offset that needs correction
+    if (syncActive && deckACanPlay && deckBCanPlay && syncEngineRef.current) {
+      setTimeout(() => {
+        if (syncEngineRef.current) {
+          // Manually trigger beat alignment
+          const masterPos = (syncEngineRef.current as any).getMasterLoopPosition();
+          const slavePos = (syncEngineRef.current as any).getSlaveLoopPosition();
+          const offset = masterPos - slavePos;
+
+          if (Math.abs(offset) > 0.01) {
+            console.log(`🔄 SYNC: Re-aligning after sequential play (offset: ${offset.toFixed(3)})`);
+            (syncEngineRef.current as any).scheduleAlignment(offset);
+          } else {
+            console.log(`🔄 SYNC: Decks already aligned after play (offset: ${offset.toFixed(3)})`);
+          }
+        }
+      }, 100); // Wait 100ms for both decks to stabilize
     }
   }, [mixerState, handleDeckAPlayPause, handleDeckBPlayPause]);
 
