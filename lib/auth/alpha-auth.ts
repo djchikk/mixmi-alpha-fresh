@@ -83,8 +83,9 @@ export class AlphaAuth {
         .eq('approved', true);
 
       if (isWallet) {
-        // Direct wallet address lookup
-        query = query.eq('wallet_address', input);
+        // Direct wallet address lookup (case-insensitive)
+        // Stacks addresses can be uppercase or lowercase, so we normalize to uppercase
+        query = query.ilike('wallet_address', input.toUpperCase());
       } else {
         // Invite code lookup
         query = query.eq('invite_code', input.toUpperCase());
