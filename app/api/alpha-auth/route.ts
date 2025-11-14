@@ -86,8 +86,9 @@ export async function POST(request: NextRequest) {
       .eq('approved', true);
 
     if (isWallet) {
-      // Direct wallet address lookup
-      query = query.eq('wallet_address', walletAddress);
+      // Direct wallet address lookup (case-insensitive)
+      // Stacks addresses can be uppercase or lowercase, so we normalize to uppercase
+      query = query.ilike('wallet_address', walletAddress.toUpperCase());
     } else {
       // Invite code lookup
       query = query.eq('invite_code', walletAddress.toUpperCase());
