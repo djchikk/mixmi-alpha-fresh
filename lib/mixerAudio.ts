@@ -605,10 +605,12 @@ class SimpleLoopSync {
       this.transitionInterval = null;
     }
 
-    // Reset slave deck to its original playback rate
+    // 🎯 FIX: Immediately reset playback rate (no smooth transition)
+    // This prevents stale playback rates when quickly re-enabling sync
     const audio = this.slaveDeck.audio;
     if (audio) {
-      this.smoothBPMTransition(1.0); // Reset to original speed
+      audio.playbackRate = 1.0;
+      console.log(`🎵 SYNC: Reset Deck ${this.slaveDeckId} playback rate to 1.0`);
     }
 
     console.log('✅ SYNC: Sync disabled');
