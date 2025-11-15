@@ -362,58 +362,79 @@ interface DeckWithState extends MixerAudioState {
 
 class SimpleLoopSync {
   private audioContext: AudioContext;
-  private deckA: DeckWithState; // Master deck
-  private deckB: DeckWithState; // Slave deck  
+  private masterDeck: DeckWithState; // The deck providing tempo
+  private slaveDeck: DeckWithState; // The deck being synced
+  private masterDeckId: 'A' | 'B'; // Which deck is master
+  private slaveDeckId: 'A' | 'B'; // Which deck is slave
   // Sync engine for keeping decks in time
   private isActive: boolean = false;
   private transitionDuration: number = 0.8; // Smooth 800ms BPM transition
   private transitionInterval: NodeJS.Timeout | null = null; // For smooth transition
+  private enableSyncTimeout: NodeJS.Timeout | null = null; // For beat-aligned enableSync
   private isUpdating: boolean = false; // 🎵 NEW: Prevent sync feedback loops
 
-  constructor(audioContext: AudioContext, deckA: DeckWithState, deckB: DeckWithState) {
+  constructor(
+    audioContext: AudioContext,
+    deckA: DeckWithState,
+    deckB: DeckWithState,
+    masterDeckId: 'A' | 'B' // 🎯 NEW: Explicitly specify which deck is master
+  ) {
     this.audioContext = audioContext;
-    this.deckA = deckA;
-    this.deckB = deckB;
+    this.masterDeckId = masterDeckId;
+    this.slaveDeckId = masterDeckId === 'A' ? 'B' : 'A';
+
+    // Assign master/slave based on parameter
+    if (masterDeckId === 'A') {
+      this.masterDeck = deckA;
+      this.slaveDeck = deckB;
+    } else {
+      this.masterDeck = deckB;
+      this.slaveDeck = deckA;
+    }
+
+    console.log(`🎛️ SimpleLoopSync: Deck ${this.masterDeckId} is master, Deck ${this.slaveDeckId} is slave`);
   }
 
   // Enhanced sync method with better debugging and fallback
   async enableSync(): Promise<number | null> {
-    console.log('🎵 SYNC: enableSync() called');
+    console.log(`🎵 SYNC: enableSync() called (Master: Deck ${this.masterDeckId}, Slave: Deck ${this.slaveDeckId})`);
     console.log('🎵 SYNC: Current state check:', {
       isActive: this.isActive,
-      deckA_exists: !!this.deckA,
-      deckB_exists: !!this.deckB,
-      deckA_preciseLooper: !!this.deckA?.preciseLooper,
-      deckB_preciseLooper: !!this.deckB?.preciseLooper,
-      deckA_bpm: this.deckA?.bpm,
-      deckB_bpm: this.deckB?.bpm,
-      deckA_audio: !!this.deckA?.audio,
-      deckB_audio: !!this.deckB?.audio
+      masterDeck_exists: !!this.masterDeck,
+      slaveDeck_exists: !!this.slaveDeck,
+      masterDeck_preciseLooper: !!this.masterDeck?.preciseLooper,
+      slaveDeck_preciseLooper: !!this.slaveDeck?.preciseLooper,
+      masterDeck_bpm: this.masterDeck?.bpm,
+      slaveDeck_bpm: this.slaveDeck?.bpm,
+      masterDeck_audio: !!this.masterDeck?.audio,
+      slaveDeck_audio: !!this.slaveDeck?.audio
     });
 
     if (this.isActive) {
       console.log('🚨 SYNC: Already active, skipping');
       return null;
     }
-    
+
     // ENHANCED: Don't require preciseLooper, use direct audio element
-    if (!this.deckA || !this.deckB || !this.deckA.audio || !this.deckB.audio) {
+    if (!this.masterDeck || !this.slaveDeck || !this.masterDeck.audio || !this.slaveDeck.audio) {
       console.log('🚨 SYNC: Missing audio elements');
       return null;
     }
-    
-    console.log('🎵 SYNC: Enabling dynamic loop sync...');
-    
+
+    console.log(`🎵 SYNC: Enabling dynamic loop sync (Deck ${this.masterDeckId} → Deck ${this.slaveDeckId})...`);
+
     // ENHANCED: Use immediate activation if no preciseLooper
-    if (this.deckA.preciseLooper && this.deckB.preciseLooper) {
+    if (this.masterDeck.preciseLooper && this.slaveDeck.preciseLooper) {
       // Original beat-aligned activation
-      const nextBeatTime = this.deckA.preciseLooper.getNextBeatTime();
+      const nextBeatTime = this.masterDeck.preciseLooper.getNextBeatTime();
       const waitTime = nextBeatTime - this.audioContext.currentTime;
-      
-      setTimeout(() => {
+
+      // Store timeout so it can be cleared in stop()
+      this.enableSyncTimeout = setTimeout(() => {
         this.activateSync();
+        this.enableSyncTimeout = null;
       }, waitTime * 1000);
-      
+
       console.log(`🎵 SYNC: Will activate at beat: ${nextBeatTime.toFixed(2)}`);
       this.isActive = true;
       return nextBeatTime;
@@ -428,18 +449,20 @@ class SimpleLoopSync {
 
   private activateSync(): void {
     // 🔧 FIX: Always use original track BPM, not potentially mutated state.bpm
-    const masterBPM = this.deckA.track?.bpm || this.deckA.bpm;
-    const slaveBPM = this.deckB.track?.bpm || this.deckB.bpm;
+    const masterBPM = this.masterDeck.track?.bpm || this.masterDeck.bpm;
+    const slaveBPM = this.slaveDeck.track?.bpm || this.slaveDeck.bpm;
 
     console.log(`🎵 SYNC: activateSync() called with BPMs:`, {
       masterBPM,
       slaveBPM,
-      deckA_track_bpm: this.deckA.track?.bpm,
-      deckB_track_bpm: this.deckB.track?.bpm,
-      deckA_state_bpm: this.deckA.bpm,
-      deckB_state_bpm: this.deckB.bpm,
-      deckA_audio_playbackRate: this.deckA.audio?.playbackRate,
-      deckB_audio_playbackRate: this.deckB.audio?.playbackRate
+      masterDeckId: this.masterDeckId,
+      slaveDeckId: this.slaveDeckId,
+      masterDeck_track_bpm: this.masterDeck.track?.bpm,
+      slaveDeck_track_bpm: this.slaveDeck.track?.bpm,
+      masterDeck_state_bpm: this.masterDeck.bpm,
+      slaveDeck_state_bpm: this.slaveDeck.bpm,
+      masterDeck_audio_playbackRate: this.masterDeck.audio?.playbackRate,
+      slaveDeck_audio_playbackRate: this.slaveDeck.audio?.playbackRate
     });
 
     if (!masterBPM || !slaveBPM) {
@@ -447,71 +470,71 @@ class SimpleLoopSync {
       return;
     }
 
-    console.log(`🎵 SYNC: Syncing ${slaveBPM} BPM → ${masterBPM} BPM (using original track BPMs)`);
-    
+    console.log(`🎵 SYNC: Syncing Deck ${this.slaveDeckId} (${slaveBPM} BPM) → Deck ${this.masterDeckId} (${masterBPM} BPM) using original track BPMs`);
+
     // Calculate playback rate adjustment
     const targetRate = masterBPM / slaveBPM;
-    console.log(`🎵 SYNC: Calculated target playback rate: ${targetRate.toFixed(3)}`);
-    
+    console.log(`🎵 SYNC: Calculated target playback rate for Deck ${this.slaveDeckId}: ${targetRate.toFixed(3)}`);
+
     // Apply smooth BPM transition (prevents chipmunk effect)
     this.smoothBPMTransition(targetRate);
-    
+
     // ENHANCED: Skip beat alignment if no preciseLooper
-    if (this.deckA.preciseLooper && this.deckB.preciseLooper) {
+    if (this.masterDeck.preciseLooper && this.slaveDeck.preciseLooper) {
       this.alignBeats();
     } else {
       console.log('🎵 SYNC: Skipping beat alignment (no preciseLooper)');
     }
-    
+
     console.log('✅ SYNC: Dynamic loop sync activated!');
   }
 
   private smoothBPMTransition(targetRate: number): void {
-    if (!this.deckB.audio) return;
-    
-    const startRate = this.deckB.audio.playbackRate;
+    if (!this.slaveDeck.audio) return;
+
+    const startRate = this.slaveDeck.audio.playbackRate;
     const startTime = Date.now();
     const duration = 800; // 0.8 seconds
-    
-    console.log(`🎵 SYNC: Starting smooth BPM transition to rate ${targetRate.toFixed(3)}`);
+
+    console.log(`🎵 SYNC: Starting smooth BPM transition for Deck ${this.slaveDeckId} to rate ${targetRate.toFixed(3)}`);
     console.log(`🎵 SYNC: Transition from ${startRate.toFixed(3)} to ${targetRate.toFixed(3)} over ${duration/1000}s`);
-    
+
     // Clear any existing transition
     if (this.transitionInterval) {
       clearInterval(this.transitionInterval);
     }
-    
+
     this.transitionInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1.0);
-      
+
       // Exponential easing for smooth transitions
       const easedProgress = 1 - Math.pow(1 - progress, 3);
       const currentRate = startRate + (targetRate - startRate) * easedProgress;
-      
-      if (this.deckB.audio) {
-        this.deckB.audio.playbackRate = currentRate;
+
+      if (this.slaveDeck.audio) {
+        this.slaveDeck.audio.playbackRate = currentRate;
         // Removed verbose logging here - only log completion
       }
-      
+
       if (progress >= 1.0) {
         if (this.transitionInterval) {
           clearInterval(this.transitionInterval);
           this.transitionInterval = null;
         }
-        
-        // Update deck's internal BPM tracking after transition
-        this.deckB.bpm = this.deckA.bpm;
-        if (this.deckB.preciseLooper) {
-          this.deckB.preciseLooper.updateBPM(this.deckA.bpm);
+
+        // Update slave deck's internal BPM tracking after transition
+        this.slaveDeck.bpm = this.masterDeck.bpm;
+        if (this.slaveDeck.preciseLooper) {
+          this.slaveDeck.preciseLooper.updateBPM(this.masterDeck.bpm);
         }
         // 🎯 SYNC FIX: Also update audioControls BPM for consistency
-        if (this.deckB.audioControls) {
-          this.deckB.audioControls.setBPM(this.deckA.bpm);
+        if (this.slaveDeck.audioControls) {
+          this.slaveDeck.audioControls.setBPM(this.masterDeck.bpm);
         }
-        console.log(`✅ SYNC: BPM transition complete - Deck B now at ${currentRate.toFixed(3)}x playback rate`);
-        console.log(`✅ SYNC: Final audio element playbackRate: ${this.deckB.audio?.playbackRate.toFixed(3)}`);
-        console.log(`✅ SYNC: Deck B BPM updated to ${this.deckA.bpm} for smooth looping`);
+        console.log(`✅ SYNC: BPM transition complete - Deck ${this.slaveDeckId} now at ${currentRate.toFixed(3)}x playback rate`);
+        console.log(`✅ SYNC: Final audio element playbackRate: ${this.slaveDeck.audio?.playbackRate.toFixed(3)}`);
+        console.log(`✅ SYNC: Deck ${this.slaveDeckId} BPM updated to ${this.masterDeck.bpm} for smooth looping`);
       }
     }, 25);
   }
@@ -520,12 +543,12 @@ class SimpleLoopSync {
     // Get current position within 8-bar loops (0-1 normalized)
     const masterPosition = this.getMasterLoopPosition();
     const slavePosition = this.getSlaveLoopPosition();
-    
+
     // Calculate offset needed to align
     const offset = masterPosition - slavePosition;
-    
-    console.log(`🎵 SYNC: Master position ${masterPosition.toFixed(3)}, Slave position ${slavePosition.toFixed(3)}`);
-    
+
+    console.log(`🎵 SYNC: Deck ${this.masterDeckId} position ${masterPosition.toFixed(3)}, Deck ${this.slaveDeckId} position ${slavePosition.toFixed(3)}`);
+
     // If offset is significant, schedule a micro-jump
     if (Math.abs(offset) > 0.01) { // More than 1% off
       console.log(`🎵 SYNC: Aligning beats (offset: ${offset.toFixed(3)})`);
@@ -537,51 +560,57 @@ class SimpleLoopSync {
 
   private getMasterLoopPosition(): number {
     // Returns normalized position (0-1) within the loop
-    if (!this.deckA.preciseLooper || !this.deckA.loopStartTime) return 0;
-    
-    const loopDuration = this.deckA.preciseLooper.getLoopDuration();
-    const elapsed = this.audioContext.currentTime - this.deckA.loopStartTime;
+    if (!this.masterDeck.preciseLooper || !this.masterDeck.loopStartTime) return 0;
+
+    const loopDuration = this.masterDeck.preciseLooper.getLoopDuration();
+    const elapsed = this.audioContext.currentTime - this.masterDeck.loopStartTime;
     return (elapsed % loopDuration) / loopDuration;
   }
 
   private getSlaveLoopPosition(): number {
-    if (!this.deckB.preciseLooper || !this.deckB.loopStartTime) return 0;
-    
-    const loopDuration = this.deckB.preciseLooper.getLoopDuration();
-    const elapsed = this.audioContext.currentTime - this.deckB.loopStartTime;
+    if (!this.slaveDeck.preciseLooper || !this.slaveDeck.loopStartTime) return 0;
+
+    const loopDuration = this.slaveDeck.preciseLooper.getLoopDuration();
+    const elapsed = this.audioContext.currentTime - this.slaveDeck.loopStartTime;
     return (elapsed % loopDuration) / loopDuration;
   }
 
   private scheduleAlignment(offset: number): void {
     // For HTMLAudioElement, we use currentTime adjustment for alignment
-    const audio = this.deckB.audio;
-    if (!audio || !this.deckB.preciseLooper) return;
-    
-    const loopDuration = this.deckB.preciseLooper.getLoopDuration();
+    const audio = this.slaveDeck.audio;
+    if (!audio || !this.slaveDeck.preciseLooper) return;
+
+    const loopDuration = this.slaveDeck.preciseLooper.getLoopDuration();
     const targetPosition = this.getMasterLoopPosition() * loopDuration;
-    
+
     // Quick alignment by adjusting currentTime
     try {
       audio.currentTime = targetPosition;
-      this.deckB.loopStartTime = this.audioContext.currentTime - targetPosition;
-      console.log(`✅ SYNC: Beat alignment complete (position: ${targetPosition.toFixed(3)}s)`);
+      this.slaveDeck.loopStartTime = this.audioContext.currentTime - targetPosition;
+      console.log(`✅ SYNC: Beat alignment complete for Deck ${this.slaveDeckId} (position: ${targetPosition.toFixed(3)}s)`);
     } catch (error) {
-      console.warn('🚨 SYNC: Could not align beats:', error);
+      console.warn(`🚨 SYNC: Could not align beats for Deck ${this.slaveDeckId}:`, error);
     }
   }
 
   disableSync(): void {
     if (!this.isActive) return;
-    
-    console.log('🎵 SYNC: Disabling sync...');
+
+    console.log(`🎵 SYNC: Disabling sync (was: Deck ${this.masterDeckId} → Deck ${this.slaveDeckId})...`);
     this.isActive = false;
-    
-    // Reset Deck B to its original playback rate
-    const audio = this.deckB.audio;
+
+    // Clear any existing transition
+    if (this.transitionInterval) {
+      clearInterval(this.transitionInterval);
+      this.transitionInterval = null;
+    }
+
+    // Reset slave deck to its original playback rate
+    const audio = this.slaveDeck.audio;
     if (audio) {
       this.smoothBPMTransition(1.0); // Reset to original speed
     }
-    
+
     console.log('✅ SYNC: Sync disabled');
   }
 
@@ -599,31 +628,59 @@ class SimpleLoopSync {
     }
 
     this.isUpdating = true;
-    console.log(`🎵 SYNC: Updating master BPM from ${this.deckA.bpm} to ${newMasterBPM}`);
-    
-    // Update Deck A BPM in the sync engine
-    this.deckA.bpm = newMasterBPM;
-    
-    // If Deck B is playing, apply real-time sync adjustment
-    if (this.deckB.audio && !this.deckB.audio.paused) {
-      // Recalculate sync for Deck B with new master BPM
-      const originalSlaveBPM = this.deckB.track?.bpm || this.deckB.bpm;
+    console.log(`🎵 SYNC: Updating Deck ${this.masterDeckId} BPM from ${this.masterDeck.bpm} to ${newMasterBPM}`);
+
+    // Update master deck BPM in the sync engine
+    this.masterDeck.bpm = newMasterBPM;
+
+    // If slave deck is playing, apply real-time sync adjustment
+    if (this.slaveDeck.audio && !this.slaveDeck.audio.paused) {
+      // Recalculate sync for slave deck with new master BPM
+      const originalSlaveBPM = this.slaveDeck.track?.bpm || this.slaveDeck.bpm;
       const newTargetRate = newMasterBPM / originalSlaveBPM;
-      
-      console.log(`🎵 SYNC: Recalculating sync - ${originalSlaveBPM} BPM → ${newMasterBPM} BPM (rate: ${newTargetRate.toFixed(3)}x)`);
-      
+
+      console.log(`🎵 SYNC: Recalculating sync - Deck ${this.slaveDeckId} ${originalSlaveBPM} BPM → Deck ${this.masterDeckId} ${newMasterBPM} BPM (rate: ${newTargetRate.toFixed(3)}x)`);
+
       // Apply smooth transition to new sync rate
       this.smoothBPMTransition(newTargetRate);
     } else {
-      console.log('🎵 SYNC: Deck B not playing, sync will apply when it starts');
+      console.log(`🎵 SYNC: Deck ${this.slaveDeckId} not playing, sync will apply when it starts`);
     }
-    
-    console.log(`✅ SYNC: Master BPM updated to ${newMasterBPM}, Deck B resynced`);
-    
+
+    console.log(`✅ SYNC: Master BPM updated to ${newMasterBPM}, Deck ${this.slaveDeckId} resynced`);
+
     // Reset the updating flag after a brief delay to prevent rapid updates
     setTimeout(() => {
       this.isUpdating = false;
     }, 100);
+  }
+
+  // 🧹 NEW: Comprehensive cleanup method
+  stop(): void {
+    console.log(`🧹 SYNC: Stopping sync engine (Master: Deck ${this.masterDeckId}, Slave: Deck ${this.slaveDeckId})`);
+
+    // Disable sync if active
+    if (this.isActive) {
+      this.disableSync();
+    }
+
+    // Clear transition interval
+    if (this.transitionInterval) {
+      clearInterval(this.transitionInterval);
+      this.transitionInterval = null;
+    }
+
+    // Clear beat-aligned enableSync timeout
+    if (this.enableSyncTimeout) {
+      clearTimeout(this.enableSyncTimeout);
+      this.enableSyncTimeout = null;
+    }
+
+    // Reset flags
+    this.isActive = false;
+    this.isUpdating = false;
+
+    console.log('✅ SYNC: Sync engine stopped and cleaned up');
   }
 
   get active(): boolean {
