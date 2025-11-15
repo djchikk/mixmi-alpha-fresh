@@ -325,9 +325,25 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }));
   };
 
-  // Determine master BPM based on content-type hierarchy
-  // Priority: Loop > Song > Radio/Grabbed Radio
-  const determineMasterBPM = (deckA: typeof mixerState.deckA, deckB: typeof mixerState.deckB): number => {
+  // Determine master BPM based on manual selection or content-type hierarchy
+  // Priority: Manual Override > Loop > Song > Radio/Grabbed Radio
+  const determineMasterBPM = (
+    deckA: typeof mixerState.deckA,
+    deckB: typeof mixerState.deckB,
+    masterDeckId?: 'A' | 'B'  // 🎯 NEW: Accept manual master override
+  ): number => {
+    // 🎯 HIGHEST PRIORITY: If user manually set master, use that
+    if (masterDeckId) {
+      if (masterDeckId === 'A' && deckA.track?.bpm) {
+        console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (manual override)`);
+        return deckA.track.bpm;
+      } else if (masterDeckId === 'B' && deckB.track?.bpm) {
+        console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (manual override)`);
+        return deckB.track.bpm;
+      }
+    }
+
+    // Otherwise use automatic priority system
     const getPriority = (contentType?: string): number => {
       if (contentType === 'loop') return 3;
       if (contentType === 'full_song') return 2;
@@ -347,7 +363,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       return deckB.track.bpm;
     } else if (priorityA === priorityB && deckA.track?.bpm) {
       // Same priority, use Deck A
-      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (same priority)`);
+      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (same priority, default)`);
       return deckA.track.bpm;
     }
 
@@ -564,7 +580,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           };
 
           // Determine master BPM based on both decks
-          const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB);
+          const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB, prev.masterDeckId);
 
           return {
             ...prev,
@@ -714,7 +730,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           };
 
           // Determine master BPM based on both decks
-          const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState);
+          const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState, prev.masterDeckId);
 
           return {
             ...prev,
@@ -982,21 +998,36 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     syncEngineRef.current.stop();
     syncEngineRef.current = null;
 
+    // 🎯 FIX: Capture current audio state BEFORE setTimeout to avoid stale closure
+    const deckAState = mixerState.deckA.audioState;
+    const deckBState = mixerState.deckB.audioState;
+    const deckAControls = mixerState.deckA.audioControls;
+    const deckBControls = mixerState.deckB.audioControls;
+    const deckATrack = mixerState.deckA.track;
+    const deckBTrack = mixerState.deckB.track;
+
     // Update state immediately for UI feedback
-    setMixerState(prev => ({ ...prev, masterDeckId: newMaster }));
+    setMixerState(prev => {
+      const newState = { ...prev, masterDeckId: newMaster };
+
+      // 🎯 FIX: Also update masterBPM immediately
+      newState.masterBPM = determineMasterBPM(prev.deckA, prev.deckB, newMaster);
+
+      return newState;
+    });
 
     // Wait 850ms for smooth transition to complete before creating new sync
     setTimeout(() => {
-      if (!mixerState.deckA.audioState || !mixerState.deckB.audioState) {
+      if (!deckAState || !deckBState) {  // ✅ Use captured values
         console.warn('⚠️ Audio state missing, cannot recreate sync');
         return;
       }
 
-      const audioContext = mixerState.deckA.audioState.audioContext;
+      const audioContext = deckAState.audioContext;
       syncEngineRef.current = new SimpleLoopSync(
         audioContext,
-        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
-        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
+        { ...deckAState, audioControls: deckAControls, track: deckATrack },  // ✅ Captured
+        { ...deckBState, audioControls: deckBControls, track: deckBTrack },  // ✅ Captured
         newMaster
       );
 
