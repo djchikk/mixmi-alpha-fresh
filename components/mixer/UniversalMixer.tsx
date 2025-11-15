@@ -267,6 +267,47 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     return () => clearInterval(interval);
   }, [mixerState.deckA.contentType, mixerState.deckA.playing, mixerState.deckB.contentType, mixerState.deckB.playing]);
 
+  // 🎯 NEW: Watch for content type changes and recreate sync with correct master
+  useEffect(() => {
+    // Only act if sync is active and both decks have audio
+    if (!mixerState.syncActive || !mixerState.deckA.audioState || !mixerState.deckB.audioState) {
+      return;
+    }
+
+    // Determine who should be master based on current content
+    const shouldBeMaster = determineMasterDeck(mixerState.deckA, mixerState.deckB);
+
+    // If we already have a sync engine, check if master is correct
+    if (syncEngineRef.current) {
+      // We need to check if the sync engine's current master matches
+      // Since we can't directly check, we'll recreate on any content type change
+      // This is safe because content changes are relatively rare
+
+      console.log(`🔄 Content changed while synced, recreating sync with Deck ${shouldBeMaster} as master`);
+
+      // Stop and destroy old sync instance
+      syncEngineRef.current.stop();
+      syncEngineRef.current = null;
+
+      // Create new sync instance with correct master
+      const audioContext = mixerState.deckA.audioState.audioContext;
+      syncEngineRef.current = new SimpleLoopSync(
+        audioContext,
+        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
+        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
+        shouldBeMaster
+      );
+
+      // Re-enable sync
+      syncEngineRef.current.enableSync();
+      console.log(`✅ Sync recreated with Deck ${shouldBeMaster} as master`);
+    }
+  }, [
+    mixerState.deckA.contentType,
+    mixerState.deckB.contentType,
+    mixerState.syncActive
+  ]);
+
   // Volume change handlers
   const handleDeckAVolumeChange = (volume: number) => {
     setMixerState(prev => ({
@@ -311,6 +352,33 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // Default to 120 BPM
     console.log(`🎵 Master BPM: 120 (default)`);
     return 120;
+  };
+
+  // 🎯 NEW: Determine which deck should be master for sync
+  // Uses same priority logic as determineMasterBPM
+  const determineMasterDeck = (deckA: typeof mixerState.deckA, deckB: typeof mixerState.deckB): 'A' | 'B' => {
+    const getPriority = (contentType?: string): number => {
+      if (contentType === 'loop') return 3;
+      if (contentType === 'full_song') return 2;
+      if (contentType === 'radio_station' || contentType === 'grabbed_radio') return 1;
+      return 0;
+    };
+
+    const priorityA = getPriority(deckA.contentType);
+    const priorityB = getPriority(deckB.contentType);
+
+    // Higher priority deck becomes master
+    if (priorityA > priorityB) {
+      console.log(`🎛️ Deck A is master (${deckA.contentType} priority ${priorityA} > ${priorityB})`);
+      return 'A';
+    } else if (priorityB > priorityA) {
+      console.log(`🎛️ Deck B is master (${deckB.contentType} priority ${priorityB} > ${priorityA})`);
+      return 'B';
+    } else {
+      // Same priority, default to Deck A
+      console.log(`🎛️ Deck A is master (same priority, default)`);
+      return 'A';
+    }
   };
 
   // Clear Deck A
@@ -889,10 +957,15 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     if (newSyncState && mixerState.deckA.audioState && mixerState.deckB.audioState) {
       const audioContext = mixerState.deckA.audioState.audioContext;
 
+      // 🎯 Determine which deck should be master based on content priority
+      const masterDeckId = determineMasterDeck(mixerState.deckA, mixerState.deckB);
+      console.log(`🎛️ Creating sync with Deck ${masterDeckId} as master`);
+
       syncEngineRef.current = new SimpleLoopSync(
         audioContext,
         { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
-        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track }
+        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
+        masterDeckId // 🎯 NEW: Pass which deck is master
       );
 
       await syncEngineRef.current.enableSync();
