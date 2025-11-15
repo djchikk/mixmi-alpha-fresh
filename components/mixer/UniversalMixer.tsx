@@ -48,6 +48,7 @@ interface UniversalMixerState {
   masterBPM: number;
   crossfaderPosition: number;
   syncActive: boolean;
+  masterDeckId: 'A' | 'B'; // 🎯 NEW: Which deck is master for sync
 }
 
 export default function UniversalMixer({ className = "" }: UniversalMixerProps) {
@@ -74,7 +75,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     },
     masterBPM: 120,
     crossfaderPosition: 50,
-    syncActive: false
+    syncActive: false,
+    masterDeckId: 'A' // Default to Deck A as master
   });
 
   // Sync engine reference
@@ -274,8 +276,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       return;
     }
 
-    // Determine who should be master based on current content
-    const shouldBeMaster = determineMasterDeck(mixerState.deckA, mixerState.deckB);
+    // Determine who should be master based on user's choice
+    const shouldBeMaster = determineMasterDeck();
 
     // If we already have a sync engine, check if master is correct
     if (syncEngineRef.current) {
@@ -354,40 +356,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     return 120;
   };
 
-  // 🎯 NEW: Determine which deck should be master for sync
-  // Uses same priority logic as determineMasterBPM
-  const determineMasterDeck = (deckA: typeof mixerState.deckA, deckB: typeof mixerState.deckB): 'A' | 'B' => {
-    const getPriority = (contentType?: string): number => {
-      if (contentType === 'loop') return 3;
-      if (contentType === 'full_song') return 2;
-      if (contentType === 'radio_station' || contentType === 'grabbed_radio') return 1;
-      return 0;
-    };
-
-    const priorityA = getPriority(deckA.contentType);
-    const priorityB = getPriority(deckB.contentType);
-
-    // Higher priority deck becomes master
-    if (priorityA > priorityB) {
-      console.log(`🎛️ Deck A is master (${deckA.contentType} priority ${priorityA} > ${priorityB})`);
-      return 'A';
-    } else if (priorityB > priorityA) {
-      console.log(`🎛️ Deck B is master (${deckB.contentType} priority ${priorityB} > ${priorityA})`);
-      return 'B';
-    } else {
-      // Same priority - use playing state as tiebreaker
-      if (deckA.playing && !deckB.playing) {
-        console.log(`🎛️ Deck A is master (same priority, Deck A playing)`);
-        return 'A';
-      } else if (deckB.playing && !deckA.playing) {
-        console.log(`🎛️ Deck B is master (same priority, Deck B playing)`);
-        return 'B';
-      } else {
-        // Both playing or both stopped - default to Deck A
-        console.log(`🎛️ Deck A is master (same priority, default)`);
-        return 'A';
-      }
-    }
+  // 🎯 Determine which deck should be master for sync
+  // Simply returns the user's choice (stored in state)
+  const determineMasterDeck = (): 'A' | 'B' => {
+    return mixerState.masterDeckId;
   };
 
   // Clear Deck A
@@ -966,8 +938,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     if (newSyncState && mixerState.deckA.audioState && mixerState.deckB.audioState) {
       const audioContext = mixerState.deckA.audioState.audioContext;
 
-      // 🎯 Determine which deck should be master based on content priority
-      const masterDeckId = determineMasterDeck(mixerState.deckA, mixerState.deckB);
+      // 🎯 Determine which deck should be master based on user's choice
+      const masterDeckId = determineMasterDeck();
       console.log(`🎛️ Creating sync with Deck ${masterDeckId} as master`);
 
       syncEngineRef.current = new SimpleLoopSync(
@@ -985,6 +957,54 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
     setMixerState(prev => ({ ...prev, syncActive: newSyncState }));
   }, [mixerState]);
+
+  // 🎯 Master deck toggle - flip which deck is master
+  const handleMasterToggle = useCallback(() => {
+    // Check if sync is active
+    if (!mixerState.syncActive || !syncEngineRef.current) {
+      showToast('⚠️ Enable sync first', 'warning');
+      return;
+    }
+
+    // 🚫 Prevent switching during playback or loading (per user requirement)
+    if (mixerState.deckA.playing || mixerState.deckB.playing ||
+        mixerState.deckA.loading || mixerState.deckB.loading) {
+      showToast('⚠️ Stop playback before changing master', 'warning');
+      return;
+    }
+
+    const currentMaster = mixerState.masterDeckId;
+    const newMaster = currentMaster === 'A' ? 'B' : 'A';
+
+    console.log(`🔄 Flipping master from Deck ${currentMaster} to Deck ${newMaster}`);
+
+    // Stop old sync gracefully
+    syncEngineRef.current.stop();
+    syncEngineRef.current = null;
+
+    // Update state immediately for UI feedback
+    setMixerState(prev => ({ ...prev, masterDeckId: newMaster }));
+
+    // Wait 850ms for smooth transition to complete before creating new sync
+    setTimeout(() => {
+      if (!mixerState.deckA.audioState || !mixerState.deckB.audioState) {
+        console.warn('⚠️ Audio state missing, cannot recreate sync');
+        return;
+      }
+
+      const audioContext = mixerState.deckA.audioState.audioContext;
+      syncEngineRef.current = new SimpleLoopSync(
+        audioContext,
+        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
+        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
+        newMaster
+      );
+
+      syncEngineRef.current.enableSync();
+      console.log(`✅ Sync recreated with Deck ${newMaster} as master`);
+      showToast(`🎛️ Deck ${newMaster} is now master`, 'success');
+    }, 850); // 800ms transition + 50ms buffer
+  }, [mixerState, showToast]);
 
   // Crossfader handler
   const handleCrossfaderChange = useCallback((position: number) => {
@@ -1458,24 +1478,44 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               )}
             </div>
 
-            <MasterTransportControlsCompact
-              variant="simplified"
-              masterBPM={mixerState.masterBPM}
-              deckALoaded={!!mixerState.deckA.track}
-              deckBLoaded={!!mixerState.deckB.track}
-              deckAPlaying={mixerState.deckA.playing}
-              deckBPlaying={mixerState.deckB.playing}
-              deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
-              syncActive={mixerState.syncActive}
-              recordingRemix={false}
-              highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
-              onMasterPlay={handleMasterPlay}
-              onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
-              onMasterStop={handleMasterStop}
-              onRecordToggle={() => {}}
-              onSyncToggle={handleSync}
-              onMasterSyncReset={handleMasterSyncReset}
-            />
+            <div className="flex flex-col items-center gap-1">
+              <MasterTransportControlsCompact
+                variant="simplified"
+                masterBPM={mixerState.masterBPM}
+                deckALoaded={!!mixerState.deckA.track}
+                deckBLoaded={!!mixerState.deckB.track}
+                deckAPlaying={mixerState.deckA.playing}
+                deckBPlaying={mixerState.deckB.playing}
+                deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
+                syncActive={mixerState.syncActive}
+                recordingRemix={false}
+                highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
+                onMasterPlay={handleMasterPlay}
+                onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
+                onMasterStop={handleMasterStop}
+                onRecordToggle={() => {}}
+                onSyncToggle={handleSync}
+                onMasterSyncReset={handleMasterSyncReset}
+              />
+
+              {/* 🎯 Master deck toggle button */}
+              {mixerState.syncActive && (
+                <button
+                  onClick={handleMasterToggle}
+                  disabled={mixerState.deckA.playing || mixerState.deckB.playing || mixerState.deckA.loading || mixerState.deckB.loading}
+                  className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded transition-all ${
+                    mixerState.deckA.playing || mixerState.deckB.playing || mixerState.deckA.loading || mixerState.deckB.loading
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed opacity-50'
+                      : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                  }`}
+                  title={mixerState.deckA.playing || mixerState.deckB.playing || mixerState.deckA.loading || mixerState.deckB.loading
+                    ? "Stop playback to change master"
+                    : `Deck ${mixerState.masterDeckId} is master - click to flip`}
+                >
+                  {mixerState.masterDeckId === 'A' ? 'A→B' : 'B→A'}
+                </button>
+              )}
+            </div>
 
             {/* Deck B Controls - Fixed width container to prevent shifting */}
             <div className="w-[100px] flex justify-center">
