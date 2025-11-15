@@ -375,9 +375,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       console.log(`🎛️ Deck B is master (${deckB.contentType} priority ${priorityB} > ${priorityA})`);
       return 'B';
     } else {
-      // Same priority, default to Deck A
-      console.log(`🎛️ Deck A is master (same priority, default)`);
-      return 'A';
+      // Same priority - use playing state as tiebreaker
+      if (deckA.playing && !deckB.playing) {
+        console.log(`🎛️ Deck A is master (same priority, Deck A playing)`);
+        return 'A';
+      } else if (deckB.playing && !deckA.playing) {
+        console.log(`🎛️ Deck B is master (same priority, Deck B playing)`);
+        return 'B';
+      } else {
+        // Both playing or both stopped - default to Deck A
+        console.log(`🎛️ Deck A is master (same priority, default)`);
+        return 'A';
+      }
     }
   };
 
