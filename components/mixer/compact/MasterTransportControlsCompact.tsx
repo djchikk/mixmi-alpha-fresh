@@ -9,16 +9,16 @@ interface MasterTransportControlsProps {
   deckAPlaying: boolean;
   deckBPlaying: boolean;
   deckABPM: number;
-  syncActive: boolean;
   recordingRemix: boolean;
+  syncActive: boolean;
 
   // Control handlers
   onMasterPlay: () => void;
   onMasterPlayAfterCountIn: () => void;
   onMasterStop: () => void;
   onRecordToggle: () => void;
-  onSyncToggle: () => void;
   onMasterSyncReset: () => void;
+  onSyncToggle: () => void;
 
   // Optional variant and BPM display
   variant?: 'full' | 'simplified';
@@ -36,14 +36,14 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   deckAPlaying,
   deckBPlaying,
   deckABPM,
-  syncActive,
   recordingRemix,
+  syncActive,
   onMasterPlay,
   onMasterPlayAfterCountIn,
   onMasterStop,
   onRecordToggle,
-  onSyncToggle,
   onMasterSyncReset,
+  onSyncToggle,
   variant = 'full',
   masterBPM,
   highlightPlayButton = false,
@@ -166,6 +166,26 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
         )}
       </button>
 
+      {/* Sync Toggle Button */}
+      <button
+        onClick={onSyncToggle}
+        disabled={!deckALoaded || !deckBLoaded}
+        className={`px-2 py-1 rounded-full text-[9px] font-bold transition-all uppercase tracking-wider ${
+          syncActive
+            ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80'
+            : 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed'
+        }`}
+        title={
+          !deckALoaded || !deckBLoaded
+            ? 'Load both decks to enable sync'
+            : syncActive
+            ? 'Disable sync'
+            : 'Enable sync'
+        }
+      >
+        SYNC
+      </button>
+
       {/* BPM Display for simplified variant */}
       {variant === 'simplified' && masterBPM && (
         <div className="flex flex-col items-center mx-2">
@@ -212,19 +232,6 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
           }`} />
         </button>
       )}
-
-      {/* SYNC Button - moved into transport controls */}
-      <button 
-        onClick={onSyncToggle}
-        className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all uppercase tracking-wider ${
-          syncActive
-            ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 active:bg-[#81E4F2]/90 active:scale-95'
-            : 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 hover:text-white active:bg-slate-900 active:scale-95'
-        }`}
-        title={syncActive ? 'Disable BPM sync (Deck B will play at original tempo)' : 'Sync Deck B to Deck A\'s BPM for seamless mixing'}
-      >
-        SYNC
-      </button>
 
       <style jsx>{`
         .master-transport-controls {
