@@ -26,6 +26,7 @@ interface WaveformDisplayProps {
   loopPosition?: number;
   onLoopPositionChange?: (position: number) => void;
   waveformColor?: string; // Custom waveform color
+  contentType?: string; // 🎵 Track content type for section-aware rendering
 }
 
 const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
@@ -42,7 +43,8 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
   loopLength = 8,
   loopPosition = 0,
   onLoopPositionChange,
-  waveformColor = '#64748B' // Default slate gray
+  waveformColor = '#64748B', // Default slate gray
+  contentType
 }: WaveformDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
@@ -157,23 +159,56 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       const channelData = audioBuffer.getChannelData(0); // Use first channel
       const sampleRate = audioBuffer.sampleRate;
       const duration = audioBuffer.duration;
-      
+
+      // 🎵 For songs with section looping, only show the selected section
+      const isSong = contentType === 'full_song';
+      const showSectionOnly = isSong && loopEnabled;
+
+      let startTime = 0;
+      let endTime = duration;
+
+      if (showSectionOnly) {
+        // Calculate section boundaries
+        const barDuration = (60 / trackBPM) * 4; // 4 beats per bar
+        const sectionDuration = barDuration * loopLength;
+        startTime = loopPosition * sectionDuration;
+        endTime = Math.min(startTime + sectionDuration, duration);
+
+        console.log(`🎨 Waveform section rendering:`, {
+          trackBPM,
+          loopLength,
+          loopPosition,
+          barDuration: barDuration.toFixed(2),
+          sectionDuration: sectionDuration.toFixed(2),
+          startTime: startTime.toFixed(2),
+          endTime: endTime.toFixed(2),
+          totalDuration: duration.toFixed(2)
+        });
+      }
+
+      // Convert time to samples
+      const startSample = Math.floor(startTime * sampleRate);
+      const endSample = Math.floor(endTime * sampleRate);
+      const sectionLength = endSample - startSample;
+
       // Downsample to reasonable resolution (1 pixel per sample group)
-      const samplesPerPixel = Math.ceil(channelData.length / width);
+      const samplesPerPixel = Math.ceil(sectionLength / width);
       const waveform = new Float32Array(width);
-      
+
       // Extract RMS values for each pixel
       for (let i = 0; i < width; i++) {
-        const startSample = i * samplesPerPixel;
-        const endSample = Math.min(startSample + samplesPerPixel, channelData.length);
-        
+        const pixelStartSample = startSample + (i * samplesPerPixel);
+        const pixelEndSample = Math.min(pixelStartSample + samplesPerPixel, endSample);
+
         let sum = 0;
         let count = 0;
-        for (let j = startSample; j < endSample; j++) {
-          sum += channelData[j] * channelData[j];
-          count++;
+        for (let j = pixelStartSample; j < pixelEndSample; j++) {
+          if (j < channelData.length) {
+            sum += channelData[j] * channelData[j];
+            count++;
+          }
         }
-        
+
         // RMS calculation for more accurate amplitude representation
         waveform[i] = count > 0 ? Math.sqrt(sum / count) : 0;
       }
@@ -183,7 +218,7 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
     };
 
     extractWaveformData();
-  }, [audioBuffer, width]);
+  }, [audioBuffer, width, contentType, loopEnabled, trackBPM, loopPosition, loopLength]);
 
   // Draw waveform and overlays
   useEffect(() => {
@@ -320,8 +355,27 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
     // 🎵 Draw playback position
     if (isPlaying && audioBuffer) {
       const duration = audioBuffer.duration;
-      const playbackX = (currentTime / duration) * width;
-      
+
+      // 🎵 Calculate playhead position (section-aware for songs)
+      const isSong = contentType === 'full_song';
+      const showSectionOnly = isSong && loopEnabled;
+
+      let playbackX: number;
+      if (showSectionOnly) {
+        // For section looping, calculate position within the visible section
+        const barDuration = (60 / trackBPM) * 4;
+        const sectionDuration = barDuration * loopLength;
+        const sectionStartTime = loopPosition * sectionDuration;
+        const sectionEndTime = sectionStartTime + sectionDuration;
+
+        // Calculate position within section (0 to 1)
+        const positionInSection = (currentTime - sectionStartTime) / sectionDuration;
+        playbackX = Math.max(0, Math.min(1, positionInSection)) * width;
+      } else {
+        // For full track display, use normal calculation
+        playbackX = (currentTime / duration) * width;
+      }
+
       ctx.strokeStyle = '#00FF00'; // Green playback line
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -395,7 +449,7 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       ctx.fillText(labelText, labelX, height - 15);
     }
 
-  }, [waveformData, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging]);
+  }, [waveformData, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging, contentType, loopEnabled, trackBPM, waveformColor]);
 
   // Get human-readable strategy description
   const getStrategyText = (boundaries: LoopBoundaries): string => {

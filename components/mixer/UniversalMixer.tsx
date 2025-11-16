@@ -1648,6 +1648,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       loopLength={mixerState.deckA.loopLength}
                       loopPosition={mixerState.deckA.loopPosition}
                       onLoopPositionChange={(position) => handleLoopPositionChange('A', position)}
+                      contentType={mixerState.deckA.contentType}
                       width={448}
                       height={28}
                       waveformColor="#FF6B6B"
@@ -1664,6 +1665,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     loopLength={mixerState.deckB.loopLength}
                     loopPosition={mixerState.deckB.loopPosition}
                     onLoopPositionChange={(position) => handleLoopPositionChange('B', position)}
+                    contentType={mixerState.deckB.contentType}
                     width={448}
                     height={28}
                     waveformColor="#FF6B6B"
