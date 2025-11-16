@@ -9,6 +9,8 @@ import WaveformDisplayCompact from './compact/WaveformDisplayCompact';
 import CrossfaderControlCompact from './compact/CrossfaderControlCompact';
 import MasterTransportControlsCompact from './compact/MasterTransportControlsCompact';
 import LoopControlsCompact from './compact/LoopControlsCompact';
+import SectionSelectorCompact from './compact/SectionSelectorCompact';
+import VerticalVolumeSlider from './compact/VerticalVolumeSlider';
 import { Music, Radio } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
@@ -1518,11 +1520,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onLoopToggle={() => handleLoopToggle('A')}
                   color="cyan"
                   disabled={!mixerState.deckA.track}
-                  contentType={mixerState.deckA.contentType}
-                  sectionLoopPosition={mixerState.deckA.loopPosition}
-                  onSectionPositionChange={(position) => handleLoopPositionChange('A', position)}
-                  trackDuration={mixerState.deckA.audioState?.duration}
-                  trackBPM={mixerState.deckA.track?.bpm}
                 />
               )}
             </div>
@@ -1608,11 +1605,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onLoopToggle={() => handleLoopToggle('B')}
                   color="cyan"
                   disabled={!mixerState.deckB.track}
-                  contentType={mixerState.deckB.contentType}
-                  sectionLoopPosition={mixerState.deckB.loopPosition}
-                  onSectionPositionChange={(position) => handleLoopPositionChange('B', position)}
-                  trackDuration={mixerState.deckB.audioState?.duration}
-                  trackBPM={mixerState.deckB.track?.bpm}
                 />
               )}
             </div>
@@ -1621,8 +1613,17 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           {/* Decks, Waveforms, and Crossfader Section */}
           <div className="h-[100px] relative">
             <div>
-              {/* Deck A */}
+              {/* Deck A Volume Slider (Left Side) */}
               <div className="absolute left-0 bottom-[42px]">
+                <VerticalVolumeSlider
+                  volume={mixerState.deckA.volume}
+                  onVolumeChange={handleDeckAVolumeChange}
+                  deck="A"
+                />
+              </div>
+
+              {/* Deck A */}
+              <div className="absolute left-[20px] bottom-[42px]">
                 <SimplifiedDeckCompact
                   currentTrack={mixerState.deckA.track}
                   isPlaying={mixerState.deckA.playing}
@@ -1635,8 +1636,21 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 />
               </div>
 
+              {/* Deck A Section Selector (Below Deck Image) */}
+              <div className="absolute left-[20px] bottom-[18px]">
+                {mixerState.deckA.contentType === 'full_song' && mixerState.deckA.loopEnabled && (
+                  <SectionSelectorCompact
+                    sectionLoopPosition={mixerState.deckA.loopPosition}
+                    onSectionPositionChange={(position) => handleLoopPositionChange('A', position)}
+                    trackDuration={mixerState.deckA.audioState?.duration || 0}
+                    trackBPM={mixerState.deckA.track?.bpm || 120}
+                    loopLength={mixerState.deckA.loopLength}
+                  />
+                )}
+              </div>
+
               {/* Waveforms */}
-              <div className="absolute left-[76px] bottom-[48px]" style={{ width: '448px' }}>
+              <div className="absolute left-[96px] bottom-[48px]" style={{ width: '408px' }}>
                 <div>
                   <div className="mb-1">
                     <WaveformDisplayCompact
@@ -1649,7 +1663,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       loopPosition={mixerState.deckA.loopPosition}
                       onLoopPositionChange={(position) => handleLoopPositionChange('A', position)}
                       contentType={mixerState.deckA.contentType}
-                      width={448}
+                      width={408}
                       height={28}
                       waveformColor="#FF6B6B"
                       className="border border-emerald-500/30"
@@ -1666,7 +1680,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     loopPosition={mixerState.deckB.loopPosition}
                     onLoopPositionChange={(position) => handleLoopPositionChange('B', position)}
                     contentType={mixerState.deckB.contentType}
-                    width={448}
+                    width={408}
                     height={28}
                     waveformColor="#FF6B6B"
                     className="border border-blue-500/30"
@@ -1675,7 +1689,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               </div>
 
               {/* Deck B */}
-              <div className="absolute right-0 bottom-[42px]">
+              <div className="absolute right-[20px] bottom-[42px]">
                 <SimplifiedDeckCompact
                   currentTrack={mixerState.deckB.track}
                   isPlaying={mixerState.deckB.playing}
@@ -1687,70 +1701,37 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   contentType={mixerState.deckB.contentType}
                 />
               </div>
+
+              {/* Deck B Section Selector (Below Deck Image) */}
+              <div className="absolute right-[20px] bottom-[18px]">
+                {mixerState.deckB.contentType === 'full_song' && mixerState.deckB.loopEnabled && (
+                  <SectionSelectorCompact
+                    sectionLoopPosition={mixerState.deckB.loopPosition}
+                    onSectionPositionChange={(position) => handleLoopPositionChange('B', position)}
+                    trackDuration={mixerState.deckB.audioState?.duration || 0}
+                    trackBPM={mixerState.deckB.track?.bpm || 120}
+                    loopLength={mixerState.deckB.loopLength}
+                  />
+                )}
+              </div>
+
+              {/* Deck B Volume Slider (Right Side) */}
+              <div className="absolute right-0 bottom-[42px]">
+                <VerticalVolumeSlider
+                  volume={mixerState.deckB.volume}
+                  onVolumeChange={handleDeckBVolumeChange}
+                  deck="B"
+                />
+              </div>
             </div>
 
-            {/* Volume Controls and Crossfader */}
-            <div className="absolute left-[76px] bottom-0" style={{ width: '448px' }}>
-              <div className="flex items-center justify-center gap-3">
-                {/* Deck A Volume */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400 font-mono">VOL A</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={mixerState.deckA.volume}
-                    onChange={(e) => handleDeckAVolumeChange(Number(e.target.value))}
-                    className="w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer
-                      [&::-webkit-slider-thumb]:appearance-none
-                      [&::-webkit-slider-thumb]:w-3
-                      [&::-webkit-slider-thumb]:h-3
-                      [&::-webkit-slider-thumb]:rounded-full
-                      [&::-webkit-slider-thumb]:bg-gray-300
-                      [&::-webkit-slider-thumb]:cursor-pointer
-                      [&::-moz-range-thumb]:w-3
-                      [&::-moz-range-thumb]:h-3
-                      [&::-moz-range-thumb]:rounded-full
-                      [&::-moz-range-thumb]:bg-gray-300
-                      [&::-moz-range-thumb]:border-0
-                      [&::-moz-range-thumb]:cursor-pointer"
-                    disabled={!mixerState.deckA.track}
-                  />
-                </div>
-
-                {/* Crossfader */}
-                <div className="w-[200px]">
-                  <CrossfaderControlCompact
-                    position={mixerState.crossfaderPosition}
-                    onPositionChange={handleCrossfaderChange}
-                  />
-                </div>
-
-                {/* Deck B Volume */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={mixerState.deckB.volume}
-                    onChange={(e) => handleDeckBVolumeChange(Number(e.target.value))}
-                    className="w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer
-                      [&::-webkit-slider-thumb]:appearance-none
-                      [&::-webkit-slider-thumb]:w-3
-                      [&::-webkit-slider-thumb]:h-3
-                      [&::-webkit-slider-thumb]:rounded-full
-                      [&::-webkit-slider-thumb]:bg-gray-300
-                      [&::-webkit-slider-thumb]:cursor-pointer
-                      [&::-moz-range-thumb]:w-3
-                      [&::-moz-range-thumb]:h-3
-                      [&::-moz-range-thumb]:rounded-full
-                      [&::-moz-range-thumb]:bg-gray-300
-                      [&::-moz-range-thumb]:border-0
-                      [&::-moz-range-thumb]:cursor-pointer"
-                    disabled={!mixerState.deckB.track}
-                  />
-                  <span className="text-[10px] text-gray-400 font-mono">VOL B</span>
-                </div>
+            {/* Crossfader */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 bottom-0">
+              <div className="w-[200px]">
+                <CrossfaderControlCompact
+                  position={mixerState.crossfaderPosition}
+                  onPositionChange={handleCrossfaderChange}
+                />
               </div>
             </div>
           </div>
