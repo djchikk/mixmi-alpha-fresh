@@ -1898,6 +1898,23 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 />
               </div>
 
+              {/* Deck A FX Button - Circular, below volume slider */}
+              <div className="absolute left-0 bottom-[10px]">
+                {mixerState.deckA.track && (
+                  <button
+                    onClick={handleDeckAFXToggle}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 ${
+                      mixerState.deckA.fxPanelOpen
+                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
+                        : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
+                    }`}
+                    title="Channel Strip FX"
+                  >
+                    <Sliders size={12} />
+                  </button>
+                )}
+              </div>
+
               {/* Deck A */}
               <div className="absolute left-[20px] bottom-[42px]">
                 <SimplifiedDeckCompact
@@ -1925,27 +1942,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 )}
               </div>
 
-              {/* Deck A FX Button */}
-              <div className="absolute left-[20px] bottom-[-2px]">
-                {mixerState.deckA.track && (
-                  <button
-                    onClick={handleDeckAFXToggle}
-                    className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider transition-all border ${
-                      mixerState.deckA.fxPanelOpen
-                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
-                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2]'
-                    }`}
-                    title="Channel Strip FX"
-                  >
-                    <Sliders size={10} className="inline mr-1" />
-                    FX
-                  </button>
-                )}
-              </div>
-
-              {/* Deck A FX Panel - Positioned as left sidebar */}
+              {/* Deck A FX Panel - Positioned as left sidebar overlay */}
               {mixerState.deckA.track && mixerState.deckA.fxPanelOpen && (
-                <div className="absolute left-0 bottom-0 top-0 w-[180px] z-50">
+                <div className="absolute left-0 bottom-0 w-[180px] h-[190px] z-50">
                   <DeckFXPanel
                     deck="A"
                     isOpen={mixerState.deckA.fxPanelOpen}
@@ -2029,27 +2028,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 )}
               </div>
 
-              {/* Deck B FX Button */}
-              <div className="absolute right-[20px] bottom-[-2px]">
-                {mixerState.deckB.track && (
-                  <button
-                    onClick={handleDeckBFXToggle}
-                    className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider transition-all border ${
-                      mixerState.deckB.fxPanelOpen
-                        ? 'bg-[#60A5FA] border-[#60A5FA] text-slate-900'
-                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-[#60A5FA] hover:text-[#60A5FA]'
-                    }`}
-                    title="Channel Strip FX"
-                  >
-                    <Sliders size={10} className="inline mr-1" />
-                    FX
-                  </button>
-                )}
-              </div>
-
-              {/* Deck B FX Panel - Positioned as right sidebar */}
+              {/* Deck B FX Panel - Positioned as right sidebar overlay */}
               {mixerState.deckB.track && mixerState.deckB.fxPanelOpen && (
-                <div className="absolute right-0 bottom-0 top-0 w-[180px] z-50">
+                <div className="absolute right-0 bottom-0 w-[180px] h-[190px] z-50">
                   <DeckFXPanel
                     deck="B"
                     isOpen={mixerState.deckB.fxPanelOpen}
@@ -2074,6 +2055,23 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onVolumeChange={handleDeckBVolumeChange}
                   deck="B"
                 />
+              </div>
+
+              {/* Deck B FX Button - Circular, below volume slider */}
+              <div className="absolute right-0 bottom-[10px]">
+                {mixerState.deckB.track && (
+                  <button
+                    onClick={handleDeckBFXToggle}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 ${
+                      mixerState.deckB.fxPanelOpen
+                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
+                        : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
+                    }`}
+                    title="Channel Strip FX"
+                  >
+                    <Sliders size={12} />
+                  </button>
+                )}
               </div>
             </div>
 

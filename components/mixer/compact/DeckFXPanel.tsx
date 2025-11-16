@@ -1,7 +1,9 @@
 "use client";
 
-import React, { memo } from 'react';
-import { X } from 'lucide-react';
+import React, { memo, useState } from 'react';
+import { X, Sliders, Music } from 'lucide-react';
+
+type PanelMode = 'filters' | 'pitch';
 
 interface DeckFXPanelProps {
   deck: 'A' | 'B';
@@ -37,6 +39,8 @@ const DeckFXPanel = memo(function DeckFXPanel({
   isPitchProcessing,
   className = ''
 }: DeckFXPanelProps) {
+  const [mode, setMode] = useState<PanelMode>('filters');
+
   if (!isOpen) return null;
 
   const color = deck === 'A' ? '#81E4F2' : '#60A5FA'; // Cyan for A, Blue for B
@@ -44,26 +48,13 @@ const DeckFXPanel = memo(function DeckFXPanel({
   const displayValue = pitchCents >= 0 ? `+${semitones}` : semitones;
 
   return (
-    <div className={`deck-fx-panel bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-slate-800/50 border-b border-slate-700">
-        <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color }}>
-          Deck {deck} FX
-        </h3>
-        <button
-          onClick={onClose}
-          className="p-0.5 hover:bg-slate-700 rounded transition-colors"
-          title="Close"
-        >
-          <X size={12} className="text-slate-400" />
-        </button>
-      </div>
+    <div className={`deck-fx-panel bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden flex flex-col ${className}`}>
+      {/* Panel Content - flex-1 to take remaining space */}
+      <div className="flex-1 p-2.5 overflow-y-auto">
 
-      {/* Panel Content */}
-      <div className="p-2.5">
-
-          {/* Filters Section */}
-          <div className="mb-3">
+        {/* Filters Mode */}
+        {mode === 'filters' && (
+          <div className="mt-3">
             <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-1.5">Filters</div>
             <div className="flex gap-1.5">
               <button
@@ -88,13 +79,15 @@ const DeckFXPanel = memo(function DeckFXPanel({
               </button>
             </div>
           </div>
+        )}
 
-          {/* Pitch Shift Section */}
-          <div>
-            <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-1.5">Pitch Shift</div>
+        {/* Pitch Shift Mode */}
+        {mode === 'pitch' && (
+          <div className="mt-3">
+            <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-2">Pitch Shift</div>
 
             {/* Pitch Slider */}
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-2 mb-2">
               <div className="flex-1 relative">
                 <input
                   type="range"
@@ -130,7 +123,7 @@ const DeckFXPanel = memo(function DeckFXPanel({
             <button
               onClick={onApplyPitch}
               disabled={isPitchProcessing || pitchCents === 0}
-              className={`w-full px-2 py-1.5 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
+              className={`w-full px-2 py-2 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
                 isPitchProcessing
                   ? 'bg-slate-700 text-slate-500 cursor-wait'
                   : pitchCents === 0
@@ -147,10 +140,56 @@ const DeckFXPanel = memo(function DeckFXPanel({
             </button>
 
             {/* Info Text */}
-            <div className="mt-1.5 text-[7px] text-slate-500 text-center leading-tight">
+            <div className="mt-2 mb-3 text-[7px] text-slate-500 text-center leading-tight">
               Pitch shift will be applied to the audio buffer without affecting timing
             </div>
           </div>
+        )}
+
+      </div>
+
+      {/* Bottom Navigation Bar */}
+      <div className="flex items-center border-t border-slate-700 bg-slate-800/50">
+        {deck === 'A' && (
+          <button
+            onClick={onClose}
+            className="flex-1 flex items-center justify-center py-2.5 text-slate-500 hover:text-red-400 hover:bg-slate-700/30 transition-all"
+            title="Close"
+          >
+            <X size={14} />
+          </button>
+        )}
+        <button
+          onClick={() => setMode('filters')}
+          className={`flex-1 flex items-center justify-center py-2.5 transition-all ${
+            mode === 'filters'
+              ? 'text-[#81E4F2] bg-slate-700/50'
+              : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/30'
+          }`}
+          title="Filters"
+        >
+          <Sliders size={14} />
+        </button>
+        <button
+          onClick={() => setMode('pitch')}
+          className={`flex-1 flex items-center justify-center py-2.5 transition-all ${
+            mode === 'pitch'
+              ? 'text-[#81E4F2] bg-slate-700/50'
+              : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/30'
+          }`}
+          title="Pitch Shift"
+        >
+          <Music size={14} />
+        </button>
+        {deck === 'B' && (
+          <button
+            onClick={onClose}
+            className="flex-1 flex items-center justify-center py-2.5 text-slate-500 hover:text-red-400 hover:bg-slate-700/30 transition-all"
+            title="Close"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
     </div>
   );
