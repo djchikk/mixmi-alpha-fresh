@@ -864,12 +864,13 @@ class PreciseLooper {
           const targetTime = this.audioContext.currentTime;
           const audioTimeBeforeReset = this.audioElement.currentTime;
           
-          // 🎯 NEW: Calculate loop start position based on bar offset
+          // 🎯 Calculate loop start position based on section offset (e.g., section 2 = 8 bars in)
           const barDuration = (60 / this.bpm) * 4; // 4 beats per bar
-          const loopStartTime = this.loopStartPosition * barDuration;
-          
+          const sectionDuration = barDuration * this.loopBars; // Duration of one section (e.g., 8 bars = one section)
+          const loopStartTime = this.loopStartPosition * sectionDuration;
+
           this.audioElement.currentTime = loopStartTime;
-          console.log(`🎯 Deck ${this.deckId} LOOP EXECUTED: ${audioTimeBeforeReset.toFixed(3)}s → ${loopStartTime.toFixed(3)}s (bar ${this.loopStartPosition}) at ${targetTime.toFixed(3)}s`);
+          console.log(`🎯 Deck ${this.deckId} LOOP EXECUTED: ${audioTimeBeforeReset.toFixed(3)}s → ${loopStartTime.toFixed(3)}s (section ${this.loopStartPosition + 1}) at ${targetTime.toFixed(3)}s`);
         } catch (error) {
           console.warn(`⚠️ Deck ${this.deckId} loop reset failed:`, error);
         }
