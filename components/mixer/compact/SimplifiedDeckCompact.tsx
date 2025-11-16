@@ -96,26 +96,15 @@ export default function SimplifiedDeckCompact({
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
 
-        // 🎛️ SMART FILTERING: Allow loops, radio stations, and grabbed radio in mixer
-        if (item.track.content_type !== 'loop' &&
-            item.track.content_type !== 'radio_station' &&
-            item.track.content_type !== 'grabbed_radio') {
-          const contentTypeName = item.track.content_type === 'full_song' ? 'Song' : 'content';
-
-          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops and radio allowed`);
-
-          // Show user-friendly message about upcoming functionality
-          let message = '';
-          if (item.track.content_type === 'full_song' || item.track.content_type === 'ep') {
-            message = '🎵 Song functionality coming soon! For now, only 8-bar loops and radio stations work in the mixer.';
-          } else {
-            message = `🎛️ Only 8-bar loops and radio stations work in the mixer for now. Try dragging ${contentTypeName}s to the Crate or Playlist instead.`;
-          }
-
-          showToast(message, 'info', 5000); // Show for 5 seconds
+        // 🎛️ SMART FILTERING: Allow loops, songs, radio stations, and grabbed radio in mixer
+        const allowedTypes = ['loop', 'full_song', 'radio_station', 'grabbed_radio'];
+        if (!allowedTypes.includes(item.track.content_type)) {
+          const contentTypeName = item.track.content_type;
+          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Not a playable type`);
+          showToast(`🎛️ ${contentTypeName} cannot be played in the mixer. Try dragging to the Crate or Playlist instead.`, 'info', 5000);
           return;
         }
-        
+
         // Use proper image optimization
         const optimizedImageUrl = getOptimizedTrackImage(item.track, 64);
 

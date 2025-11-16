@@ -50,15 +50,16 @@ export default function SimplifiedDeck({
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
 
-        // 🎛️ SMART FILTERING: Only allow loops in mixer
-        if (item.track.content_type !== 'loop') {
+        // 🎛️ SMART FILTERING: Allow loops, songs, radio stations, and grabbed radio in mixer
+        const allowedTypes = ['loop', 'full_song', 'radio_station', 'grabbed_radio'];
+        if (!allowedTypes.includes(item.track.content_type)) {
           const contentTypeName = item.track.content_type === 'loop_pack' ? 'Loop Pack'
             : item.track.content_type === 'ep' ? 'EP'
-            : item.track.content_type === 'full_song' ? 'Song' : 'content';
+            : item.track.content_type;
 
-          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Only loops allowed`);
+          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Not a playable type`);
 
-          showToast(`🎛️ Only 8-bar loops can be mixed! Try dragging ${contentTypeName}s to the Crate instead.`, 'info');
+          showToast(`🎛️ ${contentTypeName} cannot be played in the mixer. Try dragging to the Crate or Playlist instead.`, 'info');
           return;
         }
 

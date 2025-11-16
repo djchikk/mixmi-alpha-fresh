@@ -11,6 +11,11 @@ interface LoopControlsProps {
   className?: string;
   color?: 'cyan' | 'blue'; // For deck-specific styling
   disabled?: boolean; // Fully disabled when no track loaded
+  contentType?: string; // Track content type (full_song shows section selector)
+  sectionLoopPosition?: number; // Which section to loop (0-indexed)
+  onSectionPositionChange?: (position: number) => void; // Callback when section changes
+  trackDuration?: number; // Track duration in seconds
+  trackBPM?: number; // Track BPM for calculating sections
 }
 
 const LoopControlsCompact = memo(function LoopControlsCompact({
@@ -20,7 +25,12 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
   onLoopToggle,
   className = "",
   color = 'cyan',
-  disabled = false
+  disabled = false,
+  contentType,
+  sectionLoopPosition = 0,
+  onSectionPositionChange,
+  trackDuration,
+  trackBPM
 }: LoopControlsProps) {
   const loopOptions = [0.125, 0.25, 0.5, 1, 2, 4, 8];
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -56,6 +66,16 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
       onLoopChange(loopOptions[currentIndex + 1]);
     }
   };
+
+  // 🎵 Calculate number of sections for songs
+  const isSong = contentType === 'full_song';
+  const calculateSections = (): number => {
+    if (!isSong || !trackDuration || !trackBPM || !loopLength) return 0;
+    const barDuration = (60 / trackBPM) * 4; // 4 beats per bar
+    const sectionDuration = barDuration * loopLength; // Duration of one section in seconds
+    return Math.floor(trackDuration / sectionDuration);
+  };
+  const numberOfSections = calculateSections();
 
   return (
     <div className={`loop-controls-container flex items-center gap-2 ${disabled ? 'opacity-30 pointer-events-none' : ''} ${className}`}>
@@ -145,6 +165,29 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
           </div>
         )}
       </div>
+
+      {/* 🎵 Section Selector (for songs only) */}
+      {isSong && numberOfSections > 1 && loopEnabled && (
+        <div className="section-selector flex items-center gap-1">
+          {Array.from({ length: Math.min(numberOfSections, 12) }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => onSectionPositionChange?.(i)}
+              className={`section-button px-1.5 py-0.5 rounded text-[10px] font-semibold min-w-[18px] transition-all ${
+                sectionLoopPosition === i
+                  ? 'bg-[#81E4F2] text-slate-900 shadow-sm shadow-[#81E4F2]/50'
+                  : 'border border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:bg-slate-700'
+              }`}
+              title={`Loop section ${i + 1}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          {numberOfSections > 12 && (
+            <span className="text-[10px] text-slate-500">+{numberOfSections - 12}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 });

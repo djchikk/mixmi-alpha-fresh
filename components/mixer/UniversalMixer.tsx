@@ -1518,6 +1518,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onLoopToggle={() => handleLoopToggle('A')}
                   color="cyan"
                   disabled={!mixerState.deckA.track}
+                  contentType={mixerState.deckA.contentType}
+                  sectionLoopPosition={mixerState.deckA.loopPosition}
+                  onSectionPositionChange={(position) => handleLoopPositionChange('A', position)}
+                  trackDuration={mixerState.deckA.audioState?.duration}
+                  trackBPM={mixerState.deckA.track?.bpm}
                 />
               )}
             </div>
@@ -1603,6 +1608,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onLoopToggle={() => handleLoopToggle('B')}
                   color="cyan"
                   disabled={!mixerState.deckB.track}
+                  contentType={mixerState.deckB.contentType}
+                  sectionLoopPosition={mixerState.deckB.loopPosition}
+                  onSectionPositionChange={(position) => handleLoopPositionChange('B', position)}
+                  trackDuration={mixerState.deckB.audioState?.duration}
+                  trackBPM={mixerState.deckB.track?.bpm}
                 />
               )}
             </div>
