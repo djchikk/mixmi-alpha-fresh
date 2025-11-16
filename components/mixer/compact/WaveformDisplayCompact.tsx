@@ -54,6 +54,7 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartPosition, setDragStartPosition] = useState(0);
   const [localLoopPosition, setLocalLoopPosition] = useState(loopPosition);
+  const [showDragTooltip, setShowDragTooltip] = useState(false);
   
   // Debounced position change for smooth dragging
   const debouncedLoopPositionChange = useDebouncedCallback(
@@ -72,39 +73,74 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
   // 🎯 NEW: Calculate bracket positions from bar timing (memoized)
   const bracketPositions = useMemo(() => {
     if (!audioBuffer || !showLoopBrackets) return null;
-    
+
     const barDuration = (60 / trackBPM) * 4; // 4 beats per bar
-    const totalDuration = audioBuffer.duration;
-    
-    const loopStartTime = localLoopPosition * barDuration;
-    const loopEndTime = (localLoopPosition + loopLength) * barDuration;
-    
-    const startX = (loopStartTime / totalDuration) * width;
-    const endX = (loopEndTime / totalDuration) * width;
-    
+    const isSong = contentType === 'full_song';
+
+    let startX, endX, loopStartTime, loopEndTime;
+
+    if (isSong && loopEnabled) {
+      // 🎵 For songs: Brackets show loop portion within visible 8-bar section
+      // Section view shows 8 bars, brackets show which portion is looping
+      const sectionSize = 8; // Fixed 8-bar sections
+      const loopRatio = loopLength / sectionSize; // e.g., 4/8 = 0.5 (half the width)
+
+      startX = 0; // Always start at beginning of visible section
+      endX = width * loopRatio; // End based on loop length proportion
+
+      // Calculate actual times for the loop
+      const sectionStartTime = loopPosition * barDuration * sectionSize;
+      loopStartTime = sectionStartTime;
+      loopEndTime = sectionStartTime + (barDuration * loopLength);
+    } else {
+      // 🔁 For loops: Brackets based on actual position in full waveform
+      const totalDuration = audioBuffer.duration;
+
+      loopStartTime = localLoopPosition * barDuration;
+      loopEndTime = (localLoopPosition + loopLength) * barDuration;
+
+      startX = (loopStartTime / totalDuration) * width;
+      endX = (loopEndTime / totalDuration) * width;
+    }
+
     return {
       startX: Math.max(0, Math.min(width, startX)),
       endX: Math.max(0, Math.min(width, endX)),
       loopStartTime,
       loopEndTime
     };
-  }, [audioBuffer, showLoopBrackets, trackBPM, localLoopPosition, loopLength, width]);
+  }, [audioBuffer, showLoopBrackets, trackBPM, localLoopPosition, loopLength, width, contentType, loopEnabled, loopPosition]);
 
   // 🎯 NEW: Mouse event handlers for bracket dragging
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!showLoopBrackets || !onLoopPositionChange) return;
-    
+
+    // 🎵 Disable dragging for songs - loop position is fixed at start of section
+    const isSong = contentType === 'full_song';
+    if (isSong) {
+      // Show tooltip briefly when user tries to drag
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x = e.clientX - rect.left;
+      const brackets = bracketPositions;
+      if (brackets && x >= brackets.startX - 10 && x <= brackets.endX + 10) {
+        setShowDragTooltip(true);
+        setTimeout(() => setShowDragTooltip(false), 2000);
+      }
+      return;
+    }
+
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    
+
     const x = e.clientX - rect.left;
     const brackets = bracketPositions;
-    
+
     if (brackets) {
       // Check if click is within the bracket region
       const bracketWidth = brackets.endX - brackets.startX;
       const margin = 10; // Allow clicking slightly outside for easier grabbing
-      
+
       if (x >= brackets.startX - margin && x <= brackets.endX + margin) {
         setIsDragging(true);
         setDragStartX(x);
@@ -168,9 +204,10 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       let endTime = duration;
 
       if (showSectionOnly) {
-        // Calculate section boundaries
+        // Calculate section boundaries - section size is ALWAYS 8 bars for songs
         const barDuration = (60 / trackBPM) * 4; // 4 beats per bar
-        const sectionDuration = barDuration * loopLength;
+        const sectionSize = 8; // Fixed 8-bar sections for songs
+        const sectionDuration = barDuration * sectionSize;
         startTime = loopPosition * sectionDuration;
         endTime = Math.min(startTime + sectionDuration, duration);
 
@@ -178,6 +215,7 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
           trackBPM,
           loopLength,
           loopPosition,
+          sectionSize,
           barDuration: barDuration.toFixed(2),
           sectionDuration: sectionDuration.toFixed(2),
           startTime: startTime.toFixed(2),
@@ -364,7 +402,8 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       if (showSectionOnly) {
         // For section looping, calculate position within the visible section
         const barDuration = (60 / trackBPM) * 4;
-        const sectionDuration = barDuration * loopLength;
+        const sectionSize = 8; // Fixed 8-bar sections for songs
+        const sectionDuration = barDuration * sectionSize;
         const sectionStartTime = loopPosition * sectionDuration;
         const sectionEndTime = sectionStartTime + sectionDuration;
 
@@ -477,17 +516,27 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
     );
   }
 
+  const isSong = contentType === 'full_song';
+  const canDragBrackets = showLoopBrackets && onLoopPositionChange && !isSong;
+
   return (
     <div className={`relative ${className}`}>
-      <canvas 
+      <canvas
         ref={canvasRef}
-        className={`rounded border border-slate-700 ${showLoopBrackets && onLoopPositionChange ? 'cursor-pointer' : ''}`}
+        className={`rounded border border-slate-700 ${canDragBrackets ? 'cursor-pointer' : ''}`}
         style={{ width, height }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
       />
+
+      {/* Tooltip for song loop brackets */}
+      {showDragTooltip && isSong && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-3 py-2 rounded shadow-lg z-20 whitespace-nowrap">
+          Loop position is fixed for songs. Use section selector to change position.
+        </div>
+      )}
       
       {/* 🎯 HIDDEN: Legend overlay - keeping clean professional look */}
       {/* Uncomment below for diagnostics if needed:

@@ -718,8 +718,10 @@ class PreciseLooper {
   private loopBars: number = 8; // Default to 8 bars
   private loopEnabled: boolean = true; // 🔄 NEW: Control whether looping is enabled
   private loopStartPosition: number = 0; // 🎯 NEW: Loop start position in bars
+  private contentType: string = 'loop'; // 🎵 NEW: Content type (loop, full_song, etc.)
+  private sectionSize: number = 8; // 🎵 NEW: Section size for songs (always 8 bars)
 
-  constructor(audioContext: AudioContext, audioElement: HTMLAudioElement, bpm: number, deckId: 'A' | 'B', loopBars: number = 8) {
+  constructor(audioContext: AudioContext, audioElement: HTMLAudioElement, bpm: number, deckId: 'A' | 'B', loopBars: number = 8, contentType: string = 'loop') {
     console.log(`🔍 PreciseLooper Constructor Debug for Deck ${deckId}:`, {
       inputBPM: bpm,
       bpmType: typeof bpm,
@@ -733,6 +735,7 @@ class PreciseLooper {
     this.originalTrackBPM = bpm; // 🎯 FIX: Initialize original track BPM in constructor
     this.deckId = deckId;
     this.loopBars = loopBars;
+    this.contentType = contentType;
     this.loopDuration = this.calculateLoopDuration();
 
     // 🎵 Initialize content-aware analyzer
@@ -855,7 +858,7 @@ class PreciseLooper {
   // Schedule precise loop reset at exact timing
   private scheduleLoopReset(time: number): void {
     console.log(`🔄 Deck ${this.deckId} scheduling loop reset at ${time.toFixed(3)}s (${(time - this.audioContext.currentTime).toFixed(3)}s ahead)`);
-    
+
     // Schedule the loop reset using Web Audio API precision
     setTimeout(() => {
       if (this.isLooping && this.audioElement) {
@@ -863,14 +866,23 @@ class PreciseLooper {
           // Use currentTime from audio context for sample-accurate timing
           const targetTime = this.audioContext.currentTime;
           const audioTimeBeforeReset = this.audioElement.currentTime;
-          
-          // 🎯 Calculate loop start position based on section offset (e.g., section 2 = 8 bars in)
-          const barDuration = (60 / this.bpm) * 4; // 4 beats per bar
-          const sectionDuration = barDuration * this.loopBars; // Duration of one section (e.g., 8 bars = one section)
-          const loopStartTime = this.loopStartPosition * sectionDuration;
 
-          this.audioElement.currentTime = loopStartTime;
-          console.log(`🎯 Deck ${this.deckId} LOOP EXECUTED: ${audioTimeBeforeReset.toFixed(3)}s → ${loopStartTime.toFixed(3)}s (section ${this.loopStartPosition + 1}) at ${targetTime.toFixed(3)}s`);
+          const barDuration = (60 / this.bpm) * 4; // 4 beats per bar
+
+          // 🎵 For songs: section size is fixed at 8 bars, loop within section
+          // 🔁 For loops: section size equals loop length
+          const isSong = this.contentType === 'full_song';
+          const sectionDuration = barDuration * (isSong ? this.sectionSize : this.loopBars);
+          const sectionStartTime = this.loopStartPosition * sectionDuration;
+
+          // Always loop back to the start of the current section
+          this.audioElement.currentTime = sectionStartTime;
+
+          if (isSong) {
+            console.log(`🎵 Deck ${this.deckId} SONG LOOP: ${audioTimeBeforeReset.toFixed(3)}s → ${sectionStartTime.toFixed(3)}s (section ${this.loopStartPosition + 1}, looping ${this.loopBars} bars within section)`);
+          } else {
+            console.log(`🔁 Deck ${this.deckId} LOOP EXECUTED: ${audioTimeBeforeReset.toFixed(3)}s → ${sectionStartTime.toFixed(3)}s at ${targetTime.toFixed(3)}s`);
+          }
         } catch (error) {
           console.warn(`⚠️ Deck ${this.deckId} loop reset failed:`, error);
         }
@@ -1077,11 +1089,11 @@ export class MixerAudioEngine {
   }
 
   // Create a complete mixer audio deck with Web Audio API integration
-  static async createMixerDeck(audioUrl: string, deckId: 'A' | 'B', isRadio: boolean = false): Promise<{
+  static async createMixerDeck(audioUrl: string, deckId: 'A' | 'B', isRadio: boolean = false, contentType: string = 'loop'): Promise<{
     state: MixerAudioState;
     controls: MixerAudioControls;
   }> {
-    console.log(`🎛️ Creating mixer deck ${deckId} with audio:`, audioUrl.substring(0, 50) + '...', isRadio ? '📻 RADIO MODE' : '');
+    console.log(`🎛️ Creating mixer deck ${deckId} with audio:`, audioUrl.substring(0, 50) + '...', isRadio ? '📻 RADIO MODE' : contentType === 'full_song' ? '🎵 SONG MODE' : '🔁 LOOP MODE');
     
     try {
       // Initialize audio context
@@ -1178,8 +1190,8 @@ export class MixerAudioEngine {
         currentTime: 0,
         duration: audio.duration || 0,
         bpm: 120, // Default, will be updated from track data
-        // 🔄 Initialize PreciseLooper with default 8-bar loop
-        preciseLooper: new PreciseLooper(audioContext, audio, 120, deckId, 8)
+        // 🔄 Initialize PreciseLooper with default 8-bar loop and content type
+        preciseLooper: new PreciseLooper(audioContext, audio, 120, deckId, 8, contentType)
       };
 
       // 🎵 NEW: Load audio buffer for content analysis (skip for radio streams)

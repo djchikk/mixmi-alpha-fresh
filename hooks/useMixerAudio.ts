@@ -76,12 +76,13 @@ export function useMixerAudio(): UseMixerAudioReturn {
     if (!track.audioUrl) return null;
 
     const isRadio = contentType === 'radio_station';
-    console.log(`🎵 Loading audio for ${deckName}:`, track.audioUrl.substring(0, 50) + '...', isRadio ? '📻 RADIO' : '');
+    console.log(`🎵 Loading audio for ${deckName}:`, track.audioUrl.substring(0, 50) + '...', isRadio ? '📻 RADIO' : contentType === 'full_song' ? '🎵 SONG' : '🔁 LOOP');
 
     const { state: audioState, controls: audioControls } = await createMixerAudio(
       track.audioUrl,
       deckName.slice(-1) as 'A' | 'B',
-      isRadio
+      isRadio,
+      contentType || 'loop'
     );
     
     // Set BPM and gain reference
