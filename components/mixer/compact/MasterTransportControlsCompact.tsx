@@ -119,7 +119,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   }, []);
 
   return (
-    <div className={`master-transport-controls flex items-center justify-center gap-2 bg-[#81E4F2]/10 rounded-lg px-3 py-2 ${className}`}>
+    <div className={`master-transport-controls relative grid grid-cols-3 items-center gap-4 bg-[#81E4F2]/10 rounded-lg px-3 py-2 ${className}`}>
       {/* Count-In Display - positioned above controls, not overlapping */}
       {countingIn && (
         <div className="count-in-display absolute -top-12 left-1/2 transform -translate-x-1/2">
@@ -129,72 +129,78 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
         </div>
       )}
 
-      {/* Master Play/Pause Button */}
-      <button
-        onClick={handleMasterPlay}
-        disabled={!deckALoaded && !deckBLoaded}
-        className={`master-play-btn w-10 h-10 rounded-full flex items-center justify-center text-base font-bold transition-all ${
-          anyPlaying
-            ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
-            : countingIn
-            ? 'bg-[#81E4F2]/50 border-2 border-[#81E4F2] text-slate-900 animate-pulse cursor-wait'
-            : highlightPlayButton
-            ? 'border-2 border-cyan-400 text-cyan-400 hover:border-cyan-300 hover:text-cyan-300 animate-pulse shadow-lg shadow-cyan-500/50'
-            : deckALoaded || deckBLoaded
-            ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:shadow-[#81E4F2]/20'
-            : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
-        }`}
-        title={
-          countingIn
-            ? `Counting in... ${countBeat}/4`
-            : anyPlaying
-            ? 'Pause & Reset to Beginning'
-            : highlightPlayButton
-            ? 'Play your grabbed loop! ▶'
-            : 'Play All (with count-in)'
-        }
-      >
-        {countingIn ? (
-          countBeat
-        ) : anyPlaying ? (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" className="text-[#81E4F2]">
-            <rect x="3" y="2" width="3" height="10" />
-            <rect x="8" y="2" width="3" height="10" />
-          </svg>
-        ) : (
-          '▶'
-        )}
-      </button>
+      {/* Left column: Play Button */}
+      <div className="flex justify-start">
+        <button
+          onClick={handleMasterPlay}
+          disabled={!deckALoaded && !deckBLoaded}
+          className={`master-play-btn w-10 h-10 rounded-full flex items-center justify-center text-base font-bold transition-all ${
+            anyPlaying
+              ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
+              : countingIn
+              ? 'bg-[#81E4F2]/50 border-2 border-[#81E4F2] text-slate-900 animate-pulse cursor-wait'
+              : highlightPlayButton
+              ? 'border-2 border-cyan-400 text-cyan-400 hover:border-cyan-300 hover:text-cyan-300 animate-pulse shadow-lg shadow-cyan-500/50'
+              : deckALoaded || deckBLoaded
+              ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:shadow-[#81E4F2]/20'
+              : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+          }`}
+          title={
+            countingIn
+              ? `Counting in... ${countBeat}/4`
+              : anyPlaying
+              ? 'Pause & Reset to Beginning'
+              : highlightPlayButton
+              ? 'Play your grabbed loop! ▶'
+              : 'Play All (with count-in)'
+          }
+        >
+          {countingIn ? (
+            countBeat
+          ) : anyPlaying ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" className="text-[#81E4F2]">
+              <rect x="3" y="2" width="3" height="10" />
+              <rect x="8" y="2" width="3" height="10" />
+            </svg>
+          ) : (
+            '▶'
+          )}
+        </button>
+      </div>
 
-      {/* Sync Toggle Button */}
-      <button
-        onClick={onSyncToggle}
-        disabled={!deckALoaded || !deckBLoaded}
-        className={`px-2 py-1 rounded-full text-[9px] font-bold transition-all uppercase tracking-wider ${
-          syncActive
-            ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80'
-            : 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed'
-        }`}
-        title={
-          !deckALoaded || !deckBLoaded
-            ? 'Load both decks to enable sync'
-            : syncActive
-            ? 'Disable sync'
-            : 'Enable sync'
-        }
-      >
-        SYNC
-      </button>
-
-      {/* BPM Display for simplified variant */}
-      {variant === 'simplified' && masterBPM && (
-        <div className="flex flex-col items-center mx-2">
+      {/* Center column: BPM Display */}
+      {variant === 'simplified' && masterBPM ? (
+        <div className="flex flex-col items-center">
           <div className="text-xl font-bold text-slate-200">
             {masterBPM}
           </div>
           <div className="text-[9px] text-slate-500 uppercase">BPM</div>
         </div>
+      ) : (
+        <div /> // Empty spacer when no BPM
       )}
+
+      {/* Right column: Sync Toggle Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={onSyncToggle}
+          disabled={!deckALoaded || !deckBLoaded}
+          className={`px-1.5 py-0.5 rounded-full text-[7px] font-bold transition-all uppercase tracking-wider ${
+            syncActive
+              ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80'
+              : 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
+          title={
+            !deckALoaded || !deckBLoaded
+              ? 'Load both decks to enable sync'
+              : syncActive
+              ? 'Disable sync'
+              : 'Enable sync'
+          }
+        >
+          SYNC
+        </button>
+      </div>
 
       {/* Master Reset Button - only show for full variant */}
       {variant === 'full' && (

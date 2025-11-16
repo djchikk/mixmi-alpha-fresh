@@ -1612,34 +1612,27 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               )}
             </div>
 
-            {/* Deck A Sync Button with Master Indicator */}
-            <div className="relative flex flex-col items-center">
-              <button
-                onClick={() => handleDeckSync('A')}
-                disabled={!mixerState.syncActive}
-                className={`px-1.5 py-0.5 rounded-full text-[7px] font-bold transition-all uppercase tracking-wider ${
-                  mixerState.syncActive
-                    ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 cursor-pointer'
-                    : 'bg-black border-2 border-slate-700 text-slate-600 opacity-40 cursor-not-allowed'
-                }`}
-                title={
-                  !mixerState.syncActive
-                    ? 'Enable sync from master control first'
-                    : mixerState.masterDeckId === 'A'
-                    ? 'Deck A is master'
-                    : 'Switch to Deck A as master'
-                }
-              >
-                SYNC
-              </button>
-
-              {/* Master Indicator Light */}
-              {mixerState.syncActive && mixerState.masterDeckId === 'A' && (
-                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-lg shadow-amber-400/80 animate-pulse" />
-                </div>
-              )}
-            </div>
+            {/* Deck A Sync Button */}
+            <button
+              onClick={() => handleDeckSync('A')}
+              disabled={!mixerState.syncActive}
+              className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider border ${
+                !mixerState.syncActive
+                  ? 'text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
+                  : mixerState.masterDeckId === 'A'
+                  ? 'text-[#81E4F2] border-amber-500/50 bg-amber-500/10 hover:border-amber-500/70 cursor-pointer'
+                  : 'text-slate-400 border-slate-600 bg-slate-800/40 hover:border-slate-500 hover:text-slate-300 cursor-pointer'
+              }`}
+              title={
+                !mixerState.syncActive
+                  ? 'Enable sync from master control first'
+                  : mixerState.masterDeckId === 'A'
+                  ? 'Deck A is master'
+                  : 'Switch to Deck A as master'
+              }
+            >
+              SYNC
+            </button>
 
             <div className="flex flex-col items-center gap-1 relative">
               <MasterTransportControlsCompact
@@ -1671,34 +1664,27 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               )}
             </div>
 
-            {/* Deck B Sync Button with Master Indicator */}
-            <div className="relative flex flex-col items-center">
-              <button
-                onClick={() => handleDeckSync('B')}
-                disabled={!mixerState.syncActive}
-                className={`px-1.5 py-0.5 rounded-full text-[7px] font-bold transition-all uppercase tracking-wider ${
-                  mixerState.syncActive
-                    ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80 cursor-pointer'
-                    : 'bg-black border-2 border-slate-700 text-slate-600 opacity-40 cursor-not-allowed'
-                }`}
-                title={
-                  !mixerState.syncActive
-                    ? 'Enable sync from master control first'
-                    : mixerState.masterDeckId === 'B'
-                    ? 'Deck B is master'
-                    : 'Switch to Deck B as master'
-                }
-              >
-                SYNC
-              </button>
-
-              {/* Master Indicator Light */}
-              {mixerState.syncActive && mixerState.masterDeckId === 'B' && (
-                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-lg shadow-amber-400/80 animate-pulse" />
-                </div>
-              )}
-            </div>
+            {/* Deck B Sync Button */}
+            <button
+              onClick={() => handleDeckSync('B')}
+              disabled={!mixerState.syncActive}
+              className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider border ${
+                !mixerState.syncActive
+                  ? 'text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
+                  : mixerState.masterDeckId === 'B'
+                  ? 'text-[#81E4F2] border-amber-500/50 bg-amber-500/10 hover:border-amber-500/70 cursor-pointer'
+                  : 'text-slate-400 border-slate-600 bg-slate-800/40 hover:border-slate-500 hover:text-slate-300 cursor-pointer'
+              }`}
+              title={
+                !mixerState.syncActive
+                  ? 'Enable sync from master control first'
+                  : mixerState.masterDeckId === 'B'
+                  ? 'Deck B is master'
+                  : 'Switch to Deck B as master'
+              }
+            >
+              SYNC
+            </button>
 
             {/* Deck B Controls - Fixed width container to prevent shifting */}
             <div className="w-[100px] flex justify-center">
