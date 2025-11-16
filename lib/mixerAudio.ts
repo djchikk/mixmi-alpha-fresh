@@ -868,20 +868,22 @@ class PreciseLooper {
           const audioTimeBeforeReset = this.audioElement.currentTime;
 
           const barDuration = (60 / this.bpm) * 4; // 4 beats per bar
-
-          // 🎵 For songs: section size is fixed at 8 bars, loop within section
-          // 🔁 For loops: section size equals loop length
           const isSong = this.contentType === 'full_song';
-          const sectionDuration = barDuration * (isSong ? this.sectionSize : this.loopBars);
-          const sectionStartTime = this.loopStartPosition * sectionDuration;
 
-          // Always loop back to the start of the current section
-          this.audioElement.currentTime = sectionStartTime;
+          let resetTime: number;
 
           if (isSong) {
-            console.log(`🎵 Deck ${this.deckId} SONG LOOP: ${audioTimeBeforeReset.toFixed(3)}s → ${sectionStartTime.toFixed(3)}s (section ${this.loopStartPosition + 1}, looping ${this.loopBars} bars within section)`);
+            // 🎵 For songs: loopStartPosition is section number, section size is fixed at 8 bars
+            const sectionStartTime = this.loopStartPosition * this.sectionSize * barDuration;
+            resetTime = sectionStartTime;
+            this.audioElement.currentTime = resetTime;
+            console.log(`🎵 Deck ${this.deckId} SONG LOOP: ${audioTimeBeforeReset.toFixed(3)}s → ${resetTime.toFixed(3)}s (section ${this.loopStartPosition + 1}, looping ${this.loopBars} bars within section)`);
           } else {
-            console.log(`🔁 Deck ${this.deckId} LOOP EXECUTED: ${audioTimeBeforeReset.toFixed(3)}s → ${sectionStartTime.toFixed(3)}s at ${targetTime.toFixed(3)}s`);
+            // 🔁 For loops: loopStartPosition is in bars, not sections!
+            const loopStartTime = this.loopStartPosition * barDuration;
+            resetTime = loopStartTime;
+            this.audioElement.currentTime = resetTime;
+            console.log(`🔁 Deck ${this.deckId} LOOP EXECUTED: ${audioTimeBeforeReset.toFixed(3)}s → ${resetTime.toFixed(3)}s (bar ${this.loopStartPosition}, looping ${this.loopBars} bars)`);
           }
         } catch (error) {
           console.warn(`⚠️ Deck ${this.deckId} loop reset failed:`, error);
@@ -995,9 +997,23 @@ class PreciseLooper {
   setLoopPosition(position: number): void {
     this.loopStartPosition = Math.max(0, position);
     console.log(`🎯 Deck ${this.deckId} loop position set to bar ${this.loopStartPosition}`);
-    
-    // If currently looping, we might want to update the loop immediately
-    // For now, the position will take effect on the next loop cycle
+
+    // 🎯 Immediately seek to the new loop start position
+    // This ensures visual brackets and audio playback stay in sync
+    const barDuration = (60 / this.bpm) * 4;
+    const isSong = this.contentType === 'full_song';
+
+    if (isSong) {
+      // For songs: position is section number, seek to start of that section
+      const sectionStartTime = this.loopStartPosition * barDuration * this.sectionSize;
+      this.audioElement.currentTime = sectionStartTime;
+      console.log(`🎯 Deck ${this.deckId} SONG: Seeked to section ${this.loopStartPosition} (${sectionStartTime.toFixed(2)}s)`);
+    } else {
+      // For loops: position is bar offset, seek to that bar
+      const loopStartTime = this.loopStartPosition * barDuration;
+      this.audioElement.currentTime = loopStartTime;
+      console.log(`🎯 Deck ${this.deckId} LOOP: Seeked to bar ${this.loopStartPosition} (${loopStartTime.toFixed(2)}s)`);
+    }
   }
 
   // Cleanup resources

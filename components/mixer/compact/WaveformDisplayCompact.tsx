@@ -96,8 +96,9 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       // 🔁 For loops: Brackets based on actual position in full waveform
       const totalDuration = audioBuffer.duration;
 
-      loopStartTime = localLoopPosition * barDuration;
-      loopEndTime = (localLoopPosition + loopLength) * barDuration;
+      // Use prop loopPosition, not localLoopPosition, for accurate bracket placement
+      loopStartTime = loopPosition * barDuration;
+      loopEndTime = (loopPosition + loopLength) * barDuration;
 
       startX = (loopStartTime / totalDuration) * width;
       endX = (loopEndTime / totalDuration) * width;
@@ -109,7 +110,7 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       loopStartTime,
       loopEndTime
     };
-  }, [audioBuffer, showLoopBrackets, trackBPM, localLoopPosition, loopLength, width, contentType, loopEnabled, loopPosition]);
+  }, [audioBuffer, showLoopBrackets, trackBPM, loopLength, width, contentType, loopEnabled, loopPosition]);
 
   // 🎯 NEW: Mouse event handlers for bracket dragging
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -393,25 +394,44 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
     // 🎵 Draw playback position
     if (isPlaying && audioBuffer) {
       const duration = audioBuffer.duration;
+      const barDuration = (60 / trackBPM) * 4;
 
-      // 🎵 Calculate playhead position (section-aware for songs)
+      // 🎵 Calculate playhead position (content-type aware)
       const isSong = contentType === 'full_song';
       const showSectionOnly = isSong && loopEnabled;
 
       let playbackX: number;
       if (showSectionOnly) {
         // For section looping, calculate position within the visible section
-        const barDuration = (60 / trackBPM) * 4;
         const sectionSize = 8; // Fixed 8-bar sections for songs
         const sectionDuration = barDuration * sectionSize;
         const sectionStartTime = loopPosition * sectionDuration;
-        const sectionEndTime = sectionStartTime + sectionDuration;
 
         // Calculate position within section (0 to 1)
         const positionInSection = (currentTime - sectionStartTime) / sectionDuration;
         playbackX = Math.max(0, Math.min(1, positionInSection)) * width;
+      } else if (loopEnabled && loopLength < 8) {
+        // 🔁 For loops with active looping (not full 8-bar), show position within loop boundaries
+        // Use prop loopPosition for consistency with brackets
+        const loopStartTime = loopPosition * barDuration;
+        const loopDuration = loopLength * barDuration;
+
+        // Position within the active loop
+        const positionInLoop = (currentTime - loopStartTime) / loopDuration;
+
+        // Map to the bracket region on screen
+        const brackets = bracketPositions;
+        if (brackets) {
+          const bracketWidth = brackets.endX - brackets.startX;
+          playbackX = brackets.startX + (positionInLoop * bracketWidth);
+          // Clamp within bracket boundaries
+          playbackX = Math.max(brackets.startX, Math.min(brackets.endX, playbackX));
+        } else {
+          // Fallback to full waveform if no brackets
+          playbackX = (currentTime / duration) * width;
+        }
       } else {
-        // For full track display, use normal calculation
+        // For full track display (8-bar loop or looping disabled), use normal calculation
         playbackX = (currentTime / duration) * width;
       }
 
@@ -488,7 +508,7 @@ const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
       ctx.fillText(labelText, labelX, height - 15);
     }
 
-  }, [waveformData, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging, contentType, loopEnabled, trackBPM, waveformColor]);
+  }, [waveformData, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging, contentType, loopEnabled, trackBPM, waveformColor, bracketPositions, localLoopPosition]);
 
   // Get human-readable strategy description
   const getStrategyText = (boundaries: LoopBoundaries): string => {
