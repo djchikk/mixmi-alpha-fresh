@@ -312,6 +312,46 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     mixerState.syncActive
   ]);
 
+  // 🎯 AUTO-SYNC: Automatically enable sync when both decks are loaded (not waiting for play)
+  useEffect(() => {
+    const bothDecksLoaded = mixerState.deckA.track && mixerState.deckB.track;
+    const bothDecksHaveAudio = mixerState.deckA.audioState && mixerState.deckB.audioState;
+    const syncNotActive = !mixerState.syncActive;
+    const neitherDeckIsRadio = mixerState.deckA.contentType !== 'radio_station' && mixerState.deckB.contentType !== 'radio_station';
+
+    // Enable sync as soon as both decks are loaded (before play)
+    // This ensures they're already in sync when user hits play
+    if (bothDecksLoaded && bothDecksHaveAudio && syncNotActive && neitherDeckIsRadio) {
+      console.log('🎛️ AUTO-SYNC: Both decks loaded with audio, enabling sync before playback...');
+
+      const audioContext = mixerState.deckA.audioState.audioContext;
+      const masterDeckId = determineMasterDeck();
+
+      console.log(`🎛️ AUTO-SYNC: Creating sync with Deck ${masterDeckId} as master`);
+
+      syncEngineRef.current = new SimpleLoopSync(
+        audioContext,
+        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
+        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
+        masterDeckId
+      );
+
+      syncEngineRef.current.enableSync().then(() => {
+        console.log('✅ AUTO-SYNC: Sync enabled successfully - decks ready to play in sync');
+      });
+
+      setMixerState(prev => ({ ...prev, syncActive: true }));
+    }
+  }, [
+    mixerState.deckA.track,
+    mixerState.deckB.track,
+    mixerState.deckA.audioState,
+    mixerState.deckB.audioState,
+    mixerState.deckA.contentType,
+    mixerState.deckB.contentType,
+    mixerState.syncActive
+  ]);
+
   // Volume change handlers
   const handleDeckAVolumeChange = (volume: number) => {
     setMixerState(prev => ({
@@ -584,9 +624,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           // Determine master BPM based on both decks
           const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB, prev.masterDeckId);
 
+          // 🎯 AUTO-SYNC: If Deck B is empty, make Deck A the master (first loaded = master)
+          const newMasterDeckId = !prev.deckB.track ? 'A' : prev.masterDeckId;
+
           return {
             ...prev,
             masterBPM: newMasterBPM,
+            masterDeckId: newMasterDeckId,
             deckA: newDeckAState
           };
         });
@@ -734,9 +778,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           // Determine master BPM based on both decks
           const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState, prev.masterDeckId);
 
+          // 🎯 AUTO-SYNC: If Deck A is empty, make Deck B the master (first loaded = master)
+          const newMasterDeckId = !prev.deckA.track ? 'B' : prev.masterDeckId;
+
           return {
             ...prev,
             masterBPM: newMasterBPM,
+            masterDeckId: newMasterDeckId,
             deckB: newDeckBState
           };
         });
