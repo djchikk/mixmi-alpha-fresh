@@ -372,12 +372,13 @@ class SimpleLoopSync {
   private transitionInterval: NodeJS.Timeout | null = null; // For smooth transition
   private enableSyncTimeout: NodeJS.Timeout | null = null; // For beat-aligned enableSync
   private isUpdating: boolean = false; // 🎵 NEW: Prevent sync feedback loops
+  private currentMasterBPM: number = 120; // 🎯 FIX: Store calculated master BPM from track
 
   constructor(
     audioContext: AudioContext,
     deckA: DeckWithState,
     deckB: DeckWithState,
-    masterDeckId: 'A' | 'B' // 🎯 NEW: Explicitly specify which deck is master
+    masterDeckId: 'A' | 'B' = 'A' // 🎯 NEW: Explicitly specify which deck is master (defaults to 'A' for backward compatibility)
   ) {
     this.audioContext = audioContext;
     this.masterDeckId = masterDeckId;
@@ -452,6 +453,9 @@ class SimpleLoopSync {
     const masterBPM = this.masterDeck.track?.bpm || this.masterDeck.bpm;
     const slaveBPM = this.slaveDeck.track?.bpm || this.slaveDeck.bpm;
 
+    // 🎯 FIX: Store master BPM for use in transition callback
+    this.currentMasterBPM = masterBPM;
+
     console.log(`🎵 SYNC: activateSync() called with BPMs:`, {
       masterBPM,
       slaveBPM,
@@ -523,18 +527,19 @@ class SimpleLoopSync {
           this.transitionInterval = null;
         }
 
-        // Update slave deck's internal BPM tracking after transition
-        this.slaveDeck.bpm = this.masterDeck.bpm;
+        // 🎯 FIX: Update slave deck's internal BPM using the stored master track BPM
+        // This ensures we use the correct BPM even if audioState.bpm is stale
+        this.slaveDeck.bpm = this.currentMasterBPM;
         if (this.slaveDeck.preciseLooper) {
-          this.slaveDeck.preciseLooper.updateBPM(this.masterDeck.bpm);
+          this.slaveDeck.preciseLooper.updateBPM(this.currentMasterBPM);
         }
         // 🎯 SYNC FIX: Also update audioControls BPM for consistency
         if (this.slaveDeck.audioControls) {
-          this.slaveDeck.audioControls.setBPM(this.masterDeck.bpm);
+          this.slaveDeck.audioControls.setBPM(this.currentMasterBPM);
         }
         console.log(`✅ SYNC: BPM transition complete - Deck ${this.slaveDeckId} now at ${currentRate.toFixed(3)}x playback rate`);
         console.log(`✅ SYNC: Final audio element playbackRate: ${this.slaveDeck.audio?.playbackRate.toFixed(3)}`);
-        console.log(`✅ SYNC: Deck ${this.slaveDeckId} BPM updated to ${this.masterDeck.bpm} for smooth looping`);
+        console.log(`✅ SYNC: Deck ${this.slaveDeckId} BPM updated to ${this.currentMasterBPM} for smooth looping`);
       }
     }, 25);
   }
@@ -634,6 +639,7 @@ class SimpleLoopSync {
 
     // Update master deck BPM in the sync engine
     this.masterDeck.bpm = newMasterBPM;
+    this.currentMasterBPM = newMasterBPM;  // 🎯 FIX: Keep cached BPM in sync (CC2 suggestion)
 
     // If slave deck is playing, apply real-time sync adjustment
     if (this.slaveDeck.audio && !this.slaveDeck.audio.paused) {
@@ -720,18 +726,19 @@ class PreciseLooper {
       bpmString: bpm.toString(),
       bpmFixed: Number(bpm).toFixed(10)
     });
-    
+
     this.audioContext = audioContext;
     this.audioElement = audioElement;
     this.bpm = bpm;
+    this.originalTrackBPM = bpm; // 🎯 FIX: Initialize original track BPM in constructor
     this.deckId = deckId;
     this.loopBars = loopBars;
     this.loopDuration = this.calculateLoopDuration();
-    
+
     // 🎵 Initialize content-aware analyzer
     this.contentAnalyzer = new ContentAwareLooper(audioContext);
-    
-    console.log(`🔄 PreciseLooper initialized for Deck ${deckId}: ${bpm} BPM, ${this.loopDuration.toFixed(2)}s loop`);
+
+    console.log(`🔄 PreciseLooper initialized for Deck ${deckId}: ${bpm} BPM (original), ${this.loopDuration.toFixed(2)}s loop`);
   }
 
   // 🎵 NEW: Analyze audio buffer for content-aware looping
@@ -832,13 +839,13 @@ class PreciseLooper {
   // Core scheduling loop - runs every 25ms for precision
   private schedule(): void {
     const currentTime = this.audioContext.currentTime;
-    
+
     // Schedule loop events 100ms ahead
     while (this.nextLoopTime < currentTime + this.scheduleAheadTime) {
       this.scheduleLoopReset(this.nextLoopTime);
       this.nextLoopTime += this.loopDuration;
     }
-    
+
     // Continue scheduling if still looping
     if (this.isLooping) {
       this.schedulerTimeoutId = window.setTimeout(() => this.schedule(), this.scheduleInterval * 1000);
@@ -887,9 +894,15 @@ class PreciseLooper {
     
     this.isLooping = true;
     this.nextLoopTime = this.getNextBeatTime(); // Sync to beat boundary
+
+    // 🎯 DEBUG: Log playback rate and real-world loop duration
+    const playbackRate = this.audioElement.playbackRate || 1.0;
+    const realWorldLoopDuration = this.loopDuration / playbackRate;
+
     console.log(`🔄 Deck ${this.deckId} starting precise looping, next loop at ${this.nextLoopTime.toFixed(3)}s`);
     console.log(`🔄 Deck ${this.deckId} current audio context time: ${this.audioContext.currentTime.toFixed(3)}s`);
-    console.log(`🔄 Deck ${this.deckId} BPM: ${this.bpm}, loop duration: ${this.loopDuration.toFixed(3)}s`);
+    console.log(`🔄 Deck ${this.deckId} BPM: ${this.bpm}, loop duration: ${this.loopDuration.toFixed(3)}s (file time)`);
+    console.log(`🔄 Deck ${this.deckId} playback rate: ${playbackRate.toFixed(3)}x, real-world loop duration: ${realWorldLoopDuration.toFixed(3)}s`);
     console.log(`🔄 Deck ${this.deckId} audio element currentTime: ${this.audioElement.currentTime.toFixed(3)}s`);
     console.log(`🔄 Deck ${this.deckId} audio element paused: ${this.audioElement.paused}`);
     this.schedule();
@@ -907,17 +920,14 @@ class PreciseLooper {
     console.log(`🔄 Deck ${this.deckId} stopped precise looping`);
   }
 
+  // 🎵 Track the original BPM from track metadata
+  private originalTrackBPM: number;
+
   // Update BPM and recalculate timing
   updateBPM(newBPM: number): void {
-    console.log(`🔄 PreciseLooper updateBPM Debug for Deck ${this.deckId}:`, {
-      inputBPM: newBPM,
-      bpmType: typeof newBPM,
-      bpmString: newBPM.toString(),
-      bpmFixed: Number(newBPM).toFixed(10)
-    });
     this.bpm = newBPM;
     this.loopDuration = this.calculateLoopDuration();
-    console.log(`🔄 Deck ${this.deckId} BPM updated to ${newBPM}, new loop duration: ${this.loopDuration.toFixed(2)}s`);
+    console.log(`🔄 Deck ${this.deckId} BPM updated to ${newBPM}, loop duration: ${this.loopDuration.toFixed(2)}s`);
   }
 
   // 🔄 NEW: Update loop length and recalculate duration

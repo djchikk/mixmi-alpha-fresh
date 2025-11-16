@@ -998,6 +998,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     syncEngineRef.current.stop();
     syncEngineRef.current = null;
 
+    // 🎯 FIX: Reset both decks' PreciseLooper BPM to their original track BPM
+    // This prevents "sync chaos" from mismatched loop durations during toggle
+    if (mixerState.deckA.track && mixerState.deckA.audioControls) {
+      const originalBPM = mixerState.deckA.track.bpm || 120;
+      console.log(`🔄 Resetting Deck A PreciseLooper to original track BPM: ${originalBPM}`);
+      mixerState.deckA.audioControls.setBPM(originalBPM);
+    }
+    if (mixerState.deckB.track && mixerState.deckB.audioControls) {
+      const originalBPM = mixerState.deckB.track.bpm || 120;
+      console.log(`🔄 Resetting Deck B PreciseLooper to original track BPM: ${originalBPM}`);
+      mixerState.deckB.audioControls.setBPM(originalBPM);
+    }
+
     // 🎯 FIX: Capture current audio state BEFORE setTimeout to avoid stale closure
     const deckAState = mixerState.deckA.audioState;
     const deckBState = mixerState.deckB.audioState;
