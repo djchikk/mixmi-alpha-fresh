@@ -11,7 +11,8 @@ import MasterTransportControlsCompact from './compact/MasterTransportControlsCom
 import LoopControlsCompact from './compact/LoopControlsCompact';
 import SectionSelectorCompact from './compact/SectionSelectorCompact';
 import VerticalVolumeSlider from './compact/VerticalVolumeSlider';
-import { Music, Radio } from 'lucide-react';
+import DeckFXPanel from './compact/DeckFXPanel';
+import { Music, Radio, Sliders } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -34,6 +35,11 @@ interface UniversalMixerState {
     loopPosition: number;
     volume: number; // 0-100
     contentType?: string; // 'loop', 'song', 'radio_station', etc.
+    fxPanelOpen: boolean; // FX panel visibility
+    hiCutEnabled: boolean; // Hi Cut filter state
+    loCutEnabled: boolean; // Lo Cut filter state
+    pitchCents: number; // Pitch shift in cents (±1200)
+    isPitchProcessing: boolean; // Pitch processing indicator
   };
   deckB: {
     track: Track | null;
@@ -46,6 +52,11 @@ interface UniversalMixerState {
     loopPosition: number;
     volume: number; // 0-100
     contentType?: string; // 'loop', 'song', 'radio_station', etc.
+    fxPanelOpen: boolean; // FX panel visibility
+    hiCutEnabled: boolean; // Hi Cut filter state
+    loCutEnabled: boolean; // Lo Cut filter state
+    pitchCents: number; // Pitch shift in cents (±1200)
+    isPitchProcessing: boolean; // Pitch processing indicator
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -66,7 +77,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       loopEnabled: true,
       loopLength: 8,
       loopPosition: 0,
-      volume: 80 // Default 80%
+      volume: 80, // Default 80%
+      fxPanelOpen: false,
+      hiCutEnabled: false,
+      loCutEnabled: false,
+      pitchCents: 0,
+      isPitchProcessing: false
     },
     deckB: {
       track: null,
@@ -74,7 +90,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       loopEnabled: true,
       loopLength: 8,
       loopPosition: 0,
-      volume: 80 // Default 80%
+      volume: 80, // Default 80%
+      fxPanelOpen: false,
+      hiCutEnabled: false,
+      loCutEnabled: false,
+      pitchCents: 0,
+      isPitchProcessing: false
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -389,6 +410,138 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       ...prev,
       deckB: { ...prev.deckB, volume }
     }));
+  };
+
+  // FX Panel handlers
+  const handleDeckAFXToggle = () => {
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, fxPanelOpen: !prev.deckA.fxPanelOpen }
+    }));
+  };
+
+  const handleDeckBFXToggle = () => {
+    setMixerState(prev => ({
+      ...prev,
+      deckB: { ...prev.deckB, fxPanelOpen: !prev.deckB.fxPanelOpen }
+    }));
+  };
+
+  // Hi/Lo Cut filter handlers
+  const handleDeckAHiCutToggle = () => {
+    const newState = !mixerState.deckA.hiCutEnabled;
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, hiCutEnabled: newState }
+    }));
+    // Apply to audio engine
+    if (mixerState.deckA.audioControls?.setHiCut) {
+      mixerState.deckA.audioControls.setHiCut(newState);
+    }
+  };
+
+  const handleDeckALoCutToggle = () => {
+    const newState = !mixerState.deckA.loCutEnabled;
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, loCutEnabled: newState }
+    }));
+    // Apply to audio engine
+    if (mixerState.deckA.audioControls?.setLoCut) {
+      mixerState.deckA.audioControls.setLoCut(newState);
+    }
+  };
+
+  const handleDeckBHiCutToggle = () => {
+    const newState = !mixerState.deckB.hiCutEnabled;
+    setMixerState(prev => ({
+      ...prev,
+      deckB: { ...prev.deckB, hiCutEnabled: newState }
+    }));
+    // Apply to audio engine
+    if (mixerState.deckB.audioControls?.setHiCut) {
+      mixerState.deckB.audioControls.setHiCut(newState);
+    }
+  };
+
+  const handleDeckBLoCutToggle = () => {
+    const newState = !mixerState.deckB.loCutEnabled;
+    setMixerState(prev => ({
+      ...prev,
+      deckB: { ...prev.deckB, loCutEnabled: newState }
+    }));
+    // Apply to audio engine
+    if (mixerState.deckB.audioControls?.setLoCut) {
+      mixerState.deckB.audioControls.setLoCut(newState);
+    }
+  };
+
+  // Pitch change handlers
+  const handleDeckAPitchChange = (cents: number) => {
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, pitchCents: cents }
+    }));
+  };
+
+  const handleDeckBPitchChange = (cents: number) => {
+    setMixerState(prev => ({
+      ...prev,
+      deckB: { ...prev.deckB, pitchCents: cents }
+    }));
+  };
+
+  // Pitch apply handlers (will pre-process audio with rubberband)
+  const handleDeckAApplyPitch = async () => {
+    console.log(`🎵 Apply pitch shift for Deck A: ${mixerState.deckA.pitchCents} cents`);
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, isPitchProcessing: true }
+    }));
+
+    // TODO: Implement rubberband-wasm pitch processing
+    // This will:
+    // 1. Load current audio buffer
+    // 2. Process with rubberband to shift pitch without changing tempo
+    // 3. Create new audio blob
+    // 4. Reload deck with processed audio
+    // 5. Reset pitchCents to 0
+
+    // For now, just simulate processing
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    setMixerState(prev => ({
+      ...prev,
+      deckA: { ...prev.deckA, isPitchProcessing: false, pitchCents: 0 }
+    }));
+
+    showToast('Pitch processing not yet implemented', 'info');
+  };
+
+  const handleDeckBApplyPitch = async () => {
+    console.log(`🎵 Apply pitch shift for Deck B: ${mixerState.deckB.pitchCents} cents`);
+    setMixerState(prev => ({
+      ...prev,
+      deckB: { ...prev.deckB, isPitchProcessing: true }
+    }));
+
+    // TODO: Implement rubberband-wasm pitch processing
+    // This will:
+    // 1. Load current audio buffer
+    // 2. Process with rubberband to shift pitch without changing tempo
+    // 3. Create new audio blob
+    // 4. Reload deck with processed audio
+    // 5. Reset pitchCents to 0
+
+    // For now, just simulate processing
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    setMixerState(prev => ({
+      ...prev,
+      deckB: { ...prev.deckB, isPitchProcessing: false, pitchCents: 0 }
+    }));
+
+    showToast('Pitch processing not yet implemented', 'info');
   };
 
   // Determine master BPM based on manual selection or content-type hierarchy
@@ -1772,6 +1925,44 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 )}
               </div>
 
+              {/* Deck A FX Button */}
+              <div className="absolute left-[20px] bottom-[-2px]">
+                {mixerState.deckA.track && (
+                  <button
+                    onClick={handleDeckAFXToggle}
+                    className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider transition-all border ${
+                      mixerState.deckA.fxPanelOpen
+                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
+                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2]'
+                    }`}
+                    title="Channel Strip FX"
+                  >
+                    <Sliders size={10} className="inline mr-1" />
+                    FX
+                  </button>
+                )}
+              </div>
+
+              {/* Deck A FX Panel - Positioned as left sidebar */}
+              {mixerState.deckA.track && mixerState.deckA.fxPanelOpen && (
+                <div className="absolute left-0 bottom-0 top-0 w-[180px] z-50">
+                  <DeckFXPanel
+                    deck="A"
+                    isOpen={mixerState.deckA.fxPanelOpen}
+                    onClose={() => setMixerState(prev => ({ ...prev, deckA: { ...prev.deckA, fxPanelOpen: false } }))}
+                    hiCutEnabled={mixerState.deckA.hiCutEnabled}
+                    loCutEnabled={mixerState.deckA.loCutEnabled}
+                    onHiCutToggle={handleDeckAHiCutToggle}
+                    onLoCutToggle={handleDeckALoCutToggle}
+                    pitchCents={mixerState.deckA.pitchCents}
+                    onPitchChange={handleDeckAPitchChange}
+                    onApplyPitch={handleDeckAApplyPitch}
+                    isPitchProcessing={mixerState.deckA.isPitchProcessing}
+                    className="h-full"
+                  />
+                </div>
+              )}
+
               {/* Waveforms */}
               <div className="absolute left-[96px] bottom-[48px]" style={{ width: '408px' }}>
                 <div>
@@ -1837,6 +2028,44 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   />
                 )}
               </div>
+
+              {/* Deck B FX Button */}
+              <div className="absolute right-[20px] bottom-[-2px]">
+                {mixerState.deckB.track && (
+                  <button
+                    onClick={handleDeckBFXToggle}
+                    className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider transition-all border ${
+                      mixerState.deckB.fxPanelOpen
+                        ? 'bg-[#60A5FA] border-[#60A5FA] text-slate-900'
+                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-[#60A5FA] hover:text-[#60A5FA]'
+                    }`}
+                    title="Channel Strip FX"
+                  >
+                    <Sliders size={10} className="inline mr-1" />
+                    FX
+                  </button>
+                )}
+              </div>
+
+              {/* Deck B FX Panel - Positioned as right sidebar */}
+              {mixerState.deckB.track && mixerState.deckB.fxPanelOpen && (
+                <div className="absolute right-0 bottom-0 top-0 w-[180px] z-50">
+                  <DeckFXPanel
+                    deck="B"
+                    isOpen={mixerState.deckB.fxPanelOpen}
+                    onClose={() => setMixerState(prev => ({ ...prev, deckB: { ...prev.deckB, fxPanelOpen: false } }))}
+                    hiCutEnabled={mixerState.deckB.hiCutEnabled}
+                    loCutEnabled={mixerState.deckB.loCutEnabled}
+                    onHiCutToggle={handleDeckBHiCutToggle}
+                    onLoCutToggle={handleDeckBLoCutToggle}
+                    pitchCents={mixerState.deckB.pitchCents}
+                    onPitchChange={handleDeckBPitchChange}
+                    onApplyPitch={handleDeckBApplyPitch}
+                    isPitchProcessing={mixerState.deckB.isPitchProcessing}
+                    className="h-full"
+                  />
+                </div>
+              )}
 
               {/* Deck B Volume Slider (Right Side) */}
               <div className="absolute right-0 bottom-[42px]">
