@@ -65,7 +65,7 @@ const VerticalVolumeSlider = memo(function VerticalVolumeSlider({
       {/* Slider track - ultra minimal */}
       <div
         ref={sliderRef}
-        className="relative w-[2px] h-16 bg-slate-700/40 cursor-pointer"
+        className="relative w-[2px] h-14 bg-slate-700/40 cursor-pointer"
         onMouseDown={handleMouseDown}
         style={{ touchAction: 'none' }}
       >

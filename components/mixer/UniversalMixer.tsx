@@ -12,7 +12,7 @@ import LoopControlsCompact from './compact/LoopControlsCompact';
 import SectionNavigator from './compact/SectionNavigator';
 import VerticalVolumeSlider from './compact/VerticalVolumeSlider';
 import DeckFXPanel from './compact/DeckFXPanel';
-import { Music, Radio, Sliders } from 'lucide-react';
+import { Music, Radio } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -1724,7 +1724,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           {/* Transport and Loop Controls Row */}
           <div className="flex justify-center items-center gap-3 mb-5">
             {/* Deck A Controls - Fixed width container to prevent shifting */}
-            <div className="w-[100px] flex justify-center">
+            <div className="w-[100px] flex justify-center mr-2">
               {(mixerState.deckA.contentType === 'radio_station' || deckAJustGrabbed) ? (
                 <button
                   onClick={() => {
@@ -1844,7 +1844,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             </button>
 
             {/* Deck B Controls - Fixed width container to prevent shifting */}
-            <div className="w-[100px] flex justify-center">
+            <div className="w-[100px] flex justify-center ml-2">
               {(mixerState.deckB.contentType === 'radio_station' || deckBJustGrabbed) ? (
                 <button
                   onClick={() => {
@@ -1885,6 +1885,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onLoopToggle={() => handleLoopToggle('B')}
                   color="cyan"
                   disabled={!mixerState.deckB.track}
+                  reverse={true}
                 />
               )}
             </div>
@@ -1893,58 +1894,58 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           {/* Decks, Waveforms, and Crossfader Section */}
           <div className="h-[100px] relative">
             <div>
-              {/* Deck A Volume Slider (Left Side) */}
-              <div className="absolute left-0 bottom-[42px]">
+              {/* Deck A Volume Slider (Left Side) - COMMENTED OUT: Crossfader handles volume balance */}
+              {/* <div className="absolute left-0 bottom-[46px]">
                 <VerticalVolumeSlider
                   volume={mixerState.deckA.volume}
                   onVolumeChange={handleDeckAVolumeChange}
                   deck="A"
                 />
-              </div>
+              </div> */}
 
-              {/* Deck A Filter Controls - Hi/Lo Cut buttons */}
-              <div className="absolute left-0 bottom-[40px] flex flex-col gap-0.5">
+              {/* Deck A Filter Controls - MOVED TO FX PANEL HEADER */}
+              {/* <div className="absolute left-0 bottom-0 flex flex-row gap-1.5">
                 {mixerState.deckA.track && (
                   <>
                     <button
-                      onClick={handleDeckAHiCutToggle}
-                      className={`w-7 h-6 rounded text-[7px] font-bold uppercase transition-all ${
-                        mixerState.deckA.hiCutEnabled
-                          ? 'bg-gradient-to-b from-orange-500 to-red-500 text-white shadow-lg'
-                          : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-orange-400'
-                      }`}
-                      title="High Cut Filter (removes highs)"
-                    >
-                      HI
-                    </button>
-                    <button
                       onClick={handleDeckALoCutToggle}
-                      className={`w-7 h-6 rounded text-[7px] font-bold uppercase transition-all ${
+                      className={`px-2 h-5 rounded text-[8px] font-bold uppercase transition-all border-2 ${
                         mixerState.deckA.loCutEnabled
-                          ? 'bg-gradient-to-b from-blue-500 to-purple-500 text-white shadow-lg'
-                          : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-blue-400'
+                          ? 'bg-slate-900 border-purple-500 text-purple-300 shadow-lg shadow-purple-500/50'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-purple-400'
                       }`}
                       title="Low Cut Filter (removes bass)"
                     >
-                      LO
+                      LO CUT
+                    </button>
+                    <button
+                      onClick={handleDeckAHiCutToggle}
+                      className={`px-2 h-5 rounded text-[8px] font-bold uppercase transition-all border-2 ${
+                        mixerState.deckA.hiCutEnabled
+                          ? 'bg-slate-900 border-orange-500 text-orange-300 shadow-lg shadow-orange-500/50'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-orange-400'
+                      }`}
+                      title="High Cut Filter (removes highs)"
+                    >
+                      HI CUT
                     </button>
                   </>
                 )}
-              </div>
+              </div> */}
 
-              {/* Deck A FX Button - Positioned left of crossfader */}
-              <div className="absolute left-1/2 -translate-x-[150px] bottom-0">
+              {/* Deck A FX Button - Centered between crossfader and deck image */}
+              <div className="absolute left-1/2 -translate-x-[179px] bottom-0">
                 {mixerState.deckA.track && (
                   <button
                     onClick={handleDeckAFXToggle}
-                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-all border ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 ${
                       mixerState.deckA.fxPanelOpen
                         ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
                         : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
                     }`}
                     title="Instant FX"
                   >
-                    <Sliders size={10} />
+                    <span className="text-[9px] font-bold">FX</span>
                   </button>
                 )}
               </div>
@@ -1963,7 +1964,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 />
               </div>
 
-              {/* Deck A Section Navigator (Below Deck Image) */}
+              {/* Deck A Section Navigator (Below Deck Image, left-aligned) */}
               <div className="absolute left-[20px] bottom-[18px]">
                 {mixerState.deckA.contentType === 'full_song' && mixerState.deckA.loopEnabled && (() => {
                   // Calculate total sections from track duration and BPM
@@ -1991,6 +1992,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     deck="A"
                     isOpen={mixerState.deckA.fxPanelOpen}
                     onClose={() => setMixerState(prev => ({ ...prev, deckA: { ...prev.deckA, fxPanelOpen: false } }))}
+                    hiCutEnabled={mixerState.deckA.hiCutEnabled}
+                    loCutEnabled={mixerState.deckA.loCutEnabled}
+                    onHiCutToggle={handleDeckAHiCutToggle}
+                    onLoCutToggle={handleDeckALoCutToggle}
                     onTriggerFX={(fxType) => {
                       console.log(`🎛️ Deck A: ${fxType} triggered`);
                       const controls = mixerState.deckA.audioControls;
@@ -2067,7 +2072,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 />
               </div>
 
-              {/* Deck B Section Navigator (Below Deck Image) */}
+              {/* Deck B Section Navigator (Below Deck Image, right-aligned) */}
               <div className="absolute right-[20px] bottom-[18px]">
                 {mixerState.deckB.contentType === 'full_song' && mixerState.deckB.loopEnabled && (() => {
                   // Calculate total sections from track duration and BPM
@@ -2095,6 +2100,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     deck="B"
                     isOpen={mixerState.deckB.fxPanelOpen}
                     onClose={() => setMixerState(prev => ({ ...prev, deckB: { ...prev.deckB, fxPanelOpen: false } }))}
+                    hiCutEnabled={mixerState.deckB.hiCutEnabled}
+                    loCutEnabled={mixerState.deckB.loCutEnabled}
+                    onHiCutToggle={handleDeckBHiCutToggle}
+                    onLoCutToggle={handleDeckBLoCutToggle}
                     onTriggerFX={(fxType) => {
                       console.log(`🎛️ Deck B: ${fxType} triggered`);
                       const controls = mixerState.deckB.audioControls;
@@ -2118,58 +2127,58 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 </div>
               )}
 
-              {/* Deck B Volume Slider (Right Side) */}
-              <div className="absolute right-0 bottom-[42px]">
+              {/* Deck B Volume Slider (Right Side) - COMMENTED OUT: Crossfader handles volume balance */}
+              {/* <div className="absolute right-0 bottom-[46px]">
                 <VerticalVolumeSlider
                   volume={mixerState.deckB.volume}
                   onVolumeChange={handleDeckBVolumeChange}
                   deck="B"
                 />
-              </div>
+              </div> */}
 
-              {/* Deck B Filter Controls - Hi/Lo Cut buttons */}
-              <div className="absolute right-0 bottom-[40px] flex flex-col gap-0.5">
+              {/* Deck B Filter Controls - MOVED TO FX PANEL HEADER */}
+              {/* <div className="absolute right-0 bottom-0 flex flex-row gap-1.5">
                 {mixerState.deckB.track && (
                   <>
                     <button
-                      onClick={handleDeckBHiCutToggle}
-                      className={`w-7 h-6 rounded text-[7px] font-bold uppercase transition-all ${
-                        mixerState.deckB.hiCutEnabled
-                          ? 'bg-gradient-to-b from-orange-500 to-red-500 text-white shadow-lg'
-                          : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-orange-400'
-                      }`}
-                      title="High Cut Filter (removes highs)"
-                    >
-                      HI
-                    </button>
-                    <button
                       onClick={handleDeckBLoCutToggle}
-                      className={`w-7 h-6 rounded text-[7px] font-bold uppercase transition-all ${
+                      className={`px-2 h-5 rounded text-[8px] font-bold uppercase transition-all border-2 ${
                         mixerState.deckB.loCutEnabled
-                          ? 'bg-gradient-to-b from-blue-500 to-purple-500 text-white shadow-lg'
-                          : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-blue-400'
+                          ? 'bg-slate-900 border-purple-500 text-purple-300 shadow-lg shadow-purple-500/50'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-purple-400'
                       }`}
                       title="Low Cut Filter (removes bass)"
                     >
-                      LO
+                      LO CUT
+                    </button>
+                    <button
+                      onClick={handleDeckBHiCutToggle}
+                      className={`px-2 h-5 rounded text-[8px] font-bold uppercase transition-all border-2 ${
+                        mixerState.deckB.hiCutEnabled
+                          ? 'bg-slate-900 border-orange-500 text-orange-300 shadow-lg shadow-orange-500/50'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-orange-400'
+                      }`}
+                      title="High Cut Filter (removes highs)"
+                    >
+                      HI CUT
                     </button>
                   </>
                 )}
-              </div>
+              </div> */}
 
-              {/* Deck B FX Button - Positioned right of crossfader */}
-              <div className="absolute left-1/2 translate-x-[110px] bottom-0">
+              {/* Deck B FX Button - Centered between crossfader and deck image */}
+              <div className="absolute left-1/2 translate-x-[151px] bottom-0">
                 {mixerState.deckB.track && (
                   <button
                     onClick={handleDeckBFXToggle}
-                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-all border ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 ${
                       mixerState.deckB.fxPanelOpen
                         ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
                         : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
                     }`}
                     title="Instant FX"
                   >
-                    <Sliders size={10} />
+                    <span className="text-[9px] font-bold">FX</span>
                   </button>
                 )}
               </div>

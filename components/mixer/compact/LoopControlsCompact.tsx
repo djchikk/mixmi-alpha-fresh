@@ -11,6 +11,7 @@ interface LoopControlsProps {
   className?: string;
   color?: 'cyan' | 'blue'; // For deck-specific styling
   disabled?: boolean; // Fully disabled when no track loaded
+  reverse?: boolean; // Reverse order for deck symmetry
 }
 
 const LoopControlsCompact = memo(function LoopControlsCompact({
@@ -20,7 +21,8 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
   onLoopToggle,
   className = "",
   color = 'cyan',
-  disabled = false
+  disabled = false,
+  reverse = false
 }: LoopControlsProps) {
   const loopOptions = [0.125, 0.25, 0.5, 1, 2, 4, 8];
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -58,36 +60,41 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
   };
 
   return (
-    <div className={`loop-controls-container flex items-center gap-2 ${disabled ? 'opacity-30 pointer-events-none' : ''} ${className}`}>
+    <div className={`loop-controls-container flex items-center gap-2 ${reverse ? 'flex-row-reverse' : ''} ${disabled ? 'opacity-30 pointer-events-none' : ''} ${className}`}>
       {/* Loop Toggle Button */}
       <button
         onClick={disabled ? undefined : onLoopToggle}
         disabled={disabled}
-        className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+        className={`w-5 h-5 rounded-full flex items-center justify-center transition-all border-2 ${
           disabled
-            ? 'border border-slate-700 text-slate-600 cursor-not-allowed'
+            ? 'border-slate-700 text-slate-600 cursor-not-allowed'
             : loopEnabled
-            ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 shadow-lg shadow-[#81E4F2]/50 hover:scale-105'
-            : 'border border-slate-600 text-slate-500 hover:border-slate-500 hover:text-slate-400 hover:scale-105'
+            ? 'bg-slate-800 hover:scale-105'
+            : 'border-slate-600 text-slate-500 hover:border-slate-500 hover:text-slate-400 hover:scale-105'
         }`}
+        style={loopEnabled ? {
+          borderColor: 'rgba(129, 228, 242, 0.6)',
+          color: '#81E4F2',
+          boxShadow: '0 4px 6px -1px rgba(129, 228, 242, 0.2)'
+        } : {}}
         title={disabled ? 'Load a track to enable loop controls' : loopEnabled ? 'Disable Loop' : 'Enable Loop'}
       >
         <Repeat size={12} className={`transition-colors ${
-          disabled ? 'text-slate-600' : loopEnabled ? 'text-slate-900' : 'text-slate-500'
+          disabled ? 'text-slate-600' : loopEnabled ? '' : 'text-slate-500'
         }`} />
       </button>
 
       {/* Loop Length Selector */}
       <div className="loop-selector-compact relative" ref={dropdownRef}>
-        <div 
+        <div
           className={`flex items-center gap-2 px-2 py-1 border rounded-full cursor-pointer transition-colors h-5 ${
-            loopEnabled 
-              ? 'bg-slate-800 border-slate-600 hover:border-slate-500' 
+            loopEnabled
+              ? 'bg-slate-800 border-slate-600 hover:border-slate-500'
               : 'bg-slate-800/50 border-slate-700 opacity-50'
           }`}
           onClick={() => loopEnabled && setDropdownOpen(!dropdownOpen)}
         >
-          <span 
+          <span
             className={`loop-arrow text-xs cursor-pointer select-none transition-colors ${
               loopEnabled ? 'text-slate-500 hover:text-slate-400' : 'text-slate-600'
             }`}
@@ -101,7 +108,7 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
           }`}>
             {loopLength === 0.125 ? '1/8' : loopLength < 1 ? `${loopLength * 4}/4` : loopLength}
           </span>
-          <span 
+          <span
             className={`loop-arrow text-xs cursor-pointer select-none transition-colors ${
               loopEnabled ? 'text-slate-500 hover:text-slate-400' : 'text-slate-600'
             }`}

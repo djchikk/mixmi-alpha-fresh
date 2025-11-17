@@ -40,27 +40,27 @@ const SectionNavigator = memo(function SectionNavigator({
   const color = deck === 'A' ? '#81E4F2' : '#60A5FA';
 
   return (
-    <div className={`flex items-center gap-1 ${className}`}>
+    <div className={`flex items-center gap-0.5 ${className}`}>
       {/* Previous Section Button */}
       <button
         onClick={handlePrev}
         disabled={!canGoPrev}
-        className={`w-6 h-6 rounded flex items-center justify-center transition-all ${
+        className={`w-4 h-4 rounded flex items-center justify-center transition-all ${
           canGoPrev
             ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'
             : 'bg-slate-900 text-slate-700 cursor-not-allowed border border-slate-800'
         }`}
         title="Previous section"
       >
-        <ChevronLeft size={14} />
+        <ChevronLeft size={10} />
       </button>
 
       {/* Section Display */}
       <div
-        className="px-3 py-1 rounded bg-slate-800 border border-slate-600 min-w-[50px] flex items-center justify-center"
+        className="px-1.5 py-0 rounded bg-slate-800 border border-slate-600 min-w-[32px] flex items-center justify-center"
         style={{ borderColor: `${color}40` }}
       >
-        <div className="text-xs font-bold text-slate-200">
+        <div className="text-[9px] font-bold text-slate-200 leading-tight">
           {startBar}-{endBar}
         </div>
       </div>
@@ -69,14 +69,14 @@ const SectionNavigator = memo(function SectionNavigator({
       <button
         onClick={handleNext}
         disabled={!canGoNext}
-        className={`w-6 h-6 rounded flex items-center justify-center transition-all ${
+        className={`w-4 h-4 rounded flex items-center justify-center transition-all ${
           canGoNext
             ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'
             : 'bg-slate-900 text-slate-700 cursor-not-allowed border border-slate-800'
         }`}
         title="Next section"
       >
-        <ChevronRight size={14} />
+        <ChevronRight size={10} />
       </button>
     </div>
   );

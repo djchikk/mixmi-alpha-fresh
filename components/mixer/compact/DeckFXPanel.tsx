@@ -10,6 +10,10 @@ interface DeckFXPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onTriggerFX: (fxType: InstantFXType) => void;
+  hiCutEnabled: boolean;
+  loCutEnabled: boolean;
+  onHiCutToggle: () => void;
+  onLoCutToggle: () => void;
   className?: string;
 }
 
@@ -18,6 +22,10 @@ const DeckFXPanel = memo(function DeckFXPanel({
   isOpen,
   onClose,
   onTriggerFX,
+  hiCutEnabled,
+  loCutEnabled,
+  onHiCutToggle,
+  onLoCutToggle,
   className = ''
 }: DeckFXPanelProps) {
   const [activeEffect, setActiveEffect] = useState<InstantFXType | null>(null);
@@ -55,9 +63,35 @@ const DeckFXPanel = memo(function DeckFXPanel({
 
   return (
     <div className={`deck-fx-panel bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden flex flex-col ${className}`}>
-      {/* Panel Header */}
-      <div className="flex items-center justify-between border-b border-slate-700 px-2.5 py-1.5">
-        <div className="text-[8px] text-slate-500 uppercase tracking-wider">Instant FX</div>
+      {/* Panel Header with EQ Filters */}
+      <div className="flex items-center justify-between border-b border-slate-700 px-2 py-1.5 gap-1.5">
+        {/* LO CUT and HI CUT buttons */}
+        <div className="flex gap-1">
+          <button
+            onClick={onLoCutToggle}
+            className={`px-1.5 h-4 rounded text-[7px] font-bold uppercase transition-all border ${
+              loCutEnabled
+                ? 'bg-slate-900 border-purple-500 text-purple-300 shadow-md shadow-purple-500/50'
+                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-purple-400'
+            }`}
+            title="Low Cut Filter (removes bass)"
+          >
+            LO CUT
+          </button>
+          <button
+            onClick={onHiCutToggle}
+            className={`px-1.5 h-4 rounded text-[7px] font-bold uppercase transition-all border ${
+              hiCutEnabled
+                ? 'bg-slate-900 border-orange-500 text-orange-300 shadow-md shadow-orange-500/50'
+                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-orange-400'
+            }`}
+            title="High Cut Filter (removes highs)"
+          >
+            HI CUT
+          </button>
+        </div>
+
+        {/* Close button */}
         <button
           onClick={onClose}
           className="text-slate-500 hover:text-red-400 transition-all"
