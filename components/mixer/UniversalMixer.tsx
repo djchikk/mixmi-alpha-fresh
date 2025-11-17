@@ -9,7 +9,7 @@ import WaveformDisplayCompact from './compact/WaveformDisplayCompact';
 import CrossfaderControlCompact from './compact/CrossfaderControlCompact';
 import MasterTransportControlsCompact from './compact/MasterTransportControlsCompact';
 import LoopControlsCompact from './compact/LoopControlsCompact';
-import SectionSelectorCompact from './compact/SectionSelectorCompact';
+import SectionNavigator from './compact/SectionNavigator';
 import VerticalVolumeSlider from './compact/VerticalVolumeSlider';
 import DeckFXPanel from './compact/DeckFXPanel';
 import { Music, Radio, Sliders } from 'lucide-react';
@@ -1932,19 +1932,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 )}
               </div>
 
-              {/* Deck A FX Button - Circular, below volume slider */}
-              <div className="absolute left-0 bottom-[10px]">
+              {/* Deck A FX Button - Positioned left of crossfader */}
+              <div className="absolute left-1/2 -translate-x-[150px] bottom-0">
                 {mixerState.deckA.track && (
                   <button
                     onClick={handleDeckAFXToggle}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 ${
+                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-all border ${
                       mixerState.deckA.fxPanelOpen
                         ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
                         : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
                     }`}
                     title="Instant FX"
                   >
-                    <Sliders size={12} />
+                    <Sliders size={10} />
                   </button>
                 )}
               </div>
@@ -1963,17 +1963,25 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 />
               </div>
 
-              {/* Deck A Section Selector (Below Deck Image) */}
+              {/* Deck A Section Navigator (Below Deck Image) */}
               <div className="absolute left-[20px] bottom-[18px]">
-                {mixerState.deckA.contentType === 'full_song' && mixerState.deckA.loopEnabled && (
-                  <SectionSelectorCompact
-                    sectionLoopPosition={mixerState.deckA.loopPosition}
-                    onSectionPositionChange={(position) => handleLoopPositionChange('A', position)}
-                    trackDuration={mixerState.deckA.audioState?.duration || 0}
-                    trackBPM={mixerState.deckA.track?.bpm || 120}
-                    loopLength={mixerState.deckA.loopLength}
-                  />
-                )}
+                {mixerState.deckA.contentType === 'full_song' && mixerState.deckA.loopEnabled && (() => {
+                  // Calculate total sections from track duration and BPM
+                  const bpm = mixerState.deckA.track?.bpm || 120;
+                  const duration = mixerState.deckA.audioState?.duration || 0;
+                  const secondsPerBeat = 60 / bpm;
+                  const secondsPer8Bars = secondsPerBeat * 32; // 8 bars = 32 beats
+                  const totalSections = Math.ceil(duration / secondsPer8Bars);
+
+                  return (
+                    <SectionNavigator
+                      currentSection={mixerState.deckA.loopPosition}
+                      totalSections={totalSections}
+                      onSectionChange={(position) => handleLoopPositionChange('A', position)}
+                      deck="A"
+                    />
+                  );
+                })()}
               </div>
 
               {/* Deck A FX Panel - Positioned as left sidebar overlay */}
@@ -2059,17 +2067,25 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 />
               </div>
 
-              {/* Deck B Section Selector (Below Deck Image) */}
+              {/* Deck B Section Navigator (Below Deck Image) */}
               <div className="absolute right-[20px] bottom-[18px]">
-                {mixerState.deckB.contentType === 'full_song' && mixerState.deckB.loopEnabled && (
-                  <SectionSelectorCompact
-                    sectionLoopPosition={mixerState.deckB.loopPosition}
-                    onSectionPositionChange={(position) => handleLoopPositionChange('B', position)}
-                    trackDuration={mixerState.deckB.audioState?.duration || 0}
-                    trackBPM={mixerState.deckB.track?.bpm || 120}
-                    loopLength={mixerState.deckB.loopLength}
-                  />
-                )}
+                {mixerState.deckB.contentType === 'full_song' && mixerState.deckB.loopEnabled && (() => {
+                  // Calculate total sections from track duration and BPM
+                  const bpm = mixerState.deckB.track?.bpm || 120;
+                  const duration = mixerState.deckB.audioState?.duration || 0;
+                  const secondsPerBeat = 60 / bpm;
+                  const secondsPer8Bars = secondsPerBeat * 32; // 8 bars = 32 beats
+                  const totalSections = Math.ceil(duration / secondsPer8Bars);
+
+                  return (
+                    <SectionNavigator
+                      currentSection={mixerState.deckB.loopPosition}
+                      totalSections={totalSections}
+                      onSectionChange={(position) => handleLoopPositionChange('B', position)}
+                      deck="B"
+                    />
+                  );
+                })()}
               </div>
 
               {/* Deck B FX Panel - Positioned as right sidebar overlay */}
@@ -2141,19 +2157,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 )}
               </div>
 
-              {/* Deck B FX Button - Circular, below volume slider */}
-              <div className="absolute right-0 bottom-[10px]">
+              {/* Deck B FX Button - Positioned right of crossfader */}
+              <div className="absolute left-1/2 translate-x-[110px] bottom-0">
                 {mixerState.deckB.track && (
                   <button
                     onClick={handleDeckBFXToggle}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 ${
+                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-all border ${
                       mixerState.deckB.fxPanelOpen
                         ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
                         : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
                     }`}
                     title="Instant FX"
                   >
-                    <Sliders size={12} />
+                    <Sliders size={10} />
                   </button>
                 )}
               </div>
