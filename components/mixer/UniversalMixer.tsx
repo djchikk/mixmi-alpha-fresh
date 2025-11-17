@@ -1725,39 +1725,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           <div className="flex justify-center items-center gap-3 mb-5">
             {/* Deck A Controls - Fixed width container to prevent shifting */}
             <div className="w-[100px] flex justify-center mr-2">
-              {(mixerState.deckA.contentType === 'radio_station' || deckAJustGrabbed) ? (
-                <button
-                  onClick={() => {
-                    if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
-                      handleRadioPlay('A');
-                    } else if (deckARadioPlayTime >= 10 && !deckAJustGrabbed) {
-                      handleGrab('A');
-                    }
-                  }}
-                  disabled={isGrabbingDeckA || deckAJustGrabbed}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-full border transition-all duration-200 hover:scale-105 shadow-lg ${
-                    deckAJustGrabbed
-                      ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 cursor-default'
-                      : isGrabbingDeckA
-                      ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
-                      : deckARadioPlayTime >= 10
-                      ? 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
-                      : 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/90'
-                  }`}
-                  title={
-                    deckAJustGrabbed
-                      ? 'Grabbed! Now press play in the transport'
-                      : isGrabbingDeckA
-                      ? 'Grabbing audio...'
-                      : deckARadioPlayTime >= 10
-                      ? 'Grab audio from radio'
-                      : 'Start radio playback'
-                  }
-                >
-                  <Radio size={12} />
-                  <span>{deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}</span>
-                </button>
-              ) : (
+              {mixerState.deckA.contentType !== 'radio_station' && !deckAJustGrabbed && (
                 <LoopControlsCompact
                   loopLength={mixerState.deckA.loopLength}
                   loopEnabled={mixerState.deckA.loopEnabled}
@@ -1845,39 +1813,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
             {/* Deck B Controls - Fixed width container to prevent shifting */}
             <div className="w-[100px] flex justify-center ml-2">
-              {(mixerState.deckB.contentType === 'radio_station' || deckBJustGrabbed) ? (
-                <button
-                  onClick={() => {
-                    if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
-                      handleRadioPlay('B');
-                    } else if (deckBRadioPlayTime >= 10 && !deckBJustGrabbed) {
-                      handleGrab('B');
-                    }
-                  }}
-                  disabled={isGrabbingDeckB || deckBJustGrabbed}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-full border transition-all duration-200 hover:scale-105 shadow-lg ${
-                    deckBJustGrabbed
-                      ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 cursor-default'
-                      : isGrabbingDeckB
-                      ? 'bg-red-600 border-red-400 text-white animate-pulse cursor-wait'
-                      : deckBRadioPlayTime >= 10
-                      ? 'bg-gradient-to-br from-orange-600 to-orange-700 border-orange-400/50 text-white hover:from-orange-500 hover:to-orange-600'
-                      : 'bg-[#81E4F2] border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/90'
-                  }`}
-                  title={
-                    deckBJustGrabbed
-                      ? 'Grabbed! Now press play in the transport'
-                      : isGrabbingDeckB
-                      ? 'Grabbing audio...'
-                      : deckBRadioPlayTime >= 10
-                      ? 'Grab audio from radio'
-                      : 'Start radio playback'
-                  }
-                >
-                  <Radio size={12} />
-                  <span>{deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : 'PLAY'}</span>
-                </button>
-              ) : (
+              {mixerState.deckB.contentType !== 'radio_station' && !deckBJustGrabbed && (
                 <LoopControlsCompact
                   loopLength={mixerState.deckB.loopLength}
                   loopEnabled={mixerState.deckB.loopEnabled}
@@ -1984,6 +1920,51 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   );
                 })()}
               </div>
+
+              {/* Deck A Radio Play Button (Below Deck Image, left-aligned) */}
+              {mixerState.deckA.contentType === 'radio_station' && (
+                <div className="absolute left-[20px] bottom-[12px] w-[72px]">
+                  <button
+                    onClick={() => {
+                      if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
+                        handleRadioPlay('A');
+                      } else if (deckARadioPlayTime >= 10 && !deckAJustGrabbed) {
+                        handleGrab('A');
+                      }
+                    }}
+                    disabled={isGrabbingDeckA || deckAJustGrabbed}
+                    className={`w-full flex items-center justify-center gap-1 px-2 py-0.5 rounded border transition-all ${
+                      deckAJustGrabbed
+                        ? 'bg-slate-800 text-[#81E4F2]'
+                        : isGrabbingDeckA
+                        ? 'bg-slate-800 text-red-400 animate-pulse'
+                        : deckARadioPlayTime >= 10
+                        ? 'bg-slate-800 animate-pulse'
+                        : mixerState.deckA.playing
+                        ? 'bg-slate-800 text-red-400 animate-pulse'
+                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
+                    }`}
+                    style={{
+                      borderColor: deckAJustGrabbed ? '#81E4F2' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FB923C' : mixerState.deckA.playing ? '#ef4444' : '#81E4F240',
+                      color: deckARadioPlayTime >= 10 ? '#FB923C' : undefined
+                    }}
+                    title={
+                      deckAJustGrabbed
+                        ? 'Grabbed! Now press play in the transport'
+                        : isGrabbingDeckA
+                        ? 'Grabbing audio...'
+                        : deckARadioPlayTime >= 10
+                        ? 'Grab audio from radio'
+                        : mixerState.deckA.playing
+                        ? 'Recording audio buffer...'
+                        : 'Start radio playback'
+                    }
+                  >
+                    <Radio size={10} />
+                    <span className="text-[9px] font-bold">{deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : mixerState.deckA.playing ? 'REC' : 'PLAY'}</span>
+                  </button>
+                </div>
+              )}
 
               {/* Deck A FX Panel - Positioned as left sidebar overlay */}
               {mixerState.deckA.track && mixerState.deckA.fxPanelOpen && (
@@ -2092,6 +2073,51 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   );
                 })()}
               </div>
+
+              {/* Deck B Radio Play Button (Below Deck Image, right-aligned) */}
+              {mixerState.deckB.contentType === 'radio_station' && (
+                <div className="absolute right-[20px] bottom-[12px] w-[72px]">
+                  <button
+                    onClick={() => {
+                      if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
+                        handleRadioPlay('B');
+                      } else if (deckBRadioPlayTime >= 10 && !deckBJustGrabbed) {
+                        handleGrab('B');
+                      }
+                    }}
+                    disabled={isGrabbingDeckB || deckBJustGrabbed}
+                    className={`w-full flex items-center justify-center gap-1 px-2 py-0.5 rounded border transition-all ${
+                      deckBJustGrabbed
+                        ? 'bg-slate-800 text-[#81E4F2]'
+                        : isGrabbingDeckB
+                        ? 'bg-slate-800 text-red-400 animate-pulse'
+                        : deckBRadioPlayTime >= 10
+                        ? 'bg-slate-800 animate-pulse'
+                        : mixerState.deckB.playing
+                        ? 'bg-slate-800 text-red-400 animate-pulse'
+                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
+                    }`}
+                    style={{
+                      borderColor: deckBJustGrabbed ? '#81E4F2' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FB923C' : mixerState.deckB.playing ? '#ef4444' : '#81E4F240',
+                      color: deckBRadioPlayTime >= 10 ? '#FB923C' : undefined
+                    }}
+                    title={
+                      deckBJustGrabbed
+                        ? 'Grabbed! Now press play in the transport'
+                        : isGrabbingDeckB
+                        ? 'Grabbing audio...'
+                        : deckBRadioPlayTime >= 10
+                        ? 'Grab audio from radio'
+                        : mixerState.deckB.playing
+                        ? 'Recording audio buffer...'
+                        : 'Start radio playback'
+                    }
+                  >
+                    <Radio size={10} />
+                    <span className="text-[9px] font-bold">{deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : mixerState.deckB.playing ? 'REC' : 'PLAY'}</span>
+                  </button>
+                </div>
+              )}
 
               {/* Deck B FX Panel - Positioned as right sidebar overlay */}
               {mixerState.deckB.track && mixerState.deckB.fxPanelOpen && (
