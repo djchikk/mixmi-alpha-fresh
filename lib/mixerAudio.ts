@@ -6,6 +6,60 @@
 import { Track } from '@/types';
 import { audioContextManager } from './audioContextManager';
 
+/**
+ * Converts an AudioBuffer to a WAV blob
+ * Handles stereo/mono channels and preserves sample rate
+ */
+async function audioBufferToWav(audioBuffer: AudioBuffer): Promise<Blob> {
+  const numberOfChannels = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const length = audioBuffer.length * numberOfChannels * 2; // 16-bit samples
+  const buffer = new ArrayBuffer(44 + length);
+  const view = new DataView(buffer);
+
+  // Write WAV header
+  const writeString = (offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
+  // RIFF chunk descriptor
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + length, true);
+  writeString(8, 'WAVE');
+
+  // FMT sub-chunk
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
+  view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+  view.setUint16(22, numberOfChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numberOfChannels * 2, true); // ByteRate
+  view.setUint16(32, numberOfChannels * 2, true); // BlockAlign
+  view.setUint16(34, 16, true); // BitsPerSample
+
+  // Data sub-chunk
+  writeString(36, 'data');
+  view.setUint32(40, length, true);
+
+  // Write interleaved audio data
+  const offset = 44;
+  let pos = offset;
+
+  for (let i = 0; i < audioBuffer.length; i++) {
+    for (let channel = 0; channel < numberOfChannels; channel++) {
+      const sample = audioBuffer.getChannelData(channel)[i];
+      // Convert float32 (-1 to 1) to int16 (-32768 to 32767)
+      const int16 = Math.max(-1, Math.min(1, sample)) * 0x7FFF;
+      view.setInt16(pos, int16, true);
+      pos += 2;
+    }
+  }
+
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
 export interface MixerAudioState {
   audio: HTMLAudioElement;
   audioContext: AudioContext;
@@ -1035,6 +1089,14 @@ export interface MixerAudioControls {
   setLoopPosition: (position: number) => void; // 🎯 Set loop start position
   setHiCut: (enabled: boolean) => void; // 🎛️ Enable/disable high-cut EQ
   setLoCut: (enabled: boolean) => void; // 🎛️ Enable/disable low-cut EQ
+  applyPitchShift: (cents: number) => Promise<void>; // 🎵 Apply pitch shift to audio buffer
+
+  // 🎛️ Instant FX (now return cleanup functions for hold-to-activate)
+  triggerEchoOut: () => () => void; // Echo with decreasing feedback - returns stop function
+  triggerFilterSweep: () => () => void; // Automated low-pass filter sweep down - returns stop function
+  triggerReverb: () => () => void; // Flanger effect - returns stop function
+  triggerBrake: () => () => void; // Spindown/brake effect - returns stop function
+
   cleanup: () => void;
 }
 
@@ -1387,6 +1449,333 @@ export class MixerAudioEngine {
             loCutNode.Q.setTargetAtTime(0.7, now, 0.015);
             console.log(`🎛️ Deck ${deckId} LO-CUT disabled (full range)`);
           }
+        },
+
+        // 🎵 NEW: Pitch shift using playback rate (affects both pitch and tempo)
+        // Note: This is a simplified implementation. For production, would use time-stretch algorithm
+        applyPitchShift: async (cents: number) => {
+          if (cents === 0) {
+            console.log(`🎵 Deck ${deckId} pitch shift skipped: 0 cents`);
+            // Reset to normal playback rate
+            audio.playbackRate = 1.0;
+            return;
+          }
+
+          console.log(`🎵 Deck ${deckId} applying pitch shift: ${cents} cents (${(cents / 100).toFixed(1)} semitones)`);
+
+          try {
+            // Convert cents to pitch scale (cents / 100 = semitones, then 2^(semitones/12))
+            const semitones = cents / 100;
+            const pitchScale = Math.pow(2, semitones / 12);
+
+            console.log(`🎵 Deck ${deckId} setting playback rate to ${pitchScale.toFixed(3)} (${semitones.toFixed(1)} semitones)`);
+
+            // Apply pitch shift via playback rate
+            // Note: This also affects tempo. For time-stretch independent pitch shifting,
+            // would need a more complex implementation with offline audio processing
+            audio.playbackRate = pitchScale;
+
+            console.log(`✅ Deck ${deckId} pitch shift complete: ${cents} cents applied`);
+
+          } catch (error) {
+            console.error(`🚨 Deck ${deckId} pitch shift error:`, error);
+            throw error;
+          }
+        },
+
+        // 🎛️ Instant FX: Echo Out - delay with feedback (hold to activate)
+        triggerEchoOut: () => {
+          console.log(`🎛️ Deck ${deckId} starting Echo Out effect (hold-based)`);
+
+          const now = audioContext.currentTime;
+
+          // Create delay nodes
+          const delayNode = audioContext.createDelay(1.0);
+          const feedbackGain = audioContext.createGain();
+          const wetGain = audioContext.createGain();
+          const dryGain = audioContext.createGain();
+
+          // Configure delay
+          delayNode.delayTime.value = 0.375; // 375ms delay (dotted 1/8 note at 120 BPM)
+          feedbackGain.gain.value = 0.5; // Moderate feedback
+          wetGain.gain.value = 0.6; // 60% wet
+          dryGain.gain.value = 0.4; // 40% dry
+
+          // Disconnect and rebuild signal chain
+          state.gainNode.disconnect();
+
+          // Connect feedback loop: delay -> feedback -> back to delay
+          delayNode.connect(feedbackGain);
+          feedbackGain.connect(delayNode);
+
+          // Connect signal paths
+          state.gainNode.connect(dryGain);
+          state.gainNode.connect(delayNode);
+          delayNode.connect(wetGain);
+
+          dryGain.connect(audioContext.destination);
+          wetGain.connect(audioContext.destination);
+
+          console.log(`🎛️ Deck ${deckId} Echo Out active - release button to stop`);
+
+          // Return cleanup function
+          return () => {
+            const stopTime = audioContext.currentTime;
+            console.log(`🎛️ Deck ${deckId} stopping Echo Out effect`);
+
+            // Fade out feedback and wet signal
+            feedbackGain.gain.cancelScheduledValues(stopTime);
+            feedbackGain.gain.setValueAtTime(feedbackGain.gain.value, stopTime);
+            feedbackGain.gain.exponentialRampToValueAtTime(0.01, stopTime + 1.5);
+
+            wetGain.gain.cancelScheduledValues(stopTime);
+            wetGain.gain.setValueAtTime(wetGain.gain.value, stopTime);
+            wetGain.gain.linearRampToValueAtTime(0, stopTime + 1.5);
+
+            // Clean up after echoes fade
+            setTimeout(() => {
+              try {
+                delayNode.disconnect();
+                feedbackGain.disconnect();
+                wetGain.disconnect();
+                dryGain.disconnect();
+
+                // Reconnect gain node
+                state.gainNode.connect(audioContext.destination);
+
+                console.log(`✅ Deck ${deckId} Echo Out stopped and cleaned up`);
+              } catch (e) {
+                console.warn('Echo Out cleanup error:', e);
+              }
+            }, 1600);
+          };
+        },
+
+        // 🎛️ Instant FX: Filter Sweep - sweeping low-pass filter (hold to activate)
+        triggerFilterSweep: () => {
+          console.log(`🎛️ Deck ${deckId} starting Filter Sweep effect (hold-based)`);
+
+          const now = audioContext.currentTime;
+
+          // Create dedicated filter for sweep effect (don't use loCutNode)
+          const sweepFilter = audioContext.createBiquadFilter();
+          const dryGain = audioContext.createGain();
+          const wetGain = audioContext.createGain();
+
+          // Configure filter
+          sweepFilter.type = 'lowpass';
+          sweepFilter.frequency.value = 20000; // Start fully open
+          sweepFilter.Q.value = 6; // High resonance for pronounced sweep
+
+          // Configure mix
+          dryGain.gain.value = 0.3;
+          wetGain.gain.value = 0.7;
+
+          // Disconnect and rebuild signal chain
+          state.gainNode.disconnect();
+
+          // Connect paths
+          state.gainNode.connect(dryGain);
+          state.gainNode.connect(sweepFilter);
+          sweepFilter.connect(wetGain);
+
+          dryGain.connect(audioContext.destination);
+          wetGain.connect(audioContext.destination);
+
+          // Animate the sweep down continuously
+          const sweepDown = () => {
+            const t = audioContext.currentTime;
+            sweepFilter.frequency.cancelScheduledValues(t);
+            sweepFilter.frequency.setValueAtTime(20000, t);
+            sweepFilter.frequency.exponentialRampToValueAtTime(300, t + 2.0);
+          };
+
+          // Start initial sweep
+          sweepDown();
+
+          // Repeat sweep every 2 seconds
+          const sweepInterval = setInterval(sweepDown, 2000);
+
+          console.log(`🎛️ Deck ${deckId} Filter Sweep active - release button to stop`);
+
+          // Return cleanup function
+          return () => {
+            const stopTime = audioContext.currentTime;
+            console.log(`🎛️ Deck ${deckId} stopping Filter Sweep effect`);
+
+            clearInterval(sweepInterval);
+
+            // Reset filter to open position
+            sweepFilter.frequency.cancelScheduledValues(stopTime);
+            sweepFilter.frequency.setValueAtTime(sweepFilter.frequency.value, stopTime);
+            sweepFilter.frequency.exponentialRampToValueAtTime(20000, stopTime + 0.3);
+
+            // Clean up
+            setTimeout(() => {
+              try {
+                sweepFilter.disconnect();
+                dryGain.disconnect();
+                wetGain.disconnect();
+
+                // Reconnect gain node
+                state.gainNode.connect(audioContext.destination);
+
+                console.log(`✅ Deck ${deckId} Filter Sweep stopped and cleaned up`);
+              } catch (e) {
+                console.warn('Filter Sweep cleanup error:', e);
+              }
+            }, 400);
+          };
+        },
+
+        // 🎛️ Instant FX: Flanger - sweeping modulated delay effect (hold to activate)
+        triggerReverb: () => {
+          console.log(`🎛️ Deck ${deckId} starting Flanger effect (hold-based)`);
+
+          const now = audioContext.currentTime;
+
+          // Create flanger components
+          const delayNode = audioContext.createDelay(0.02); // Max 20ms delay
+          const feedbackGain = audioContext.createGain();
+          const wetGain = audioContext.createGain();
+          const dryGain = audioContext.createGain();
+          const lfo = audioContext.createOscillator(); // Low Frequency Oscillator
+          const lfoGain = audioContext.createGain();
+
+          // Configure flanger parameters
+          delayNode.delayTime.value = 0.005; // Base delay of 5ms
+          feedbackGain.gain.value = 0.7; // Feedback for intensity
+          wetGain.gain.value = 0.5; // 50% wet mix
+          dryGain.gain.value = 0.5; // 50% dry mix
+
+          // LFO sweeps the delay time for that classic flanger sound
+          lfo.type = 'sine';
+          lfo.frequency.value = 0.4; // 0.4 Hz sweep rate (slower, deeper)
+          lfoGain.gain.value = 0.004; // ±4ms modulation depth (wider sweep)
+
+          // Disconnect gain from destination to insert flanger
+          state.gainNode.disconnect();
+
+          // Connect flanger feedback loop
+          delayNode.connect(feedbackGain);
+          feedbackGain.connect(delayNode);
+
+          // Connect LFO to modulate delay time
+          lfo.connect(lfoGain);
+          lfoGain.connect(delayNode.delayTime);
+
+          // Connect signal chain: gainNode -> [dry path + wet path] -> destination
+          state.gainNode.connect(dryGain);
+          state.gainNode.connect(delayNode);
+          delayNode.connect(wetGain);
+
+          dryGain.connect(audioContext.destination);
+          wetGain.connect(audioContext.destination);
+
+          // Start LFO
+          lfo.start(now);
+
+          console.log(`🎛️ Deck ${deckId} Flanger active - release button to stop`);
+
+          // Return cleanup function that will be called when button is released
+          return () => {
+            const stopTime = audioContext.currentTime;
+            console.log(`🎛️ Deck ${deckId} stopping Flanger effect`);
+
+            // Quick fade out (0.3 seconds)
+            wetGain.gain.cancelScheduledValues(stopTime);
+            wetGain.gain.setValueAtTime(wetGain.gain.value, stopTime);
+            wetGain.gain.linearRampToValueAtTime(0, stopTime + 0.3);
+
+            // Clean up after fade
+            setTimeout(() => {
+              try {
+                lfo.stop();
+                lfo.disconnect();
+                lfoGain.disconnect();
+                delayNode.disconnect();
+                feedbackGain.disconnect();
+                wetGain.disconnect();
+                dryGain.disconnect();
+
+                // Reconnect gain node to destination
+                state.gainNode.connect(audioContext.destination);
+
+                console.log(`✅ Deck ${deckId} Flanger stopped and cleaned up`);
+              } catch (e) {
+                console.warn('Flanger cleanup error:', e);
+              }
+            }, 400);
+          };
+        },
+
+        // 🎛️ Instant FX: Brake - spindown effect (hold to activate)
+        triggerBrake: () => {
+          console.log(`🎛️ Deck ${deckId} starting Brake effect (hold-based)`);
+
+          const currentRate = audio.playbackRate;
+          const targetRate = 0.3; // Slow down to 30% speed
+          const slowdownDuration = 0.8; // 800ms to slow down
+
+          let animationFrameId: number | null = null;
+          let startTime = Date.now();
+
+          // Smooth deceleration using animation frames
+          const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / (slowdownDuration * 1000), 1.0);
+
+            // Exponential curve for realistic brake feel
+            const curve = Math.pow(progress, 2.5);
+            const rate = currentRate + (targetRate - currentRate) * curve;
+
+            audio.playbackRate = rate;
+
+            if (progress < 1.0) {
+              animationFrameId = requestAnimationFrame(animate);
+            } else {
+              console.log(`🎛️ Deck ${deckId} Brake at target rate ${targetRate.toFixed(2)}x - hold to maintain`);
+            }
+          };
+
+          // Start animation
+          animate();
+
+          console.log(`🎛️ Deck ${deckId} Brake active - release to speed back up`);
+
+          // Return cleanup function to speed back up
+          return () => {
+            console.log(`🎛️ Deck ${deckId} releasing Brake - speeding back up`);
+
+            // Cancel ongoing animation if still slowing down
+            if (animationFrameId !== null) {
+              cancelAnimationFrame(animationFrameId);
+            }
+
+            const currentSlowRate = audio.playbackRate;
+            const speedupDuration = 0.6; // 600ms to speed back up
+            startTime = Date.now();
+
+            const speedUp = () => {
+              const elapsed = Date.now() - startTime;
+              const progress = Math.min(elapsed / (speedupDuration * 1000), 1.0);
+
+              // Ease-out curve for smooth acceleration
+              const curve = 1 - Math.pow(1 - progress, 2);
+              const rate = currentSlowRate + (currentRate - currentSlowRate) * curve;
+
+              audio.playbackRate = rate;
+
+              if (progress < 1.0) {
+                requestAnimationFrame(speedUp);
+              } else {
+                audio.playbackRate = currentRate;
+                console.log(`✅ Deck ${deckId} Brake released - back to ${currentRate.toFixed(2)}x`);
+              }
+            };
+
+            speedUp();
+          };
         },
 
         cleanup: () => {

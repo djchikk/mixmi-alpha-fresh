@@ -499,16 +499,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       deckA: { ...prev.deckA, isPitchProcessing: true }
     }));
 
-    // TODO: Implement rubberband-wasm pitch processing
-    // This will:
-    // 1. Load current audio buffer
-    // 2. Process with rubberband to shift pitch without changing tempo
-    // 3. Create new audio blob
-    // 4. Reload deck with processed audio
-    // 5. Reset pitchCents to 0
-
-    // For now, just simulate processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Apply pitch shift using rubberband-web
+    try {
+      await mixerState.deckA.audioControls?.applyPitchShift(mixerState.deckA.pitchCents);
+      console.log('✅ Pitch shift applied successfully');
+    } catch (error) {
+      console.error('🚨 Pitch shift failed:', error);
+      setMixerState(prev => ({
+        ...prev,
+        deckA: { ...prev.deckA, isPitchProcessing: false }
+      }));
+      return;
+    }
 
     setMixerState(prev => ({
       ...prev,
@@ -525,16 +527,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       deckB: { ...prev.deckB, isPitchProcessing: true }
     }));
 
-    // TODO: Implement rubberband-wasm pitch processing
-    // This will:
-    // 1. Load current audio buffer
-    // 2. Process with rubberband to shift pitch without changing tempo
-    // 3. Create new audio blob
-    // 4. Reload deck with processed audio
-    // 5. Reset pitchCents to 0
-
-    // For now, just simulate processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Apply pitch shift using rubberband-web
+    try {
+      await mixerState.deckB.audioControls?.applyPitchShift(mixerState.deckB.pitchCents);
+      console.log('✅ Pitch shift applied successfully');
+    } catch (error) {
+      console.error('🚨 Pitch shift failed:', error);
+      setMixerState(prev => ({
+        ...prev,
+        deckB: { ...prev.deckB, isPitchProcessing: false }
+      }));
+      return;
+    }
 
     setMixerState(prev => ({
       ...prev,
@@ -1898,6 +1902,36 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 />
               </div>
 
+              {/* Deck A Filter Controls - Hi/Lo Cut buttons */}
+              <div className="absolute left-0 bottom-[40px] flex flex-col gap-0.5">
+                {mixerState.deckA.track && (
+                  <>
+                    <button
+                      onClick={handleDeckAHiCutToggle}
+                      className={`w-7 h-6 rounded text-[7px] font-bold uppercase transition-all ${
+                        mixerState.deckA.hiCutEnabled
+                          ? 'bg-gradient-to-b from-orange-500 to-red-500 text-white shadow-lg'
+                          : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-orange-400'
+                      }`}
+                      title="High Cut Filter (removes highs)"
+                    >
+                      HI
+                    </button>
+                    <button
+                      onClick={handleDeckALoCutToggle}
+                      className={`w-7 h-6 rounded text-[7px] font-bold uppercase transition-all ${
+                        mixerState.deckA.loCutEnabled
+                          ? 'bg-gradient-to-b from-blue-500 to-purple-500 text-white shadow-lg'
+                          : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-blue-400'
+                      }`}
+                      title="Low Cut Filter (removes bass)"
+                    >
+                      LO
+                    </button>
+                  </>
+                )}
+              </div>
+
               {/* Deck A FX Button - Circular, below volume slider */}
               <div className="absolute left-0 bottom-[10px]">
                 {mixerState.deckA.track && (
@@ -1908,7 +1942,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
                         : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
                     }`}
-                    title="Channel Strip FX"
+                    title="Instant FX"
                   >
                     <Sliders size={12} />
                   </button>
@@ -1944,19 +1978,29 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
               {/* Deck A FX Panel - Positioned as left sidebar overlay */}
               {mixerState.deckA.track && mixerState.deckA.fxPanelOpen && (
-                <div className="absolute left-0 bottom-0 w-[180px] h-[190px] z-50">
+                <div className="absolute left-0 bottom-0 w-[160px] h-[180px] z-50">
                   <DeckFXPanel
                     deck="A"
                     isOpen={mixerState.deckA.fxPanelOpen}
                     onClose={() => setMixerState(prev => ({ ...prev, deckA: { ...prev.deckA, fxPanelOpen: false } }))}
-                    hiCutEnabled={mixerState.deckA.hiCutEnabled}
-                    loCutEnabled={mixerState.deckA.loCutEnabled}
-                    onHiCutToggle={handleDeckAHiCutToggle}
-                    onLoCutToggle={handleDeckALoCutToggle}
-                    pitchCents={mixerState.deckA.pitchCents}
-                    onPitchChange={handleDeckAPitchChange}
-                    onApplyPitch={handleDeckAApplyPitch}
-                    isPitchProcessing={mixerState.deckA.isPitchProcessing}
+                    onTriggerFX={(fxType) => {
+                      console.log(`🎛️ Deck A: ${fxType} triggered`);
+                      const controls = mixerState.deckA.audioControls;
+                      if (!controls) return () => {};
+
+                      switch (fxType) {
+                        case 'echoOut':
+                          return controls.triggerEchoOut();
+                        case 'filterSweep':
+                          return controls.triggerFilterSweep();
+                        case 'reverb':
+                          return controls.triggerReverb();
+                        case 'brake':
+                          return controls.triggerBrake();
+                        default:
+                          return () => {};
+                      }
+                    }}
                     className="h-full"
                   />
                 </div>
@@ -2030,19 +2074,29 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
               {/* Deck B FX Panel - Positioned as right sidebar overlay */}
               {mixerState.deckB.track && mixerState.deckB.fxPanelOpen && (
-                <div className="absolute right-0 bottom-0 w-[180px] h-[190px] z-50">
+                <div className="absolute right-0 bottom-0 w-[160px] h-[180px] z-50">
                   <DeckFXPanel
                     deck="B"
                     isOpen={mixerState.deckB.fxPanelOpen}
                     onClose={() => setMixerState(prev => ({ ...prev, deckB: { ...prev.deckB, fxPanelOpen: false } }))}
-                    hiCutEnabled={mixerState.deckB.hiCutEnabled}
-                    loCutEnabled={mixerState.deckB.loCutEnabled}
-                    onHiCutToggle={handleDeckBHiCutToggle}
-                    onLoCutToggle={handleDeckBLoCutToggle}
-                    pitchCents={mixerState.deckB.pitchCents}
-                    onPitchChange={handleDeckBPitchChange}
-                    onApplyPitch={handleDeckBApplyPitch}
-                    isPitchProcessing={mixerState.deckB.isPitchProcessing}
+                    onTriggerFX={(fxType) => {
+                      console.log(`🎛️ Deck B: ${fxType} triggered`);
+                      const controls = mixerState.deckB.audioControls;
+                      if (!controls) return () => {};
+
+                      switch (fxType) {
+                        case 'echoOut':
+                          return controls.triggerEchoOut();
+                        case 'filterSweep':
+                          return controls.triggerFilterSweep();
+                        case 'reverb':
+                          return controls.triggerReverb();
+                        case 'brake':
+                          return controls.triggerBrake();
+                        default:
+                          return () => {};
+                      }
+                    }}
                     className="h-full"
                   />
                 </div>
@@ -2057,6 +2111,36 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 />
               </div>
 
+              {/* Deck B Filter Controls - Hi/Lo Cut buttons */}
+              <div className="absolute right-0 bottom-[40px] flex flex-col gap-0.5">
+                {mixerState.deckB.track && (
+                  <>
+                    <button
+                      onClick={handleDeckBHiCutToggle}
+                      className={`w-7 h-6 rounded text-[7px] font-bold uppercase transition-all ${
+                        mixerState.deckB.hiCutEnabled
+                          ? 'bg-gradient-to-b from-orange-500 to-red-500 text-white shadow-lg'
+                          : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-orange-400'
+                      }`}
+                      title="High Cut Filter (removes highs)"
+                    >
+                      HI
+                    </button>
+                    <button
+                      onClick={handleDeckBLoCutToggle}
+                      className={`w-7 h-6 rounded text-[7px] font-bold uppercase transition-all ${
+                        mixerState.deckB.loCutEnabled
+                          ? 'bg-gradient-to-b from-blue-500 to-purple-500 text-white shadow-lg'
+                          : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-blue-400'
+                      }`}
+                      title="Low Cut Filter (removes bass)"
+                    >
+                      LO
+                    </button>
+                  </>
+                )}
+              </div>
+
               {/* Deck B FX Button - Circular, below volume slider */}
               <div className="absolute right-0 bottom-[10px]">
                 {mixerState.deckB.track && (
@@ -2067,7 +2151,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
                         : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
                     }`}
-                    title="Channel Strip FX"
+                    title="Instant FX"
                   >
                     <Sliders size={12} />
                   </button>

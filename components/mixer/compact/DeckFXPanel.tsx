@@ -1,27 +1,15 @@
 "use client";
 
-import React, { memo, useState } from 'react';
-import { X, Sliders, Music } from 'lucide-react';
+import React, { memo, useState, useRef } from 'react';
+import { X, Repeat, Waves, AudioWaveform, CircleSlash } from 'lucide-react';
 
-type PanelMode = 'filters' | 'pitch';
+type InstantFXType = 'echoOut' | 'filterSweep' | 'reverb' | 'brake';
 
 interface DeckFXPanelProps {
   deck: 'A' | 'B';
   isOpen: boolean;
   onClose: () => void;
-
-  // Hi/Lo Cut controls
-  hiCutEnabled: boolean;
-  loCutEnabled: boolean;
-  onHiCutToggle: () => void;
-  onLoCutToggle: () => void;
-
-  // Pitch control
-  pitchCents: number;
-  onPitchChange: (cents: number) => void;
-  onApplyPitch: () => void;
-  isPitchProcessing: boolean;
-
+  onTriggerFX: (fxType: InstantFXType) => void;
   className?: string;
 }
 
@@ -29,167 +17,123 @@ const DeckFXPanel = memo(function DeckFXPanel({
   deck,
   isOpen,
   onClose,
-  hiCutEnabled,
-  loCutEnabled,
-  onHiCutToggle,
-  onLoCutToggle,
-  pitchCents,
-  onPitchChange,
-  onApplyPitch,
-  isPitchProcessing,
+  onTriggerFX,
   className = ''
 }: DeckFXPanelProps) {
-  const [mode, setMode] = useState<PanelMode>('filters');
+  const [activeEffect, setActiveEffect] = useState<InstantFXType | null>(null);
+  const cleanupFnRef = useRef<(() => void) | null>(null);
 
   if (!isOpen) return null;
 
   const color = deck === 'A' ? '#81E4F2' : '#60A5FA'; // Cyan for A, Blue for B
-  const semitones = (pitchCents / 100).toFixed(1);
-  const displayValue = pitchCents >= 0 ? `+${semitones}` : semitones;
+
+  const handleEffectStart = (fxType: InstantFXType) => {
+    // Don't start if another effect is already active
+    if (activeEffect) return;
+
+    console.log(`🎛️ Starting effect: ${fxType}`);
+    setActiveEffect(fxType);
+
+    // All effects now return cleanup functions for hold-to-activate
+    const cleanup = (onTriggerFX as any)(fxType) as () => void;
+    cleanupFnRef.current = cleanup;
+  };
+
+  const handleEffectStop = () => {
+    if (!activeEffect) return;
+
+    console.log(`🎛️ Stopping effect: ${activeEffect}`);
+
+    // Call cleanup function if it exists
+    if (cleanupFnRef.current) {
+      cleanupFnRef.current();
+      cleanupFnRef.current = null;
+    }
+
+    setActiveEffect(null);
+  };
 
   return (
     <div className={`deck-fx-panel bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden flex flex-col ${className}`}>
-      {/* Panel Content - flex-1 to take remaining space */}
-      <div className="flex-1 p-2.5 overflow-y-auto">
-
-        {/* Filters Mode */}
-        {mode === 'filters' && (
-          <div className="mt-3">
-            <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-1.5">Filters</div>
-            <div className="flex gap-1.5">
-              <button
-                onClick={onHiCutToggle}
-                className={`flex-1 px-2 py-1.5 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
-                  hiCutEnabled
-                    ? 'bg-gradient-to-b from-orange-500 to-red-500 text-white shadow-lg'
-                    : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-slate-500'
-                }`}
-              >
-                HI CUT
-              </button>
-              <button
-                onClick={onLoCutToggle}
-                className={`flex-1 px-2 py-1.5 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
-                  loCutEnabled
-                    ? 'bg-gradient-to-b from-blue-500 to-purple-500 text-white shadow-lg'
-                    : 'bg-slate-800 border border-slate-600 text-slate-400 hover:border-slate-500'
-                }`}
-              >
-                LO CUT
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Pitch Shift Mode */}
-        {mode === 'pitch' && (
-          <div className="mt-3">
-            <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-2">Pitch Shift</div>
-
-            {/* Pitch Slider */}
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex-1 relative">
-                <input
-                  type="range"
-                  min="-1200"
-                  max="1200"
-                  step="50"
-                  value={pitchCents}
-                  onChange={(e) => onPitchChange(Number(e.target.value))}
-                  className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer
-                    [&::-webkit-slider-thumb]:appearance-none
-                    [&::-webkit-slider-thumb]:w-2.5
-                    [&::-webkit-slider-thumb]:h-2.5
-                    [&::-webkit-slider-thumb]:rounded-full
-                    [&::-webkit-slider-thumb]:bg-current
-                    [&::-moz-range-thumb]:w-2.5
-                    [&::-moz-range-thumb]:h-2.5
-                    [&::-moz-range-thumb]:rounded-full
-                    [&::-moz-range-thumb]:bg-current
-                    [&::-moz-range-thumb]:border-0"
-                  style={{ color }}
-                />
-                {/* Center marker */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[1px] h-2.5 bg-slate-600 pointer-events-none" />
-              </div>
-
-              {/* Display Value */}
-              <div className="text-xs font-mono font-bold min-w-[50px] text-right" style={{ color }}>
-                {displayValue} st
-              </div>
-            </div>
-
-            {/* Apply Button */}
-            <button
-              onClick={onApplyPitch}
-              disabled={isPitchProcessing || pitchCents === 0}
-              className={`w-full px-2 py-2 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
-                isPitchProcessing
-                  ? 'bg-slate-700 text-slate-500 cursor-wait'
-                  : pitchCents === 0
-                  ? 'bg-slate-800 border border-slate-700 text-slate-600 cursor-not-allowed'
-                  : 'border-2 text-white hover:shadow-lg'
-              }`}
-              style={
-                !isPitchProcessing && pitchCents !== 0
-                  ? { borderColor: color, backgroundColor: `${color}20` }
-                  : undefined
-              }
-            >
-              {isPitchProcessing ? 'PROCESSING...' : pitchCents === 0 ? 'NO CHANGE' : 'APPLY PITCH SHIFT'}
-            </button>
-
-            {/* Info Text */}
-            <div className="mt-2 mb-3 text-[7px] text-slate-500 text-center leading-tight">
-              Pitch shift will be applied to the audio buffer without affecting timing
-            </div>
-          </div>
-        )}
-
+      {/* Panel Header */}
+      <div className="flex items-center justify-between border-b border-slate-700 px-2.5 py-1.5">
+        <div className="text-[8px] text-slate-500 uppercase tracking-wider">Instant FX</div>
+        <button
+          onClick={onClose}
+          className="text-slate-500 hover:text-red-400 transition-all"
+          title="Close"
+        >
+          <X size={12} />
+        </button>
       </div>
 
-      {/* Bottom Navigation Bar */}
-      <div className="flex items-center border-t border-slate-700 bg-slate-800/50">
-        {deck === 'A' && (
+      {/* 2x2 Effect Pads Grid */}
+      <div className="flex-1 p-2.5">
+        <div className="grid grid-cols-2 gap-1.5 h-full">
+          {/* Echo Out */}
           <button
-            onClick={onClose}
-            className="flex-1 flex items-center justify-center py-2.5 text-slate-500 hover:text-red-400 hover:bg-slate-700/30 transition-all"
-            title="Close"
+            onPointerDown={() => handleEffectStart('echoOut')}
+            onPointerUp={handleEffectStop}
+            onPointerLeave={handleEffectStop}
+            className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
+              activeEffect === 'echoOut'
+                ? 'border-cyan-400 bg-cyan-900 scale-95 shadow-lg shadow-cyan-500/50'
+                : 'border-slate-600 hover:border-cyan-400 hover:bg-slate-700 active:scale-95'
+            }`}
+            style={{ borderColor: activeEffect === 'echoOut' ? '#22d3ee' : 'rgba(100, 200, 255, 0.3)' }}
           >
-            <X size={14} />
+            <Repeat size={16} className="text-cyan-400 mb-1" />
+            <div className="text-[8px] font-bold uppercase text-slate-300">Echo Out</div>
           </button>
-        )}
-        <button
-          onClick={() => setMode('filters')}
-          className={`flex-1 flex items-center justify-center py-2.5 transition-all ${
-            mode === 'filters'
-              ? 'text-[#81E4F2] bg-slate-700/50'
-              : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/30'
-          }`}
-          title="Filters"
-        >
-          <Sliders size={14} />
-        </button>
-        <button
-          onClick={() => setMode('pitch')}
-          className={`flex-1 flex items-center justify-center py-2.5 transition-all ${
-            mode === 'pitch'
-              ? 'text-[#81E4F2] bg-slate-700/50'
-              : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/30'
-          }`}
-          title="Pitch Shift"
-        >
-          <Music size={14} />
-        </button>
-        {deck === 'B' && (
+
+          {/* Filter Sweep */}
           <button
-            onClick={onClose}
-            className="flex-1 flex items-center justify-center py-2.5 text-slate-500 hover:text-red-400 hover:bg-slate-700/30 transition-all"
-            title="Close"
+            onPointerDown={() => handleEffectStart('filterSweep')}
+            onPointerUp={handleEffectStop}
+            onPointerLeave={handleEffectStop}
+            className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
+              activeEffect === 'filterSweep'
+                ? 'border-purple-400 bg-purple-900 scale-95 shadow-lg shadow-purple-500/50'
+                : 'border-slate-600 hover:border-purple-400 hover:bg-slate-700 active:scale-95'
+            }`}
+            style={{ borderColor: activeEffect === 'filterSweep' ? '#c084fc' : 'rgba(168, 85, 247, 0.3)' }}
           >
-            <X size={14} />
+            <Waves size={16} className="text-purple-400 mb-1" />
+            <div className="text-[8px] font-bold uppercase text-slate-300">Filter</div>
           </button>
-        )}
+
+          {/* Flanger */}
+          <button
+            onPointerDown={() => handleEffectStart('reverb')}
+            onPointerUp={handleEffectStop}
+            onPointerLeave={handleEffectStop}
+            className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
+              activeEffect === 'reverb'
+                ? 'border-blue-400 bg-blue-900 scale-95 shadow-lg shadow-blue-500/50'
+                : 'border-slate-600 hover:border-blue-400 hover:bg-slate-700 active:scale-95'
+            }`}
+            style={{ borderColor: activeEffect === 'reverb' ? '#60a5fa' : 'rgba(96, 165, 250, 0.3)' }}
+          >
+            <AudioWaveform size={16} className="text-blue-400 mb-1" />
+            <div className="text-[8px] font-bold uppercase text-slate-300">Flanger</div>
+          </button>
+
+          {/* Brake */}
+          <button
+            onPointerDown={() => handleEffectStart('brake')}
+            onPointerUp={handleEffectStop}
+            onPointerLeave={handleEffectStop}
+            className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
+              activeEffect === 'brake'
+                ? 'border-red-400 bg-red-900 scale-95 shadow-lg shadow-red-500/50'
+                : 'border-slate-600 hover:border-red-400 hover:bg-slate-700 active:scale-95'
+            }`}
+            style={{ borderColor: activeEffect === 'brake' ? '#f87171' : 'rgba(248, 113, 113, 0.3)' }}
+          >
+            <CircleSlash size={16} className="text-red-400 mb-1" />
+            <div className="text-[8px] font-bold uppercase text-slate-300">Brake</div>
+          </button>
+        </div>
       </div>
     </div>
   );
