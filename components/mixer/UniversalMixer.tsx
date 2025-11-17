@@ -1464,8 +1464,40 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   };
 
   // Handle PLAY button click for radio (starts playback)
-  const handleRadioPlay = (deck: 'A' | 'B') => {
+  const handleRadioPlay = async (deck: 'A' | 'B') => {
     console.log(`▶️ Starting radio playback for Deck ${deck}`);
+
+    const deckState = deck === 'A' ? mixerState.deckA : mixerState.deckB;
+    const currentTrack = deckState.track;
+
+    // If this is a grabbed_radio track, reload the original radio stream
+    if (currentTrack && deckState.contentType === 'grabbed_radio' && (currentTrack as any).stream_url) {
+      console.log(`🔄 Re-loading radio stream for re-grab on Deck ${deck}`);
+
+      // Create a fresh radio track with the original stream_url
+      const radioTrack: Track = {
+        id: currentTrack.id,
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        imageUrl: currentTrack.imageUrl,
+        audioUrl: (currentTrack as any).stream_url, // Use original stream
+        bpm: currentTrack.bpm,
+        content_type: 'radio_station', // Change back to radio_station
+        price_stx: currentTrack.price_stx || 0,
+        primary_uploader_wallet: currentTrack.primary_uploader_wallet || '',
+        stream_url: (currentTrack as any).stream_url
+      } as any;
+
+      // Reload the deck with the radio stream
+      if (deck === 'A') {
+        await loadTrackToDeckA(radioTrack);
+      } else {
+        await loadTrackToDeckB(radioTrack);
+      }
+      return;
+    }
+
+    // Normal radio playback
     if (deck === 'A') {
       handleDeckAPlayPause();
     } else {
@@ -1543,18 +1575,23 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     const otherDeck = deck === 'A' ? mixerState.deckB : mixerState.deckA;
     const grabbedBPM = otherDeck.track?.bpm || 120;
 
+    // Get original track to preserve stream_url
+    const originalTrack = mixerState[deck === 'A' ? 'deckA' : 'deckB'].track;
+
     // Create a pseudo-track for the grabbed audio
     const grabbedTrack: Track = {
       id: `grabbed-${Date.now()}`,
       title: `Grabbed from Radio (${deck})`,
-      artist: mixerState[deck === 'A' ? 'deckA' : 'deckB'].track?.artist || 'Unknown',
-      imageUrl: mixerState[deck === 'A' ? 'deckA' : 'deckB'].track?.imageUrl || '',
+      artist: originalTrack?.artist || 'Unknown',
+      imageUrl: originalTrack?.imageUrl || '',
       audioUrl: audioUrl,
       bpm: grabbedBPM,
       content_type: 'grabbed_radio', // Mark as grabbed radio, not regular loop
       price_stx: 0,
-      primary_uploader_wallet: ''
-    };
+      primary_uploader_wallet: '',
+      // Preserve the original stream_url for re-grabbing
+      ...(originalTrack && { stream_url: (originalTrack as any).stream_url })
+    } as any;
 
     console.log(`🎵 Grabbed audio will use BPM: ${grabbedBPM}`);
 
@@ -1922,7 +1959,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               </div>
 
               {/* Deck A Radio Play Button (Below Deck Image, left-aligned) */}
-              {mixerState.deckA.contentType === 'radio_station' && (
+              {(mixerState.deckA.contentType === 'radio_station' || mixerState.deckA.contentType === 'grabbed_radio') && (
                 <div className="absolute left-[20px] bottom-[12px] w-[72px]">
                   <button
                     onClick={() => {
@@ -1942,7 +1979,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'bg-slate-800 animate-pulse'
                         : mixerState.deckA.playing
                         ? 'bg-slate-800 text-red-400 animate-pulse'
-                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
+                        : mixerState.deckA.contentType === 'radio_station'
+                        ? 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
+                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2]'
                     }`}
                     style={{
                       borderColor: deckAJustGrabbed ? '#81E4F2' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FB923C' : mixerState.deckA.playing ? '#ef4444' : '#81E4F240',
@@ -1957,7 +1996,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'Grab audio from radio'
                         : mixerState.deckA.playing
                         ? 'Recording audio buffer...'
-                        : 'Start radio playback'
+                        : mixerState.deckA.contentType === 'radio_station'
+                        ? 'Start radio playback'
+                        : 'Re-grab from radio station'
                     }
                   >
                     <Radio size={10} />
@@ -2075,7 +2116,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               </div>
 
               {/* Deck B Radio Play Button (Below Deck Image, right-aligned) */}
-              {mixerState.deckB.contentType === 'radio_station' && (
+              {(mixerState.deckB.contentType === 'radio_station' || mixerState.deckB.contentType === 'grabbed_radio') && (
                 <div className="absolute right-[20px] bottom-[12px] w-[72px]">
                   <button
                     onClick={() => {
@@ -2095,7 +2136,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'bg-slate-800 animate-pulse'
                         : mixerState.deckB.playing
                         ? 'bg-slate-800 text-red-400 animate-pulse'
-                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
+                        : mixerState.deckB.contentType === 'radio_station'
+                        ? 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
+                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2]'
                     }`}
                     style={{
                       borderColor: deckBJustGrabbed ? '#81E4F2' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FB923C' : mixerState.deckB.playing ? '#ef4444' : '#81E4F240',
@@ -2110,7 +2153,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'Grab audio from radio'
                         : mixerState.deckB.playing
                         ? 'Recording audio buffer...'
-                        : 'Start radio playback'
+                        : mixerState.deckB.contentType === 'radio_station'
+                        ? 'Start radio playback'
+                        : 'Re-grab from radio station'
                     }
                   >
                     <Radio size={10} />
