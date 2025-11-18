@@ -712,12 +712,12 @@ export default function CompactTrackCardWithFlip({
                         >
                           LIVE
                         </span>
-                      ) : track.bpm && track.content_type !== 'ep' ? (
+                      ) : track.content_type !== 'ep' ? (
                         <span
                           className="text-sm font-mono font-bold text-white"
-                          title="BPM"
+                          title={track.bpm ? "BPM" : "Free-form / Variable tempo"}
                         >
-                          {track.bpm}
+                          {track.bpm || '~'}
                         </span>
                       ) : (
                         <div className="w-12"></div>
@@ -783,7 +783,7 @@ export default function CompactTrackCardWithFlip({
 
                         {/* BPM (for loops/songs) or Station Title (for radio stations) */}
                         <div className="flex-1 text-white text-xs text-center" style={{ fontFamily: track.content_type === 'station_pack' ? 'inherit' : 'monospace' }}>
-                          {track.content_type === 'station_pack' ? loop.title : (loop.bpm || 120)}
+                          {track.content_type === 'station_pack' ? loop.title : (loop.bpm || '~')}
                         </div>
 
                         {/* Play/Pause button */}

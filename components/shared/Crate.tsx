@@ -214,7 +214,7 @@ function ExpandedPackTrack({
         {/* BPM - hidden for radio stations */}
         {packTrack.content_type !== 'radio_station' && (
           <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
-            {packTrack.bpm || 120}
+            {packTrack.bpm || '~'}
           </div>
         )}
       </div>
@@ -879,7 +879,7 @@ export default function Crate({ className = '' }: CrateProps) {
               {/* BPM overlay for mixer (always) and store/globe (on hover) contexts - hidden for radio stations */}
               {track.content_type !== 'radio_station' && (context === 'mixer' || ((context === 'store' || context === 'globe') && hoveredTrackId === track.id)) && (
                 <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none">
-                  {track.bpm || 120}
+                  {track.bpm || '~'}
                 </div>
               )}
 

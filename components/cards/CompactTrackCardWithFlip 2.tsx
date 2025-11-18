@@ -336,12 +336,12 @@ export default function CompactTrackCardWithFlip({
                       </span>
                       
                       {/* BPM Badge (right) - hide for EPs since they have multiple songs with different BPMs */}
-                      {track.bpm && track.content_type !== 'ep' ? (
+                      {track.content_type !== 'ep' ? (
                         <span
                           className="text-sm font-mono font-bold text-white"
-                          title="BPM"
+                          title={track.bpm ? "BPM" : "Free-form / Variable tempo"}
                         >
-                          {track.bpm}
+                          {track.bpm || '~'}
                         </span>
                       ) : (
                         <div className="w-12"></div>

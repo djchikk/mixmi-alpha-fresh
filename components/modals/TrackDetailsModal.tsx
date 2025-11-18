@@ -510,11 +510,9 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         <div className="text-gray-300 text-xs font-medium truncate">
                           {loop.title || `Loop ${index + 1}`}
                         </div>
-                        {loop.bpm && (
-                          <div className="text-gray-500 text-xs">
-                            {loop.bpm} BPM
-                          </div>
-                        )}
+                        <div className="text-gray-500 text-xs">
+                          {loop.bpm || '~'} BPM
+                        </div>
                       </div>
                       
                       {/* Drag Handle - appears on hover */}
@@ -975,10 +973,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             <div>
               <Divider title="METADATA" />
               <div className="space-y-1 text-xs">
-                {track.bpm && (
+                {track.content_type !== 'ep' && track.content_type !== 'radio_station' && (
                   <div className="flex">
                     <span className="text-gray-500 w-24">BPM:</span>
-                    <span className="text-gray-300">{track.bpm}</span>
+                    <span className="text-gray-300">{track.bpm || '~'}</span>
                   </div>
                 )}
                 {track.key && (
