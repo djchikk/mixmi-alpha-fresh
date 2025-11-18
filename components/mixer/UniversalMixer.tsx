@@ -1766,7 +1766,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           <div className="flex justify-center items-center gap-3 mb-5">
             {/* Deck A Controls - Fixed width container to prevent shifting */}
             <div className="w-[100px] flex justify-center mr-2">
-              {mixerState.deckA.contentType !== 'radio_station' && !deckAJustGrabbed && (
+              {mixerState.deckA.contentType !== 'radio_station' && (
                 <LoopControlsCompact
                   loopLength={mixerState.deckA.loopLength}
                   loopEnabled={mixerState.deckA.loopEnabled}
@@ -1859,7 +1859,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
             {/* Deck B Controls - Fixed width container to prevent shifting */}
             <div className="w-[100px] flex justify-center ml-2">
-              {mixerState.deckB.contentType !== 'radio_station' && !deckBJustGrabbed && (
+              {mixerState.deckB.contentType !== 'radio_station' && (
                 <LoopControlsCompact
                   loopLength={mixerState.deckB.loopLength}
                   loopEnabled={mixerState.deckB.loopEnabled}
