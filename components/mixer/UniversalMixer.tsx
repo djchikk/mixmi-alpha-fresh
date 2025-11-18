@@ -1990,11 +1990,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         : deckARadioPlayTime >= 10
                         ? 'bg-slate-800 animate-pulse'
                         : mixerState.deckA.playing
-                        ? 'bg-slate-800 text-red-400 animate-pulse'
+                        ? 'bg-slate-800 text-slate-400 animate-pulse'
                         : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
                     }`}
                     style={{
-                      borderColor: mixerState.deckA.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FB923C' : mixerState.deckA.playing ? '#ef4444' : '#81E4F240',
+                      borderColor: mixerState.deckA.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FB923C' : mixerState.deckA.playing ? '#94a3b8' : '#81E4F240',
                       color: deckARadioPlayTime >= 10 && mixerState.deckA.contentType !== 'grabbed_radio' ? '#FB923C' : undefined
                     }}
                     title={
@@ -2005,12 +2005,14 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         : deckARadioPlayTime >= 10
                         ? 'Grab audio from radio'
                         : mixerState.deckA.playing
-                        ? 'Recording audio buffer...'
+                        ? 'Buffering audio...'
                         : 'Start radio playback'
                     }
                   >
-                    <Radio size={10} />
-                    <span className="text-[9px] font-bold">{mixerState.deckA.contentType === 'grabbed_radio' ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : mixerState.deckA.playing ? 'REC' : 'PLAY'}</span>
+                    {!mixerState.deckA.playing && <Radio size={10} />}
+                    <span className={mixerState.deckA.playing && !isGrabbingDeckA && deckARadioPlayTime < 10 ? "text-[9px]" : "text-[9px] font-bold"}>
+                      {mixerState.deckA.contentType === 'grabbed_radio' ? 'DONE' : isGrabbingDeckA ? 'BUFFER' : deckARadioPlayTime >= 10 ? 'GRAB' : mixerState.deckA.playing ? 'buffering...' : 'PLAY'}
+                    </span>
                   </button>
                 </div>
               )}
@@ -2146,11 +2148,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         : deckBRadioPlayTime >= 10
                         ? 'bg-slate-800 animate-pulse'
                         : mixerState.deckB.playing
-                        ? 'bg-slate-800 text-red-400 animate-pulse'
+                        ? 'bg-slate-800 text-slate-400 animate-pulse'
                         : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
                     }`}
                     style={{
-                      borderColor: mixerState.deckB.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FB923C' : mixerState.deckB.playing ? '#ef4444' : '#81E4F240',
+                      borderColor: mixerState.deckB.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FB923C' : mixerState.deckB.playing ? '#94a3b8' : '#81E4F240',
                       color: deckBRadioPlayTime >= 10 && mixerState.deckB.contentType !== 'grabbed_radio' ? '#FB923C' : undefined
                     }}
                     title={
@@ -2161,12 +2163,14 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         : deckBRadioPlayTime >= 10
                         ? 'Grab audio from radio'
                         : mixerState.deckB.playing
-                        ? 'Recording audio buffer...'
+                        ? 'Buffering audio...'
                         : 'Start radio playback'
                     }
                   >
-                    <Radio size={10} />
-                    <span className="text-[9px] font-bold">{mixerState.deckB.contentType === 'grabbed_radio' ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : mixerState.deckB.playing ? 'REC' : 'PLAY'}</span>
+                    {!mixerState.deckB.playing && <Radio size={10} />}
+                    <span className={mixerState.deckB.playing && !isGrabbingDeckB && deckBRadioPlayTime < 10 ? "text-[9px]" : "text-[9px] font-bold"}>
+                      {mixerState.deckB.contentType === 'grabbed_radio' ? 'DONE' : isGrabbingDeckB ? 'BUFFER' : deckBRadioPlayTime >= 10 ? 'GRAB' : mixerState.deckB.playing ? 'buffering...' : 'PLAY'}
+                    </span>
                   </button>
                 </div>
               )}
