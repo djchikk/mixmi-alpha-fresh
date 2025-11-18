@@ -555,22 +555,43 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     deckB: typeof mixerState.deckB,
     masterDeckId?: 'A' | 'B'  // 🎯 NEW: Accept manual master override
   ): number => {
-    // 🎯 HIGHEST PRIORITY: If user manually set master, use that
+    // 🎯 HIGHEST PRIORITY: If user manually set master, use that (but not for radio)
     if (masterDeckId) {
-      if (masterDeckId === 'A' && deckA.track?.bpm) {
+      if (masterDeckId === 'A' && deckA.track?.bpm &&
+          deckA.contentType !== 'radio_station' && deckA.contentType !== 'grabbed_radio') {
         console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (manual override)`);
         return deckA.track.bpm;
-      } else if (masterDeckId === 'B' && deckB.track?.bpm) {
+      } else if (masterDeckId === 'B' && deckB.track?.bpm &&
+          deckB.contentType !== 'radio_station' && deckB.contentType !== 'grabbed_radio') {
         console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (manual override)`);
         return deckB.track.bpm;
       }
     }
 
-    // Otherwise use automatic priority system
+    // Radio stations should NOT affect master BPM - completely ignore them
+    const isRadioA = deckA.contentType === 'radio_station' || deckA.contentType === 'grabbed_radio';
+    const isRadioB = deckB.contentType === 'radio_station' || deckB.contentType === 'grabbed_radio';
+
+    // If both are radio, default to 120
+    if (isRadioA && isRadioB) {
+      console.log(`🎵 Master BPM: 120 (both decks are radio)`);
+      return 120;
+    }
+
+    // If only one is radio, use the non-radio deck's BPM
+    if (isRadioA && deckB.track?.bpm) {
+      console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (${deckB.contentType}, radio ignored)`);
+      return deckB.track.bpm;
+    }
+    if (isRadioB && deckA.track?.bpm) {
+      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (${deckA.contentType}, radio ignored)`);
+      return deckA.track.bpm;
+    }
+
+    // Neither is radio - use priority system for loops vs songs
     const getPriority = (contentType?: string): number => {
       if (contentType === 'loop') return 3;
       if (contentType === 'full_song') return 2;
-      if (contentType === 'radio_station' || contentType === 'grabbed_radio') return 1;
       return 0;
     };
 
@@ -588,6 +609,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       // Same priority, use Deck A
       console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (same priority, default)`);
       return deckA.track.bpm;
+    } else if (deckB.track?.bpm) {
+      // Fallback to Deck B if A has no BPM
+      console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (fallback)`);
+      return deckB.track.bpm;
     }
 
     // Default to 120 BPM
