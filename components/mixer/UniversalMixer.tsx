@@ -1474,9 +1474,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     if (currentTrack && deckState.contentType === 'grabbed_radio' && (currentTrack as any).stream_url) {
       console.log(`🔄 Re-loading radio stream for re-grab on Deck ${deck}`);
 
+      // Stop current playback if playing
+      if (deckState.playing) {
+        if (deck === 'A') {
+          handleDeckAPlayPause();
+        } else {
+          handleDeckBPlayPause();
+        }
+      }
+
       // Create a fresh radio track with the original stream_url
       const radioTrack: Track = {
-        id: currentTrack.id,
+        id: `radio-${Date.now()}`, // New ID to force full reload
         title: currentTrack.title,
         artist: currentTrack.artist,
         imageUrl: currentTrack.imageUrl,
@@ -1488,12 +1497,22 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         stream_url: (currentTrack as any).stream_url
       } as any;
 
+      // Revoke old blob URL if it exists to free memory
+      if (currentTrack.audioUrl && currentTrack.audioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(currentTrack.audioUrl);
+        console.log('🗑️ Revoked old blob URL');
+      }
+
       // Reload the deck with the radio stream
+      console.log(`📻 Reloading radio stream for Deck ${deck}`);
       if (deck === 'A') {
         await loadTrackToDeckA(radioTrack);
       } else {
         await loadTrackToDeckB(radioTrack);
       }
+
+      // Don't auto-play - let user manually start when ready
+      console.log(`✅ Radio stream reloaded for Deck ${deck}. Press PLAY to start.`);
       return;
     }
 
@@ -1693,6 +1712,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     };
   }, []);
 
+  // Check if any deck has radio content - radio can't sync
+  const hasRadio =
+    mixerState.deckA.contentType === 'radio_station' ||
+    mixerState.deckA.contentType === 'grabbed_radio' ||
+    mixerState.deckB.contentType === 'radio_station' ||
+    mixerState.deckB.contentType === 'grabbed_radio';
+
   return (
     <div
       className={`universal-mixer bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 overflow-hidden ${className}`}
@@ -1777,16 +1803,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             {/* Deck A Sync Button */}
             <button
               onClick={() => handleDeckSync('A')}
-              disabled={!mixerState.syncActive}
+              disabled={!mixerState.syncActive || hasRadio}
               className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider border ${
-                !mixerState.syncActive
+                hasRadio || !mixerState.syncActive
                   ? 'text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
                   : mixerState.masterDeckId === 'A'
                   ? 'text-[#81E4F2] border-amber-500/50 bg-amber-500/10 hover:border-amber-500/70 cursor-pointer'
                   : 'text-slate-400 border-slate-600 bg-slate-800/40 hover:border-slate-500 hover:text-slate-300 cursor-pointer'
               }`}
               title={
-                !mixerState.syncActive
+                hasRadio
+                  ? 'Radio stations cannot sync'
+                  : !mixerState.syncActive
                   ? 'Enable sync from master control first'
                   : mixerState.masterDeckId === 'A'
                   ? 'Deck A is master'
@@ -1806,8 +1834,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 deckBPlaying={mixerState.deckB.playing}
                 deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
                 recordingRemix={false}
-                syncActive={mixerState.syncActive}
+                syncActive={mixerState.syncActive && !hasRadio}
                 highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
+                hasRadio={hasRadio}
                 onMasterPlay={handleMasterPlay}
                 onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
                 onMasterStop={handleMasterStop}
@@ -1829,16 +1858,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             {/* Deck B Sync Button */}
             <button
               onClick={() => handleDeckSync('B')}
-              disabled={!mixerState.syncActive}
+              disabled={!mixerState.syncActive || hasRadio}
               className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider border ${
-                !mixerState.syncActive
+                hasRadio || !mixerState.syncActive
                   ? 'text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
                   : mixerState.masterDeckId === 'B'
                   ? 'text-[#81E4F2] border-amber-500/50 bg-amber-500/10 hover:border-amber-500/70 cursor-pointer'
                   : 'text-slate-400 border-slate-600 bg-slate-800/40 hover:border-slate-500 hover:text-slate-300 cursor-pointer'
               }`}
               title={
-                !mixerState.syncActive
+                hasRadio
+                  ? 'Radio stations cannot sync'
+                  : !mixerState.syncActive
                   ? 'Enable sync from master control first'
                   : mixerState.masterDeckId === 'B'
                   ? 'Deck B is master'
@@ -1962,8 +1993,43 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               {(mixerState.deckA.contentType === 'radio_station' || mixerState.deckA.contentType === 'grabbed_radio') && (
                 <div className="absolute left-[20px] bottom-[12px] w-[72px]">
                   <button
-                    onClick={() => {
-                      if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
+                    onClick={async () => {
+                      // For grabbed_radio, reload the original radio station
+                      if (mixerState.deckA.contentType === 'grabbed_radio') {
+                        const currentTrack = mixerState.deckA.track;
+                        if (currentTrack && (currentTrack as any).stream_url) {
+                          console.log('🔄 CLEAR: Reloading radio station for Deck A');
+
+                          // Stop playback if playing
+                          if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
+                            mixerState.deckA.audioControls.pause();
+                          }
+
+                          // Revoke old blob URL to free memory
+                          if (currentTrack.audioUrl && currentTrack.audioUrl.startsWith('blob:')) {
+                            URL.revokeObjectURL(currentTrack.audioUrl);
+                            console.log('🗑️ Revoked grabbed audio blob URL');
+                          }
+
+                          // Recreate the radio station track
+                          const radioTrack: Track = {
+                            id: `radio-${Date.now()}`,
+                            title: currentTrack.title,
+                            artist: currentTrack.artist,
+                            imageUrl: currentTrack.imageUrl,
+                            audioUrl: (currentTrack as any).stream_url,
+                            bpm: currentTrack.bpm,
+                            content_type: 'radio_station',
+                            price_stx: currentTrack.price_stx || 0,
+                            primary_uploader_wallet: currentTrack.primary_uploader_wallet || '',
+                            stream_url: (currentTrack as any).stream_url
+                          } as any;
+
+                          console.log('📻 Loading fresh radio station to Deck A');
+                          await loadTrackToDeckA(radioTrack);
+                          console.log('✅ Radio station reloaded, ready for new grab');
+                        }
+                      } else if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
                         handleRadioPlay('A');
                       } else if (deckARadioPlayTime >= 10 && !deckAJustGrabbed) {
                         handleGrab('A');
@@ -1998,11 +2064,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'Recording audio buffer...'
                         : mixerState.deckA.contentType === 'radio_station'
                         ? 'Start radio playback'
-                        : 'Re-grab from radio station'
+                        : 'Clear grabbed audio'
                     }
                   >
                     <Radio size={10} />
-                    <span className="text-[9px] font-bold">{deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : mixerState.deckA.playing ? 'REC' : 'PLAY'}</span>
+                    <span className="text-[9px] font-bold">{deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : mixerState.deckA.contentType === 'grabbed_radio' ? 'CLEAR' : deckARadioPlayTime >= 10 ? 'GRAB' : mixerState.deckA.playing ? 'REC' : 'PLAY'}</span>
                   </button>
                 </div>
               )}
@@ -2119,8 +2185,43 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               {(mixerState.deckB.contentType === 'radio_station' || mixerState.deckB.contentType === 'grabbed_radio') && (
                 <div className="absolute right-[20px] bottom-[12px] w-[72px]">
                   <button
-                    onClick={() => {
-                      if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
+                    onClick={async () => {
+                      // For grabbed_radio, reload the original radio station
+                      if (mixerState.deckB.contentType === 'grabbed_radio') {
+                        const currentTrack = mixerState.deckB.track;
+                        if (currentTrack && (currentTrack as any).stream_url) {
+                          console.log('🔄 CLEAR: Reloading radio station for Deck B');
+
+                          // Stop playback if playing
+                          if (mixerState.deckB.playing && mixerState.deckB.audioControls) {
+                            mixerState.deckB.audioControls.pause();
+                          }
+
+                          // Revoke old blob URL to free memory
+                          if (currentTrack.audioUrl && currentTrack.audioUrl.startsWith('blob:')) {
+                            URL.revokeObjectURL(currentTrack.audioUrl);
+                            console.log('🗑️ Revoked grabbed audio blob URL');
+                          }
+
+                          // Recreate the radio station track
+                          const radioTrack: Track = {
+                            id: `radio-${Date.now()}`,
+                            title: currentTrack.title,
+                            artist: currentTrack.artist,
+                            imageUrl: currentTrack.imageUrl,
+                            audioUrl: (currentTrack as any).stream_url,
+                            bpm: currentTrack.bpm,
+                            content_type: 'radio_station',
+                            price_stx: currentTrack.price_stx || 0,
+                            primary_uploader_wallet: currentTrack.primary_uploader_wallet || '',
+                            stream_url: (currentTrack as any).stream_url
+                          } as any;
+
+                          console.log('📻 Loading fresh radio station to Deck B');
+                          await loadTrackToDeckB(radioTrack);
+                          console.log('✅ Radio station reloaded, ready for new grab');
+                        }
+                      } else if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
                         handleRadioPlay('B');
                       } else if (deckBRadioPlayTime >= 10 && !deckBJustGrabbed) {
                         handleGrab('B');
@@ -2155,11 +2256,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'Recording audio buffer...'
                         : mixerState.deckB.contentType === 'radio_station'
                         ? 'Start radio playback'
-                        : 'Re-grab from radio station'
+                        : 'Clear grabbed audio'
                     }
                   >
                     <Radio size={10} />
-                    <span className="text-[9px] font-bold">{deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : mixerState.deckB.playing ? 'REC' : 'PLAY'}</span>
+                    <span className="text-[9px] font-bold">{deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : mixerState.deckB.contentType === 'grabbed_radio' ? 'CLEAR' : deckBRadioPlayTime >= 10 ? 'GRAB' : mixerState.deckB.playing ? 'REC' : 'PLAY'}</span>
                   </button>
                 </div>
               )}

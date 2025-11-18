@@ -26,6 +26,7 @@ interface MasterTransportControlsProps {
 
   // Visual feedback
   highlightPlayButton?: boolean; // Show cyan glow when grabbed loop is ready
+  hasRadio?: boolean; // Disable sync when radio is present
 
   className?: string;
 }
@@ -47,6 +48,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   variant = 'full',
   masterBPM,
   highlightPlayButton = false,
+  hasRadio = false,
   className = ""
 }: MasterTransportControlsProps) {
   const [countingIn, setCountingIn] = useState(false);
@@ -191,7 +193,9 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
               : 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed'
           }`}
           title={
-            !deckALoaded || !deckBLoaded
+            hasRadio
+              ? 'Radio stations cannot sync'
+              : !deckALoaded || !deckBLoaded
               ? 'Load both decks to enable sync'
               : syncActive
               ? 'Disable sync'
@@ -257,11 +261,11 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
         
         @keyframes pulse {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          50% { opacity: 0.6; }
         }
-        
+
         .animate-pulse {
-          animation: pulse 0.5s ease-in-out infinite;
+          animation: pulse 1.8s ease-in-out infinite;
         }
       `}</style>
     </div>
