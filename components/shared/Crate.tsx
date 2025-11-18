@@ -687,7 +687,9 @@ export default function Crate({ className = '' }: CrateProps) {
           padding: '4px 0',
           // Hide scrollbar but keep functionality
           scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          msOverflowStyle: 'none',
+          // Allow drops to pass through to parent drop zone
+          pointerEvents: 'none'
         }}
         className="collection-scroll"
       >
@@ -700,7 +702,9 @@ export default function Crate({ className = '' }: CrateProps) {
             justifyContent: 'center',
             color: '#666',
             fontSize: '14px',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            // Re-enable pointer events for empty state text
+            pointerEvents: 'auto'
           }}>
             Your persistent collection — drag content here from anywhere, then drag to mixer decks
           </div>
@@ -718,7 +722,9 @@ export default function Crate({ className = '' }: CrateProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  // Re-enable pointer events for individual tracks
+                  pointerEvents: 'auto'
                 }}
               >
               <div
@@ -911,7 +917,9 @@ export default function Crate({ className = '' }: CrateProps) {
                 style={{
                   display: 'flex',
                   gap: '12px',
-                  animation: 'slideInRight 0.2s ease-out'
+                  animation: 'slideInRight 0.2s ease-out',
+                  // Re-enable pointer events for expanded pack tracks
+                  pointerEvents: 'auto'
                 }}
               >
                 {packTracks[track.id].map((packTrack: IPTrack, packIndex: number) => (

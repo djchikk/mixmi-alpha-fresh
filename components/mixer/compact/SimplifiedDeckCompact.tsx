@@ -167,17 +167,17 @@ export default function SimplifiedDeckCompact({
 
   return (
     <div className={`relative ${className}`}>
-      <div 
+      <div
         ref={drop as any}
-        className="relative p-2"
-        style={{ margin: '-8px' }}
+        className="relative p-4"
+        style={{ margin: '-16px' }}
       >
         <div
           key={currentTrack?.id || 'empty'}
-          className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging && !currentTrack ? 'drop-target' : ''}`}
+          className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target-active' : ''}`}
           style={{
-            border: isOver && canDrop && !isDragging && !currentTrack ? `3px solid ${borderColor}` : undefined,
-            '--border-color': borderColor
+            '--border-color': borderColor,
+            boxShadow: isOver && canDrop && !isDragging ? `0 0 30px ${borderColor}80, 0 0 60px ${borderColor}40` : undefined
           } as React.CSSProperties & { '--border-color': string }}
         >
           {isLoading ? (
@@ -269,10 +269,10 @@ export default function SimplifiedDeckCompact({
             </div>
           )}
 
-          {isOver && canDrop && !isDragging && !currentTrack && (
-            <div className="absolute inset-0 bg-cyan-400 opacity-10 rounded-lg flex items-center justify-center">
-              <div className="text-white font-bold text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
-                Drop to Load
+          {isOver && canDrop && !isDragging && (
+            <div className="absolute inset-0 bg-cyan-400 opacity-20 rounded-lg flex items-center justify-center pointer-events-none">
+              <div className="text-white font-bold text-xs bg-black bg-opacity-70 px-2 py-1 rounded">
+                {currentTrack ? 'Replace' : 'Drop to Load'}
               </div>
             </div>
           )}
@@ -360,10 +360,23 @@ export default function SimplifiedDeckCompact({
           letter-spacing: 0.5px;
         }
         
-        .carousel-track.drop-target {
-          transform: scale(1.05);
+        .carousel-track.drop-target-active {
+          transform: scale(1.1);
+          border-width: 3px;
           border-color: var(--border-color, #9772F4) !important;
-          box-shadow: 0 0 20px rgba(151, 114, 244, 0.3);
+          animation: pulse-border 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-border {
+          0%, 100% {
+            border-color: var(--border-color, #9772F4);
+            transform: scale(1.1);
+          }
+          50% {
+            border-color: var(--border-color, #9772F4);
+            opacity: 0.7;
+            transform: scale(1.12);
+          }
         }
       `}</style>
     </div>
