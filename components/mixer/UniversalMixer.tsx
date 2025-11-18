@@ -2018,43 +2018,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               {(mixerState.deckA.contentType === 'radio_station' || mixerState.deckA.contentType === 'grabbed_radio') && (
                 <div className="absolute left-[20px] bottom-[12px] w-[72px]">
                   <button
-                    onClick={async () => {
-                      // For grabbed_radio, reload the original radio station
-                      if (mixerState.deckA.contentType === 'grabbed_radio') {
-                        const currentTrack = mixerState.deckA.track;
-                        if (currentTrack && (currentTrack as any).stream_url) {
-                          console.log('🔄 CLEAR: Reloading radio station for Deck A');
-
-                          // Stop playback if playing
-                          if (mixerState.deckA.playing && mixerState.deckA.audioControls) {
-                            mixerState.deckA.audioControls.pause();
-                          }
-
-                          // Revoke old blob URL to free memory
-                          if (currentTrack.audioUrl && currentTrack.audioUrl.startsWith('blob:')) {
-                            URL.revokeObjectURL(currentTrack.audioUrl);
-                            console.log('🗑️ Revoked grabbed audio blob URL');
-                          }
-
-                          // Recreate the radio station track
-                          const radioTrack: Track = {
-                            id: `radio-${Date.now()}`,
-                            title: currentTrack.title,
-                            artist: currentTrack.artist,
-                            imageUrl: currentTrack.imageUrl,
-                            audioUrl: (currentTrack as any).stream_url,
-                            bpm: currentTrack.bpm,
-                            content_type: 'radio_station',
-                            price_stx: currentTrack.price_stx || 0,
-                            primary_uploader_wallet: currentTrack.primary_uploader_wallet || '',
-                            stream_url: (currentTrack as any).stream_url
-                          } as any;
-
-                          console.log('📻 Loading fresh radio station to Deck A');
-                          await loadTrackToDeckA(radioTrack);
-                          console.log('✅ Radio station reloaded, ready for new grab');
-                        }
-                      } else if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
+                    onClick={() => {
+                      if (!mixerState.deckA.playing || deckARadioPlayTime < 10) {
                         handleRadioPlay('A');
                       } else if (deckARadioPlayTime >= 10 && !deckAJustGrabbed) {
                         handleGrab('A');
@@ -2070,9 +2035,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'bg-slate-800 animate-pulse'
                         : mixerState.deckA.playing
                         ? 'bg-slate-800 text-red-400 animate-pulse'
-                        : mixerState.deckA.contentType === 'radio_station'
-                        ? 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
-                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2]'
+                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
                     }`}
                     style={{
                       borderColor: deckAJustGrabbed ? '#81E4F2' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FB923C' : mixerState.deckA.playing ? '#ef4444' : '#81E4F240',
@@ -2087,13 +2050,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'Grab audio from radio'
                         : mixerState.deckA.playing
                         ? 'Recording audio buffer...'
-                        : mixerState.deckA.contentType === 'radio_station'
-                        ? 'Start radio playback'
-                        : 'Clear grabbed audio'
+                        : 'Start radio playback'
                     }
                   >
                     <Radio size={10} />
-                    <span className="text-[9px] font-bold">{deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : mixerState.deckA.contentType === 'grabbed_radio' ? 'CLEAR' : deckARadioPlayTime >= 10 ? 'GRAB' : mixerState.deckA.playing ? 'REC' : 'PLAY'}</span>
+                    <span className="text-[9px] font-bold">{deckAJustGrabbed ? 'DONE' : isGrabbingDeckA ? 'REC' : deckARadioPlayTime >= 10 ? 'GRAB' : mixerState.deckA.playing ? 'REC' : 'PLAY'}</span>
                   </button>
                 </div>
               )}
@@ -2210,43 +2171,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               {(mixerState.deckB.contentType === 'radio_station' || mixerState.deckB.contentType === 'grabbed_radio') && (
                 <div className="absolute right-[20px] bottom-[12px] w-[72px]">
                   <button
-                    onClick={async () => {
-                      // For grabbed_radio, reload the original radio station
-                      if (mixerState.deckB.contentType === 'grabbed_radio') {
-                        const currentTrack = mixerState.deckB.track;
-                        if (currentTrack && (currentTrack as any).stream_url) {
-                          console.log('🔄 CLEAR: Reloading radio station for Deck B');
-
-                          // Stop playback if playing
-                          if (mixerState.deckB.playing && mixerState.deckB.audioControls) {
-                            mixerState.deckB.audioControls.pause();
-                          }
-
-                          // Revoke old blob URL to free memory
-                          if (currentTrack.audioUrl && currentTrack.audioUrl.startsWith('blob:')) {
-                            URL.revokeObjectURL(currentTrack.audioUrl);
-                            console.log('🗑️ Revoked grabbed audio blob URL');
-                          }
-
-                          // Recreate the radio station track
-                          const radioTrack: Track = {
-                            id: `radio-${Date.now()}`,
-                            title: currentTrack.title,
-                            artist: currentTrack.artist,
-                            imageUrl: currentTrack.imageUrl,
-                            audioUrl: (currentTrack as any).stream_url,
-                            bpm: currentTrack.bpm,
-                            content_type: 'radio_station',
-                            price_stx: currentTrack.price_stx || 0,
-                            primary_uploader_wallet: currentTrack.primary_uploader_wallet || '',
-                            stream_url: (currentTrack as any).stream_url
-                          } as any;
-
-                          console.log('📻 Loading fresh radio station to Deck B');
-                          await loadTrackToDeckB(radioTrack);
-                          console.log('✅ Radio station reloaded, ready for new grab');
-                        }
-                      } else if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
+                    onClick={() => {
+                      if (!mixerState.deckB.playing || deckBRadioPlayTime < 10) {
                         handleRadioPlay('B');
                       } else if (deckBRadioPlayTime >= 10 && !deckBJustGrabbed) {
                         handleGrab('B');
@@ -2262,9 +2188,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'bg-slate-800 animate-pulse'
                         : mixerState.deckB.playing
                         ? 'bg-slate-800 text-red-400 animate-pulse'
-                        : mixerState.deckB.contentType === 'radio_station'
-                        ? 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
-                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2]'
+                        : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
                     }`}
                     style={{
                       borderColor: deckBJustGrabbed ? '#81E4F2' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FB923C' : mixerState.deckB.playing ? '#ef4444' : '#81E4F240',
@@ -2279,13 +2203,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ? 'Grab audio from radio'
                         : mixerState.deckB.playing
                         ? 'Recording audio buffer...'
-                        : mixerState.deckB.contentType === 'radio_station'
-                        ? 'Start radio playback'
-                        : 'Clear grabbed audio'
+                        : 'Start radio playback'
                     }
                   >
                     <Radio size={10} />
-                    <span className="text-[9px] font-bold">{deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : mixerState.deckB.contentType === 'grabbed_radio' ? 'CLEAR' : deckBRadioPlayTime >= 10 ? 'GRAB' : mixerState.deckB.playing ? 'REC' : 'PLAY'}</span>
+                    <span className="text-[9px] font-bold">{deckBJustGrabbed ? 'DONE' : isGrabbingDeckB ? 'REC' : deckBRadioPlayTime >= 10 ? 'GRAB' : mixerState.deckB.playing ? 'REC' : 'PLAY'}</span>
                   </button>
                 </div>
               )}
