@@ -62,7 +62,7 @@ export default function HomePage() {
   const [originalNodes, setOriginalNodes] = useState<TrackNode[]>(fallbackGlobeNodes); // Keep original for toggling
   const [isLoadingTracks, setIsLoadingTracks] = useState(true);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
-  const [showTagline, setShowTagline] = useState(true);
+  const [showTagline, setShowTagline] = useState(false);
   // Simple location-based clustering enabled (much more performant than old aggregation)
   const isClusteringEnabled = true;
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
