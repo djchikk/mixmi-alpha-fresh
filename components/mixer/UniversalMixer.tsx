@@ -17,6 +17,7 @@ import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { IPTrack } from '@/types';
+import { determineMasterBPM } from './utils/mixerBPMCalculator';
 
 interface UniversalMixerProps {
   className?: string;
@@ -546,78 +547,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }));
 
     showToast('Pitch processing not yet implemented', 'info');
-  };
-
-  // Determine master BPM based on manual selection or content-type hierarchy
-  // Priority: Manual Override > Loop > Song > Radio/Grabbed Radio
-  const determineMasterBPM = (
-    deckA: typeof mixerState.deckA,
-    deckB: typeof mixerState.deckB,
-    masterDeckId?: 'A' | 'B'  // 🎯 NEW: Accept manual master override
-  ): number => {
-    // 🎯 HIGHEST PRIORITY: If user manually set master, use that (but not for radio)
-    if (masterDeckId) {
-      if (masterDeckId === 'A' && deckA.track?.bpm &&
-          deckA.contentType !== 'radio_station' && deckA.contentType !== 'grabbed_radio') {
-        console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (manual override)`);
-        return deckA.track.bpm;
-      } else if (masterDeckId === 'B' && deckB.track?.bpm &&
-          deckB.contentType !== 'radio_station' && deckB.contentType !== 'grabbed_radio') {
-        console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (manual override)`);
-        return deckB.track.bpm;
-      }
-    }
-
-    // Radio stations should NOT affect master BPM - completely ignore them
-    const isRadioA = deckA.contentType === 'radio_station' || deckA.contentType === 'grabbed_radio';
-    const isRadioB = deckB.contentType === 'radio_station' || deckB.contentType === 'grabbed_radio';
-
-    // If both are radio, default to 120
-    if (isRadioA && isRadioB) {
-      console.log(`🎵 Master BPM: 120 (both decks are radio)`);
-      return 120;
-    }
-
-    // If only one is radio, use the non-radio deck's BPM
-    if (isRadioA && deckB.track?.bpm) {
-      console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (${deckB.contentType}, radio ignored)`);
-      return deckB.track.bpm;
-    }
-    if (isRadioB && deckA.track?.bpm) {
-      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (${deckA.contentType}, radio ignored)`);
-      return deckA.track.bpm;
-    }
-
-    // Neither is radio - use priority system for loops vs songs
-    const getPriority = (contentType?: string): number => {
-      if (contentType === 'loop') return 3;
-      if (contentType === 'full_song') return 2;
-      return 0;
-    };
-
-    const priorityA = getPriority(deckA.contentType);
-    const priorityB = getPriority(deckB.contentType);
-
-    // Higher priority deck sets BPM
-    if (priorityA > priorityB && deckA.track?.bpm) {
-      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (${deckA.contentType})`);
-      return deckA.track.bpm;
-    } else if (priorityB > priorityA && deckB.track?.bpm) {
-      console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (${deckB.contentType})`);
-      return deckB.track.bpm;
-    } else if (priorityA === priorityB && deckA.track?.bpm) {
-      // Same priority, use Deck A
-      console.log(`🎵 Master BPM: ${deckA.track.bpm} from Deck A (same priority, default)`);
-      return deckA.track.bpm;
-    } else if (deckB.track?.bpm) {
-      // Fallback to Deck B if A has no BPM
-      console.log(`🎵 Master BPM: ${deckB.track.bpm} from Deck B (fallback)`);
-      return deckB.track.bpm;
-    }
-
-    // Default to 120 BPM
-    console.log(`🎵 Master BPM: 120 (default)`);
-    return 120;
   };
 
   // Clear Deck A
@@ -1326,7 +1255,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       syncEngineRef.current.enableSync();
       console.log(`✅ Sync recreated with Deck ${deckId} as master`);
     }, 850);
-  }, [mixerState, determineMasterBPM]);
+  }, [mixerState]);
 
   // Crossfader handler
   const handleCrossfaderChange = useCallback((position: number) => {
