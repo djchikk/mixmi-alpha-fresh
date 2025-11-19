@@ -732,7 +732,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             console.log('📻 Radio station: looping disabled');
           } else {
             audioControls.setLoopEnabled(true);
-            audioControls.setLoopLength(mixerState.deckA.loopLength);
+            audioControls.setLoopLength(8); // Reset to default 8 bars for new content
             audioControls.setLoopPosition(0);
           }
         }
@@ -753,6 +753,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             audioControls,
             loading: false,
             loopPosition: 0,
+            loopLength: 8, // Reset to default 8 bars for new content
             contentType,
             loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
           };
@@ -889,7 +890,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             console.log('📻 Radio station: looping disabled');
           } else {
             audioControls.setLoopEnabled(true);
-            audioControls.setLoopLength(mixerState.deckB.loopLength);
+            audioControls.setLoopLength(8); // Reset to default 8 bars for new content
             audioControls.setLoopPosition(0);
           }
         }
@@ -910,6 +911,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             audioControls,
             loading: false,
             loopPosition: 0,
+            loopLength: 8, // Reset to default 8 bars for new content
             contentType,
             loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
           };
