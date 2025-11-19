@@ -122,7 +122,7 @@ export default function SimplifiedDeckCompact({
           artist: item.track.artist || item.track.artist_name,
           imageUrl: optimizedImageUrl,
           audioUrl: item.track.audioUrl || item.track.audio_url,
-          bpm: item.track.bpm || 120,
+          bpm: item.track.bpm, // Preserve original bpm (may be null for undetected)
           content_type: item.track.content_type,
           pack_position: item.track.pack_position, // Preserve for number badges
           // Preserve stream_url for radio stations (needed for proxying)
@@ -222,7 +222,7 @@ export default function SimplifiedDeckCompact({
               {/* BPM display - always visible in lower right (except for radio stations) */}
               {contentType !== 'radio_station' && contentType !== 'grabbed_radio' && (
                 <div className="absolute bottom-[2px] right-1 text-[11px] text-white font-mono font-bold leading-none pointer-events-none">
-                  {currentTrack.bpm || 120}
+                  {currentTrack.bpm || '~'}
                 </div>
               )}
 
