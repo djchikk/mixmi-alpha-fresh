@@ -42,7 +42,7 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           artist: track.artist,
           imageUrl: track.imageUrl || (track as any).cover_image_url, // Use existing imageUrl or fallback
           cover_image_url: (track as any).cover_image_url, // Keep original high-res URL for preview
-          bpm: track.bpm || 120,
+          bpm: track.bpm, // Preserve original bpm (may be null for undetected)
           audioUrl: track.audioUrl || track.audio_url || (track as any).stream_url, // Handle both formats, include stream_url for radio!
           audio_url: track.audio_url, // Preserve original property
           stream_url: (track as any).stream_url, // Include stream_url for radio stations
@@ -96,7 +96,7 @@ function ExpandedPackTrack({
         artist: packTrack.artist,
         imageUrl: getOptimizedTrackImage(packTrack, 64),
         cover_image_url: packTrack.cover_image_url,
-        bpm: packTrack.bpm || 120,
+        bpm: packTrack.bpm, // Preserve original bpm (may be null for undetected)
         audioUrl: packTrack.audio_url || packTrack.stream_url,
         audio_url: packTrack.audio_url,
         stream_url: packTrack.stream_url,
