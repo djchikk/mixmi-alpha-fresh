@@ -1,22 +1,16 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import ShippedStamp from '@/components/shared/ShippedStamp';
 import dynamic from 'next/dynamic';
 
 // Dynamically import Globe for breathing background effect
-const Globe = dynamic(() => import('@/components/globe/Globe'), { 
+const Globe = dynamic(() => import('@/components/globe/Globe'), {
   ssr: false,
   loading: () => null
-});
-
-// Dynamically import Upload Modal
-const IPTrackModal = dynamic(() => import('@/components/modals/IPTrackModal'), {
-  ssr: false
 });
 
 // Design variables from Desktop Claude specification
@@ -34,9 +28,6 @@ const designVars = {
 };
 
 export default function Welcome() {
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const router = useRouter();
-
   return (
     <div 
       className="min-h-screen relative"
@@ -202,59 +193,6 @@ export default function Welcome() {
           </div>
         </div>
 
-        {/* Upload Invitation Section */}
-        <div className="section-card mb-16" style={{
-          background: 'rgba(20, 25, 39, 0.6)',
-          border: '1px solid rgba(129, 228, 242, 0.1)',
-          borderRadius: '16px',
-          padding: '48px 40px',
-          backdropFilter: 'blur(10px)',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <div className="text-center max-w-2xl mx-auto">
-            <div className="text-6xl mb-6">🎵</div>
-            <h2 className="text-3xl font-semibold mb-4" style={{ color: '#e1e5f0' }}>
-              Ready to Share Your Sound?
-            </h2>
-            <p className="text-[#a8b2c3] text-lg mb-8">
-              Upload loops, loop packs, songs, EPs, or radio stations. Pin your content anywhere on Earth.
-              Start earning with every track you share.
-            </p>
-
-            <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-6">
-              <div className="flex items-center gap-2 text-[#a8b2c3] text-sm">
-                <span className="text-[#81E4F2]">✓</span>
-                <span>Quick or Advanced modes</span>
-              </div>
-              <div className="flex items-center gap-2 text-[#a8b2c3] text-sm">
-                <span className="text-[#81E4F2]">✓</span>
-                <span>Split rights up to 3 creators</span>
-              </div>
-              <div className="flex items-center gap-2 text-[#a8b2c3] text-sm">
-                <span className="text-[#81E4F2]">✓</span>
-                <span>Everything is editable</span>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <button
-                onClick={() => setUploadModalOpen(true)}
-                className="flex items-center gap-3 px-8 py-4 bg-transparent text-white font-mono text-lg rounded-xl border-2 border-[#81E4F2] hover:bg-[#81E4F2]/10 hover:shadow-[0_0_20px_rgba(129,228,242,0.4)] transition-all"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-                <span>sign in and upload</span>
-              </button>
-            </div>
-
-            <p className="text-[#6b7489] text-sm mt-6">
-              💡 Alpha perk: Made a mistake? Everything can be changed or deleted - just message me!
-            </p>
-          </div>
-        </div>
-
         {/* Coming Soon Section */}
         <div className="section-card mb-16" style={{
           background: 'rgba(20, 25, 39, 0.6)',
@@ -331,20 +269,6 @@ export default function Welcome() {
           </p>
         </div>
       </div>
-
-      {/* Upload Modal */}
-      {uploadModalOpen && (
-        <IPTrackModal
-          isOpen={uploadModalOpen}
-          onClose={() => setUploadModalOpen(false)}
-          onSave={(track) => {
-            // After successful upload, close modal and redirect to globe
-            setUploadModalOpen(false);
-            // Navigate to globe so user sees their uploaded content
-            router.push('/');
-          }}
-        />
-      )}
     </div>
   );
 }
