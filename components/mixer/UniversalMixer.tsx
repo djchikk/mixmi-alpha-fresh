@@ -753,7 +753,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             audioControls,
             loading: false,
             loopPosition: 0,
-            loopLength: 8, // Reset to default 8 bars for new content
+            loopLength: 8, // Reset loop length for new content (must match audioControls call above)
             contentType,
             loopEnabled: isRadio ? false : true  // Enable looping for non-radio content
           };
@@ -1205,7 +1205,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   };
 
   const handleLoopLengthChange = (deck: 'A' | 'B', length: number) => {
+    console.log(`🔧 handleLoopLengthChange: Deck ${deck}, new length: ${length}`);
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
+
+    const audioControls = mixerState[deckKey].audioControls;
+    console.log(`🔧 audioControls exists: ${!!audioControls}, setLoopLength exists: ${!!(audioControls && audioControls.setLoopLength)}`);
+
+    if (audioControls && audioControls.setLoopLength) {
+      console.log(`🔧 Calling audioControls.setLoopLength(${length})`);
+      audioControls.setLoopLength(length);
+    } else {
+      console.warn(`⚠️ Cannot change loop length - audioControls not available for Deck ${deck}`);
+    }
 
     setMixerState(prev => ({
       ...prev,
@@ -1214,11 +1225,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         loopLength: length
       }
     }));
-
-    const audioControls = mixerState[deckKey].audioControls;
-    if (audioControls && audioControls.setLoopLength) {
-      audioControls.setLoopLength(length);
-    }
   };
 
   const handleLoopPositionChange = (deck: 'A' | 'B', position: number) => {
