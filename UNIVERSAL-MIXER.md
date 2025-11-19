@@ -1,9 +1,9 @@
 # Universal Mixer Documentation
 
 **Component:** `components/mixer/UniversalMixer.tsx`
-**Lines of Code:** 2,285
-**Last Updated:** November 18, 2025
-**Status:** Production-ready for loops and radio; song integration in progress
+**Lines of Code:** 2,129 (refactored from 2,285)
+**Last Updated:** November 19, 2025
+**Status:** Production-ready for loops, songs, and radio
 
 ---
 
@@ -11,18 +11,20 @@
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Content Type System](#content-type-system)
-4. [Radio GRAB Feature](#radio-grab-feature)
-5. [Pack Handling](#pack-handling)
-6. [Memory Management](#memory-management)
-7. [State Management](#state-management)
-8. [UI Components](#ui-components)
-9. [Instant FX System](#instant-fx-system)
-10. [Section Navigator](#section-navigator)
-11. [Integration Points](#integration-points)
-12. [Recent Changes](#recent-changes)
-13. [Edge Cases](#edge-cases)
-14. [Future Enhancements](#future-enhancements)
+3. [Refactoring & Modular Structure](#refactoring--modular-structure)
+4. [Content Type System](#content-type-system)
+5. [Radio GRAB Feature](#radio-grab-feature)
+6. [Synchronized Loop Restart](#synchronized-loop-restart)
+7. [Pack Handling](#pack-handling)
+8. [Memory Management](#memory-management)
+9. [State Management](#state-management)
+10. [UI Components](#ui-components)
+11. [Instant FX System](#instant-fx-system)
+12. [Section Navigator](#section-navigator)
+13. [Integration Points](#integration-points)
+14. [Recent Changes](#recent-changes)
+15. [Edge Cases](#edge-cases)
+16. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -41,13 +43,14 @@ The Universal Mixer is a **2-deck audio mixing interface** that accepts ANY cont
 
 Traditional DJ software requires separate interfaces for different content types. The Universal Mixer uses **content type detection** to automatically adapt its behavior and UI to whatever you load.
 
-### Core Innovation: Radio Sampling
+### Core Innovation: Radio Sampling with Synchronized Playback
 
-The standout feature is the ability to **sample FROM live radio streams** while they're playing. This enables:
+The standout feature is the ability to **sample FROM live radio streams** while they're playing, then **synchronize grabbed radio loops with master deck timing**. This enables:
 - Capturing interesting moments from live broadcasts
 - Finding rhythmic patterns in chaotic audio
 - Creating new music from unquantized source material
 - Mixing radio samples with loops at precise BPMs
+- **NEW**: Grabbed radio restarts in sync with master deck loop points for predictable timing
 
 ---
 
@@ -57,7 +60,11 @@ The standout feature is the ability to **sample FROM live radio streams** while 
 
 ```
 components/mixer/
-├── UniversalMixer.tsx                    # Main component (2,285 lines)
+├── UniversalMixer.tsx                    # Main component (2,129 lines - refactored)
+├── utils/
+│   └── mixerBPMCalculator.ts             # BPM priority calculation logic (100 lines)
+├── hooks/
+│   └── useMixerPackHandler.ts            # Pack unpacking & loading (126 lines)
 ├── compact/
 │   ├── SimplifiedDeckCompact.tsx         # Individual deck UI
 │   ├── WaveformDisplayCompact.tsx        # Waveform visualization
@@ -76,6 +83,8 @@ import { useMixerAudio } from '@/hooks/useMixerAudio';        // Web Audio API m
 import { applyCrossfader, SimpleLoopSync } from '@/lib/mixerAudio'; // Audio utilities
 import { useMixer } from '@/contexts/MixerContext';           // Crate management
 import { useToast } from '@/contexts/ToastContext';           // User notifications
+import { determineMasterBPM } from './utils/mixerBPMCalculator'; // BPM priority calculation
+import { useMixerPackHandler } from './hooks/useMixerPackHandler'; // Pack handling
 ```
 
 ### State Shape
@@ -96,11 +105,50 @@ interface UniversalMixerState {
   };
   deckB: { /* same as deckA */ };
   masterBPM: number;           // Auto-determined from content
+  masterDeckId: 'A' | 'B';     // Which deck controls BPM
   crossfaderPosition: number;  // 0-100 (0=A, 50=center, 100=B)
   syncActive: boolean;         // Loop sync enabled
   currentSection: 'decks' | 'fx'; // Section navigator state
 }
 ```
+
+---
+
+## Refactoring & Modular Structure
+
+### Recent Refactoring (November 2025)
+
+The mixer underwent targeted refactoring to extract reusable logic while preserving stability:
+
+**✅ Completed:**
+1. **BPM Calculator** (`/utils/mixerBPMCalculator.ts`) - 71 lines extracted
+   - Pure function for master BPM determination
+   - Priority-based calculation (loop > song > grabbed radio)
+   - Radio stations excluded from BPM influence
+
+2. **Pack Handler** (`/hooks/useMixerPackHandler.ts`) - 85 lines extracted
+   - Database queries for pack contents
+   - Auto-expansion in crate UI
+   - First track loading to deck
+   - Toast notifications
+
+3. **Synchronized Loop Restart** (integrated into `lib/mixerAudio.ts`)
+   - Optional callback system in PreciseLooper
+   - Grabbed radio restarts when master deck loops
+   - No time-stretching - natural playback speed with coordinated restart
+
+**📊 Impact:**
+- **Before:** 2,285 lines (monolithic)
+- **After:** 2,129 lines in main file + 226 lines in utilities
+- **Reduction:** 156 lines from main component (6.8% decrease)
+- **New modules:** 2 utility files for better maintainability
+
+**⏸️ Deferred:**
+- GRAB logic extraction (too tightly coupled to component state)
+- Cleanup logic extraction (refs and lifecycle-dependent)
+- Deck handlers extraction (state-dependent)
+
+**Philosophy:** Extract what SHOULD be separate (utilities, database ops, audio coordination) while keeping core mixer logic together.
 
 ---
 
@@ -111,10 +159,10 @@ interface UniversalMixerState {
 The mixer uses a **priority system** to determine which deck controls the master BPM:
 
 ```typescript
+// Extracted to /components/mixer/utils/mixerBPMCalculator.ts
 const getPriority = (contentType?: string): number => {
   if (contentType === 'loop') return 3;           // Highest - precise BPM
   if (contentType === 'full_song') return 2;      // Medium - fixed BPM
-  if (contentType === 'grabbed_radio') return 1;  // Low - inherited BPM
   return 0;                                       // None (radio stations don't affect master BPM)
 };
 ```
@@ -140,14 +188,15 @@ Deck B: 120 BPM song
 → Song plays at 120, loop plays at 131
 ```
 
-**Scenario 3: Radio GRAB**
+**Scenario 3: Radio GRAB with Synchronized Restart**
 ```
 Deck A: Radio station (playing)
 Deck B: 131 BPM loop
 → Master BPM: 131 (from loop)
 → User clicks GRAB on Deck A
 → Grabbed audio inherits 131 BPM
-→ Can now loop radio sample at loop's tempo
+→ Grabbed audio automatically restarts when Deck B loop restarts
+→ Predictable timing without time-stretching
 → Loop controls become available for grabbed audio
 ```
 
@@ -158,7 +207,7 @@ Deck B: 131 BPM loop
 | `loop` | ✅ Always | ✅ Highest priority | Full | Seamless loops |
 | `full_song` | ✅ Optional | ⚠️ Medium priority | Full | One-shot or loop |
 | `radio_station` | ❌ Disabled | ❌ No control | Live stream | GRAB + RE-GRAB buttons |
-| `grabbed_radio` | ✅ Enabled | ❌ No control | Full | Locked to 1.0x speed, full loop controls |
+| `grabbed_radio` | ✅ Enabled | ❌ No control | Full | Locked to 1.0x speed, synchronized restart |
 
 **BPM Display:** Tracks without declared BPM show "~" (tilde) instead of a number, indicating unquantized or unknown tempo.
 
@@ -229,9 +278,10 @@ The GRAB button provides clear visual feedback:
 | State | Color | Icon | Text | Condition |
 |-------|-------|------|------|-----------|
 | Initial | Cyan | 📻 | PLAY | Radio loaded but not playing |
-| Buffering | Cyan | 📻 | PLAY | Playing < 10 seconds |
+| Buffering | Cyan | 📻 | buffering... | Playing < 10 seconds |
 | Ready | Orange gradient | 📻 | GRAB | Playing ≥ 10 seconds |
-| Grabbing | Red (pulse) | 📻 | REC | Currently grabbing |
+| Grabbing | Red (pulse) | 📻 | BUFFER | Currently grabbing |
+| Done | Gray | 📻 | DONE | Successfully grabbed |
 
 #### 4. The GRAB Process
 
@@ -263,7 +313,9 @@ const handleGrab = async (deck: 'A' | 'B') => {
     artist: currentTrack.artist,
     audioUrl: audioUrl,
     bpm: grabbedBPM,
-    content_type: 'grabbed_radio'
+    content_type: 'grabbed_radio',
+    // Preserve stream_url for re-grabbing
+    stream_url: currentTrack.stream_url
   };
 
   // 6. Load grabbed audio to same deck
@@ -296,6 +348,128 @@ audioControls.setLoopLength(mixerState.deckA.loopLength);
 - Can adjust loop position and length
 - Inherits BPM but doesn't control master
 - FX can be applied via instant FX pads
+- **NEW:** Synchronized restart with master deck loop points
+
+---
+
+## Synchronized Loop Restart
+
+### The Feature
+
+When grabbed radio is loaded on one deck and a looping track (loop/song) is on the other, the grabbed radio will **restart at currentTime = 0** whenever the master deck loops back to the start.
+
+### Why This Matters
+
+- **Predictable timing** when mixing grabbed radio with loops
+- **Visual/temporal coordination** - both tracks restart together
+- **No time-stretching** - grabbed radio plays at natural speed
+- **Creative control** - users can rely on synchronized restart points
+
+### How It Works
+
+#### 1. PreciseLooper Callback System
+
+The `PreciseLooper` class now accepts an optional callback that triggers on loop restart:
+
+```typescript
+// lib/mixerAudio.ts
+class PreciseLooper {
+  private onLoopRestart?: () => void; // Callback for synchronized restart
+
+  constructor(
+    audioContext: AudioContext,
+    audioElement: HTMLAudioElement,
+    bpm: number,
+    deckId: 'A' | 'B',
+    loopBars: number = 8,
+    contentType: string = 'loop',
+    onLoopRestart?: () => void  // NEW parameter
+  ) {
+    // ... initialization
+    this.onLoopRestart = onLoopRestart;
+  }
+
+  // Set or clear callback dynamically
+  setLoopRestartCallback(callback: (() => void) | undefined): void {
+    this.onLoopRestart = callback;
+  }
+}
+```
+
+#### 2. Triggering on Loop Reset
+
+When the loop resets, the callback is invoked:
+
+```typescript
+private scheduleLoopReset(time: number): void {
+  setTimeout(() => {
+    if (this.isLooping && this.audioElement) {
+      // Reset loop position
+      this.audioElement.currentTime = resetTime;
+
+      // Trigger synchronized restart callback
+      if (this.onLoopRestart) {
+        this.onLoopRestart();
+      }
+    }
+  }, (time - this.audioContext.currentTime) * 1000);
+}
+```
+
+#### 3. Automatic Setup in UniversalMixer
+
+The mixer automatically configures synchronization when appropriate:
+
+```typescript
+useEffect(() => {
+  const deckAState = mixerState.deckA;
+  const deckBState = mixerState.deckB;
+
+  // Clear existing callbacks
+  if (deckAState.audioState?.preciseLooper) {
+    deckAState.audioState.preciseLooper.setLoopRestartCallback(undefined);
+  }
+  if (deckBState.audioState?.preciseLooper) {
+    deckBState.audioState.preciseLooper.setLoopRestartCallback(undefined);
+  }
+
+  // If Deck A has loop and Deck B has grabbed radio, sync them
+  if (deckAState.audioState?.preciseLooper &&
+      deckAState.contentType !== 'radio_station' &&
+      deckBState.contentType === 'grabbed_radio' &&
+      deckBState.audioState?.audio) {
+
+    const deckBElement = deckBState.audioState.audio;
+
+    deckAState.audioState.preciseLooper.setLoopRestartCallback(() => {
+      if (deckBElement && !deckBElement.paused) {
+        deckBElement.currentTime = 0; // Restart grabbed radio
+      }
+    });
+  }
+
+  // Vice versa for Deck B → Deck A
+  // ...
+}, [
+  mixerState.deckA.audioState,
+  mixerState.deckA.contentType,
+  mixerState.deckB.audioState,
+  mixerState.deckB.contentType
+]);
+```
+
+### User Experience
+
+**Before:**
+- Grabbed radio and loops would drift out of sync
+- Unpredictable timing made mixing difficult
+- Users had to manually restart grabbed radio
+
+**After:**
+- Grabbed radio restarts automatically when master loop restarts
+- Predictable, coordinated timing for creative mixing
+- Both tracks visually and audibly restart together
+- No manual intervention required
 
 ---
 
@@ -309,52 +483,71 @@ Packs (loop_pack, station_pack, ep) are containers holding multiple tracks. When
 3. Load first item to deck
 4. Provide user feedback
 
-### The Solution
+### The Solution (Extracted to Hook)
+
+Pack handling is now extracted to `/components/mixer/hooks/useMixerPackHandler.ts`:
 
 ```typescript
-const handlePackDrop = async (packTrack: any, deck: 'A' | 'B') => {
-  // 1. Determine content type to fetch
-  const contentTypeToFetch = packTrack.content_type === 'loop_pack' ? 'loop'
-    : packTrack.content_type === 'station_pack' ? 'radio_station'
-    : 'full_song';
+export function useMixerPackHandler() {
+  const { showToast } = useToast();
+  const { addTrackToCollection } = useMixer();
 
-  // 2. Fetch pack contents from database
-  const { data: tracks } = await supabase
-    .from('ip_tracks')
-    .select('*')
-    .eq('pack_id', packId)
-    .eq('content_type', contentTypeToFetch)
-    .order('pack_position', { ascending: true });
+  const handlePackDrop = useCallback(async (
+    packTrack: any,
+    deck: 'A' | 'B',
+    loadTrackToDeckA: (track: Track) => Promise<void>,
+    loadTrackToDeckB: (track: Track) => Promise<void>
+  ) => {
+    // 1. Determine content type to fetch
+    const contentTypeToFetch = packTrack.content_type === 'loop_pack' ? 'loop'
+      : packTrack.content_type === 'station_pack' ? 'radio_station'
+      : 'full_song';
 
-  if (!tracks || tracks.length === 0) {
-    showToast('No tracks found in pack', 'warning');
-    return;
-  }
+    // 2. Fetch pack contents from database
+    const { data: tracks } = await supabase
+      .from('ip_tracks')
+      .select('*')
+      .eq('pack_id', packId)
+      .eq('content_type', contentTypeToFetch)
+      .order('pack_position', { ascending: true });
 
-  // 3. Add pack container to crate
-  addTrackToCollection(packTrack);
+    if (!tracks || tracks.length === 0) {
+      showToast('No tracks found in pack', 'warning');
+      return;
+    }
 
-  // 4. Auto-expand pack in crate UI (double RAF for reliability)
-  requestAnimationFrame(() => {
+    // 3. Add pack container to crate
+    addTrackToCollection(packTrack);
+
+    // 4. Auto-expand pack in crate UI
     requestAnimationFrame(() => {
-      if ((window as any).expandPackInCrate) {
-        (window as any).expandPackInCrate(packTrack);
-      }
+      requestAnimationFrame(() => {
+        if ((window as any).expandPackInCrate) {
+          (window as any).expandPackInCrate(packTrack);
+        }
+      });
     });
-  });
 
-  // 5. Load first track to deck
-  const firstTrack = tracks[0];
-  const loadFunction = deck === 'A' ? loadTrackToDeckA : loadTrackToDeckB;
-  await loadFunction(convertToTrack(firstTrack));
+    // 5. Load first track to deck
+    const firstTrack = tracks[0];
+    const loadFunction = deck === 'A' ? loadTrackToDeckA : loadTrackToDeckB;
+    await loadFunction(convertToTrack(firstTrack));
 
-  // 6. Show toast notification
-  const emoji = packTrack.content_type === 'station_pack' ? '📻'
-    : packTrack.content_type === 'ep' ? '🎵' : '🔁';
-  const itemName = packTrack.content_type === 'station_pack' ? 'stations'
-    : packTrack.content_type === 'ep' ? 'tracks' : 'loops';
+    // 6. Show toast notification
+    showToast(`📻 ${tracks.length} stations unpacked to crate!`, 'success');
+  }, [showToast, addTrackToCollection]);
 
-  showToast(`${emoji} ${tracks.length} ${itemName} unpacked to crate!`, 'success');
+  return { handlePackDrop };
+}
+```
+
+**Usage in UniversalMixer:**
+
+```typescript
+const { handlePackDrop: handlePackDropFromHook } = useMixerPackHandler();
+
+const handlePackDrop = async (packTrack: any, deck: 'A' | 'B') => {
+  await handlePackDropFromHook(packTrack, deck, loadTrackToDeckA, loadTrackToDeckB);
 };
 ```
 
@@ -402,6 +595,14 @@ useEffect(() => {
     if (syncEngineRef.current) {
       syncEngineRef.current.stop();
       syncEngineRef.current = null;
+    }
+
+    // Clear synchronized loop restart callbacks
+    if (mixerState.deckA.audioState?.preciseLooper) {
+      mixerState.deckA.audioState.preciseLooper.setLoopRestartCallback(undefined);
+    }
+    if (mixerState.deckB.audioState?.preciseLooper) {
+      mixerState.deckB.audioState.preciseLooper.setLoopRestartCallback(undefined);
     }
   };
 }, []);
@@ -623,7 +824,7 @@ Replace the carousel approach with a **compact, djay-inspired section selector**
 
 **Visual Design:**
 - Pill-shaped buttons
-- Active state: bright cyan highlight
+- Active state: #81E4F2 accent color highlight
 - Inactive state: subtle styling
 - Centered horizontally
 - Minimal spacing
@@ -670,42 +871,39 @@ window.dispatchEvent(new CustomEvent('audioSourcePlaying', {
 
 ## Recent Changes
 
-### Major Updates (November 6-18, 2025)
+### Major Updates (November 2025)
 
-#### 1. Radio Station Improvements
-- **Simplified workflow**: Removed CLEAR button, streamlined to GRAB only
-- **RE-GRAB capability**: Can grab multiple times from same station
-- **DONE button**: Grayed out permanently after grab (simplified UX)
-- **BPM handling**: Radio stations no longer affect master BPM calculation
+#### 1. Refactoring & Code Organization
+- **Extracted BPM calculator** to `/utils/mixerBPMCalculator.ts` (71 lines)
+- **Extracted pack handler** to `/hooks/useMixerPackHandler.ts` (85 lines)
+- **Reduced main component** from 2,285 to 2,129 lines (6.8% decrease)
+- **Improved maintainability** with modular structure
+- **Preserved stability** by keeping coupled logic together
 
-#### 2. Instant FX System
-- **Hold-to-activate pads**: 4 FX per deck (Filter, Reverb, Delay, Echo)
-- **Visual feedback**: Active state styling on press
-- **Touch support**: Works on mobile/tablet devices
-- **Stacking**: Multiple FX can be active simultaneously
+#### 2. Synchronized Loop Restart Feature
+- **NEW**: Grabbed radio automatically restarts when master deck loops
+- **Coordinated timing** without time-stretching
+- **PreciseLooper callback system** for extensibility
+- **Automatic setup** based on content types
+- **Predictable mixing** of grabbed radio with loops/songs
 
-#### 3. Section Navigator
-- **Replaced carousel**: Clean djay-style pill navigator
-- **DECKS / FX sections**: Toggle between control sets
-- **Professional UI**: Matches industry DJ software standards
-- **Extensible**: Easy to add RECORDING, SAMPLER sections
+#### 3. Radio Station Bug Fixes
+- **Fixed stream_url preservation** in pack handler
+- **Fixed stream_url preservation** on direct deck drops
+- **Fixed radio looping** by disabling PreciseLooper for live radio
+- **Stable playback** for live radio streams
 
-#### 4. Drag & Drop Improvements
-- **Better visual feedback**: Clear drop zones
+#### 4. UI Polish
+- **Master play button** now uses accent color #81E4F2
+- **Consistent branding** across UI elements
+
+#### 5. Previous Improvements (November 6-18, 2025)
+- **Simplified radio workflow**: GRAB-only interface
+- **RE-GRAB capability**: Multiple grabs from same station
+- **Instant FX System**: Hold-to-activate pads
+- **Section Navigator**: djay-style pill navigation
 - **Pack handling**: Auto-unpacks to crate on drop
-- **Persistent crate**: Survives page refresh
-- **Radio packs**: Station packs auto-expand on drop
-
-#### 5. BPM Display Enhancement
-- **Tilde notation**: Shows "~" for tracks without declared BPM
-- **Clear communication**: Users know when tempo is uncertain
-- **Radio clarity**: Radio stations display "~" since they're unquantized
-
-#### 6. Code Cleanup
-- **Removed nudge feature**: Conflicted with sync engine
-- **Removed debug logs**: Production-ready console output
-- **Fixed memory leaks**: Cleaned up unused variables
-- **Updated to 2,285 lines**: Significant feature additions
+- **BPM display**: Tilde notation for unknown tempo
 
 ### Removed Features
 
@@ -749,6 +947,14 @@ Each GRAB creates fresh recording session
 → Previous chunks discarded
 → New blob URL generated
 → Can re-grab from same station multiple times
+```
+
+**Synchronized Restart Edge Cases:**
+```
+Loading new track clears callbacks
+→ Callbacks reconfigured automatically
+→ Only active when appropriate content types
+→ Grabbed radio restarts only when not paused
 ```
 
 ### Pack Edge Cases
@@ -854,6 +1060,15 @@ const grabbedHistoryRef = useRef<Track[]>([]);
 // Restore decks, positions, volumes on mount
 ```
 
+**5. Advanced Synchronized Playback**
+```typescript
+// Future: Configurable sync behavior
+// - Restart (current)
+// - Reverse
+// - Half-speed
+// - Double-speed
+```
+
 ---
 
 ## Technical Innovations Summary
@@ -877,23 +1092,36 @@ const grabbedHistoryRef = useRef<Track[]>([]);
 - Radio stations excluded from calculation
 - Creative workflow stays fluid
 
-### 4. Hold-to-Activate FX
+### 4. Synchronized Loop Restart System
+- **NEW**: Callback-based coordination
+- Grabbed radio restarts with master deck loops
+- No time-stretching - natural playback speed
+- Predictable timing for creative mixing
+- Extensible for future sync modes
+
+### 5. Hold-to-Activate FX
 - Instant tactile response
 - Professional DJ controller feel
 - No clicking to enable/disable
 - Multiple FX can stack naturally
 
-### 5. Section Navigator Pattern
+### 6. Section Navigator Pattern
 - Clean UI separation
 - Industry-standard approach
 - Easy to extend with new sections
 - Professional appearance
 
-### 6. Comprehensive Memory Management
+### 7. Comprehensive Memory Management
 - Production-level cleanup
 - Handles all edge cases
 - No resource leaks
 - Stable during long sessions
+
+### 8. Modular Architecture
+- Extracted utilities for reusability
+- Custom hooks for shared logic
+- Pure functions for calculations
+- Maintainable codebase
 
 ---
 
@@ -949,6 +1177,7 @@ To add support for a new content type (e.g., `stem`, `video`):
 
 1. **Update Content Type Priority:**
 ```typescript
+// In /components/mixer/utils/mixerBPMCalculator.ts
 const getPriority = (contentType?: string): number => {
   if (contentType === 'stem') return 3;  // Add here
   // ... existing types
@@ -1003,28 +1232,42 @@ if (fxType === 'phaser') {
 </button>
 ```
 
+### Refactoring Best Practices
+
+Based on our recent refactoring experience:
+
+1. **Extract pure functions first** (BPM calculator)
+2. **Extract database operations** (pack handler)
+3. **Leave tightly-coupled logic in component** (GRAB, cleanup, handlers)
+4. **Test thoroughly after each extraction**
+5. **Preserve working features over aggressive refactoring**
+6. **Document what was extracted and why**
+
 ---
 
 ## Conclusion
 
 The Universal Mixer represents a significant achievement in web audio engineering:
 
-- **2,285 lines** of production-ready code
+- **2,129 lines** of production-ready code (refactored from 2,285)
+- **226 lines** in modular utilities and hooks
 - **Sophisticated audio routing** with Web Audio API
 - **Creative sampling** from live radio streams
+- **Synchronized playback** for grabbed radio and loops
 - **Professional FX system** with instant response
 - **Intelligent pack handling** with seamless UX
 - **Production-level memory management**
 - **Extensible architecture** for future content types
 - **Clean, professional UI** matching industry standards
+- **Modular structure** for long-term maintainability
 
-It's not just a mixer - it's a creative tool that enables new forms of musical expression by allowing users to **sample from chaos and impose structure**, creating new music from unquantized radio streams mixed with precise loops.
+It's not just a mixer - it's a creative tool that enables new forms of musical expression by allowing users to **sample from chaos and impose structure**, creating new music from unquantized radio streams mixed with precise loops, now with **predictable timing through synchronized loop restart**.
 
-The recent additions (Instant FX, Section Navigator, improved radio workflow) have elevated it from a functional tool to a **professional creative instrument** ready for serious musical work.
+The recent additions (Synchronized Loop Restart, Radio Fixes, Code Refactoring, UI Polish) have elevated it from a functional tool to a **professional creative instrument** ready for serious musical work.
 
 ---
 
-*Documentation updated November 18, 2025*
+*Documentation updated November 19, 2025*
 *For: mixmi alpha platform*
 *Component: Universal Mixer*
 *Authors: Sandy Hoover + Claude Code*
