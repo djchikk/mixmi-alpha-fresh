@@ -1205,17 +1205,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   };
 
   const handleLoopLengthChange = (deck: 'A' | 'B', length: number) => {
-    console.log(`🔧 handleLoopLengthChange: Deck ${deck}, new length: ${length}`);
     const deckKey = deck === 'A' ? 'deckA' : 'deckB';
 
     const audioControls = mixerState[deckKey].audioControls;
-    console.log(`🔧 audioControls exists: ${!!audioControls}, setLoopLength exists: ${!!(audioControls && audioControls.setLoopLength)}`);
-
     if (audioControls && audioControls.setLoopLength) {
-      console.log(`🔧 Calling audioControls.setLoopLength(${length})`);
       audioControls.setLoopLength(length);
-    } else {
-      console.warn(`⚠️ Cannot change loop length - audioControls not available for Deck ${deck}`);
     }
 
     setMixerState(prev => ({
