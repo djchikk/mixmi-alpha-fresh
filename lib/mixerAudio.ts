@@ -1268,8 +1268,8 @@ export class MixerAudioEngine {
         currentTime: 0,
         duration: audio.duration || 0,
         bpm: 120, // Default, will be updated from track data
-        // 🔄 Initialize PreciseLooper with default 8-bar loop and content type
-        preciseLooper: new PreciseLooper(audioContext, audio, 120, deckId, 8, contentType)
+        // 🔄 Initialize PreciseLooper ONLY for non-radio content (radio streams play continuously)
+        preciseLooper: isRadio ? null : new PreciseLooper(audioContext, audio, 120, deckId, 8, contentType)
       };
 
       // 🎵 NEW: Load audio buffer for content analysis (skip for radio streams)
