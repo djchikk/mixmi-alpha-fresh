@@ -142,7 +142,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
               : countingIn
               ? 'bg-[#81E4F2]/50 border-2 border-[#81E4F2] text-slate-900 animate-pulse cursor-wait'
               : highlightPlayButton
-              ? 'border-2 border-cyan-400 text-cyan-400 hover:border-cyan-300 hover:text-cyan-300 animate-pulse shadow-lg shadow-cyan-500/50'
+              ? 'border-2 border-[#81E4F2] text-[#81E4F2] hover:border-[#81E4F2]/80 hover:text-[#81E4F2]/80 animate-pulse shadow-lg shadow-[#81E4F2]/50'
               : deckALoaded || deckBLoaded
               ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:shadow-[#81E4F2]/20'
               : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
