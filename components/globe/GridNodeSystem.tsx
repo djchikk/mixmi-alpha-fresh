@@ -8,24 +8,31 @@ import { latLngToVector3 } from './Globe';
 import { ProfileNodeMesh } from './ProfileNodeMesh';
 import { RadioNodeMesh } from './RadioNodeMesh';
 
-// Node size categories based on zoom
+// Node size categories based on zoom - reduced by ~25% for better appearance
 const ZOOM_LEVELS = {
-  FAR: { min: 3, max: 8, scale: 1, glowOpacity: 0.5, nodeSize: 0.02 },
-  MEDIUM: { min: 1.8, max: 3, scale: 0.5, glowOpacity: 0.25, nodeSize: 0.015 },
-  CLOSE: { min: 1.05, max: 1.8, scale: 0.2, glowOpacity: 0, nodeSize: 0.01 }
+  FAR: { min: 3, max: 8, scale: 1, glowOpacity: 0.5, nodeSize: 0.015 },
+  MEDIUM: { min: 1.8, max: 3, scale: 0.5, glowOpacity: 0.25, nodeSize: 0.011 },
+  CLOSE: { min: 1.05, max: 1.8, scale: 0.2, glowOpacity: 0, nodeSize: 0.0075 }
 };
 
-// Color palettes
-const COLORS = [
-  '#ff0066', // Hot pink
-  '#00ff88', // Electric green
-  '#00bbff', // Bright cyan
-  '#ffaa00', // Vibrant orange
-  '#ff00ff', // Magenta
-  '#ffff00', // Yellow
-  '#00ffff', // Cyan
-  '#ff6b6b', // Coral
-];
+// Content type color mapping
+const CONTENT_TYPE_COLORS = {
+  loop: '#9772F4',        // Purple for loops
+  loop_pack: '#9772F4',   // Purple for loop packs
+  full_song: '#FFE4B5',   // Gold for songs
+  ep: '#FFE4B5',          // Gold for EPs
+  default: '#81E4F2'      // Cyan fallback
+};
+
+// Get color based on content type
+function getNodeColor(contentType?: string): string {
+  if (!contentType) return CONTENT_TYPE_COLORS.default;
+
+  // Check for cluster nodes - they might need special handling
+  if (contentType === 'cluster') return CONTENT_TYPE_COLORS.default;
+
+  return CONTENT_TYPE_COLORS[contentType as keyof typeof CONTENT_TYPE_COLORS] || CONTENT_TYPE_COLORS.default;
+}
 
 interface GridNodeSystemProps {
   nodes: TrackNode[];
@@ -192,7 +199,7 @@ function GridNode({
     <group ref={groupRef} position={position}>
       {/* Extra outer glow for enhanced hover effect */}
       <mesh ref={outerGlowRef}>
-        <sphereGeometry args={[0.045, 16, 16]} />
+        <sphereGeometry args={[0.034, 16, 16]} />
         <meshBasicMaterial
           color={color}
           transparent
@@ -200,10 +207,10 @@ function GridNode({
           blending={THREE.AdditiveBlending}
         />
       </mesh>
-      
+
       {/* Main glow effect */}
       <mesh ref={glowRef}>
-        <sphereGeometry args={[0.035, 16, 16]} />
+        <sphereGeometry args={[0.026, 16, 16]} />
         <meshBasicMaterial
           color={color}
           transparent
@@ -211,7 +218,7 @@ function GridNode({
           blending={THREE.AdditiveBlending}
         />
       </mesh>
-      
+
       {/* Core node */}
       <mesh
         ref={meshRef}
@@ -227,19 +234,19 @@ function GridNode({
           document.body.style.cursor = 'default';
         }}
       >
-        <sphereGeometry args={[0.02, 16, 16]} />
-        <meshStandardMaterial 
-          color={hovered ? '#ffffff' : color} 
+        <sphereGeometry args={[0.015, 16, 16]} />
+        <meshStandardMaterial
+          color={hovered ? '#ffffff' : color}
           emissive={color}
           emissiveIntensity={hovered ? 0.8 : 0.5}
           metalness={0.3}
           roughness={0.4}
         />
       </mesh>
-      
+
       {/* Ring for better visibility when zoomed in */}
       <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.025, 0.03, 16]} />
+        <ringGeometry args={[0.019, 0.023, 16]} />
         <meshBasicMaterial
           color={color}
           transparent
@@ -284,10 +291,8 @@ export function GridNodeSystem({ nodes, onNodeClick, onNodeHover }: GridNodeSyst
         return (
           <group key={group.key}>
             {group.nodes.map((node, index) => {
-              // Assign color based on node ID (with null safety)
-              const nodeId = node.id || `fallback-${index}`;
-              const colorIndex = nodeId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % COLORS.length;
-              const color = COLORS[colorIndex];
+              // Assign color based on content type
+              const color = getNodeColor(node.content_type);
               
               // Calculate position
               let finalPosition = basePosition;
