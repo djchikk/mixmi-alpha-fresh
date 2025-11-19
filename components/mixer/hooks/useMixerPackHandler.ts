@@ -96,13 +96,13 @@ export function useMixerPackHandler() {
         title: firstTrack.title,
         artist: firstTrack.artist || 'Unknown Artist',
         imageUrl: firstTrack.cover_image_url || '',
-        audioUrl: contentTypeToFetch === 'radio_station'
-          ? ((firstTrack as any).stream_url || firstTrack.audio_url)
-          : firstTrack.audio_url,
+        audioUrl: firstTrack.audio_url,
         bpm: firstTrack.bpm || 120,
         content_type: firstTrack.content_type,
-        pack_position: firstTrack.pack_position
-      };
+        pack_position: firstTrack.pack_position,
+        // Preserve stream_url for radio stations (needed for proxying)
+        ...(contentTypeToFetch === 'radio_station' && { stream_url: (firstTrack as any).stream_url })
+      } as any;
 
       await loadFunction(mixerTrack);
 
