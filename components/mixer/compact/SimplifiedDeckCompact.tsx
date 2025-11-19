@@ -169,12 +169,12 @@ export default function SimplifiedDeckCompact({
     <div className={`relative ${className}`}>
       <div
         ref={drop as any}
-        className="relative p-12"
+        className="relative p-12 pointer-events-none"
         style={{ margin: '-48px' }}
       >
         <div
           key={currentTrack?.id || 'empty'}
-          className={`carousel-track current ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target-active' : ''}`}
+          className={`carousel-track current pointer-events-auto ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target-active' : ''}`}
           style={{
             '--border-color': borderColor,
             boxShadow: isOver && canDrop && !isDragging ? `0 0 30px ${borderColor}80, 0 0 60px ${borderColor}40` : undefined
