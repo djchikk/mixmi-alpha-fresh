@@ -308,7 +308,7 @@ export default function SimplifiedDeck({
           ) : (
             <div className="deck-empty">
               <span className="deck-empty-icon">+</span>
-              <span className="deck-empty-text">Load Loop</span>
+              <span className="deck-empty-text">Drop Here</span>
             </div>
           )}
 
