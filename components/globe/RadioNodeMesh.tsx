@@ -84,7 +84,6 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   });
 
   const handleClick = (e: any) => {
-    console.log('🎙️ RadioNodeMesh clicked:', node.title, node);
     e.stopPropagation();
     onClick();
   };

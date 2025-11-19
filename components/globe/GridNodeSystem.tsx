@@ -300,11 +300,7 @@ export function GridNodeSystem({ nodes, onNodeClick, onNodeHover }: GridNodeSyst
               // Apply grid positioning when zoomed in and multiple nodes
               if (group.nodes.length > 1 && gridSpacing > 0) {
                 const gridPos = getGridPosition(index, group.nodes.length, 1);
-                
-                // Create offset vector in 3D space
-                const right = new THREE.Vector3(1, 0, 0);
-                const up = new THREE.Vector3(0, 1, 0);
-                
+
                 // Orient to surface normal
                 const normal = basePosition.clone().normalize();
                 const tangent = new THREE.Vector3(0, 1, 0).cross(normal).normalize();
