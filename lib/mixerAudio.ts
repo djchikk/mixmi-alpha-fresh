@@ -774,8 +774,9 @@ class PreciseLooper {
   private loopStartPosition: number = 0; // 🎯 NEW: Loop start position in bars
   private contentType: string = 'loop'; // 🎵 NEW: Content type (loop, full_song, etc.)
   private sectionSize: number = 8; // 🎵 NEW: Section size for songs (always 8 bars)
+  private onLoopRestart?: () => void; // 🎯 NEW: Callback for synchronized loop restart
 
-  constructor(audioContext: AudioContext, audioElement: HTMLAudioElement, bpm: number, deckId: 'A' | 'B', loopBars: number = 8, contentType: string = 'loop') {
+  constructor(audioContext: AudioContext, audioElement: HTMLAudioElement, bpm: number, deckId: 'A' | 'B', loopBars: number = 8, contentType: string = 'loop', onLoopRestart?: () => void) {
     console.log(`🔍 PreciseLooper Constructor Debug for Deck ${deckId}:`, {
       inputBPM: bpm,
       bpmType: typeof bpm,
@@ -790,6 +791,7 @@ class PreciseLooper {
     this.deckId = deckId;
     this.loopBars = loopBars;
     this.contentType = contentType;
+    this.onLoopRestart = onLoopRestart; // 🎯 Store loop restart callback
     this.loopDuration = this.calculateLoopDuration();
 
     // 🎵 Initialize content-aware analyzer
@@ -939,6 +941,12 @@ class PreciseLooper {
             this.audioElement.currentTime = resetTime;
             console.log(`🔁 Deck ${this.deckId} LOOP EXECUTED: ${audioTimeBeforeReset.toFixed(3)}s → ${resetTime.toFixed(3)}s (bar ${this.loopStartPosition}, looping ${this.loopBars} bars)`);
           }
+
+          // 🎯 NEW: Trigger synchronized loop restart callback (for grabbed radio sync)
+          if (this.onLoopRestart) {
+            console.log(`🎯 Deck ${this.deckId} triggering synchronized loop restart callback`);
+            this.onLoopRestart();
+          }
         } catch (error) {
           console.warn(`⚠️ Deck ${this.deckId} loop reset failed:`, error);
         }
@@ -1068,6 +1076,12 @@ class PreciseLooper {
       this.audioElement.currentTime = loopStartTime;
       console.log(`🎯 Deck ${this.deckId} LOOP: Seeked to bar ${this.loopStartPosition} (${loopStartTime.toFixed(2)}s)`);
     }
+  }
+
+  // 🎯 NEW: Set callback for synchronized loop restart
+  setLoopRestartCallback(callback: (() => void) | undefined): void {
+    this.onLoopRestart = callback;
+    console.log(`🎯 Deck ${this.deckId} loop restart callback ${callback ? 'set' : 'cleared'}`);
   }
 
   // Cleanup resources

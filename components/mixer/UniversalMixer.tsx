@@ -1494,6 +1494,59 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
   }, [mixerState.deckB.contentType, mixerState.deckB.audioState]);
 
+  // 🎯 NEW: Set up synchronized loop restart for grabbed radio
+  useEffect(() => {
+    const deckAState = mixerState.deckA;
+    const deckBState = mixerState.deckB;
+
+    // Clear any existing callbacks first
+    if (deckAState.audioState?.preciseLooper) {
+      deckAState.audioState.preciseLooper.setLoopRestartCallback(undefined);
+    }
+    if (deckBState.audioState?.preciseLooper) {
+      deckBState.audioState.preciseLooper.setLoopRestartCallback(undefined);
+    }
+
+    // If Deck A has a looping track and Deck B has grabbed radio, sync them
+    if (deckAState.audioState?.preciseLooper &&
+        deckAState.contentType !== 'radio_station' &&
+        deckBState.contentType === 'grabbed_radio' &&
+        deckBState.audioState?.audio) {
+
+      const deckBElement = deckBState.audioState.audio;
+      console.log('🎯 Setting up Deck A → Deck B synchronized loop restart (grabbed radio)');
+
+      deckAState.audioState.preciseLooper.setLoopRestartCallback(() => {
+        if (deckBElement && !deckBElement.paused) {
+          deckBElement.currentTime = 0;
+          console.log('🎯 Deck B grabbed radio restarted in sync with Deck A loop');
+        }
+      });
+    }
+
+    // If Deck B has a looping track and Deck A has grabbed radio, sync them
+    if (deckBState.audioState?.preciseLooper &&
+        deckBState.contentType !== 'radio_station' &&
+        deckAState.contentType === 'grabbed_radio' &&
+        deckAState.audioState?.audio) {
+
+      const deckAElement = deckAState.audioState.audio;
+      console.log('🎯 Setting up Deck B → Deck A synchronized loop restart (grabbed radio)');
+
+      deckBState.audioState.preciseLooper.setLoopRestartCallback(() => {
+        if (deckAElement && !deckAElement.paused) {
+          deckAElement.currentTime = 0;
+          console.log('🎯 Deck A grabbed radio restarted in sync with Deck B loop');
+        }
+      });
+    }
+  }, [
+    mixerState.deckA.audioState,
+    mixerState.deckA.contentType,
+    mixerState.deckB.audioState,
+    mixerState.deckB.contentType
+  ]);
+
   // Expose loadMixerTracks and clearMixerDecks methods
   useEffect(() => {
     (window as any).loadMixerTracks = async (trackA: any, trackB: any) => {
