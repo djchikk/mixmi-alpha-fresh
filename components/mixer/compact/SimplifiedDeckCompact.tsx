@@ -115,20 +115,20 @@ export default function SimplifiedDeckCompact({
         });
 
         // Convert IPTrack format to mixer Track format if needed
-        // For radio stations, prioritize stream_url
-        const audioUrl = item.track.content_type === 'radio_station'
-          ? (item.track.stream_url || item.track.audioUrl || item.track.audio_url)
-          : (item.track.audioUrl || item.track.audio_url);
-
+        // For radio stations, preserve stream_url as separate field for proxying
         const mixerTrack = {
           id: item.track.id,
           title: item.track.title,
           artist: item.track.artist || item.track.artist_name,
           imageUrl: optimizedImageUrl,
-          audioUrl: audioUrl,
+          audioUrl: item.track.audioUrl || item.track.audio_url,
           bpm: item.track.bpm || 120,
           content_type: item.track.content_type,
-          pack_position: item.track.pack_position // Preserve for number badges
+          pack_position: item.track.pack_position, // Preserve for number badges
+          // Preserve stream_url for radio stations (needed for proxying)
+          ...(item.track.content_type === 'radio_station' && item.track.stream_url && {
+            stream_url: item.track.stream_url
+          })
         };
         
         console.log('🔄 Converted track for mixer:', mixerTrack);
