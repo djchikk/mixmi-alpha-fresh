@@ -95,7 +95,7 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
           onClick={() => loopEnabled && setDropdownOpen(!dropdownOpen)}
         >
           <span
-            className={`loop-arrow text-xs cursor-pointer select-none transition-colors ${
+            className={`loop-arrow text-xs cursor-pointer select-none transition-colors relative z-10 pointer-events-auto ${
               loopEnabled ? 'text-slate-500 hover:text-slate-400' : 'text-slate-600'
             }`}
             onClick={(e) => {
@@ -109,7 +109,7 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
             {loopLength === 0.125 ? '1/8' : loopLength < 1 ? `${loopLength * 4}/4` : loopLength}
           </span>
           <span
-            className={`loop-arrow text-xs cursor-pointer select-none transition-colors ${
+            className={`loop-arrow text-xs cursor-pointer select-none transition-colors relative z-10 pointer-events-auto ${
               loopEnabled ? 'text-slate-500 hover:text-slate-400' : 'text-slate-600'
             }`}
             onClick={(e) => {
