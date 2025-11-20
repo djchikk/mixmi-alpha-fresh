@@ -5,7 +5,6 @@ import { X, Video, Upload, MapPin, Plus, Trash2, Play, Pause } from "lucide-reac
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { supabase } from "@/lib/supabase";
-import TrackCoverUploader from "../shared/TrackCoverUploader";
 import { parseLocationsAndGetCoordinates } from "@/lib/locationLookup";
 import { useLocationAutocomplete } from "@/hooks/useLocationAutocomplete";
 
@@ -89,8 +88,45 @@ export default function VideoClipModal({
     }
   }, [isOpen, clearSuggestions]);
 
+  // Capture first frame of video as thumbnail
+  const captureVideoThumbnail = async (videoElement: HTMLVideoElement): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      // Seek to 0.1 seconds to avoid black frames
+      videoElement.currentTime = 0.1;
+
+      videoElement.onseeked = () => {
+        try {
+          // Create canvas to capture frame
+          const canvas = document.createElement('canvas');
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          // Draw video frame to canvas
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+          // Convert to blob
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create thumbnail blob'));
+            }
+          }, 'image/jpeg', 0.9);
+        } catch (error) {
+          reject(error);
+        }
+      };
+    });
+  };
+
   // Handle video file selection
-  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -112,10 +148,10 @@ export default function VideoClipModal({
     setVideoPreviewUrl(previewUrl);
     setVideoFile(file);
 
-    // Create a temporary video element to check duration
+    // Create a temporary video element to check duration and capture thumbnail
     const videoElement = document.createElement('video');
     videoElement.src = previewUrl;
-    videoElement.onloadedmetadata = () => {
+    videoElement.onloadedmetadata = async () => {
       const duration = videoElement.duration;
       setVideoDuration(duration);
 
@@ -127,6 +163,36 @@ export default function VideoClipModal({
         URL.revokeObjectURL(previewUrl);
       } else {
         setErrors({ ...errors, video: '' });
+
+        // Capture first frame as thumbnail
+        try {
+          const thumbnailBlob = await captureVideoThumbnail(videoElement);
+
+          // Upload thumbnail to cover-images bucket
+          const thumbnailFileName = `${crypto.randomUUID()}.jpg`;
+          const { data: thumbnailData, error: thumbnailError } = await supabase.storage
+            .from('cover-images')
+            .upload(thumbnailFileName, thumbnailBlob, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (thumbnailError) {
+            console.error('Failed to upload thumbnail:', thumbnailError);
+            showToast('⚠️ Failed to generate cover image, please upload manually', 'warning');
+          } else {
+            // Get public URL for thumbnail
+            const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+              .from('cover-images')
+              .getPublicUrl(thumbnailFileName);
+
+            setCoverImageUrl(thumbnailUrl);
+            console.log('✅ Auto-generated cover image from first frame');
+          }
+        } catch (error) {
+          console.error('Error capturing thumbnail:', error);
+          showToast('⚠️ Failed to generate cover image, please upload manually', 'warning');
+        }
       }
     };
   };
@@ -171,8 +237,13 @@ export default function VideoClipModal({
     if (!title.trim()) newErrors.title = 'Title is required';
     if (!artist.trim()) newErrors.artist = 'Artist name is required';
     if (!videoFile) newErrors.video = 'Video file is required';
-    if (!coverImageUrl) newErrors.cover = 'Cover image is required';
+    // Cover image is auto-generated from video, so no validation needed
     if (!termsAccepted) newErrors.terms = 'You must accept the terms';
+
+    // Warn if cover image wasn't generated
+    if (!coverImageUrl) {
+      console.warn('⚠️ Cover image was not auto-generated, will be missing');
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -365,17 +436,12 @@ export default function VideoClipModal({
             {errors.video && <p className="mt-1 text-sm text-red-400">{errors.video}</p>}
           </div>
 
-          {/* Cover Image */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Cover Image <span className="text-red-400">*</span>
-            </label>
-            <TrackCoverUploader
-              currentImageUrl={coverImageUrl}
-              onImageUpload={setCoverImageUrl}
-            />
-            {errors.cover && <p className="mt-1 text-sm text-red-400">{errors.cover}</p>}
-          </div>
+          {/* Cover image auto-generated from first video frame */}
+          {coverImageUrl && (
+            <div className="text-sm text-gray-400 bg-[#38BDF8]/10 border border-[#38BDF8]/30 rounded-lg p-3">
+              ✅ Cover image auto-generated from video
+            </div>
+          )}
 
           {/* Title & Artist (side by side) */}
           <div className="grid grid-cols-2 gap-4">
