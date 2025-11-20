@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import OptimizedImage from '../shared/OptimizedImage';
 import InfoIcon from '../shared/InfoIcon';
+import { getAIAssistanceDisplay } from '@/lib/aiAssistanceUtils';
 
 interface TrackCardProps {
   track: IPTrack;
@@ -518,7 +519,7 @@ export default function TrackCard({
               )}
 
               {/* Description Section */}
-              <div 
+              <div
                 className="rounded-md"
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -529,6 +530,24 @@ export default function TrackCard({
                 <h4 className="text-white uppercase font-bold" style={{ fontSize: '10px', letterSpacing: '0.3px', marginBottom: '6px' }}>DESCRIPTION</h4>
                 <div className="text-xs" style={{ lineHeight: '1.5', color: '#999' }}>
                   {track.description || `A ${track.content_type === 'full_song' ? 'beautiful song' : 'dynamic loop'} showcasing the power of the mixmi platform. This track represents the future of creative collaboration and remix culture.`}
+                </div>
+              </div>
+
+              {/* AI Assistance Section */}
+              <div
+                className="rounded-md"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '6px',
+                  padding: '10px'
+                }}
+              >
+                <h4 className="text-white uppercase font-bold" style={{ fontSize: '10px', letterSpacing: '0.3px', marginBottom: '6px' }}>CREATION</h4>
+                <div className="text-xs" style={{ lineHeight: '1.5', color: '#999' }}>
+                  {(() => {
+                    const aiDisplay = getAIAssistanceDisplay(track);
+                    return `${aiDisplay.emoji} ${aiDisplay.text}`;
+                  })()}
                 </div>
               </div>
 

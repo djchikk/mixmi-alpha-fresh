@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useDrag } from 'react-dnd';
 import { GripVertical } from 'lucide-react';
 import Link from 'next/link';
+import { getAIAssistanceDisplay } from '@/lib/aiAssistanceUtils';
 
 interface TrackDetailsModalProps {
   track: IPTrack;
@@ -898,6 +899,18 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 <div className="flex">
                   <span className="text-gray-500 w-24">Generation:</span>
                   <span className="text-gray-300">{getGeneration()}</span>
+                </div>
+              )}
+              {/* AI Assistance Display - Only for non-radio content */}
+              {!isRadioStation && (
+                <div className="flex">
+                  <span className="text-gray-500 w-24">Creation:</span>
+                  <span className="text-gray-300">
+                    {(() => {
+                      const aiDisplay = getAIAssistanceDisplay(track);
+                      return `${aiDisplay.emoji} ${aiDisplay.text}`;
+                    })()}
+                  </span>
                 </div>
               )}
             </div>
