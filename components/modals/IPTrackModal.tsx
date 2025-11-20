@@ -776,10 +776,11 @@ export default function IPTrackModal({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
           <label className="block text-sm font-normal text-gray-300 mb-2">
-            {formData.content_type === 'loop_pack' ? 'Pack Title' : 
-             formData.content_type === 'ep' ? 'EP Title' : 
+            {formData.content_type === 'loop_pack' ? 'Pack Title' :
+             formData.content_type === 'ep' ? 'EP Title' :
              formData.content_type === 'loop' ? 'Loop Title' :
-             formData.content_type === 'full_song' ? 'Song Title' : 'Track Title'}
+             formData.content_type === 'full_song' ? 'Song Title' :
+             formData.content_type === 'video_clip' ? 'Clip Title' : 'Track Title'}
           </label>
           <input
             type="text"
@@ -886,8 +887,8 @@ export default function IPTrackModal({
         </div>
       )}
 
-      {/* BPM and Key - Hide for EPs since multiple songs have different BPM/Key */}
-      {formData.content_type !== 'ep' && (
+      {/* BPM and Key - Hide for EPs and Video Clips */}
+      {formData.content_type !== 'ep' && formData.content_type !== 'video_clip' && (
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-normal text-gray-300 mb-2">
@@ -1124,12 +1125,16 @@ export default function IPTrackModal({
 
       {/* Notes field */}
       <div>
-        <label className="block text-sm font-normal text-gray-300 mb-2">Notes <span className="text-gray-500">(optional)</span></label>
+        <label className="block text-sm font-normal text-gray-300 mb-2">
+          {formData.content_type === 'video_clip' ? 'Credits, story, anything you want to say...' : 'Notes'} <span className="text-gray-500">(optional)</span>
+        </label>
         <textarea
           value={(formData as any).notes || ''}
           onChange={(e) => handleInputChange('notes' as any, e.target.value)}
           className="textarea-field"
-          placeholder="Credits, lyrics, story behind the track, collaborators..."
+          placeholder={formData.content_type === 'video_clip'
+            ? "Credits, story behind the clip, collaborators, inspiration..."
+            : "Credits, lyrics, story behind the track, collaborators..."}
           rows={5}
         />
       </div>
