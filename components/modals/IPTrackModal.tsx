@@ -1155,64 +1155,6 @@ export default function IPTrackModal({
         )}
       </div>
 
-      {/* AI Assistance - Three radio buttons in one row */}
-      <div>
-        <label className="block text-sm font-normal text-gray-300 mb-3">Creation Method</label>
-        <div className="flex gap-4">
-          {/* 100% Human */}
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type="radio"
-              name="ai_assistance"
-              checked={!formData.ai_assisted_idea && !formData.ai_assisted_implementation}
-              onChange={() => {
-                handleInputChange('ai_assisted_idea', false);
-                handleInputChange('ai_assisted_implementation', false);
-              }}
-              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
-            />
-            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-              🙌 100% Human
-            </span>
-          </label>
-
-          {/* AI-Assisted */}
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type="radio"
-              name="ai_assistance"
-              checked={(formData.ai_assisted_idea || formData.ai_assisted_implementation) &&
-                       !(formData.ai_assisted_idea && formData.ai_assisted_implementation)}
-              onChange={() => {
-                handleInputChange('ai_assisted_idea', true);
-                handleInputChange('ai_assisted_implementation', false);
-              }}
-              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
-            />
-            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-              🤖 AI-Assisted
-            </span>
-          </label>
-
-          {/* AI-Generated */}
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type="radio"
-              name="ai_assistance"
-              checked={formData.ai_assisted_idea && formData.ai_assisted_implementation}
-              onChange={() => {
-                handleInputChange('ai_assisted_idea', true);
-                handleInputChange('ai_assisted_implementation', true);
-              }}
-              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
-            />
-            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-              🤖 AI-Generated
-            </span>
-          </label>
-        </div>
-      </div>
-
       {/* Location Input with Autocomplete and Tags */}
       <div className="space-y-2">
         <label className="block text-sm font-normal text-gray-300 mb-2">
@@ -1384,6 +1326,64 @@ export default function IPTrackModal({
             : "Credits, lyrics, story behind the track, collaborators..."}
           rows={5}
         />
+      </div>
+
+      {/* AI Assistance - Three radio buttons in one row */}
+      <div>
+        <label className="block text-sm font-normal text-gray-300 mb-3">Creation Method</label>
+        <div className="flex gap-4">
+          {/* 100% Human */}
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="radio"
+              name="ai_assistance"
+              checked={!formData.ai_assisted_idea && !formData.ai_assisted_implementation}
+              onChange={() => {
+                handleInputChange('ai_assisted_idea', false);
+                handleInputChange('ai_assisted_implementation', false);
+              }}
+              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
+            />
+            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+              🙌 100% Human
+            </span>
+          </label>
+
+          {/* AI-Assisted */}
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="radio"
+              name="ai_assistance"
+              checked={(formData.ai_assisted_idea || formData.ai_assisted_implementation) &&
+                       !(formData.ai_assisted_idea && formData.ai_assisted_implementation)}
+              onChange={() => {
+                handleInputChange('ai_assisted_idea', true);
+                handleInputChange('ai_assisted_implementation', false);
+              }}
+              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
+            />
+            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+              🙌🤖 AI-Assisted
+            </span>
+          </label>
+
+          {/* AI-Generated */}
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="radio"
+              name="ai_assistance"
+              checked={formData.ai_assisted_idea && formData.ai_assisted_implementation}
+              onChange={() => {
+                handleInputChange('ai_assisted_idea', true);
+                handleInputChange('ai_assisted_implementation', true);
+              }}
+              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
+            />
+            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+              🤖 AI-Generated
+            </span>
+          </label>
+        </div>
       </div>
 
     </div>

@@ -42,7 +42,7 @@ export function getAIAssistanceDisplay(track: IPTrack): {
   // Idea only - AI-Assisted
   if (ideaAI) {
     return {
-      emoji: '🤖',
+      emoji: '🙌🤖',
       text: 'AI-Assisted',
       hasAI: true
     };
@@ -50,7 +50,7 @@ export function getAIAssistanceDisplay(track: IPTrack): {
 
   // Implementation only (edge case, shouldn't happen with current form logic)
   return {
-    emoji: '🤖',
+    emoji: '🙌🤖',
     text: 'AI-Assisted',
     hasAI: true
   };
