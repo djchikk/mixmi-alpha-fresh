@@ -72,11 +72,11 @@ export default function ContentTypeSelector({
             {/* Video Option */}
             <button
               onClick={onSelectVideo}
-              className="group relative bg-gradient-to-br from-[#10B981]/20 to-[#10B981]/5 hover:from-[#10B981]/30 hover:to-[#10B981]/10 border-2 border-[#10B981]/30 hover:border-[#10B981] rounded-xl p-8 transition-all duration-300 hover:scale-105"
+              className="group relative bg-gradient-to-br from-[#38BDF8]/20 to-[#38BDF8]/5 hover:from-[#38BDF8]/30 hover:to-[#38BDF8]/10 border-2 border-[#38BDF8]/30 hover:border-[#38BDF8] rounded-xl p-8 transition-all duration-300 hover:scale-105"
             >
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-[#10B981]/20 flex items-center justify-center group-hover:bg-[#10B981]/30 transition-colors">
-                  <Video className="w-8 h-8 text-[#10B981]" />
+                <div className="w-16 h-16 rounded-full bg-[#38BDF8]/20 flex items-center justify-center group-hover:bg-[#38BDF8]/30 transition-colors">
+                  <Video className="w-8 h-8 text-[#38BDF8]" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-xl font-bold text-white mb-2">Video</h3>

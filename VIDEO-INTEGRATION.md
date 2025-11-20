@@ -12,7 +12,7 @@ Add short-form video clips (5 seconds) as a new content type in Mixmi, integrati
 - **Audio**: Optional (can have audio track or be silent)
 - **Storage**: Supabase Storage bucket `video-clips/`
 - **BPM**: Optional (for sync-capable clips)
-- **Color**: Green (#10B981) - distinct from loops (purple), songs (gold), radio (orange)
+- **Color**: Sky Blue (#38BDF8) - "Visual/Media" - bright and screen-like, distinct from loops (purple), songs (gold), radio (orange)
 
 ## Database Schema Changes
 
@@ -112,7 +112,7 @@ Update content_type enum to include:
 | `full_song` | Gold (#FFE4B5) | Full songs |
 | `radio_station` | Orange (#FB923C) | Live radio streams |
 | `grabbed_radio` | Orange (#FB923C) | Grabbed radio moments |
-| **`video_clip`** | **Green (#10B981)** | **5-second video clips** |
+| **`video_clip`** | **Sky Blue (#38BDF8)** | **5-second video clips** |
 
 ## File Structure
 
