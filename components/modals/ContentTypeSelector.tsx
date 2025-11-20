@@ -8,13 +8,15 @@ interface ContentTypeSelectorProps {
   onClose: () => void;
   onSelectMusic: () => void;
   onSelectRadio: () => void;
+  onSelectVideo: () => void;
 }
 
 export default function ContentTypeSelector({
   isOpen,
   onClose,
   onSelectMusic,
-  onSelectRadio
+  onSelectRadio,
+  onSelectVideo
 }: ContentTypeSelectorProps) {
   if (!isOpen) return null;
 
@@ -67,21 +69,21 @@ export default function ContentTypeSelector({
               </div>
             </button>
 
-            {/* Video Option (Coming Soon) */}
-            <div className="relative bg-gradient-to-br from-gray-700/20 to-gray-700/5 border-2 border-gray-700/30 rounded-xl p-8 opacity-50 cursor-not-allowed">
+            {/* Video Option */}
+            <button
+              onClick={onSelectVideo}
+              className="group relative bg-gradient-to-br from-[#10B981]/20 to-[#10B981]/5 hover:from-[#10B981]/30 hover:to-[#10B981]/10 border-2 border-[#10B981]/30 hover:border-[#10B981] rounded-xl p-8 transition-all duration-300 hover:scale-105"
+            >
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gray-700/20 flex items-center justify-center">
-                  <Video className="w-8 h-8 text-gray-500" />
+                <div className="w-16 h-16 rounded-full bg-[#10B981]/20 flex items-center justify-center group-hover:bg-[#10B981]/30 transition-colors">
+                  <Video className="w-8 h-8 text-[#10B981]" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-xl font-bold text-gray-400 mb-2">Video</h3>
-                  <p className="text-sm text-gray-500">Coming soon</p>
+                  <h3 className="text-xl font-bold text-white mb-2">Video</h3>
+                  <p className="text-sm text-gray-400">Upload 5-second clips</p>
                 </div>
               </div>
-              <div className="absolute top-3 right-3 bg-gray-700/50 text-gray-300 text-xs px-2 py-1 rounded-full">
-                Soon
-              </div>
-            </div>
+            </button>
           </div>
         </div>
       </div>

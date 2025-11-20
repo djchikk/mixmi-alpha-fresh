@@ -79,7 +79,7 @@ export interface IPTrack {
   description?: string;
   tell_us_more?: string; // New field for additional context
   tags: string[];
-  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix' | 'radio_station' | 'station_pack';
+  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix' | 'radio_station' | 'station_pack' | 'video_clip';
   loop_category?: string; // Only for loops: 'vocals', 'beats', 'instrumental', 'stem', 'other'
   sample_type: string; // Legacy field - will be replaced by content_type + loop_category
   bpm?: number; // Beats per minute - optional for full songs, essential for loops
@@ -123,6 +123,7 @@ export interface IPTrack {
   // Media Assets
   cover_image_url?: string;
   audio_url?: string;
+  video_url?: string; // For video_clip content type - URL to MP4 file in Supabase Storage
   
   // Loop Pack System
   pack_id?: string; // Links individual loops to their parent loop pack

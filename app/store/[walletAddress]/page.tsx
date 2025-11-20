@@ -37,6 +37,7 @@ export default function CreatorStorePage() {
   const [isContentTypeSelectorOpen, setIsContentTypeSelectorOpen] = useState(false);
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
   const [isRadioModalOpen, setIsRadioModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -901,6 +902,10 @@ export default function CreatorStorePage() {
           onSelectRadio={() => {
             setIsContentTypeSelectorOpen(false);
             setIsRadioModalOpen(true);
+          }}
+          onSelectVideo={() => {
+            setIsContentTypeSelectorOpen(false);
+            setIsVideoModalOpen(true);
           }}
         />
       )}
