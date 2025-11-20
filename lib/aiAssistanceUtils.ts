@@ -7,6 +7,11 @@ import { IPTrack } from '@/types';
 /**
  * Get the display text for AI assistance status
  * Returns emoji + text based on what AI was used for
+ *
+ * Three states:
+ * - Neither flag: 100% Human
+ * - Idea only: AI-Assisted (human-AI collaboration)
+ * - Both flags: AI-Generated (minimal human intervention)
  */
 export function getAIAssistanceDisplay(track: IPTrack): {
   emoji: string;
@@ -25,28 +30,28 @@ export function getAIAssistanceDisplay(track: IPTrack): {
     };
   }
 
-  // Both - AI-Assisted (Concept & Production)
+  // Both - AI-Generated
   if (ideaAI && implementationAI) {
     return {
       emoji: '🤖',
-      text: 'AI-Assisted (Concept & Production)',
+      text: 'AI-Generated',
       hasAI: true
     };
   }
 
-  // Idea only - AI-Assisted (Concept)
+  // Idea only - AI-Assisted
   if (ideaAI) {
     return {
       emoji: '🤖',
-      text: 'AI-Assisted (Concept)',
+      text: 'AI-Assisted',
       hasAI: true
     };
   }
 
-  // Implementation only - AI-Assisted (Production)
+  // Implementation only (edge case, shouldn't happen with current form logic)
   return {
     emoji: '🤖',
-    text: 'AI-Assisted (Production)',
+    text: 'AI-Assisted',
     hasAI: true
   };
 }
