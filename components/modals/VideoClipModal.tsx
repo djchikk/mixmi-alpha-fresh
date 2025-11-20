@@ -345,12 +345,12 @@ export default function VideoClipModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-gradient-to-br from-[#1a2332] to-[#0f1419] rounded-2xl shadow-2xl w-full max-w-3xl border border-[#38BDF8]/30 my-8">
+      <div className="bg-gradient-to-br from-[#1a2332] to-[#0f1419] rounded-2xl shadow-2xl w-full max-w-3xl border border-[#2792F5]/30 my-8">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#38BDF8]/20 flex items-center justify-center">
-              <Video className="w-5 h-5 text-[#38BDF8]" />
+            <div className="w-10 h-10 rounded-full bg-[#2792F5]/20 flex items-center justify-center">
+              <Video className="w-5 h-5 text-[#2792F5]" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-white">Upload Video Clip</h2>
@@ -379,9 +379,9 @@ export default function VideoClipModal({
             {!videoPreviewUrl ? (
               <div
                 onClick={() => videoInputRef.current?.click()}
-                className="border-2 border-dashed border-[#38BDF8]/30 hover:border-[#38BDF8] rounded-lg p-8 text-center cursor-pointer transition-colors bg-[#38BDF8]/5 hover:bg-[#38BDF8]/10"
+                className="border-2 border-dashed border-[#2792F5]/30 hover:border-[#2792F5] rounded-lg p-8 text-center cursor-pointer transition-colors bg-[#2792F5]/5 hover:bg-[#2792F5]/10"
               >
-                <Upload className="w-12 h-12 text-[#38BDF8] mx-auto mb-3" />
+                <Upload className="w-12 h-12 text-[#2792F5] mx-auto mb-3" />
                 <p className="text-gray-300 mb-1">Click to upload video</p>
                 <p className="text-xs text-gray-500">MP4, MOV, or WebM (max 5 seconds)</p>
               </div>
@@ -398,7 +398,7 @@ export default function VideoClipModal({
                 <div className="absolute inset-0 flex items-center justify-center">
                   <button
                     onClick={togglePreview}
-                    className="w-16 h-16 rounded-full bg-[#38BDF8]/90 hover:bg-[#38BDF8] flex items-center justify-center transition-colors"
+                    className="w-16 h-16 rounded-full bg-[#2792F5]/90 hover:bg-[#2792F5] flex items-center justify-center transition-colors"
                   >
                     {isPreviewPlaying ? (
                       <Pause className="w-8 h-8 text-white" />
@@ -438,7 +438,7 @@ export default function VideoClipModal({
 
           {/* Cover image auto-generated from first video frame */}
           {coverImageUrl && (
-            <div className="text-sm text-gray-400 bg-[#38BDF8]/10 border border-[#38BDF8]/30 rounded-lg p-3">
+            <div className="text-sm text-gray-400 bg-[#2792F5]/10 border border-[#2792F5]/30 rounded-lg p-3">
               ✅ Cover image auto-generated from video
             </div>
           )}
@@ -453,7 +453,7 @@ export default function VideoClipModal({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#38BDF8]"
+                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#2792F5]"
                 placeholder="Sunset Beach Walk"
                 disabled={isUploading}
               />
@@ -468,7 +468,7 @@ export default function VideoClipModal({
                 type="text"
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#38BDF8]"
+                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#2792F5]"
                 placeholder="Your name"
                 disabled={isUploading}
               />
@@ -485,7 +485,7 @@ export default function VideoClipModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#38BDF8] resize-none"
+              className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#2792F5] resize-none"
               placeholder="Describe your video clip..."
               disabled={isUploading}
             />
@@ -502,13 +502,13 @@ export default function VideoClipModal({
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                className="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#38BDF8]"
+                className="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#2792F5]"
                 placeholder="Add a tag..."
                 disabled={isUploading}
               />
               <button
                 onClick={handleAddTag}
-                className="px-4 py-2 bg-[#38BDF8]/20 hover:bg-[#38BDF8]/30 text-[#38BDF8] rounded-lg transition-colors"
+                className="px-4 py-2 bg-[#2792F5]/20 hover:bg-[#2792F5]/30 text-[#2792F5] rounded-lg transition-colors"
                 disabled={isUploading}
               >
                 <Plus size={20} />
@@ -518,7 +518,7 @@ export default function VideoClipModal({
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-3 py-1 bg-[#38BDF8]/20 text-[#38BDF8] rounded-full text-sm flex items-center gap-2"
+                  className="px-3 py-1 bg-[#2792F5]/20 text-[#2792F5] rounded-full text-sm flex items-center gap-2"
                 >
                   {tag}
                   <button
@@ -543,7 +543,7 @@ export default function VideoClipModal({
               type="number"
               value={bpm || ''}
               onChange={(e) => setBpm(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#38BDF8]"
+              className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#2792F5]"
               placeholder="120"
               min="30"
               max="300"
@@ -567,7 +567,7 @@ export default function VideoClipModal({
                   setShowLocationDropdown(true);
                 }}
                 onFocus={() => suggestions.length > 0 && setShowLocationDropdown(true)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#38BDF8]"
+                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#2792F5]"
                 placeholder="Where was this filmed?"
                 disabled={isUploading}
               />
@@ -596,7 +596,7 @@ export default function VideoClipModal({
                 type="checkbox"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="mt-1 w-4 h-4 rounded border-gray-600 text-[#38BDF8] focus:ring-[#38BDF8]"
+                className="mt-1 w-4 h-4 rounded border-gray-600 text-[#2792F5] focus:ring-[#2792F5]"
                 disabled={isUploading}
               />
               <span className="text-sm text-gray-300">
@@ -620,7 +620,7 @@ export default function VideoClipModal({
           <button
             onClick={handleSubmit}
             disabled={isUploading || !termsAccepted || !videoFile}
-            className="px-8 py-2 bg-gradient-to-r from-[#38BDF8] to-[#0EA5E9] hover:from-[#0EA5E9] hover:to-[#0284C7] text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-8 py-2 bg-gradient-to-r from-[#2792F5] to-[#0EA5E9] hover:from-[#0EA5E9] hover:to-[#0284C7] text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isUploading ? (
               <>

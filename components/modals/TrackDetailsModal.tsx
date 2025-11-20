@@ -73,6 +73,11 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [previewTimeout, setPreviewTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // Video playback state
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+  const [videoTimeout, setVideoTimeout] = useState<NodeJS.Timeout | null>(null);
+
   // Fetch username for the track's primary uploader wallet
   useEffect(() => {
     const fetchUsername = async () => {
@@ -284,6 +289,32 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     };
   }, [isOpen, onClose]);
 
+  // Video playback function
+  const handleVideoPlayPause = () => {
+    if (!videoElement) return;
+
+    if (isVideoPlaying) {
+      // Pause video
+      videoElement.pause();
+      setIsVideoPlaying(false);
+      if (videoTimeout) {
+        clearTimeout(videoTimeout);
+        setVideoTimeout(null);
+      }
+    } else {
+      // Play video
+      videoElement.play().catch(err => console.error('Video play error:', err));
+      setIsVideoPlaying(true);
+
+      // 20-second auto-stop
+      const timeout = setTimeout(() => {
+        videoElement.pause();
+        setIsVideoPlaying(false);
+      }, 20000);
+      setVideoTimeout(timeout);
+    }
+  };
+
   // Audio playback functions for individual loops
   const handleLoopPlayPause = async (loop: IPTrack) => {
     const audioSource = loop.audio_url || loop.stream_url;
@@ -352,7 +383,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     }
   };
 
-  // Cleanup audio when modal closes
+  // Cleanup audio and video when modal closes
   useEffect(() => {
     if (!isOpen) {
       if (currentAudio) {
@@ -362,7 +393,15 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       if (previewTimeout) {
         clearTimeout(previewTimeout);
       }
+      if (videoElement) {
+        videoElement.pause();
+        setVideoElement(null);
+      }
+      if (videoTimeout) {
+        clearTimeout(videoTimeout);
+      }
       setPlayingLoopId(null);
+      setIsVideoPlaying(false);
     }
   }, [isOpen]);
 
@@ -377,6 +416,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     if (track.content_type === 'loop_pack') return 'Loop Pack';
     if (track.content_type === 'radio_station') return 'Radio Station';
     if (track.content_type === 'station_pack') return 'Radio Station Pack';
+    if (track.content_type === 'video_clip') return 'Video Clip';
     return 'Track';
   };
 
@@ -484,6 +524,66 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               <p className="text-gray-400 text-sm">{track.artist}</p>
             )}
           </div>
+
+          {/* Video Player Section - For Video Clips Only */}
+          {track.content_type === 'video_clip' && (track as any).video_url && (
+            <div className="mb-6">
+              <Divider title="VIDEO PLAYER" />
+              <div className="relative w-full bg-black rounded-lg overflow-hidden border-2 border-[#2792F5]">
+                {/* Video Element */}
+                <video
+                  ref={(el) => setVideoElement(el)}
+                  src={(track as any).video_url}
+                  className="w-full"
+                  style={{ aspectRatio: '16/9' }}
+                  muted
+                  playsInline
+                  onEnded={() => {
+                    setIsVideoPlaying(false);
+                    if (videoTimeout) {
+                      clearTimeout(videoTimeout);
+                      setVideoTimeout(null);
+                    }
+                  }}
+                />
+
+                {/* Play/Pause Overlay Button */}
+                {!isVideoPlaying && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <button
+                      onClick={handleVideoPlayPause}
+                      className="w-16 h-16 rounded-full bg-[#2792F5] hover:bg-[#2792F5]/80 flex items-center justify-center transition-all hover:scale-110"
+                      title="Play video"
+                    >
+                      <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* Control Bar - Always visible when playing */}
+                {isVideoPlaying && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={handleVideoPlayPause}
+                        className="w-10 h-10 rounded-full bg-[#2792F5] hover:bg-[#2792F5]/80 flex items-center justify-center transition-all"
+                        title="Pause video"
+                      >
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                        </svg>
+                      </button>
+                      <span className="text-white text-xs">
+                        20-second preview
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Individual Loops Section - For Loop Packs Only */}
           {track.content_type === 'loop_pack' && (

@@ -21,15 +21,17 @@ const CONTENT_TYPE_COLORS = {
   loop_pack: '#9772F4',   // Purple for loop packs
   full_song: '#FFE4B5',   // Gold for songs
   ep: '#FFE4B5',          // Gold for EPs
-  default: '#81E4F2'      // Cyan fallback
+  video_clip: '#2792F5',  // Deeper blue for video clips
+  cluster: '#81E4F2',     // Accent cyan for clustered content (carousels)
+  default: '#2792F5'      // Deeper blue fallback for unknown types
 };
 
 // Get color based on content type
 function getNodeColor(contentType?: string): string {
   if (!contentType) return CONTENT_TYPE_COLORS.default;
 
-  // Check for cluster nodes - they might need special handling
-  if (contentType === 'cluster') return CONTENT_TYPE_COLORS.default;
+  // Check for cluster nodes - use accent cyan color
+  if (contentType === 'cluster') return CONTENT_TYPE_COLORS.cluster;
 
   return CONTENT_TYPE_COLORS[contentType as keyof typeof CONTENT_TYPE_COLORS] || CONTENT_TYPE_COLORS.default;
 }

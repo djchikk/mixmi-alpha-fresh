@@ -136,6 +136,13 @@ export default function IPTrackModal({
     refreshPresets,
   } = useSplitPresets({ walletAddress: formData?.wallet_address || '' });
 
+  // Auto-select video_clip when in visual category mode
+  useEffect(() => {
+    if (isOpen && contentCategory === 'visual' && formData.content_type !== 'video_clip') {
+      handleInputChange('content_type', 'video_clip');
+    }
+  }, [isOpen, contentCategory, formData.content_type, handleInputChange]);
+
   // Location input state
   const [locationInput, setLocationInput] = useState('');
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -938,7 +945,7 @@ export default function IPTrackModal({
           {/* Visual content types - show when category is 'visual' or undefined (default/legacy) */}
           {(!contentCategory || contentCategory === 'visual') && (
             <>
-              {/* Video Clip */}
+              {/* Video Clip - Permanently ON until still images are added */}
               <button
                 type="button"
                 onClick={() => handleInputChange('content_type', 'video_clip')}
@@ -946,9 +953,9 @@ export default function IPTrackModal({
                 style={{
                   padding: '14px',
                   minHeight: '54px',
-                  background: formData.content_type === 'video_clip' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                  borderColor: formData.content_type === 'video_clip' ? '#38BDF8' : 'rgba(255, 255, 255, 0.08)',
-                  color: formData.content_type === 'video_clip' ? '#38BDF8' : '#8b92a6',
+                  background: 'rgba(56, 189, 248, 0.15)', // Always active
+                  borderColor: '#2792F5', // Always active
+                  color: '#2792F5', // Always active
                   borderRadius: '12px'
                 }}
               >
@@ -1342,7 +1349,7 @@ export default function IPTrackModal({
                 handleInputChange('ai_assisted_idea', false);
                 handleInputChange('ai_assisted_implementation', false);
               }}
-              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
+              className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
             />
             <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
               🙌 100% Human
@@ -1360,7 +1367,7 @@ export default function IPTrackModal({
                 handleInputChange('ai_assisted_idea', true);
                 handleInputChange('ai_assisted_implementation', false);
               }}
-              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
+              className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
             />
             <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
               🙌🤖 AI-Assisted
@@ -1377,7 +1384,7 @@ export default function IPTrackModal({
                 handleInputChange('ai_assisted_idea', true);
                 handleInputChange('ai_assisted_implementation', true);
               }}
-              className="w-4 h-4 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
+              className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
             />
             <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
               🤖 AI-Generated
@@ -1424,7 +1431,7 @@ export default function IPTrackModal({
                     className={`
                       relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
                       ${isVideoDragActive
-                        ? 'border-[#38BDF8] bg-[#38BDF8]/10'
+                        ? 'border-[#2792F5] bg-[#2792F5]/10'
                         : 'border-slate-600 hover:border-slate-500 bg-slate-800/20'
                       }
                       ${isVideoUploading ? 'opacity-50' : ''}
@@ -1433,7 +1440,7 @@ export default function IPTrackModal({
                     <input {...getVideoInputProps()} />
 
                     {isVideoDragActive ? (
-                      <div className="text-[#38BDF8]">
+                      <div className="text-[#2792F5]">
                         <div className="text-2xl mb-2">🎥</div>
                         <div className="text-sm font-normal">Drop video file here!</div>
                       </div>
@@ -1498,10 +1505,10 @@ export default function IPTrackModal({
                   <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-gray-300">Uploading video and generating thumbnail...</span>
-                      <span className="text-sm text-[#38BDF8]">⏳</span>
+                      <span className="text-sm text-[#2792F5]">⏳</span>
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-[#38BDF8] h-2 rounded-full animate-pulse w-full" />
+                      <div className="bg-[#2792F5] h-2 rounded-full animate-pulse w-full" />
                     </div>
                   </div>
                 )}
@@ -2402,6 +2409,16 @@ export default function IPTrackModal({
           <div className="flex justify-between">
             <span className="text-gray-400">Cover:</span>
             <span className="text-white">{formData.cover_image_url ? '✓ Uploaded' : '✗ Missing'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Creation:</span>
+            <span className="text-white">
+              {!(formData as any).ai_assisted_idea && !(formData as any).ai_assisted_implementation
+                ? '🙌 100% Human'
+                : (formData as any).ai_assisted_idea && (formData as any).ai_assisted_implementation
+                ? '🤖 AI-Generated'
+                : '🙌🤖 AI-Assisted'}
+            </span>
           </div>
           {(formData as any).notes && (
             <div className="flex justify-between">

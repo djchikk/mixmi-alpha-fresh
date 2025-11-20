@@ -599,7 +599,7 @@ export default function CreatorStorePage() {
                 onClick={() => setActiveFilter({ type: 'video_clip' })}
                 className={`px-4 py-2 rounded-lg transition-colors ${
                   activeFilter.type === 'video_clip'
-                    ? 'bg-[#38BDF8] text-slate-900 font-medium'
+                    ? 'bg-[#2792F5] text-slate-900 font-medium'
                     : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
                 }`}
               >
@@ -865,8 +865,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'video_clip').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#38BDF8] tracking-wide">video clips</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#38BDF8]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#2792F5] tracking-wide">video clips</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#2792F5]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks

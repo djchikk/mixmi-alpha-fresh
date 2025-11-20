@@ -516,7 +516,8 @@ export function useIPTrackSubmit({
         // Media assets
         cover_image_url: formData.cover_image_url,
         audio_url: formData.audio_url,
-        
+        video_url: (formData as any).video_url || null,
+
         // Metadata
         created_at: track?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),

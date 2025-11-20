@@ -35,7 +35,7 @@ interface Track {
 }
 
 interface ContentFilter {
-  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'hidden';
+  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'video_clip' | 'hidden';
 }
 
 export default function AccountPage() {
@@ -148,6 +148,9 @@ export default function AccountPage() {
       case 'station_pack':
         filtered = tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted);
         break;
+      case 'video_clip':
+        filtered = tracks.filter(track => track.content_type === 'video_clip' && !track.is_deleted);
+        break;
       case 'hidden':
         filtered = tracks.filter(track => track.is_deleted === true);
         break;
@@ -177,6 +180,8 @@ export default function AccountPage() {
         return tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted).length;
       case 'station_pack':
         return tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted).length;
+      case 'video_clip':
+        return tracks.filter(track => track.content_type === 'video_clip' && !track.is_deleted).length;
       case 'hidden':
         return tracks.filter(track => track.is_deleted === true).length;
       default:
@@ -301,6 +306,17 @@ export default function AccountPage() {
                 }`}
               >
                 Station Packs ({getFilterCount({ type: 'station_pack' })})
+              </button>
+
+              <button
+                onClick={() => setActiveFilter({ type: 'video_clip' })}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeFilter.type === 'video_clip'
+                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
+              >
+                Videos ({getFilterCount({ type: 'video_clip' })})
               </button>
 
               <button
@@ -492,6 +508,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
     if (track.content_type === 'radio_station') return 'border-[#FB923C]';
     if (track.content_type === 'station_pack') return 'border-[#FB923C]';
+    if (track.content_type === 'video_clip') return 'border-[#2792F5]'; // Video clips - cyan blue
     return 'border-[#9772F4]';
   };
 
@@ -657,11 +674,12 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
                         {track.content_type === 'full_song' && 'SONG'}
                         {track.content_type === 'radio_station' && 'RADIO'}
                         {track.content_type === 'station_pack' && 'PACK'}
+                        {track.content_type === 'video_clip' && 'VIDEO'}
                         {!track.content_type && 'TRACK'}
                       </span>
 
                       {/* BPM Badge (right) */}
-                      {track.bpm && track.content_type !== 'ep' ? (
+                      {track.bpm && track.content_type !== 'ep' && track.content_type !== 'video_clip' ? (
                         <span
                           className="text-sm font-mono font-bold text-white"
                           title="BPM"

@@ -409,13 +409,29 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
 
   const nextStep = () => {
     if (currentStep < getSteps().length - 1) {
-      setCurrentStep(currentStep + 1);
+      let nextStepIndex = currentStep + 1;
+
+      // Skip Step 4 (Connect to Release) for video clips in Advanced mode
+      // Step 4 is at index 3 in STEPS array
+      if (!isQuickUpload && formData.content_type === 'video_clip' && nextStepIndex === 3) {
+        nextStepIndex = 4; // Jump to Step 5 (File Uploads)
+      }
+
+      setCurrentStep(nextStepIndex);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      let prevStepIndex = currentStep - 1;
+
+      // Skip Step 4 (Connect to Release) for video clips in Advanced mode when going backwards
+      // Step 4 is at index 3 in STEPS array
+      if (!isQuickUpload && formData.content_type === 'video_clip' && prevStepIndex === 3) {
+        prevStepIndex = 2; // Jump back to Step 3 (Who made it?)
+      }
+
+      setCurrentStep(prevStepIndex);
     }
   };
 

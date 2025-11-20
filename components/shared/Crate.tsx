@@ -518,6 +518,8 @@ export default function Crate({ className = '' }: CrateProps) {
         return 'border-[#FB923C] shadow-[#FB923C]/50';
       case 'station_pack':
         return 'border-[#FB923C] shadow-[#FB923C]/50';
+      case 'video_clip':
+        return 'border-[#2792F5] shadow-[#2792F5]/50';
       default:
         return 'border-[#9772F4] shadow-[#9772F4]/50';
     }

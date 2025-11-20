@@ -51,7 +51,7 @@ export default function SimplifiedDeckCompact({
       case 'full_song':
         return '#FFE4B5'; // Gold - songs
       case 'video_clip':
-        return '#38BDF8'; // Sky blue - video clips
+        return '#2792F5'; // Sky blue - video clips
       default:
         return '#9772F4'; // Default purple
     }

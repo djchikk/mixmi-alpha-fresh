@@ -47,6 +47,10 @@ export default function CompactTrackCardWithFlip({
   const [playingLoopId, setPlayingLoopId] = useState<string | null>(null);
   const [loopAudio, setLoopAudio] = useState<HTMLAudioElement | null>(null);
 
+  // Video playback state
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+
   // Fetch username for the track's primary uploader wallet
   useEffect(() => {
     const fetchUsername = async () => {
@@ -142,6 +146,27 @@ export default function CompactTrackCardWithFlip({
     };
   }, [loopAudio]);
 
+  // Video playback auto-stop after 20 seconds
+  useEffect(() => {
+    if (isVideoPlaying && videoElement) {
+      const timer = setTimeout(() => {
+        videoElement.pause();
+        setIsVideoPlaying(false);
+      }, 20000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isVideoPlaying, videoElement]);
+
+  // Cleanup video on unmount
+  useEffect(() => {
+    return () => {
+      if (videoElement) {
+        videoElement.pause();
+      }
+    };
+  }, [videoElement]);
+
   // Set up drag
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TRACK_CARD',
@@ -178,6 +203,7 @@ export default function CompactTrackCardWithFlip({
     if (track.content_type === 'station_pack') {
       return `Station Pack (${track.total_loops || '?'} stations)`;
     }
+    if (track.content_type === 'video_clip') return 'Video Clip';
     return track.sample_type === 'vocals' ? 'Vocal' :
            track.sample_type === 'instrumentals' ? 'Instrumental' :
            'Track';
@@ -191,6 +217,7 @@ export default function CompactTrackCardWithFlip({
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
     if (track.content_type === 'radio_station') return 'border-[#FB923C]';
     if (track.content_type === 'station_pack') return 'border-[#FB923C]';
+    if (track.content_type === 'video_clip') return 'border-[#2792F5]';
     // Fallback for legacy data
     return track.sample_type === 'vocals' ? 'border-[#9772F4]' : 'border-[#FFE4B5]';
   };
@@ -201,9 +228,23 @@ export default function CompactTrackCardWithFlip({
   };
 
 
-  // Handle play click - supports both audio_url (tracks) and stream_url (radio)
+  // Handle play click - supports audio_url (tracks), stream_url (radio), and video_url (videos)
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Handle video clips differently - play inline
+    if (track.content_type === 'video_clip' && (track as any).video_url) {
+      if (isVideoPlaying && videoElement) {
+        // Pause video
+        videoElement.pause();
+        setIsVideoPlaying(false);
+      } else {
+        // Play video
+        setIsVideoPlaying(true);
+      }
+      return;
+    }
+
     // For radio stations, use stream_url; otherwise use audio_url
     const audioSource = track.stream_url || track.audio_url;
     const isRadioStation = track.content_type === 'radio_station' || track.content_type === 'station_pack';
@@ -287,6 +328,23 @@ export default function CompactTrackCardWithFlip({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                     </svg>
                   </div>
+                )}
+
+                {/* Video Player Overlay - only for video_clip content */}
+                {track.content_type === 'video_clip' && (track as any).video_url && isVideoPlaying && (
+                  <video
+                    ref={(el) => {
+                      setVideoElement(el);
+                      if (el && isVideoPlaying) {
+                        el.play().catch(err => console.error('Video play error:', err));
+                      }
+                    }}
+                    src={(track as any).video_url}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    muted
+                    playsInline
+                    onEnded={() => setIsVideoPlaying(false)}
+                  />
                 )}
 
                 {/* Track number badge - for individual tracks that are part of a pack/EP */}
@@ -374,20 +432,21 @@ export default function CompactTrackCardWithFlip({
 
                     {/* Center: Play Button - Absolutely centered */}
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                      {/* Play Button - centered (for tracks with audio_url or radio stations with stream_url) */}
-                      {(track.audio_url || track.stream_url) && (
+                      {/* Play Button - centered (for tracks with audio_url, radio stations with stream_url, or videos with video_url) */}
+                      {(track.audio_url || track.stream_url || (track.content_type === 'video_clip' && (track as any).video_url)) && (
                         <button
                           onClick={handlePlayClick}
                           onMouseLeave={() => {
-                            // Only stop preview on mouse leave for regular tracks, not radio stations
+                            // Only stop preview on mouse leave for regular tracks, not radio stations or videos
                             const isRadioStation = track.content_type === 'radio_station';
-                            if (isPlaying && onStopPreview && !isRadioStation) {
+                            const isVideo = track.content_type === 'video_clip';
+                            if (isPlaying && onStopPreview && !isRadioStation && !isVideo) {
                               onStopPreview();
                             }
                           }}
                           className="transition-all hover:scale-110"
                         >
-                          {isPlaying ? (
+                          {(isPlaying || isVideoPlaying) ? (
                             <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                             </svg>
@@ -700,10 +759,11 @@ export default function CompactTrackCardWithFlip({
                         {track.content_type === 'full_song' && 'SONG'}
                         {track.content_type === 'radio_station' && 'RADIO'}
                         {track.content_type === 'station_pack' && '📻 PACK'}
+                        {track.content_type === 'video_clip' && 'VIDEO'}
                         {!track.content_type && 'TRACK'}
                       </span>
 
-                      {/* BPM Badge OR LIVE indicator (right) - hide for EPs since they have multiple songs with different BPMs */}
+                      {/* BPM Badge OR LIVE indicator (right) - hide for EPs and videos */}
                       <div className="pr-2">
                       {(track.content_type === 'radio_station' || track.content_type === 'station_pack') ? (
                         <span
@@ -712,7 +772,7 @@ export default function CompactTrackCardWithFlip({
                         >
                           LIVE
                         </span>
-                      ) : track.content_type !== 'ep' ? (
+                      ) : track.content_type !== 'ep' && track.content_type !== 'video_clip' ? (
                         <span
                           className="text-sm font-mono font-bold text-white"
                           title={track.bpm ? "BPM" : "Free-form / Variable tempo"}
