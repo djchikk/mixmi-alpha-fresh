@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDrop, useDrag } from 'react-dnd';
 import { Track } from '../types';
 import { useToast } from '@/contexts/ToastContext';
@@ -36,6 +36,9 @@ export default function SimplifiedDeckCompact({
   const [isHovered, setIsHovered] = useState(false);
   const [dropZoneActive, setDropZoneActive] = useState(false);
 
+  // Video ref for programmatic playback control
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   // Get border color based on content type
   const getBorderColor = () => {
     switch (contentType) {
@@ -47,6 +50,8 @@ export default function SimplifiedDeckCompact({
         return '#FB923C'; // Orange - grabbed moments (official radio orange)
       case 'full_song':
         return '#FFE4B5'; // Gold - songs
+      case 'video_clip':
+        return '#38BDF8'; // Sky blue - video clips
       default:
         return '#9772F4'; // Default purple
     }
@@ -165,6 +170,23 @@ export default function SimplifiedDeckCompact({
     }
   }, [currentTrack?.id, previousTrackId]);
 
+  // Sync video playback with transport controls
+  useEffect(() => {
+    if (!videoRef.current || contentType !== 'video_clip') return;
+
+    const video = videoRef.current;
+
+    if (isPlaying) {
+      // Play video when deck is playing
+      video.play().catch(err => {
+        console.warn(`🎥 Deck ${deck} video autoplay prevented:`, err);
+      });
+    } else {
+      // Pause video when deck is stopped
+      video.pause();
+    }
+  }, [isPlaying, contentType, deck]);
+
   return (
     <div className={`relative ${className}`}>
       <div
@@ -191,7 +213,19 @@ export default function SimplifiedDeckCompact({
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
             >
-              <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
+              {/* Render video for video_clip content, otherwise image */}
+              {contentType === 'video_clip' && (currentTrack as any).video_url ? (
+                <video
+                  ref={videoRef}
+                  src={(currentTrack as any).video_url}
+                  className="w-full h-full object-cover"
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
+              )}
 
               {/* Pack position badge - top left */}
               {currentTrack.pack_position && (
