@@ -174,7 +174,11 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     allow_downloads: (track as any)?.allow_downloads ?? false,
     open_to_commercial: (track as any)?.open_to_commercial ?? false,
     open_to_collaboration: track?.open_to_collaboration ?? false,
-    
+
+    // AI Assistance tracking
+    ai_assisted_idea: track?.ai_assisted_idea ?? false,
+    ai_assisted_implementation: track?.ai_assisted_implementation ?? false,
+
     // Pricing
     price_stx: track?.price_stx || 0,
     remix_price: (track as any)?.remix_price || 0.5,

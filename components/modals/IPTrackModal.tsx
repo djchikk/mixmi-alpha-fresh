@@ -1635,6 +1635,17 @@ export default function IPTrackModal({
             ? 'Who created the concept, direction, and ideas for this video?'
             : 'Who created the melodies, lyrics, structure, vibes?'}
         </p>
+
+        {/* AI Assistance Checkbox */}
+        <label className="flex items-center gap-2 mt-3 text-sm text-gray-300 cursor-pointer hover:text-white transition-colors">
+          <input
+            type="checkbox"
+            checked={formData.ai_assisted_idea || false}
+            onChange={(e) => handleInputChange('ai_assisted_idea', e.target.checked)}
+            className="w-4 h-4 rounded border-gray-600 bg-slate-800 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
+          />
+          <span>AI assisted with {formData.content_type === 'video_clip' ? 'concept/direction' : 'composition/songwriting'}</span>
+        </label>
       </div>
 
       {/* Split inputs */}
@@ -1699,6 +1710,17 @@ export default function IPTrackModal({
             ? 'Who filmed, edited, produced, and brought it to life?'
             : 'Who produced, performed, engineered, made it real?'}
         </p>
+
+        {/* AI Assistance Checkbox */}
+        <label className="flex items-center gap-2 mt-3 text-sm text-gray-300 cursor-pointer hover:text-white transition-colors">
+          <input
+            type="checkbox"
+            checked={formData.ai_assisted_implementation || false}
+            onChange={(e) => handleInputChange('ai_assisted_implementation', e.target.checked)}
+            className="w-4 h-4 rounded border-gray-600 bg-slate-800 text-[#38BDF8] focus:ring-[#38BDF8] focus:ring-offset-slate-900"
+          />
+          <span>AI assisted with {formData.content_type === 'video_clip' ? 'filming/editing/production' : 'production/performance/engineering'}</span>
+        </label>
       </div>
 
       {/* Split inputs */}

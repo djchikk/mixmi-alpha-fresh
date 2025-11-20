@@ -97,7 +97,11 @@ export interface IPTrack {
   allow_remixing?: boolean;
   open_to_collaboration?: boolean;
   agreed_to_terms?: boolean;
-  
+
+  // AI Assistance tracking
+  ai_assisted_idea?: boolean; // AI used in concept, direction, creative ideas
+  ai_assisted_implementation?: boolean; // AI used in production, editing, technical execution
+
   // Pricing fields
   price_stx?: number; // Legacy combined price (kept for backward compatibility)
   remix_price_stx?: number; // Price to use this loop in a remix (default 1 STX per loop, 0 for free)
