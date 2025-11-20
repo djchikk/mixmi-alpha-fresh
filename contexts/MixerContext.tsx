@@ -63,7 +63,7 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     artist: ipTrack.artist || (ipTrack as any).artist_name || 'Unknown Artist', // Handle both artist and artist_name
     imageUrl: ipTrack.cover_image_url || (ipTrack as any).imageUrl || '', // Prefer original cover_image_url for better quality
     cover_image_url: ipTrack.cover_image_url, // CRITICAL: Preserve original cover_image_url for high-res display
-    bpm: ipTrack.bpm || 120,
+    bpm: ipTrack.bpm, // Preserve original bpm (may be null for undetected)
     audioUrl: (ipTrack as any).audioUrl || ipTrack.audio_url, // Handle both audioUrl and audio_url
     audio_url: ipTrack.audio_url, // Preserve audio_url field
     stream_url: (ipTrack as any).stream_url, // Preserve stream_url for radio stations
