@@ -752,6 +752,23 @@ export default function IPTrackModal({
           >
             EP (2-5 songs)
           </button>
+
+          {/* Third row: Video Clip */}
+          <button
+            type="button"
+            onClick={() => handleInputChange('content_type', 'video_clip')}
+            className="flex items-center justify-center border-2 rounded-lg transition-all"
+            style={{
+              padding: '14px',
+              minHeight: '54px',
+              background: formData.content_type === 'video_clip' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              borderColor: formData.content_type === 'video_clip' ? '#38BDF8' : 'rgba(255, 255, 255, 0.08)',
+              color: formData.content_type === 'video_clip' ? '#38BDF8' : '#8b92a6',
+              borderRadius: '12px'
+            }}
+          >
+            Video Clip
+          </button>
         </div>
       </div>
 
