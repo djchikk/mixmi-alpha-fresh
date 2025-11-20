@@ -14,7 +14,6 @@ import { Plus } from 'lucide-react';
 import IPTrackModal from '@/components/modals/IPTrackModal';
 import ContentTypeSelector from '@/components/modals/ContentTypeSelector';
 import RadioStationModal from '@/components/modals/RadioStationModal';
-import VideoClipModal from '@/components/modals/VideoClipModal';
 
 interface ContentFilter {
   type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'hidden';
@@ -929,12 +928,12 @@ export default function CreatorStorePage() {
         />
       )}
 
-      {/* Video Clip Upload Modal */}
+      {/* Video Clip Upload Modal - Uses IPTrackModal with manual content type selection */}
       {isOwnStore && (
-        <VideoClipModal
+        <IPTrackModal
           isOpen={isVideoModalOpen}
           onClose={() => setIsVideoModalOpen(false)}
-          onUploadComplete={refreshTracks}
+          onSave={refreshTracks}
         />
       )}
 
