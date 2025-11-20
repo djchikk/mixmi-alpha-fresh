@@ -385,6 +385,117 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
     );
   }
 
+  // Video Clips: Platform Remix (always on) + Optional Download
+  if (formData.content_type === 'video_clip') {
+    return (
+      <div className="space-y-6">
+        {/* License Type Selection - Checkboxes (not radio!) */}
+        <div className="space-y-4">
+
+        {/* Platform Remix - Always checked, default 1 STX */}
+        <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={true}
+              disabled={true}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
+              </div>
+              <p className="text-gray-400 text-sm mt-1">You earn 1 STX each time someone records a mix using this clip</p>
+            </div>
+          </label>
+
+          {/* Fixed remix price display */}
+          <div className="ml-8 p-3 bg-slate-900/50 rounded">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-sm">Recording fee:</span>
+              <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded text-[#81E4F2] font-medium text-sm">
+                1 STX
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Optional Download - Checkbox with custom price */}
+        <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.allow_downloads || false}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                handleInputChange('allow_downloads', checked);
+                handleInputChange('license_type', checked ? 'remix_external' : 'remix_only');
+                if (checked && !formData.download_price_stx) {
+                  handleInputChange('download_price_stx', 1);
+                } else if (!checked) {
+                  handleInputChange('download_price_stx', null);
+                }
+                // Always set remix price to 1 STX
+                handleInputChange('remix_price_stx', 1.0);
+              }}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-300 font-medium">ALLOW DOWNLOADS</span>
+                <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">Optional</span>
+              </div>
+              <p className="text-gray-400 text-sm mt-1">Let people download this clip for external use (DAWs, production)</p>
+            </div>
+          </label>
+
+          {/* Custom pricing for downloads */}
+          {formData.allow_downloads && (
+            <div className="ml-8 p-3 bg-slate-900/50 rounded">
+              <div className="flex items-center gap-3">
+                <span className="text-gray-400 text-sm">Download price:</span>
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    value={formData.download_price_stx || 1}
+                    onChange={(e) => {
+                      const price = parseFloat(e.target.value) || 0;
+                      handleInputChange('download_price_stx', price);
+                    }}
+                    className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
+                    placeholder="1"
+                    min="0"
+                    step="1"
+                  />
+                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 bg-slate-800/50 p-2 rounded mt-2">
+                💡 This is separate from the 1 STX mix fee. Download price is what people pay to get the video file.
+              </div>
+
+              {/* License terms for downloads */}
+              <div className="bg-blue-900/20 border border-blue-700/30 p-3 rounded mt-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-400 text-sm">📋</span>
+                  <div>
+                    <div className="text-blue-300 text-xs font-medium mb-1">Tracked Commercial License</div>
+                    <p className="text-gray-400 text-xs leading-relaxed">
+                      Buyers may use this clip commercially and agree to report releases using this clip.
+                      This supports ongoing fair compensation for creators.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        </div>
+      </div>
+    );
+  }
+
   // Individual Loops: Platform Remix (always on) + Optional Download
   return (
     <div className="space-y-6">

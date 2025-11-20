@@ -101,8 +101,8 @@ interface UseIPTrackFormReturn {
 
 const STEPS = [
   'Basic Information',
-  'Who wrote it?', 
-  'Who recorded it?',
+  'Who wrote it?',
+  'Who made it?',
   'Connect to Release (Optional)',
   'File Uploads',
   'Licensing & Pricing',

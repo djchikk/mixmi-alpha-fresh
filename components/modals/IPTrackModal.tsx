@@ -27,6 +27,7 @@ interface IPTrackModalProps {
   onClose: () => void;
   track?: IPTrack;
   onSave?: (track: IPTrack) => void;
+  contentCategory?: 'music' | 'visual'; // Filter content types: music = loop/song/ep, visual = video_clip (and future: still_image)
 }
 
 export default function IPTrackModal({
@@ -34,6 +35,7 @@ export default function IPTrackModal({
   onClose,
   track,
   onSave,
+  contentCategory,
 }: IPTrackModalProps) {
   // Global wallet auth state from header
   const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress } = useAuth();
@@ -142,6 +144,13 @@ export default function IPTrackModal({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [imageInputType, setImageInputType] = useState<'upload' | 'url'>('upload');
   const locationInputRef = useRef<HTMLInputElement>(null);
+
+  // Video upload state
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   
   // Use location autocomplete hook
   const {
@@ -435,6 +444,169 @@ export default function IPTrackModal({
     disabled: isAudioUploading
   });
 
+  // Capture first frame of video as thumbnail
+  const captureVideoThumbnail = async (videoElement: HTMLVideoElement): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      // Seek to 0.1 seconds to avoid black frames
+      videoElement.currentTime = 0.1;
+
+      videoElement.onseeked = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create thumbnail blob'));
+            }
+          }, 'image/jpeg', 0.9);
+        } catch (error) {
+          reject(error);
+        }
+      };
+    });
+  };
+
+  // Handle video file upload
+  const handleVideoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      setValidationErrors(['Please upload a video file (MP4 recommended)']);
+      return;
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      setValidationErrors(['Video file must be under 10MB']);
+      return;
+    }
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setVideoPreviewUrl(previewUrl);
+    setVideoFile(file);
+
+    // Create a temporary video element to check duration and capture thumbnail
+    const videoElement = document.createElement('video');
+    videoElement.src = previewUrl;
+    videoElement.onloadedmetadata = async () => {
+      const duration = videoElement.duration;
+      setVideoDuration(duration);
+
+      // Validate duration (5 seconds max)
+      if (duration > 5.5) { // Allow small buffer for encoding variations
+        setValidationErrors([`Video must be 5 seconds or less (yours is ${duration.toFixed(1)}s)`]);
+        setVideoFile(null);
+        setVideoPreviewUrl(null);
+        URL.revokeObjectURL(previewUrl);
+      } else {
+        setValidationErrors([]);
+
+        // Capture first frame as thumbnail
+        try {
+          setIsVideoUploading(true);
+          const thumbnailBlob = await captureVideoThumbnail(videoElement);
+
+          // Upload thumbnail to cover-images bucket
+          const { supabase } = await import('@/lib/supabase');
+          const thumbnailFileName = `${crypto.randomUUID()}.jpg`;
+          const { data: thumbnailData, error: thumbnailError } = await supabase.storage
+            .from('cover-images')
+            .upload(thumbnailFileName, thumbnailBlob, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (thumbnailError) {
+            console.error('Failed to upload thumbnail:', thumbnailError);
+            showToast('⚠️ Failed to generate cover image, please upload manually', 'warning');
+          } else {
+            // Get public URL for thumbnail
+            const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+              .from('cover-images')
+              .getPublicUrl(thumbnailFileName);
+
+            handleInputChange('cover_image_url', thumbnailUrl);
+            console.log('✅ Auto-generated cover image from first frame');
+          }
+        } catch (error) {
+          console.error('Error capturing thumbnail:', error);
+          showToast('⚠️ Failed to generate cover image, please upload manually', 'warning');
+        } finally {
+          setIsVideoUploading(false);
+        }
+
+        // Upload video file to storage
+        try {
+          setIsVideoUploading(true);
+          const { supabase } = await import('@/lib/supabase');
+          const videoFileName = `${crypto.randomUUID()}.mp4`;
+          const { data: videoUploadData, error: videoUploadError } = await supabase.storage
+            .from('video-clips')
+            .upload(videoFileName, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (videoUploadError) throw videoUploadError;
+
+          // Get public URL for video
+          const { data: { publicUrl: videoUrl } } = supabase.storage
+            .from('video-clips')
+            .getPublicUrl(videoFileName);
+
+          handleInputChange('video_url', videoUrl);
+          handleInputChange('duration', duration);
+          console.log('✅ Video uploaded successfully');
+          showToast('✅ Video uploaded successfully!', 'success');
+        } catch (error) {
+          console.error('Error uploading video:', error);
+          showToast('❌ Failed to upload video', 'error');
+          setValidationErrors(['Failed to upload video file']);
+        } finally {
+          setIsVideoUploading(false);
+        }
+      }
+    };
+  };
+
+  // Video drag-and-drop handler
+  const handleVideoDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    // Create a synthetic event to reuse existing handleVideoFileUpload logic
+    const syntheticEvent = {
+      target: { files: [acceptedFiles[0]] }
+    } as React.ChangeEvent<HTMLInputElement>;
+
+    handleVideoFileUpload(syntheticEvent);
+  }, [handleVideoFileUpload]);
+
+  // Configure dropzone for video files
+  const { getRootProps: getVideoRootProps, getInputProps: getVideoInputProps, isDragActive: isVideoDragActive } = useDropzone({
+    onDrop: handleVideoDrop,
+    accept: {
+      'video/*': ['.mp4', '.mov', '.avi', '.webm']
+    },
+    multiple: false,
+    disabled: isVideoUploading
+  });
+
   // Auto-close modal after successful upload
   useEffect(() => {
     if (saveStatus === 'complete') {
@@ -572,6 +744,11 @@ export default function IPTrackModal({
       if (!(updatedFormData as any).ep_files || (updatedFormData as any).ep_files.length === 0) {
         errors.push('At least 2 song files are required for EPs');
       }
+    } else if (updatedFormData.content_type === 'video_clip') {
+      // Video clips need video URL
+      if (!(updatedFormData as any).video_url || (updatedFormData as any).video_url.trim() === '') {
+        errors.push('Video file is required');
+      }
     } else {
       // Regular tracks need audio URL
       if (!updatedFormData.audio_url || updatedFormData.audio_url.trim() === '') {
@@ -685,90 +862,100 @@ export default function IPTrackModal({
       <div>
         <label className="block text-sm font-normal text-gray-300 mb-3">Content Type</label>
         <div className="grid grid-cols-2 gap-3">
-          {/* Top left: 8-Bar Loop */}
-          <button
-            type="button"
-            onClick={() => handleInputChange('content_type', 'loop')}
-            className="flex items-center justify-center border-2 rounded-lg transition-all"
-            style={{
-              padding: '14px',
-              minHeight: '54px',
-              background: formData.content_type === 'loop' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'loop' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'loop' ? '#e5e7eb' : '#8b92a6',
-              borderRadius: '12px'
-            }}
-          >
-            8-Bar Loop
-          </button>
-          
-          {/* Top right: Loop Pack */}
-          <button
-            type="button"
-            onClick={() => handleInputChange('content_type', 'loop_pack')}
-            className="flex items-center justify-center border-2 rounded-lg transition-all"
-            style={{
-              padding: '14px',
-              minHeight: '54px',
-              background: formData.content_type === 'loop_pack' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'loop_pack' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'loop_pack' ? '#e5e7eb' : '#8b92a6',
-              borderRadius: '12px'
-            }}
-          >
-            Loop Pack
-          </button>
-          
-          {/* Bottom left: Song */}
-          <button
-            type="button"
-            onClick={() => handleInputChange('content_type', 'full_song')}
-            className="flex items-center justify-center border-2 rounded-lg transition-all"
-            style={{
-              padding: '14px',
-              minHeight: '54px',
-              background: formData.content_type === 'full_song' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'full_song' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'full_song' ? '#e5e7eb' : '#8b92a6',
-              borderRadius: '12px'
-            }}
-          >
-            Song
-          </button>
-          
-          {/* Bottom right: EP */}
-          <button
-            type="button"
-            onClick={() => handleInputChange('content_type', 'ep')}
-            className="flex items-center justify-center border-2 rounded-lg transition-all"
-            style={{
-              padding: '14px',
-              minHeight: '54px',
-              background: formData.content_type === 'ep' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'ep' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'ep' ? '#e5e7eb' : '#8b92a6',
-              borderRadius: '12px'
-            }}
-          >
-            EP (2-5 songs)
-          </button>
+          {/* Music content types - show when category is 'music' or undefined (default/legacy) */}
+          {(!contentCategory || contentCategory === 'music') && (
+            <>
+              {/* Top left: 8-Bar Loop */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'loop')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'loop' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'loop' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'loop' ? '#e5e7eb' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                8-Bar Loop
+              </button>
 
-          {/* Third row: Video Clip */}
-          <button
-            type="button"
-            onClick={() => handleInputChange('content_type', 'video_clip')}
-            className="flex items-center justify-center border-2 rounded-lg transition-all"
-            style={{
-              padding: '14px',
-              minHeight: '54px',
-              background: formData.content_type === 'video_clip' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              borderColor: formData.content_type === 'video_clip' ? '#38BDF8' : 'rgba(255, 255, 255, 0.08)',
-              color: formData.content_type === 'video_clip' ? '#38BDF8' : '#8b92a6',
-              borderRadius: '12px'
-            }}
-          >
-            Video Clip
-          </button>
+              {/* Top right: Loop Pack */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'loop_pack')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'loop_pack' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'loop_pack' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'loop_pack' ? '#e5e7eb' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                Loop Pack
+              </button>
+
+              {/* Bottom left: Song */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'full_song')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'full_song' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'full_song' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'full_song' ? '#e5e7eb' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                Song
+              </button>
+
+              {/* Bottom right: EP */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'ep')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'ep' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'ep' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'ep' ? '#e5e7eb' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                EP (2-5 songs)
+              </button>
+            </>
+          )}
+
+          {/* Visual content types - show when category is 'visual' or undefined (default/legacy) */}
+          {(!contentCategory || contentCategory === 'visual') && (
+            <>
+              {/* Video Clip */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'video_clip')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'video_clip' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'video_clip' ? '#38BDF8' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'video_clip' ? '#38BDF8' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                Video Clip
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -798,9 +985,10 @@ export default function IPTrackModal({
             }}
             className="input-field"
             placeholder={formData.content_type === 'loop_pack' ? 'Pack Name (e.g., Underground House Pack)' :
-                        formData.content_type === 'ep' ? 'EP Name (e.g., Midnight Sessions EP)' : 
+                        formData.content_type === 'ep' ? 'EP Name (e.g., Midnight Sessions EP)' :
                         formData.content_type === 'loop' ? 'Loop Name (e.g., Dark Bass Loop)' :
-                        formData.content_type === 'full_song' ? 'Song Name (e.g., Midnight Drive)' : 'Track Name'}
+                        formData.content_type === 'full_song' ? 'Song Name (e.g., Midnight Drive)' :
+                        formData.content_type === 'video_clip' ? 'Clip Name' : 'Track Name'}
           />
         </div>
         <div>
@@ -936,9 +1124,10 @@ export default function IPTrackModal({
             className="textarea-field"
             placeholder={
               formData.content_type === 'loop_pack' ? 'Describe your pack...' :
-              formData.content_type === 'ep' ? 'Describe your EP...' : 
+              formData.content_type === 'ep' ? 'Describe your EP...' :
               formData.content_type === 'loop' ? 'Describe your loop...' :
-              formData.content_type === 'full_song' ? 'Describe your song...' : 'Describe your track...'
+              formData.content_type === 'full_song' ? 'Describe your song...' :
+              formData.content_type === 'video_clip' ? 'Describe your clip...' : 'Describe your track...'
             }
             rows={3}
           />
@@ -1126,7 +1315,7 @@ export default function IPTrackModal({
       {/* Notes field */}
       <div>
         <label className="block text-sm font-normal text-gray-300 mb-2">
-          {formData.content_type === 'video_clip' ? 'Credits, story, anything you want to say...' : 'Notes'} <span className="text-gray-500">(optional)</span>
+          Notes <span className="text-gray-500">(optional)</span>
         </label>
         <textarea
           value={(formData as any).notes || ''}
@@ -1144,30 +1333,127 @@ export default function IPTrackModal({
 
   const renderFileUploads = () => (
     <div className="space-y-6">
-      {/* Cover Image - Simplified direct upload */}
-      <div>
-        <label className="block text-lg font-semibold text-gray-200 mb-3">
-          {formData.content_type === 'loop_pack' ? 'Pack Cover Artwork' : 'Cover Artwork'} 
-          <span className="text-gray-500 text-sm font-normal"> (optional)</span>
-        </label>
-        
-        <TrackCoverUploader
-          walletAddress={formData.wallet_address || ''} // Alpha wallet address for RLS
-          onImageChange={(url) => handleInputChange('cover_image_url', url)}
-          initialImage={formData.cover_image_url}
-        />
-      </div>
+      {/* Cover Image - Simplified direct upload - Hide for video clips since we auto-generate thumbnails */}
+      {formData.content_type !== 'video_clip' && (
+        <div>
+          <label className="block text-lg font-semibold text-gray-200 mb-3">
+            {formData.content_type === 'loop_pack' ? 'Pack Cover Artwork' : 'Cover Artwork'}
+            <span className="text-gray-500 text-sm font-normal"> (optional)</span>
+          </label>
 
-      {/* Audio Upload - Simplified direct upload */}
+          <TrackCoverUploader
+            walletAddress={formData.wallet_address || ''} // Alpha wallet address for RLS
+            onImageChange={(url) => handleInputChange('cover_image_url', url)}
+            initialImage={formData.cover_image_url}
+          />
+        </div>
+      )}
+
+      {/* Video/Audio Upload - Conditional based on content type */}
       <div>
         <label className="block text-lg font-semibold text-gray-200 mb-3">
-          {formData.content_type === 'loop_pack' ? 'Upload Your Loops' : 
+          {formData.content_type === 'video_clip' ? 'Video File' :
+           formData.content_type === 'loop_pack' ? 'Upload Your Loops' :
            formData.content_type === 'ep' ? 'Upload Your Songs' : 'Audio File'}
         </label>
           <div>
-            {!uploadedAudioFile && !formData.audio_url ? (
-              <div 
-                {...getAudioRootProps()}
+            {/* Video Upload UI for video_clip content type */}
+            {formData.content_type === 'video_clip' ? (
+              <>
+                {!videoFile && !(formData as any).video_url ? (
+                  <div
+                    {...getVideoRootProps()}
+                    className={`
+                      relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
+                      ${isVideoDragActive
+                        ? 'border-[#38BDF8] bg-[#38BDF8]/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-800/20'
+                      }
+                      ${isVideoUploading ? 'opacity-50' : ''}
+                    `}
+                  >
+                    <input {...getVideoInputProps()} />
+
+                    {isVideoDragActive ? (
+                      <div className="text-[#38BDF8]">
+                        <div className="text-2xl mb-2">🎥</div>
+                        <div className="text-sm font-normal">Drop video file here!</div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-2xl mb-4">🎥</div>
+                        <div className="text-sm font-normal text-gray-300 mb-2">
+                          {isVideoUploading ? 'Uploading video...' : 'Click or drag to upload video file'}
+                        </div>
+                        <div className="text-xs font-normal text-gray-400">
+                          Supports MP4, MOV, WebM (max 10MB, 5 seconds max)
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-slate-800 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">🎥</div>
+                        <div>
+                          <div className="text-white font-medium">
+                            {videoFile?.name || 'Video file uploaded'}
+                          </div>
+                          {videoFile && (
+                            <div className="text-xs font-normal text-gray-400">
+                              {(videoFile.size / (1024 * 1024)).toFixed(1)}MB
+                              {videoDuration && ` • ${videoDuration.toFixed(1)}s`}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleInputChange('video_url', '');
+                          setVideoFile(null);
+                          setVideoPreviewUrl(null);
+                          setVideoDuration(null);
+                        }}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Video preview */}
+                {videoPreviewUrl && (
+                  <div className="mt-4 rounded-lg overflow-hidden bg-black">
+                    <video
+                      src={videoPreviewUrl}
+                      controls
+                      className="w-full max-h-64 object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Upload Progress */}
+                {isVideoUploading && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-300">Uploading video and generating thumbnail...</span>
+                      <span className="text-sm text-[#38BDF8]">⏳</span>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div className="bg-[#38BDF8] h-2 rounded-full animate-pulse w-full" />
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Audio Upload UI for other content types */
+              <>
+                {!uploadedAudioFile && !formData.audio_url ? (
+                  <div
+                    {...getAudioRootProps()}
                 className={`
                   relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
                   ${isAudioDragActive 
@@ -1250,7 +1536,6 @@ export default function IPTrackModal({
                 </div>
               </div>
             )}
-          </div>
 
         {/* Upload Progress */}
         {isAudioUploading && audioUploadProgress.stage !== 'idle' && (
@@ -1331,6 +1616,9 @@ export default function IPTrackModal({
             🎵 Detecting BPM...
           </div>
         )}
+      </>
+    )}
+        </div>
       </div>
     </div>
   );
@@ -1339,8 +1627,14 @@ export default function IPTrackModal({
   const renderCompositionSplits = () => (
     <div className="space-y-4">
       <div className="mb-4">
-        <h4 className="text-base font-medium text-white mb-2">💡 IDEA RIGHTS (Composition)</h4>
-        <p className="text-sm font-normal text-gray-300 mb-2">Who created the melodies, lyrics, structure, vibes?</p>
+        <h4 className="text-base font-medium text-white mb-2">
+          💡 IDEA RIGHTS{formData.content_type !== 'video_clip' && ' (Composition)'}
+        </h4>
+        <p className="text-sm font-normal text-gray-300 mb-2">
+          {formData.content_type === 'video_clip'
+            ? 'Who created the concept, direction, and ideas for this video?'
+            : 'Who created the melodies, lyrics, structure, vibes?'}
+        </p>
       </div>
 
       {/* Split inputs */}
@@ -1397,8 +1691,14 @@ export default function IPTrackModal({
   const renderProductionSplits = () => (
     <div className="space-y-4">
       <div className="mb-4">
-        <h4 className="text-base font-medium text-white mb-2">🔧 IMPLEMENTATION RIGHTS (Sound Recording)</h4>
-        <p className="text-sm font-normal text-gray-300 mb-2">Who produced, performed, engineered, made it real?</p>
+        <h4 className="text-base font-medium text-white mb-2">
+          🔧 IMPLEMENTATION RIGHTS{formData.content_type !== 'video_clip' && ' (Sound Recording)'}
+        </h4>
+        <p className="text-sm font-normal text-gray-300 mb-2">
+          {formData.content_type === 'video_clip'
+            ? 'Who filmed, edited, produced, and brought it to life?'
+            : 'Who produced, performed, engineered, made it real?'}
+        </p>
       </div>
 
       {/* Split inputs */}
@@ -1935,9 +2235,10 @@ export default function IPTrackModal({
     <div className="space-y-6">
       <div className="bg-slate-800 p-6 rounded-lg">
         <h4 className="text-white font-medium mb-4">
-          Review Your {formData.content_type === 'full_song' ? 'Song' : 
-                      formData.content_type === 'loop' ? '8-Bar Loop' : 
-                      formData.content_type === 'ep' ? 'EP' : 'Loop Pack'}
+          Review Your {formData.content_type === 'full_song' ? 'Song' :
+                      formData.content_type === 'loop' ? '8-Bar Loop' :
+                      formData.content_type === 'ep' ? 'EP' :
+                      formData.content_type === 'video_clip' ? 'Video Clip' : 'Loop Pack'}
         </h4>
         
         <div className="space-y-3 text-sm">
@@ -1961,9 +2262,10 @@ export default function IPTrackModal({
           <div className="flex justify-between">
             <span className="text-gray-400">Type:</span>
             <span className="text-white">
-              {formData.content_type === 'full_song' ? 'Song' : 
-               formData.content_type === 'loop' ? '8-Bar Loop' : 
-               formData.content_type === 'ep' ? 'EP' : 'Loop Pack'}
+              {formData.content_type === 'full_song' ? 'Song' :
+               formData.content_type === 'loop' ? '8-Bar Loop' :
+               formData.content_type === 'ep' ? 'EP' :
+               formData.content_type === 'video_clip' ? 'Video Clip' : 'Loop Pack'}
             </span>
           </div>
           {formData.content_type === 'loop' && (
@@ -2028,9 +2330,11 @@ export default function IPTrackModal({
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-gray-400">Audio:</span>
+            <span className="text-gray-400">{formData.content_type === 'video_clip' ? 'Video:' : 'Audio:'}</span>
             <span className="text-white">
-              {formData.content_type === 'loop_pack' 
+              {formData.content_type === 'video_clip'
+                ? ((formData as any).video_url ? '✓ Uploaded' : '✗ Missing')
+                : formData.content_type === 'loop_pack'
                 ? ((formData as any).loop_files && (formData as any).loop_files.length > 0 ? `✓ ${(formData as any).loop_files.length} Files` : '✗ Upload Your Loops')
                 : formData.content_type === 'ep'
                 ? ((formData as any).ep_files && (formData as any).ep_files.length > 0 ? `✓ ${(formData as any).ep_files.length} Songs` : '✗ Upload Your Songs')
