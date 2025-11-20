@@ -748,6 +748,7 @@ export default function HomePage() {
                     cover_image_url: leftComparisonTrack.imageUrl || leftComparisonTrack.cover_image_url || '',
                     audio_url: leftComparisonTrack.audioUrl || leftComparisonTrack.audio_url || '',
                     stream_url: leftComparisonTrack.stream_url, // For radio stations
+                    video_url: leftComparisonTrack.video_url, // For video clips
                     price_stx: leftComparisonTrack.price_stx || '5 STX',
                     content_type: leftComparisonTrack.content_type || leftComparisonTrack.genre || 'loop',
                     bpm: leftComparisonTrack.bpm, // Don't default to 128 for songs
@@ -805,6 +806,7 @@ export default function HomePage() {
                     cover_image_url: rightComparisonTrack.imageUrl || rightComparisonTrack.cover_image_url || '',
                     audio_url: rightComparisonTrack.audioUrl || rightComparisonTrack.audio_url || '',
                     stream_url: rightComparisonTrack.stream_url, // For radio stations
+                    video_url: rightComparisonTrack.video_url, // For video clips
                     price_stx: rightComparisonTrack.price_stx || '5 STX',
                     content_type: rightComparisonTrack.content_type || rightComparisonTrack.genre || 'loop',
                     bpm: rightComparisonTrack.bpm, // Don't default to 128 for songs
@@ -862,6 +864,7 @@ export default function HomePage() {
                     cover_image_url: centerTrackCard.imageUrl || centerTrackCard.cover_image_url || '',
                     audio_url: centerTrackCard.audioUrl || centerTrackCard.audio_url || '',
                     stream_url: centerTrackCard.stream_url, // For radio stations
+                    video_url: centerTrackCard.video_url, // For video clips
                     price_stx: centerTrackCard.price_stx || '5 STX',
                     content_type: centerTrackCard.content_type || centerTrackCard.genre || 'loop',
                     bpm: centerTrackCard.bpm,
@@ -948,6 +951,7 @@ export default function HomePage() {
                           imageUrl: track.imageUrl || track.cover_image_url || '', // Ensure fallback exists
                           audio_url: track.audioUrl,
                           stream_url: track.stream_url, // For radio stations
+                          video_url: track.video_url, // For video clips
                           content_type: track.content_type,
                           tags: track.tags || [],
                           price_stx: track.price_stx,
@@ -998,6 +1002,7 @@ export default function HomePage() {
                       cover_image_url: displayTrack.imageUrl || '',
                       audio_url: displayTrack.audioUrl || '',
                       stream_url: displayTrack.stream_url, // For radio stations
+                      video_url: displayTrack.video_url, // For video clips
                       price_stx: displayTrack.price_stx || '5 STX',
                       content_type: displayTrack.content_type || displayTrack.genre || 'loop',
                       bpm: displayTrack.bpm, // Don't default to 128 - preserve NULL for songs

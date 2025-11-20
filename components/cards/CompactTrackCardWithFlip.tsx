@@ -384,8 +384,8 @@ export default function CompactTrackCardWithFlip({
                   </div>
                 )}
 
-                {/* Hover Overlay */}
-                {isHovered && (
+                {/* Hover Overlay - Hidden when video is playing */}
+                {isHovered && !isVideoPlaying && (
                   <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2 animate-fadeIn">
 
                     {/* Top Section: Title, Artist (full width) */}
