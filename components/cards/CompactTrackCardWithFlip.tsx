@@ -24,6 +24,75 @@ interface CompactTrackCardWithFlipProps {
   onDeleteTrack?: (trackId: string) => void;
 }
 
+// Draggable track component for expanded drawer
+interface DraggableDrawerTrackProps {
+  track: IPTrack;
+  index: number;
+  contentType: string;
+  onPlay: (track: IPTrack) => void;
+  playingLoopId: string | null;
+}
+
+function DraggableDrawerTrack({ track, index, contentType, onPlay, playingLoopId }: DraggableDrawerTrackProps) {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'TRACK_CARD',
+    item: () => ({
+      track: {
+        ...track,
+        imageUrl: getOptimizedTrackImage(track, 64),
+        cover_image_url: track.cover_image_url,
+        audioUrl: track.audio_url
+      }
+    }),
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [track]);
+
+  const badgeColor = contentType === 'ep' ? '#FFE4B5' : contentType === 'station_pack' ? '#FB923C' : '#9772F4';
+  const textColor = contentType === 'ep' ? '#000000' : '#FFFFFF';
+
+  return (
+    <div
+      ref={drag}
+      className={`flex items-center gap-2 px-2 py-1 hover:bg-slate-800 cursor-grab ${isDragging ? 'opacity-50' : ''}`}
+      style={{ height: '28px' }}
+    >
+      {/* Track number badge */}
+      <div
+        className="flex-shrink-0 w-5 h-5 rounded text-xs font-bold flex items-center justify-center"
+        style={{backgroundColor: badgeColor, color: textColor}}
+      >
+        {index + 1}
+      </div>
+
+      {/* BPM (for loops/songs) or Station Title (for radio stations) */}
+      <div className="flex-1 text-white text-xs text-center" style={{ fontFamily: contentType === 'station_pack' ? 'inherit' : 'monospace' }}>
+        {contentType === 'station_pack' ? track.title : (track.bpm || '~')}
+      </div>
+
+      {/* Play/Pause button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onPlay(track);
+        }}
+        className="flex-shrink-0 w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
+      >
+        {playingLoopId === track.id ? (
+          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+          </svg>
+        ) : (
+          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export default function CompactTrackCardWithFlip({
   track,
   isPlaying,
@@ -811,70 +880,16 @@ export default function CompactTrackCardWithFlip({
               </div>
             ) : packLoops.length > 0 ? (
               <div className="py-1">
-                {packLoops.map((loop, index) => {
-                  // Create draggable track item
-                  const DraggableTrack = () => {
-                    const [{ isDragging }, trackDrag] = useDrag(() => ({
-                      type: 'TRACK_CARD',
-                      item: () => ({
-                        track: {
-                          ...loop,
-                          imageUrl: getOptimizedTrackImage(loop, 64),
-                          cover_image_url: loop.cover_image_url, // CRITICAL: Keep original high-res URL
-                          audioUrl: loop.audio_url
-                        }
-                      }),
-                      collect: (monitor) => ({
-                        isDragging: monitor.isDragging(),
-                      }),
-                    }), [loop]);
-
-                    const badgeColor = track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#9772F4';
-                    const textColor = track.content_type === 'ep' ? '#000000' : '#FFFFFF';
-
-                    return (
-                      <div
-                        ref={trackDrag}
-                        className={`flex items-center gap-2 px-2 py-1 hover:bg-slate-800 cursor-grab ${isDragging ? 'opacity-50' : ''}`}
-                        style={{ height: '28px' }}
-                      >
-                        {/* Track number badge */}
-                        <div
-                          className="flex-shrink-0 w-5 h-5 rounded text-xs font-bold flex items-center justify-center"
-                          style={{backgroundColor: badgeColor, color: textColor}}
-                        >
-                          {index + 1}
-                        </div>
-
-                        {/* BPM (for loops/songs) or Station Title (for radio stations) */}
-                        <div className="flex-1 text-white text-xs text-center" style={{ fontFamily: track.content_type === 'station_pack' ? 'inherit' : 'monospace' }}>
-                          {track.content_type === 'station_pack' ? loop.title : (loop.bpm || '~')}
-                        </div>
-
-                        {/* Play/Pause button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLoopPlay(loop);
-                          }}
-                          className="flex-shrink-0 w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
-                        >
-                          {playingLoopId === loop.id ? (
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                            </svg>
-                          ) : (
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  };
-
-                  return <DraggableTrack key={loop.id} />;
-                })}
+                {packLoops.map((loop, index) => (
+                  <DraggableDrawerTrack
+                    key={loop.id}
+                    track={loop}
+                    index={index}
+                    contentType={track.content_type}
+                    onPlay={handleLoopPlay}
+                    playingLoopId={playingLoopId}
+                  />
+                ))}
               </div>
             ) : (
               <div className="p-2 text-xs text-gray-500 text-center">
