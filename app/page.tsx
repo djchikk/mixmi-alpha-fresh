@@ -8,7 +8,7 @@ import { TrackNode } from "@/components/globe/types";
 import { IPTrack } from "@/types";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
-import { Globe as GlobeIcon, Headphones, X } from "lucide-react";
+import { Globe as GlobeIcon, Headphones, X, ChevronDown, ChevronUp, Layers } from "lucide-react";
 import { fetchGlobeTracksFromSupabase, fallbackGlobeNodes } from "@/lib/globeDataSupabase";
 import { supabase } from "@/lib/supabase";
 import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } from "@/lib/globe/simpleCluster";
@@ -99,6 +99,16 @@ export default function HomePage() {
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+  // Pinned cards (draggable sticky notes)
+  const [pinnedCards, setPinnedCards] = useState<Array<{
+    node: TrackNode;
+    position: { x: number; y: number };
+    id: string;
+    isExpanded?: boolean; // For cluster cards - track expanded state
+  }>>([]);
+  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+  const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
+
   // Load video display position from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -155,6 +165,98 @@ export default function HomePage() {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDraggingVideo, dragOffset]);
+
+  // Handle card dragging (only from drag handle)
+  const handleCardMouseDown = (e: React.MouseEvent, cardId: string, currentPosition: { x: number; y: number }) => {
+    // Only drag if clicking on the drag handle (will be set by onMouseDown on handle element)
+    e.stopPropagation();
+    setDraggingCardId(cardId);
+    setCardDragOffset({
+      x: e.clientX - currentPosition.x,
+      y: e.clientY - currentPosition.y
+    });
+  };
+
+  useEffect(() => {
+    const handleCardMouseMove = (e: MouseEvent) => {
+      if (!draggingCardId) return;
+
+      setPinnedCards(prev => prev.map(card =>
+        card.id === draggingCardId
+          ? {
+              ...card,
+              position: {
+                x: e.clientX - cardDragOffset.x,
+                y: e.clientY - cardDragOffset.y
+              }
+            }
+          : card
+      ));
+    };
+
+    const handleCardMouseUp = () => {
+      setDraggingCardId(null);
+    };
+
+    if (draggingCardId) {
+      window.addEventListener('mousemove', handleCardMouseMove);
+      window.addEventListener('mouseup', handleCardMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleCardMouseMove);
+      window.removeEventListener('mouseup', handleCardMouseUp);
+    };
+  }, [draggingCardId, cardDragOffset]);
+
+  // Pin card when dragged from center
+  const handlePinCard = (node: TrackNode) => {
+    const cardId = `card-${node.id}-${Date.now()}`;
+
+    // Detect cluster status from tracks array if flag is missing
+    const hasMultipleTracks = node.tracks && node.tracks.length > 1;
+    const isClusterNode = node.isAggregated || hasMultipleTracks;
+    const trackCount = node.trackCount || node.tracks?.length || 1;
+
+    // Preserve/infer cluster metadata
+    const pinnedNode = {
+      ...node,
+      // Ensure cluster flags are set (preserve or infer)
+      isAggregated: isClusterNode,
+      trackCount: trackCount,
+      tracks: node.tracks
+    };
+
+    console.log('🔖 Pinning card:', {
+      id: cardId,
+      hasMultipleTracks,
+      isClusterNode,
+      isAggregated: pinnedNode.isAggregated,
+      trackCount: pinnedNode.trackCount,
+      tracksLength: pinnedNode.tracks?.length
+    });
+
+    setPinnedCards(prev => [...prev, {
+      node: pinnedNode,
+      position: { x: window.innerWidth / 2 - 150, y: window.innerHeight / 2 - 200 },
+      id: cardId
+    }]);
+    setSelectedNode(null); // Clear hover card
+  };
+
+  // Remove pinned card
+  const handleRemovePinnedCard = (cardId: string) => {
+    setPinnedCards(prev => prev.filter(card => card.id !== cardId));
+  };
+
+  // Toggle expanded state for cluster cards
+  const handleToggleExpanded = (cardId: string) => {
+    setPinnedCards(prev => prev.map(card =>
+      card.id === cardId
+        ? { ...card, isExpanded: !card.isExpanded }
+        : card
+    ));
+  };
 
   // Poll for mixer state updates from window object
   useEffect(() => {
@@ -980,9 +1082,236 @@ export default function HomePage() {
             </div>
           )}
 
+        {/* Pinned Cards - Draggable sticky notes */}
+        {pinnedCards.map((pinnedCard) => {
+          const isCluster = pinnedCard.node.isAggregated && pinnedCard.node.tracks && pinnedCard.node.tracks.length > 1;
+          const isExpanded = pinnedCard.isExpanded || false;
+          const tracks = isCluster ? pinnedCard.node.tracks || [] : [pinnedCard.node];
+
+          // Debug logging
+          console.log('📌 Pinned card:', {
+            id: pinnedCard.id,
+            isAggregated: pinnedCard.node.isAggregated,
+            trackCount: pinnedCard.node.trackCount,
+            hasTracksArray: !!pinnedCard.node.tracks,
+            tracksLength: pinnedCard.node.tracks?.length,
+            isCluster,
+            isExpanded
+          });
+
+          return (
+            <div
+              key={pinnedCard.id}
+              className="fixed"
+              style={{
+                left: `${pinnedCard.position.x}px`,
+                top: `${pinnedCard.position.y}px`,
+                zIndex: draggingCardId === pinnedCard.id ? 300 : 100
+              }}
+            >
+              <div className="bg-[#101726]/95 backdrop-blur-sm rounded-lg border border-cyan-500/30 shadow-xl">
+                {/* Drag handle bar */}
+                <div
+                  className="bg-gradient-to-r from-cyan-900/80 to-blue-900/80 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing"
+                  onMouseDown={(e) => handleCardMouseDown(e, pinnedCard.id, pinnedCard.position)}
+                  style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-3 h-3 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
+                    </svg>
+                    <span className="text-cyan-300 text-[10px] font-bold">DRAG TO MOVE</span>
+                    {isCluster && (
+                      <span className="text-cyan-300/70 text-[9px] font-bold flex items-center gap-1">
+                        <Layers className="w-2.5 h-2.5" />
+                        {pinnedCard.node.trackCount} tracks
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {/* Expand/collapse button for clusters */}
+                    {isCluster && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleExpanded(pinnedCard.id);
+                        }}
+                        className="hover:bg-cyan-800/50 rounded-full p-0.5 transition-colors"
+                        title={isExpanded ? "Collapse" : "Expand"}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="w-3 h-3 text-cyan-300 hover:text-white" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3 text-cyan-300 hover:text-white" />
+                        )}
+                      </button>
+                    )}
+
+                    {/* Close button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePinnedCard(pinnedCard.id);
+                      }}
+                      className="hover:bg-cyan-800/50 rounded-full p-0.5 transition-colors"
+                    >
+                      <X className="w-3 h-3 text-cyan-300 hover:text-white" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Card content - freely draggable to mixer/crate */}
+                <div className="p-2">
+                  {isCluster && !isExpanded ? (
+                    // Collapsed cluster - show stack visual
+                    <div className="relative" style={{ height: '280px', width: '300px' }}>
+                      {/* Show first 3 cards as a stack */}
+                      {tracks.slice(0, 3).map((track, index) => (
+                        <div
+                          key={track.id}
+                          className="absolute transition-all duration-300"
+                          style={{
+                            top: `${index * 8}px`,
+                            left: `${index * 8}px`,
+                            right: `${-index * 8}px`,
+                            zIndex: 3 - index,
+                            transform: `rotate(${index * 2}deg)`,
+                            opacity: 1 - index * 0.2
+                          }}
+                        >
+                          <GlobeTrackCard
+                            track={{
+                              id: track.id,
+                              title: track.title,
+                              artist: track.artist,
+                              cover_image_url: track.imageUrl || '',
+                              audio_url: track.audioUrl || '',
+                              stream_url: track.stream_url,
+                              video_url: track.video_url,
+                              price_stx: track.price_stx || '5 STX',
+                              content_type: track.content_type || track.genre || 'loop',
+                              bpm: track.bpm,
+                              tags: track.tags || [],
+                              description: track.description || '',
+                              license: track.license || '',
+                              primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
+                              wallet_address: '',
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
+                              composition_split: 50,
+                              production_split: 50,
+                              isrc: '',
+                              social_links: {},
+                              contact_email: ''
+                            }}
+                            isPlaying={playingTrackId !== null && playingTrackId === track.id}
+                            onPlayPreview={handlePlayPreview}
+                            onStopPreview={handleStopPreview}
+                            showEditControls={false}
+                            onPurchase={(track) => {}}
+                          />
+                        </div>
+                      ))}
+                      {/* Click to expand overlay */}
+                      <div
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg cursor-pointer hover:bg-black/50 transition-colors z-10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleExpanded(pinnedCard.id);
+                        }}
+                      >
+                        <div className="text-center">
+                          <ChevronDown className="w-8 h-8 text-white mx-auto mb-2" />
+                          <div className="text-white font-bold text-sm">Click to expand</div>
+                          <div className="text-white/70 text-xs">{pinnedCard.node.trackCount} tracks</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : isCluster && isExpanded ? (
+                    // Expanded cluster - show all cards in a scrollable grid
+                    <div
+                      className="grid grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-2"
+                      style={{ maxWidth: '640px' }}
+                    >
+                      {tracks.map((track) => (
+                        <div key={track.id}>
+                          <GlobeTrackCard
+                            track={{
+                              id: track.id,
+                              title: track.title,
+                              artist: track.artist,
+                              cover_image_url: track.imageUrl || '',
+                              audio_url: track.audioUrl || '',
+                              stream_url: track.stream_url,
+                              video_url: track.video_url,
+                              price_stx: track.price_stx || '5 STX',
+                              content_type: track.content_type || track.genre || 'loop',
+                              bpm: track.bpm,
+                              tags: track.tags || [],
+                              description: track.description || '',
+                              license: track.license || '',
+                              primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
+                              wallet_address: '',
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
+                              composition_split: 50,
+                              production_split: 50,
+                              isrc: '',
+                              social_links: {},
+                              contact_email: ''
+                            }}
+                            isPlaying={playingTrackId !== null && playingTrackId === track.id}
+                            onPlayPreview={handlePlayPreview}
+                            onStopPreview={handleStopPreview}
+                            showEditControls={false}
+                            onPurchase={(track) => {}}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    // Single track card
+                    <GlobeTrackCard
+                      track={{
+                        id: pinnedCard.node.id,
+                        title: pinnedCard.node.title,
+                        artist: pinnedCard.node.artist,
+                        cover_image_url: pinnedCard.node.imageUrl || '',
+                        audio_url: pinnedCard.node.audioUrl || '',
+                        stream_url: pinnedCard.node.stream_url,
+                        video_url: pinnedCard.node.video_url,
+                        price_stx: pinnedCard.node.price_stx || '5 STX',
+                        content_type: pinnedCard.node.content_type || pinnedCard.node.genre || 'loop',
+                        bpm: pinnedCard.node.bpm,
+                        tags: pinnedCard.node.tags || [],
+                        description: pinnedCard.node.description || '',
+                        license: pinnedCard.node.license || '',
+                        primary_uploader_wallet: pinnedCard.node.uploaderAddress || pinnedCard.node.wallet_address,
+                        wallet_address: '',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        composition_split: 50,
+                        production_split: 50,
+                        isrc: '',
+                        social_links: {},
+                        contact_email: ''
+                      }}
+                      isPlaying={playingTrackId !== null && playingTrackId === pinnedCard.node.id}
+                      onPlayPreview={handlePlayPreview}
+                      onStopPreview={handleStopPreview}
+                      showEditControls={false}
+                      onPurchase={(track) => {}}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
         {/* Tags removed - card shows all info on hover now */}
-        
+
         {/* Globe Track Card or Cluster Cards - Shows when a node is hovered */}
         {selectedNode && (
           <div
@@ -997,6 +1326,17 @@ export default function HomePage() {
               maxWidth: isClusterNode(selectedNode) ? '90vw' : 'auto'
             }}
           >
+            {/* Pin button (top left) - drag to pin this card */}
+            <button
+              onClick={() => handlePinCard(selectedNode)}
+              className="absolute top-1 left-1 bg-cyan-900/80 hover:bg-cyan-800 border border-cyan-500/50 rounded-full p-1.5 transition-colors z-20 shadow-lg hover:scale-105"
+              title="Pin this card - or drag it to pin"
+            >
+              <svg className="w-3.5 h-3.5 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </button>
+
             {/* Close button - moved towards outer corner for better positioning */}
             <button
               onClick={() => {
