@@ -803,6 +803,7 @@ export default function CompactTrackCardWithFlip({
               borderColor: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#9772F4',
               animation: 'slideDown 0.2s ease-out'
             }}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             {loadingLoops ? (
               <div className="p-2 flex items-center justify-center gap-2 text-xs text-gray-400">
