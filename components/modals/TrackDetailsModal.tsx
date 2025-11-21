@@ -695,10 +695,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               ) : packLoops.length > 0 ? (
                 <div className="space-y-2">
                   {packLoops.map((song, index) => (
-                    <div 
-                      key={song.id}
-                      className="flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors"
-                    >
+                    <DraggableModalTrack key={song.id} track={song}>
+                      <div
+                        className="group flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors cursor-grab"
+                      >
                       {/* Song Number */}
                       <div className="flex-shrink-0 w-6 h-6 bg-[#FFE4B5] text-slate-900 rounded text-xs font-bold flex items-center justify-center">
                         {index + 1}
@@ -753,7 +753,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                           </svg>
                         )}
                       </button>
-                    </div>
+                      </div>
+                    </DraggableModalTrack>
                   ))}
                 </div>
               ) : (
