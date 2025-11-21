@@ -94,6 +94,68 @@ export default function HomePage() {
   // Mixer state for VideoDisplayArea
   const [mixerState, setMixerState] = useState<any>(null);
 
+  // Video display position (draggable)
+  const [videoDisplayPosition, setVideoDisplayPosition] = useState({ x: 0, y: 0 });
+  const [isDraggingVideo, setIsDraggingVideo] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Load video display position from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPosition = localStorage.getItem('video-display-position');
+      if (savedPosition) {
+        setVideoDisplayPosition(JSON.parse(savedPosition));
+      }
+    }
+  }, []);
+
+  // Save video display position to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('video-display-position', JSON.stringify(videoDisplayPosition));
+    }
+  }, [videoDisplayPosition]);
+
+  // Handle video display dragging
+  const handleVideoMouseDown = (e: React.MouseEvent) => {
+    // Only drag if clicking on the drag handle area (top 32px)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const isHeader = e.clientY - rect.top < 32;
+
+    if (!isHeader) return;
+
+    setIsDraggingVideo(true);
+    setDragOffset({
+      x: e.clientX - videoDisplayPosition.x,
+      y: e.clientY - videoDisplayPosition.y
+    });
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingVideo) return;
+
+      setVideoDisplayPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingVideo(false);
+    };
+
+    if (isDraggingVideo) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingVideo, dragOffset]);
+
   // Poll for mixer state updates from window object
   useEffect(() => {
     const updateMixerState = () => {
@@ -1141,9 +1203,30 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Video Display Area - Positioned above mixer */}
+      {/* Video Display Area - Draggable video mixer display */}
       {isMixerVisible && mixerState && (mixerState.deckATrack?.content_type === 'video_clip' || mixerState.deckBTrack?.content_type === 'video_clip') && (
-        <div className="fixed left-1/2 transform -translate-x-1/2 z-30" style={{ bottom: '508px', width: '408px' }}>
+        <div
+          className="fixed"
+          style={{
+            left: videoDisplayPosition.x === 0 ? '50%' : `${videoDisplayPosition.x}px`,
+            top: videoDisplayPosition.y === 0 ? 'auto' : `${videoDisplayPosition.y}px`,
+            bottom: videoDisplayPosition.y === 0 ? '508px' : 'auto',
+            transform: videoDisplayPosition.x === 0 ? 'translateX(-50%)' : 'none',
+            width: '408px',
+            zIndex: isDraggingVideo ? 200 : 30,
+            cursor: isDraggingVideo ? 'grabbing' : 'default'
+          }}
+          onMouseDown={handleVideoMouseDown}
+        >
+          {/* Drag handle */}
+          <div
+            className="bg-gradient-to-r from-[#2792F5]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-between"
+            style={{ cursor: 'grab' }}
+          >
+            <span>VIDEO MIXER</span>
+            <span className="text-white/60 text-[10px]">DRAG TO MOVE</span>
+          </div>
+
           <VideoDisplayArea
             deckATrack={mixerState.deckATrack}
             deckBTrack={mixerState.deckBTrack}

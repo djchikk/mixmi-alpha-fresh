@@ -74,7 +74,7 @@ export default function VideoDisplayArea({
     : '100%';
 
   return (
-    <div className="video-display-area mb-4 rounded-lg overflow-hidden bg-black" style={{ height: '338px' }}>
+    <div className="video-display-area rounded-b-lg overflow-hidden bg-black" style={{ height: '338px' }}>
       <div className="relative w-full h-full flex">
         {/* Deck A Video */}
         {deckAHasVideo && (
