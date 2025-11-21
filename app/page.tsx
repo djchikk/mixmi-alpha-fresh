@@ -1221,18 +1221,22 @@ export default function HomePage() {
                           />
                         </div>
                       ))}
-                      {/* Click to expand overlay */}
+                      {/* Click to expand overlay - pointer-events-none allows dragging cards */}
                       <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg cursor-pointer hover:bg-black/50 transition-colors z-10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleExpanded(pinnedCard.id);
-                        }}
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg transition-colors z-10 pointer-events-none"
                       >
                         <div className="text-center">
-                          <ChevronDown className="w-8 h-8 text-white mx-auto mb-2" />
-                          <div className="text-white font-bold text-sm">Click to expand</div>
-                          <div className="text-white/70 text-xs">{pinnedCard.node.trackCount} tracks</div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleExpanded(pinnedCard.id);
+                            }}
+                            className="pointer-events-auto cursor-pointer hover:bg-black/20 px-6 py-4 rounded-lg transition-colors"
+                          >
+                            <ChevronDown className="w-8 h-8 text-white mx-auto mb-2" />
+                            <div className="text-white font-bold text-sm">Click to expand</div>
+                            <div className="text-white/70 text-xs">{pinnedCard.node.trackCount} tracks</div>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1423,15 +1427,19 @@ export default function HomePage() {
                         />
                       </div>
                     ))}
-                    {/* Click to expand overlay */}
+                    {/* Click to expand overlay - pointer-events-none allows dragging cards */}
                     <div
-                      className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg cursor-pointer hover:bg-black/50 transition-colors z-10"
-                      onClick={() => setIsSelectedClusterExpanded(true)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg transition-colors z-10 pointer-events-none"
                     >
                       <div className="text-center">
-                        <ChevronDown className="w-8 h-8 text-white mx-auto mb-2" />
-                        <div className="text-white font-bold text-sm">Click to expand</div>
-                        <div className="text-white/70 text-xs">{selectedNode.trackCount || selectedNode.tracks?.length} tracks</div>
+                        <button
+                          onClick={() => setIsSelectedClusterExpanded(true)}
+                          className="pointer-events-auto cursor-pointer hover:bg-black/20 px-6 py-4 rounded-lg transition-colors"
+                        >
+                          <ChevronDown className="w-8 h-8 text-white mx-auto mb-2" />
+                          <div className="text-white font-bold text-sm">Click to expand</div>
+                          <div className="text-white/70 text-xs">{selectedNode.trackCount || selectedNode.tracks?.length} tracks</div>
+                        </button>
                       </div>
                     </div>
                   </div>
