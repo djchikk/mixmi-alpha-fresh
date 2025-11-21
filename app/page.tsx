@@ -1304,28 +1304,26 @@ export default function HomePage() {
               transform: 'translate(-50%, -50%)',
               zIndex: 250,
               maxHeight: '80vh',
-              overflowY: 'auto',
+              overflow: 'visible',
               maxWidth: isClusterNode(selectedNode) ? '90vw' : 'auto'
             }}
           >
-            {/* Pin button (top left) - drag to pin this card */}
+            {/* Pin button (top left - positioned outside card) */}
             <button
               onClick={() => handlePinCard(selectedNode)}
-              className="absolute top-1 left-1 bg-cyan-900/80 hover:bg-cyan-800 border border-cyan-500/50 rounded-full p-1.5 transition-colors z-20 shadow-lg hover:scale-105"
-              title="Pin this card - or drag it to pin"
+              className="absolute -top-2 -left-2 bg-gray-900 hover:bg-gray-800 border border-gray-600 rounded-full p-1 transition-colors z-20 shadow-lg hover:scale-105 flex items-center justify-center"
+              title="Pin this card, then drag to reposition"
             >
-              <svg className="w-3.5 h-3.5 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
+              <span className="w-4 h-4 flex items-center justify-center text-xs leading-none">📍</span>
             </button>
 
-            {/* Close button - moved towards outer corner for better positioning */}
+            {/* Close button (top right - positioned outside card) */}
             <button
               onClick={() => {
                 setSelectedNode(null);
                 setSelectedNodeTags(null);
               }}
-              className="absolute top-1 right-1 bg-gray-900 hover:bg-gray-800 border border-gray-600 rounded-full p-1 transition-colors z-20 shadow-lg hover:scale-105"
+              className="absolute -top-2 -right-2 bg-gray-900 hover:bg-gray-800 border border-gray-600 rounded-full p-1 transition-colors z-20 shadow-lg hover:scale-105"
             >
               <X className="w-4 h-4 text-gray-300 hover:text-white" />
             </button>
@@ -1403,12 +1401,16 @@ export default function HomePage() {
               return (
                 <>
                   {/* Globe Track Card */}
-                  <GlobeTrackCard
-                    track={{
-                      id: displayTrack.id,
-                      title: displayTrack.title,
-                      artist: displayTrack.artist,
-                      cover_image_url: displayTrack.imageUrl || '',
+                  <div
+                    className="group relative cursor-grab active:cursor-grabbing"
+                    title="💿 Drag this card to Mixer Decks, Crate, or Radio Player"
+                  >
+                    <GlobeTrackCard
+                      track={{
+                        id: displayTrack.id,
+                        title: displayTrack.title,
+                        artist: displayTrack.artist,
+                        cover_image_url: displayTrack.imageUrl || '',
                       audio_url: displayTrack.audioUrl || '',
                       stream_url: displayTrack.stream_url, // For radio stations
                       video_url: displayTrack.video_url, // For video clips
@@ -1437,7 +1439,8 @@ export default function HomePage() {
                       console.log('Purchase track:', track);
                     }}
                   />
-                  
+                  </div>
+
                   {/* Track list for aggregated nodes */}
                   {selectedNode.isAggregated && selectedNode.tracks && selectedNode.tracks.length > 1 && (
                     <div className="mt-3 pt-3 border-t border-[#1E293B]">
