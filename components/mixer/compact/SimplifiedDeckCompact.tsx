@@ -101,8 +101,8 @@ export default function SimplifiedDeckCompact({
       if (onTrackDrop) {
         console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
 
-        // 🎛️ SMART FILTERING: Allow loops, songs, radio stations, and grabbed radio in mixer
-        const allowedTypes = ['loop', 'full_song', 'radio_station', 'grabbed_radio'];
+        // 🎛️ SMART FILTERING: Allow loops, songs, radio stations, grabbed radio, and video clips in mixer
+        const allowedTypes = ['loop', 'full_song', 'radio_station', 'grabbed_radio', 'video_clip'];
         if (!allowedTypes.includes(item.track.content_type)) {
           const contentTypeName = item.track.content_type;
           console.log(`🚫 Mixer: Rejected ${contentTypeName} - Not a playable type`);
@@ -121,6 +121,7 @@ export default function SimplifiedDeckCompact({
 
         // Convert IPTrack format to mixer Track format if needed
         // For radio stations, preserve stream_url as separate field for proxying
+        // For video clips, preserve video_url for video playback
         const mixerTrack = {
           id: item.track.id,
           title: item.track.title,
@@ -133,6 +134,10 @@ export default function SimplifiedDeckCompact({
           // Preserve stream_url for radio stations (needed for proxying)
           ...(item.track.content_type === 'radio_station' && item.track.stream_url && {
             stream_url: item.track.stream_url
+          }),
+          // Preserve video_url for video clips (needed for video playback)
+          ...(item.track.content_type === 'video_clip' && item.track.video_url && {
+            video_url: item.track.video_url
           })
         };
         

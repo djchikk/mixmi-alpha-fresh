@@ -8,7 +8,10 @@ export interface Track {
   cover_image_url?: string; // CRITICAL: Original full-res cover image URL for high-quality display
   bpm: number;
   audioUrl?: string;
-  content_type?: 'loop' | 'full_song' | 'loop_pack' | 'ep' | 'mix'; // Extended content types
+  content_type?: 'loop' | 'full_song' | 'loop_pack' | 'ep' | 'mix' | 'video_clip' | 'radio_station' | 'grabbed_radio'; // Extended content types including video and radio
+  video_url?: string; // For video clip content
+  stream_url?: string; // For radio station streaming
+  pack_position?: number; // Position within a pack (for numbering)
   price_stx?: number; // Legacy price in STX
   download_price_stx?: number; // New pricing model for downloads
   allow_downloads?: boolean; // Download permission flag

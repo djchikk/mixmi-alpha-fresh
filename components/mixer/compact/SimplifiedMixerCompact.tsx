@@ -9,6 +9,7 @@ import WaveformDisplayCompact from './WaveformDisplayCompact';
 import CrossfaderControlCompact from './CrossfaderControlCompact';
 import MasterTransportControlsCompact from './MasterTransportControlsCompact';
 import LoopControlsCompact from './LoopControlsCompact';
+import VideoDisplayArea from './VideoDisplayArea';
 import { Music } from 'lucide-react';
 
 interface SimplifiedMixerProps {
@@ -700,6 +701,15 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
               <p className="text-xs">Drag single loops to Decks to mix</p>
             </div>
           )}
+
+          {/* Video Display Area - shows when video clips are loaded */}
+          <VideoDisplayArea
+            deckATrack={mixerState.deckA.track}
+            deckBTrack={mixerState.deckB.track}
+            deckAPlaying={mixerState.deckA.playing}
+            deckBPlaying={mixerState.deckB.playing}
+            crossfaderPosition={mixerState.crossfaderPosition}
+          />
 
           {/* Transport and Loop Controls Row */}
           <div className="flex justify-center items-center gap-16 mb-5">
