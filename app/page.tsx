@@ -114,6 +114,9 @@ export default function HomePage() {
   const [isCardPositionLocked, setIsCardPositionLocked] = useState(false);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Track if the selected cluster node is expanded
+  const [isSelectedClusterExpanded, setIsSelectedClusterExpanded] = useState(false);
+
   // Track global mouse position for card positioning
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -1114,20 +1117,20 @@ export default function HomePage() {
                 zIndex: draggingCardId === pinnedCard.id ? 300 : 100
               }}
             >
-              <div className="bg-[#101726]/95 backdrop-blur-sm rounded-lg border border-cyan-500/30 shadow-xl">
+              <div className="bg-[#101726]/95 backdrop-blur-sm rounded-lg border border-[#81E4F2]/30 shadow-xl">
                 {/* Drag handle bar */}
                 <div
-                  className="bg-gradient-to-r from-cyan-900/80 to-blue-900/80 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing"
+                  className="bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing"
                   onMouseDown={(e) => handleCardMouseDown(e, pinnedCard.id, pinnedCard.position)}
                   style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
                 >
                   <div className="flex items-center gap-2">
-                    <svg className="w-3 h-3 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <svg className="w-3 h-3 text-[#81E4F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
                     </svg>
-                    <span className="text-cyan-300 text-[10px] font-bold">DRAG TO MOVE</span>
+                    <span className="text-[#81E4F2] text-[10px] font-bold">DRAG TO MOVE</span>
                     {isCluster && (
-                      <span className="text-cyan-300/70 text-[9px] font-bold flex items-center gap-1">
+                      <span className="text-[#81E4F2]/70 text-[9px] font-bold flex items-center gap-1">
                         <Layers className="w-2.5 h-2.5" />
                         {pinnedCard.node.trackCount} tracks
                       </span>
@@ -1348,6 +1351,8 @@ export default function HomePage() {
                 // Reset card position lock when closed
                 setIsCardPositionLocked(false);
                 setCardPosition(null);
+                // Reset cluster expansion state
+                setIsSelectedClusterExpanded(false);
               }}
               className="absolute -top-2 -right-2 bg-gray-900 hover:bg-gray-800 border border-gray-600 rounded-full p-1 transition-colors z-20 shadow-lg hover:scale-105"
             >
@@ -1356,14 +1361,18 @@ export default function HomePage() {
             
             {/* Check if this is a cluster node */}
             {isClusterNode(selectedNode) ? (
-              /* Cluster Display - Horizontal Row of Cards */
-              <div>
-                <div className="text-center mb-2">
+              /* Cluster Display - Collapsed Stack View */
+              <div className="p-2">
+                {/* Title and info */}
+                <div className="text-center mb-3">
                   <h3 className="text-white text-sm font-bold">{selectedNode.title}</h3>
+                  <p className="text-gray-400 text-xs mt-1">
+                    {selectedNode.trackCount || selectedNode.tracks?.length} tracks from {selectedNode.artist}
+                  </p>
                   {/* Null Island special message */}
                   {(selectedNode.location?.includes('Null Island') || selectedNode.tracks?.[0]?.location?.includes('Null Island')) && (
-                    <div className="mt-3 mx-auto max-w-md px-4 py-3 bg-gradient-to-r from-cyan-900/40 to-pink-900/40 border border-cyan-500/30 rounded-lg">
-                      <p className="text-xs text-cyan-200 leading-relaxed">
+                    <div className="mt-3 mx-auto max-w-md px-4 py-3 bg-gradient-to-r from-[#81E4F2]/10 to-pink-900/40 border border-[#81E4F2]/30 rounded-lg">
+                      <p className="text-xs text-[#81E4F2] leading-relaxed">
                         <span className="font-semibold">🏝️ Welcome to Null Island!</span> These tracks sailed here because they were uploaded without location tags.
                         Some artists choose this as a badge of freedom from spatial coordinates, while others might want to
                         <span className="text-pink-300"> add a location tag</span> to plant their flag somewhere specific on the globe.
@@ -1371,52 +1380,104 @@ export default function HomePage() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-2" style={{ maxWidth: '80vw' }}>
-                  {selectedNode.tracks.slice(0, 8 + (carouselPage * 8)).map((track, index) => (
-                    <div key={track.id} className="flex-shrink-0">
-                      <GlobeTrackCard
-                        track={{
-                          id: track.id,
-                          title: track.title,
-                          artist: track.artist,
-                          // OPTIMIZATION FIX: Ensure both fields exist for CC13's drag optimization
-                          cover_image_url: track.imageUrl || track.cover_image_url || '',
-                          imageUrl: track.imageUrl || track.cover_image_url || '', // Ensure fallback exists
-                          audio_url: track.audioUrl,
-                          stream_url: track.stream_url, // For radio stations
-                          video_url: track.video_url, // For video clips
-                          content_type: track.content_type,
-                          tags: track.tags || [],
-                          price_stx: track.price_stx,
-                          bpm: track.bpm,
-                          duration: track.duration,
-                          description: track.description,
-                          primary_location: track.location,
-                          primary_uploader_wallet: track.uploaderAddress || track.wallet_address
-                        } as any}
-                        isPlaying={playingTrackId !== null && playingTrackId === track.id}
-                        onPlayPreview={handlePlayPreview}
-                        onStopPreview={handleStopPreview}
-                        showEditControls={false}
-                      />
-                    </div>
-                  ))}
-                </div>
-                {selectedNode.tracks.length > 8 + (carouselPage * 8) && (
-                  <div className="text-center mt-3">
-                    <button
-                      onClick={() => setCarouselPage(prev => prev + 1)}
-                      className="px-6 py-2 text-gray-300 font-medium rounded-lg border border-white/40 hover:border-[#81E4F2] hover:shadow-[0_0_12px_rgba(129,228,242,0.3)] transition-all hover:bg-white/5"
-                      style={{ backgroundColor: '#061F3C' }}
+
+                {!isSelectedClusterExpanded ? (
+                  /* Collapsed stack - show first 3 cards */
+                  <div className="relative" style={{ height: '280px', width: '300px', margin: '0 auto' }}>
+                    {selectedNode.tracks.slice(0, 3).map((track, index) => (
+                      <div
+                        key={track.id}
+                        className="absolute transition-all duration-300"
+                        style={{
+                          top: `${index * 8}px`,
+                          left: `${index * 8}px`,
+                          right: `${-index * 8}px`,
+                          zIndex: 3 - index,
+                          transform: `rotate(${index * 2}deg)`,
+                          opacity: 1 - index * 0.2
+                        }}
+                      >
+                        <GlobeTrackCard
+                          track={{
+                            id: track.id,
+                            title: track.title,
+                            artist: track.artist,
+                            cover_image_url: track.imageUrl || track.cover_image_url || '',
+                            imageUrl: track.imageUrl || track.cover_image_url || '',
+                            audio_url: track.audioUrl,
+                            stream_url: track.stream_url,
+                            video_url: track.video_url,
+                            content_type: track.content_type,
+                            tags: track.tags || [],
+                            price_stx: track.price_stx,
+                            bpm: track.bpm,
+                            duration: track.duration,
+                            description: track.description,
+                            primary_location: track.location,
+                            primary_uploader_wallet: track.uploaderAddress || track.wallet_address
+                          } as any}
+                          isPlaying={playingTrackId !== null && playingTrackId === track.id}
+                          onPlayPreview={handlePlayPreview}
+                          onStopPreview={handleStopPreview}
+                          showEditControls={false}
+                        />
+                      </div>
+                    ))}
+                    {/* Click to expand overlay */}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg cursor-pointer hover:bg-black/50 transition-colors z-10"
+                      onClick={() => setIsSelectedClusterExpanded(true)}
                     >
-                      Load More ({selectedNode.tracks.length - (8 + (carouselPage * 8))} remaining)
-                    </button>
+                      <div className="text-center">
+                        <ChevronDown className="w-8 h-8 text-white mx-auto mb-2" />
+                        <div className="text-white font-bold text-sm">Click to expand</div>
+                        <div className="text-white/70 text-xs">{selectedNode.trackCount || selectedNode.tracks?.length} tracks</div>
+                      </div>
+                    </div>
                   </div>
-                )}
-                {selectedNode.tracks.length > 8 && selectedNode.tracks.length <= 8 + (carouselPage * 8) && (
-                  <p className="text-gray-400 text-xs text-center mt-2">
-                    Showing all {selectedNode.tracks.length} tracks
-                  </p>
+                ) : (
+                  /* Expanded view - show all cards in scrollable grid */
+                  <div>
+                    <div className="flex items-center justify-center mb-3">
+                      <button
+                        onClick={() => setIsSelectedClusterExpanded(false)}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 border border-[#81E4F2]/50 rounded-lg transition-colors"
+                      >
+                        <ChevronUp className="w-4 h-4 text-[#81E4F2]" />
+                        <span className="text-[#81E4F2] text-sm font-bold">Collapse</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-2" style={{ maxWidth: '640px', margin: '0 auto' }}>
+                      {selectedNode.tracks.map((track) => (
+                        <div key={track.id}>
+                          <GlobeTrackCard
+                            track={{
+                              id: track.id,
+                              title: track.title,
+                              artist: track.artist,
+                              cover_image_url: track.imageUrl || track.cover_image_url || '',
+                              imageUrl: track.imageUrl || track.cover_image_url || '',
+                              audio_url: track.audioUrl,
+                              stream_url: track.stream_url,
+                              video_url: track.video_url,
+                              content_type: track.content_type,
+                              tags: track.tags || [],
+                              price_stx: track.price_stx,
+                              bpm: track.bpm,
+                              duration: track.duration,
+                              description: track.description,
+                              primary_location: track.location,
+                              primary_uploader_wallet: track.uploaderAddress || track.wallet_address
+                            } as any}
+                            isPlaying={playingTrackId !== null && playingTrackId === track.id}
+                            onPlayPreview={handlePlayPreview}
+                            onStopPreview={handleStopPreview}
+                            showEditControls={false}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (
