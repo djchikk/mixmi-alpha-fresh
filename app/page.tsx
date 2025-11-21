@@ -109,6 +109,29 @@ export default function HomePage() {
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
 
+  // Track card position to prevent jumping when hovering over other nodes
+  const [cardPosition, setCardPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isCardPositionLocked, setIsCardPositionLocked] = useState(false);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Track global mouse position for card positioning
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Lock card position when a node is first selected
+  useEffect(() => {
+    if (selectedNode && !isCardPositionLocked) {
+      console.log('🎯 Locking card position on node select:', mousePosition);
+      setCardPosition({ x: mousePosition.x, y: mousePosition.y });
+      setIsCardPositionLocked(true);
+    }
+  }, [selectedNode, isCardPositionLocked, mousePosition]);
+
   // Load video display position from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -595,18 +618,18 @@ export default function HomePage() {
       // Show the cluster as selected node - the UI will handle showing multiple cards
       setSelectedNode(node);
       setCarouselPage(0); // Reset pagination for new cluster
-      
+
       // No cluster tags needed - let the modal content speak for itself
       setSelectedNodeTags(null);
       return;
     }
-    
+
     // Show the globe track card for this node
     setSelectedNode(node);
-    
+
     // Set the selected node tags (use test tags if no real tags)
-    const tags = node.tags && node.tags.length > 0 
-      ? node.tags.slice(0, 5) 
+    const tags = node.tags && node.tags.length > 0
+      ? node.tags.slice(0, 5)
       : ['test', 'hover', 'tag'];
     setSelectedNodeTags(tags);
     
@@ -1299,8 +1322,8 @@ export default function HomePage() {
           <div
             className="fixed bg-[#101726]/95 backdrop-blur-sm rounded-lg pt-2 px-2 pb-1 border border-[#1E293B] shadow-xl animate-scale-in"
             style={{
-              top: '50%',
-              left: '50%',
+              top: cardPosition ? `${cardPosition.y}px` : '50%',
+              left: cardPosition ? `${cardPosition.x}px` : '50%',
               transform: 'translate(-50%, -50%)',
               zIndex: 250,
               maxHeight: '80vh',
@@ -1322,6 +1345,9 @@ export default function HomePage() {
               onClick={() => {
                 setSelectedNode(null);
                 setSelectedNodeTags(null);
+                // Reset card position lock when closed
+                setIsCardPositionLocked(false);
+                setCardPosition(null);
               }}
               className="absolute -top-2 -right-2 bg-gray-900 hover:bg-gray-800 border border-gray-600 rounded-full p-1 transition-colors z-20 shadow-lg hover:scale-105"
             >
