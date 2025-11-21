@@ -177,7 +177,11 @@ export default function CompactTrackCardWithFlip({
         imageUrl: getOptimizedTrackImage(track, 64),
         cover_image_url: track.cover_image_url, // CRITICAL: Keep original high-res URL
         // Ensure we have audioUrl for mixer compatibility (use stream_url for radio stations)
-        audioUrl: track.stream_url || track.audio_url
+        audioUrl: track.stream_url || track.audio_url,
+        // Preserve video_url for video clips
+        ...(track.content_type === 'video_clip' && (track as any).video_url && {
+          video_url: (track as any).video_url
+        })
       };
 
       return { track: optimizedTrack };
