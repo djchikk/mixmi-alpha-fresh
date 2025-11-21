@@ -167,7 +167,7 @@ export default function CompactTrackCardWithFlip({
     };
   }, [videoElement]);
 
-  // Set up drag - disable when pack is expanded to allow dragging individual tracks
+  // Set up drag
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
@@ -190,8 +190,7 @@ export default function CompactTrackCardWithFlip({
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-    canDrag: () => !isPackExpanded, // Disable parent drag when pack is expanded
-  }), [track, isPackExpanded]);
+  }), [track]);
 
   // Get track type
   const getTrackType = () => {
@@ -315,7 +314,7 @@ export default function CompactTrackCardWithFlip({
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           style={{
-            cursor: isPackExpanded ? 'default' : (isDragging ? 'grabbing' : 'grab')
+            cursor: isDragging ? 'grabbing' : 'grab'
           }}
         >
           <div className="relative w-full h-full">
@@ -804,7 +803,6 @@ export default function CompactTrackCardWithFlip({
               borderColor: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#9772F4',
               animation: 'slideDown 0.2s ease-out'
             }}
-            onMouseDown={(e) => e.stopPropagation()}
           >
             {loadingLoops ? (
               <div className="p-2 flex items-center justify-center gap-2 text-xs text-gray-400">
