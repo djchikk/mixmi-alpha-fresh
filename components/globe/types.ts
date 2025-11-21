@@ -13,6 +13,7 @@ export interface TrackNode {
   imageUrl?: string;
   audioUrl?: string;
   stream_url?: string; // For radio stations
+  video_url?: string; // For video clips
   location?: string; // Location name for display
   // Metadata fields
   tags?: string[];

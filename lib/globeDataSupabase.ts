@@ -30,7 +30,7 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
       content_type: track.content_type,
       duration: track.duration,
       imageUrl: track.cover_image_url || undefined, // Now uses clean Supabase Storage URLs
-      audioUrl: track.stream_url || track.audio_url, // Use stream_url for radio stations
+      audioUrl: track.stream_url || track.video_url || track.audio_url, // Use stream_url for radio, video_url for video clips, audio_url for music
       stream_url: track.stream_url, // Keep stream_url for radio stations
       video_url: track.video_url, // Keep video_url for video clips
       location: location.name, // Add location name for display
@@ -68,7 +68,7 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     content_type: track.content_type,
     duration: track.duration,
     imageUrl: track.cover_image_url || undefined, // Now uses clean Supabase Storage URLs
-    audioUrl: track.stream_url || track.audio_url, // Use stream_url for radio stations
+    audioUrl: track.stream_url || track.video_url || track.audio_url, // Use stream_url for radio, video_url for video clips, audio_url for music
     stream_url: track.stream_url, // Keep stream_url for radio stations
     video_url: track.video_url, // Keep video_url for video clips
     location: hasLocation ? track.primary_location : 'Null Island 🏝️', // Show Null Island for tracks without location
