@@ -227,14 +227,6 @@ export default function HomePage() {
       tracks: node.tracks
     };
 
-    console.log('🔖 Pinning card:', {
-      id: cardId,
-      hasMultipleTracks,
-      isClusterNode,
-      isAggregated: pinnedNode.isAggregated,
-      trackCount: pinnedNode.trackCount,
-      tracksLength: pinnedNode.tracks?.length
-    });
 
     setPinnedCards(prev => [...prev, {
       node: pinnedNode,
@@ -1088,16 +1080,6 @@ export default function HomePage() {
           const isExpanded = pinnedCard.isExpanded || false;
           const tracks = isCluster ? pinnedCard.node.tracks || [] : [pinnedCard.node];
 
-          // Debug logging
-          console.log('📌 Pinned card:', {
-            id: pinnedCard.id,
-            isAggregated: pinnedCard.node.isAggregated,
-            trackCount: pinnedCard.node.trackCount,
-            hasTracksArray: !!pinnedCard.node.tracks,
-            tracksLength: pinnedCard.node.tracks?.length,
-            isCluster,
-            isExpanded
-          });
 
           return (
             <div
