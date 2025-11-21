@@ -1589,6 +1589,27 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     };
   }, []);
 
+  // Expose mixer state for VideoDisplayArea
+  useEffect(() => {
+    (window as any).mixerState = {
+      deckATrack: mixerState.deckA.track,
+      deckBTrack: mixerState.deckB.track,
+      deckAPlaying: mixerState.deckA.playing,
+      deckBPlaying: mixerState.deckB.playing,
+      crossfaderPosition: mixerState.crossfaderPosition
+    };
+
+    return () => {
+      delete (window as any).mixerState;
+    };
+  }, [
+    mixerState.deckA.track,
+    mixerState.deckB.track,
+    mixerState.deckA.playing,
+    mixerState.deckB.playing,
+    mixerState.crossfaderPosition
+  ]);
+
   // Check if any deck has radio content - radio can't sync
   const hasRadio =
     mixerState.deckA.contentType === 'radio_station' ||

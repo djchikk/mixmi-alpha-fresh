@@ -25,6 +25,8 @@ export default function VideoDisplayArea({
   const deckAHasVideo = deckATrack?.content_type === 'video_clip' && (deckATrack as any).video_url;
   const deckBHasVideo = deckBTrack?.content_type === 'video_clip' && (deckBTrack as any).video_url;
 
+  // Debug logging removed - component working correctly
+
   // Sync video A playback with deck A
   useEffect(() => {
     if (!videoARef.current || !deckAHasVideo) return;

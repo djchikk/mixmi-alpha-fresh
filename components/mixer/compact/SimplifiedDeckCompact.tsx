@@ -113,11 +113,7 @@ export default function SimplifiedDeckCompact({
         // Use proper image optimization
         const optimizedImageUrl = getOptimizedTrackImage(item.track, 64);
 
-        console.log('🎛️ DECK DROP DEBUG:', {
-          originalUrl: item.track.imageUrl || item.track.cover_image_url,
-          optimizedUrl: optimizedImageUrl,
-          trackId: item.track.id
-        });
+        // Debug logging removed - video integration working
 
         // Convert IPTrack format to mixer Track format if needed
         // For radio stations, preserve stream_url as separate field for proxying
@@ -136,8 +132,9 @@ export default function SimplifiedDeckCompact({
             stream_url: item.track.stream_url
           }),
           // Preserve video_url for video clips (needed for video playback)
-          ...(item.track.content_type === 'video_clip' && item.track.video_url && {
-            video_url: item.track.video_url
+          // If video_url is missing, use audioUrl since it points to the same MP4 file
+          ...(item.track.content_type === 'video_clip' && {
+            video_url: (item.track as any).video_url || item.track.audioUrl
           })
         };
         

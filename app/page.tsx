@@ -54,6 +54,11 @@ const SimpleRadioPlayer = dynamic(() => import('@/components/SimpleRadioPlayer')
   ssr: false
 });
 
+// Dynamically import VideoDisplayArea - video mixer display
+const VideoDisplayArea = dynamic(() => import('@/components/mixer/compact/VideoDisplayArea'), {
+  ssr: false
+});
+
 export default function HomePage() {
   // Alpha app - no auth required for globe viewing
   const [selectedNode, setSelectedNode] = useState<TrackNode | null>(null);
@@ -85,6 +90,26 @@ export default function HomePage() {
   // Fill/Reset state
   const [isFilled, setIsFilled] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+
+  // Mixer state for VideoDisplayArea
+  const [mixerState, setMixerState] = useState<any>(null);
+
+  // Poll for mixer state updates from window object
+  useEffect(() => {
+    const updateMixerState = () => {
+      if (typeof window !== 'undefined' && (window as any).mixerState) {
+        setMixerState((window as any).mixerState);
+      }
+    };
+
+    // Initial update
+    updateMixerState();
+
+    // Poll every 100ms for updates
+    const interval = setInterval(updateMixerState, 100);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Load widget visibility from localStorage on mount (client-side only)
   useEffect(() => {
@@ -1113,6 +1138,19 @@ export default function HomePage() {
       {isPlaylistVisible && (
         <div className="fixed bottom-20 z-30" style={{ right: 'calc(50% + 324px)' }}>
           <PlaylistWidget />
+        </div>
+      )}
+
+      {/* Video Display Area - Positioned above mixer */}
+      {isMixerVisible && mixerState && (mixerState.deckATrack?.content_type === 'video_clip' || mixerState.deckBTrack?.content_type === 'video_clip') && (
+        <div className="fixed left-1/2 transform -translate-x-1/2 z-30" style={{ bottom: '508px', width: '408px' }}>
+          <VideoDisplayArea
+            deckATrack={mixerState.deckATrack}
+            deckBTrack={mixerState.deckBTrack}
+            deckAPlaying={mixerState.deckAPlaying}
+            deckBPlaying={mixerState.deckBPlaying}
+            crossfaderPosition={mixerState.crossfaderPosition}
+          />
         </div>
       )}
 
