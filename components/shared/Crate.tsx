@@ -46,6 +46,7 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           audioUrl: track.audioUrl || track.audio_url || (track as any).stream_url, // Handle both formats, include stream_url for radio!
           audio_url: track.audio_url, // Preserve original property
           stream_url: (track as any).stream_url, // Include stream_url for radio stations
+          video_url: (track as any).video_url, // Include video_url for video clips
           content_type: track.content_type,
           price_stx: track.price_stx,
           license: track.license,
@@ -100,6 +101,7 @@ function ExpandedPackTrack({
         audioUrl: packTrack.audio_url || packTrack.stream_url,
         audio_url: packTrack.audio_url,
         stream_url: packTrack.stream_url,
+        video_url: (packTrack as any).video_url, // Include video_url for video clips
         content_type: packTrack.content_type,
         price_stx: packTrack.price_stx,
         license: packTrack.license

@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Track } from '../types';
+import VideoFXPanel, { CrossfadeMode } from './VideoFXPanel';
+import { Sparkles } from 'lucide-react';
 
 interface VideoDisplayAreaProps {
   deckATrack: Track | null;
@@ -9,6 +11,13 @@ interface VideoDisplayAreaProps {
   deckAPlaying: boolean;
   deckBPlaying: boolean;
   crossfaderPosition: number; // 0-100, where 50 is center
+}
+
+interface VideoEffects {
+  colorShift: number;
+  blur: number;
+  kaleidoscope: number;
+  mirror: number;
 }
 
 export default function VideoDisplayArea({
@@ -21,11 +30,27 @@ export default function VideoDisplayArea({
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
 
+  // Video FX state
+  const [fxPanelOpen, setFxPanelOpen] = useState(false);
+  const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('slide');
+  const [videoEffects, setVideoEffects] = useState<VideoEffects>({
+    colorShift: 0,
+    blur: 0,
+    kaleidoscope: 0,
+    mirror: 0
+  });
+
   // Check if decks have video content
   const deckAHasVideo = deckATrack?.content_type === 'video_clip' && (deckATrack as any).video_url;
   const deckBHasVideo = deckBTrack?.content_type === 'video_clip' && (deckBTrack as any).video_url;
 
-  // Debug logging removed - component working correctly
+  // Handle video FX triggers
+  const handleVideoFX = (fxType: keyof VideoEffects, intensity: number) => {
+    setVideoEffects(prev => ({
+      ...prev,
+      [fxType]: intensity
+    }));
+  };
 
   // Sync video A playback with deck A
   useEffect(() => {
@@ -62,27 +87,103 @@ export default function VideoDisplayArea({
     return null;
   }
 
-  // Calculate split percentages based on crossfader (0-100)
-  // When crossfader is at 0 (full A), show 100% A
-  // When crossfader is at 50 (center), show 50/50
-  // When crossfader is at 100 (full B), show 100% B
-  const deckAWidth = deckAHasVideo && deckBHasVideo
-    ? `${100 - crossfaderPosition}%`
-    : '100%';
-  const deckBWidth = deckAHasVideo && deckBHasVideo
-    ? `${crossfaderPosition}%`
-    : '100%';
+  // Build CSS filter string from active effects
+  const getFilterString = () => {
+    const filters: string[] = [];
+
+    if (videoEffects.colorShift > 0) {
+      filters.push(`hue-rotate(${videoEffects.colorShift * 360}deg)`);
+      filters.push(`saturate(${1 + videoEffects.colorShift * 0.5})`);
+    }
+
+    if (videoEffects.blur > 0) {
+      filters.push(`blur(${videoEffects.blur * 8}px)`);
+    }
+
+    return filters.length > 0 ? filters.join(' ') : 'none';
+  };
+
+  // Calculate crossfade behavior based on mode
+  let deckAWidth = '100%';
+  let deckBWidth = '100%';
+  let deckAOpacity = 1;
+  let deckBOpacity = 1;
+  let showDeckA = deckAHasVideo;
+  let showDeckB = deckBHasVideo;
+
+  if (deckAHasVideo && deckBHasVideo) {
+    switch (crossfadeMode) {
+      case 'slide':
+        // Split-screen with moving divider
+        deckAWidth = `${100 - crossfaderPosition}%`;
+        deckBWidth = `${crossfaderPosition}%`;
+        deckAOpacity = (100 - crossfaderPosition) / 100;
+        deckBOpacity = crossfaderPosition / 100;
+        break;
+
+      case 'blend':
+        // Pure opacity crossfade, both videos full width
+        deckAWidth = '100%';
+        deckBWidth = '100%';
+        deckAOpacity = (100 - crossfaderPosition) / 100;
+        deckBOpacity = crossfaderPosition / 100;
+        break;
+
+      case 'cut':
+        // Hard cut at 50%
+        if (crossfaderPosition < 50) {
+          showDeckB = false;
+          deckAOpacity = 1;
+        } else {
+          showDeckA = false;
+          deckBOpacity = 1;
+        }
+        break;
+    }
+  }
+
+  const filterString = getFilterString();
 
   return (
-    <div className="video-display-area rounded-b-lg overflow-hidden bg-black" style={{ height: '338px' }}>
-      <div className="relative w-full h-full flex">
+    <div className="video-display-area rounded-b-lg overflow-hidden bg-black relative" style={{ height: '338px' }}>
+      {/* VFX Button Overlay */}
+      <button
+        onClick={() => setFxPanelOpen(!fxPanelOpen)}
+        className={`absolute top-2 right-2 z-30 px-2 py-1 rounded text-xs font-bold uppercase transition-all flex items-center gap-1 ${
+          fxPanelOpen
+            ? 'bg-cyan-500 text-slate-900 shadow-lg shadow-cyan-500/50'
+            : 'bg-black/70 text-cyan-400 border border-cyan-400/50 hover:bg-cyan-400/20'
+        }`}
+        title="Video Effects"
+      >
+        <Sparkles size={12} />
+        VFX
+      </button>
+
+      {/* Video FX Panel */}
+      {fxPanelOpen && (
+        <div className="absolute top-12 right-2 z-30">
+          <VideoFXPanel
+            isOpen={fxPanelOpen}
+            onClose={() => setFxPanelOpen(false)}
+            crossfadeMode={crossfadeMode}
+            onCrossfadeModeChange={setCrossfadeMode}
+            onTriggerFX={handleVideoFX}
+          />
+        </div>
+      )}
+
+      <div className="relative w-full h-full flex" style={{ filter: filterString }}>
         {/* Deck A Video */}
-        {deckAHasVideo && (
+        {showDeckA && (
           <div
-            className="relative transition-all duration-200 ease-out"
+            className={`relative transition-all duration-200 ease-out ${
+              crossfadeMode === 'blend' ? 'absolute inset-0' : ''
+            }`}
             style={{
-              width: deckAWidth,
-              opacity: deckAHasVideo && deckBHasVideo ? (100 - crossfaderPosition) / 100 : 1
+              width: crossfadeMode === 'blend' ? '100%' : deckAWidth,
+              opacity: deckAOpacity,
+              transform: videoEffects.mirror > 0 ? 'scaleX(-1)' : 'none'
             }}
           >
             <video
@@ -101,12 +202,15 @@ export default function VideoDisplayArea({
         )}
 
         {/* Deck B Video */}
-        {deckBHasVideo && (
+        {showDeckB && (
           <div
-            className="relative transition-all duration-200 ease-out"
+            className={`relative transition-all duration-200 ease-out ${
+              crossfadeMode === 'blend' ? 'absolute inset-0' : ''
+            }`}
             style={{
-              width: deckBWidth,
-              opacity: deckAHasVideo && deckBHasVideo ? crossfaderPosition / 100 : 1
+              width: crossfadeMode === 'blend' ? '100%' : deckBWidth,
+              opacity: deckBOpacity,
+              transform: videoEffects.mirror > 0 ? 'scaleX(-1)' : 'none'
             }}
           >
             <video
@@ -124,8 +228,8 @@ export default function VideoDisplayArea({
           </div>
         )}
 
-        {/* Center Split Line (only when both videos are present) */}
-        {deckAHasVideo && deckBHasVideo && (
+        {/* Center Split Line (only when both videos are present and in SLIDE mode) */}
+        {deckAHasVideo && deckBHasVideo && crossfadeMode === 'slide' && (
           <div
             className="absolute top-0 bottom-0 w-0.5 bg-white/30 pointer-events-none transition-all duration-200 ease-out"
             style={{
