@@ -4,7 +4,7 @@ import React, { memo, useState } from 'react';
 import { X, Palette, Wind, Grid3x3, FlipHorizontal } from 'lucide-react';
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut';
-type VideoFXType = 'colorShift' | 'blur' | 'invert' | 'mirror';
+type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'mirror';
 
 interface VideoFXPanelProps {
   isOpen: boolean;
@@ -87,20 +87,20 @@ const VideoFXPanel = memo(function VideoFXPanel({
             <div className="text-[8px] font-bold uppercase text-slate-300">Color</div>
           </button>
 
-          {/* Blur */}
+          {/* Pixelate */}
           <button
-            onPointerDown={() => handleEffectStart('blur')}
+            onPointerDown={() => handleEffectStart('pixelate')}
             onPointerUp={handleEffectStop}
             onPointerLeave={handleEffectStop}
             className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
-              activeEffect === 'blur'
+              activeEffect === 'pixelate'
                 ? 'border-cyan-400 bg-cyan-900 scale-95 shadow-lg shadow-cyan-500/50'
                 : 'border-slate-600 hover:border-cyan-400 hover:bg-slate-700 active:scale-95'
             }`}
-            style={{ borderColor: activeEffect === 'blur' ? '#22d3ee' : 'rgba(34, 211, 238, 0.3)' }}
+            style={{ borderColor: activeEffect === 'pixelate' ? '#22d3ee' : 'rgba(34, 211, 238, 0.3)' }}
           >
-            <Wind size={16} className="text-cyan-400 mb-1" />
-            <div className="text-[8px] font-bold uppercase text-slate-300">Blur</div>
+            <Grid3x3 size={16} className="text-cyan-400 mb-1" />
+            <div className="text-[8px] font-bold uppercase text-slate-300">Pixel</div>
           </button>
 
           {/* Invert */}

@@ -15,7 +15,7 @@ interface VideoDisplayAreaProps {
 
 interface VideoEffects {
   colorShift: number;
-  blur: number;
+  pixelate: number;
   invert: number;
   mirror: number;
 }
@@ -35,7 +35,7 @@ export default function VideoDisplayArea({
   const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('slide');
   const [videoEffects, setVideoEffects] = useState<VideoEffects>({
     colorShift: 0,
-    blur: 0,
+    pixelate: 0,
     invert: 0,
     mirror: 0
   });
@@ -99,8 +99,12 @@ export default function VideoDisplayArea({
       filters.push(`brightness(${1 + videoEffects.colorShift * 0.3})`); // Slight brightness boost
     }
 
-    if (videoEffects.blur > 0) {
-      filters.push(`blur(${videoEffects.blur * 8}px)`);
+    // Pixelate is handled via imageRendering CSS property
+    // Strong color boost for pronounced retro aesthetic
+    if (videoEffects.pixelate > 0) {
+      filters.push(`contrast(${1.5})`); // Higher contrast for color banding
+      filters.push(`saturate(${1.3})`); // Higher saturation for digital pop
+      filters.push(`brightness(${0.95})`); // Slight darkening for CRT feel
     }
 
     if (videoEffects.invert > 0) {
@@ -186,6 +190,16 @@ export default function VideoDisplayArea({
       )}
 
       <div className="relative w-full h-full flex" style={{ filter: filterString }}>
+        {/* CRT Scan Lines Overlay */}
+        {videoEffects.pixelate > 0 && (
+          <div
+            className="absolute inset-0 pointer-events-none z-20"
+            style={{
+              backgroundImage: 'repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0px, rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 2px)',
+              mixBlendMode: 'multiply'
+            }}
+          />
+        )}
         {/* Deck A Video */}
         {showDeckA && (
           <div
@@ -202,6 +216,9 @@ export default function VideoDisplayArea({
               ref={videoARef}
               src={(deckATrack as any).video_url}
               className="w-full h-full object-cover"
+              style={{
+                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto'
+              }}
               loop
               muted
               playsInline
@@ -229,6 +246,9 @@ export default function VideoDisplayArea({
               ref={videoBRef}
               src={(deckBTrack as any).video_url}
               className="w-full h-full object-cover"
+              style={{
+                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto'
+              }}
               loop
               muted
               playsInline
