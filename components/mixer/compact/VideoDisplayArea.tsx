@@ -16,7 +16,7 @@ interface VideoDisplayAreaProps {
 interface VideoEffects {
   colorShift: number;
   blur: number;
-  kaleidoscope: number;
+  invert: number;
   mirror: number;
 }
 
@@ -36,7 +36,7 @@ export default function VideoDisplayArea({
   const [videoEffects, setVideoEffects] = useState<VideoEffects>({
     colorShift: 0,
     blur: 0,
-    kaleidoscope: 0,
+    invert: 0,
     mirror: 0
   });
 
@@ -92,12 +92,24 @@ export default function VideoDisplayArea({
     const filters: string[] = [];
 
     if (videoEffects.colorShift > 0) {
-      filters.push(`hue-rotate(${videoEffects.colorShift * 360}deg)`);
-      filters.push(`saturate(${1 + videoEffects.colorShift * 0.5})`);
+      // Intense psychedelic color shift!
+      filters.push(`hue-rotate(${videoEffects.colorShift * 360}deg)`); // Full color wheel rotation
+      filters.push(`saturate(${1 + videoEffects.colorShift * 2})`); // Up to 3x saturation boost (was 1.5x)
+      filters.push(`contrast(${1 + videoEffects.colorShift * 0.5})`); // Add contrast punch
+      filters.push(`brightness(${1 + videoEffects.colorShift * 0.3})`); // Slight brightness boost
     }
 
     if (videoEffects.blur > 0) {
       filters.push(`blur(${videoEffects.blur * 8}px)`);
+    }
+
+    if (videoEffects.invert > 0) {
+      // PSYCHEDELIC INVERT: Extreme warping and color distortion!
+      filters.push(`invert(${videoEffects.invert * 0.6})`); // Partial color inversion
+      filters.push(`saturate(${1 + videoEffects.invert * 4})`); // Up to 5x saturation (MORE than color shift!)
+      filters.push(`contrast(${1 + videoEffects.invert * 1.2})`); // Extreme contrast warping
+      filters.push(`brightness(${1 + videoEffects.invert * 0.4})`); // Brightness boost
+      filters.push(`hue-rotate(${videoEffects.invert * 180}deg)`); // Half color wheel rotation
     }
 
     return filters.length > 0 ? filters.join(' ') : 'none';

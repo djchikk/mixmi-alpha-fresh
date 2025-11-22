@@ -4,7 +4,7 @@ import React, { memo, useState } from 'react';
 import { X, Palette, Wind, Grid3x3, FlipHorizontal } from 'lucide-react';
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut';
-type VideoFXType = 'colorShift' | 'blur' | 'kaleidoscope' | 'mirror';
+type VideoFXType = 'colorShift' | 'blur' | 'invert' | 'mirror';
 
 interface VideoFXPanelProps {
   isOpen: boolean;
@@ -103,20 +103,20 @@ const VideoFXPanel = memo(function VideoFXPanel({
             <div className="text-[8px] font-bold uppercase text-slate-300">Blur</div>
           </button>
 
-          {/* Kaleidoscope */}
+          {/* Invert */}
           <button
-            onPointerDown={() => handleEffectStart('kaleidoscope')}
+            onPointerDown={() => handleEffectStart('invert')}
             onPointerUp={handleEffectStop}
             onPointerLeave={handleEffectStop}
             className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
-              activeEffect === 'kaleidoscope'
+              activeEffect === 'invert'
                 ? 'border-purple-400 bg-purple-900 scale-95 shadow-lg shadow-purple-500/50'
                 : 'border-slate-600 hover:border-purple-400 hover:bg-slate-700 active:scale-95'
             }`}
-            style={{ borderColor: activeEffect === 'kaleidoscope' ? '#c084fc' : 'rgba(192, 132, 252, 0.3)' }}
+            style={{ borderColor: activeEffect === 'invert' ? '#c084fc' : 'rgba(192, 132, 252, 0.3)' }}
           >
             <Grid3x3 size={16} className="text-purple-400 mb-1" />
-            <div className="text-[8px] font-bold uppercase text-slate-300">Kaleid</div>
+            <div className="text-[8px] font-bold uppercase text-slate-300">Invert</div>
           </button>
 
           {/* Mirror */}
