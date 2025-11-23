@@ -59,6 +59,11 @@ const VideoDisplayArea = dynamic(() => import('@/components/mixer/compact/VideoD
   ssr: false
 });
 
+// Dynamically import VideoControlPanel - video mixer controls
+const VideoControlPanel = dynamic(() => import('@/components/mixer/compact/VideoControlPanel'), {
+  ssr: false
+});
+
 export default function HomePage() {
   // Alpha app - no auth required for globe viewing
   const [selectedNode, setSelectedNode] = useState<TrackNode | null>(null);
@@ -98,6 +103,19 @@ export default function HomePage() {
   const [videoDisplayPosition, setVideoDisplayPosition] = useState({ x: 0, y: 0 });
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isVideoMixerHovered, setIsVideoMixerHovered] = useState(false);
+
+  // Video mixer controls state
+  type CrossfadeMode = 'slide' | 'blend' | 'cut';
+  type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'mirror';
+  const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('slide');
+  const [videoEffects, setVideoEffects] = useState({
+    colorShift: 0,
+    pixelate: 0,
+    invert: 0,
+    mirror: 0
+  });
+  const [activeEffect, setActiveEffect] = useState<VideoFXType | null>(null);
 
   // Pinned cards (draggable sticky notes)
   const [pinnedCards, setPinnedCards] = useState<Array<{
@@ -151,6 +169,24 @@ export default function HomePage() {
       localStorage.setItem('video-display-position', JSON.stringify(videoDisplayPosition));
     }
   }, [videoDisplayPosition]);
+
+  // Handle video effect triggers
+  const handleEffectStart = (fxType: VideoFXType) => {
+    console.log(`🎥 Starting video effect: ${fxType}`);
+    setActiveEffect(fxType);
+    setVideoEffects(prev => ({ ...prev, [fxType]: 1.0 }));
+  };
+
+  const handleEffectStop = () => {
+    if (!activeEffect) return;
+    console.log(`🎥 Stopping video effect: ${activeEffect}`);
+    setVideoEffects(prev => ({ ...prev, [activeEffect]: 0 }));
+    setActiveEffect(null);
+  };
+
+  const handleTriggerFX = (fxType: VideoFXType, intensity: number) => {
+    setVideoEffects(prev => ({ ...prev, [fxType]: intensity }));
+  };
 
   // Handle video display dragging
   const handleVideoMouseDown = (e: React.MouseEvent) => {
@@ -1637,10 +1673,14 @@ export default function HomePage() {
             cursor: isDraggingVideo ? 'grabbing' : 'default'
           }}
           onMouseDown={handleVideoMouseDown}
+          onMouseEnter={() => setIsVideoMixerHovered(true)}
+          onMouseLeave={() => setIsVideoMixerHovered(false)}
         >
-          {/* Drag handle */}
+          {/* Drag handle - auto-hides when not hovered, overlays video */}
           <div
-            className="bg-gradient-to-r from-[#2792F5]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-between"
+            className={`absolute top-0 left-0 right-0 bg-gradient-to-r from-[#2792F5]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-between transition-opacity duration-200 z-20 ${
+              isVideoMixerHovered || (videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
             style={{ cursor: 'grab' }}
           >
             <span>VIDEO MIXER</span>
@@ -1653,6 +1693,17 @@ export default function HomePage() {
             deckAPlaying={mixerState.deckAPlaying}
             deckBPlaying={mixerState.deckBPlaying}
             crossfaderPosition={mixerState.crossfaderPosition}
+            crossfadeMode={crossfadeMode}
+            videoEffects={videoEffects}
+          />
+
+          <VideoControlPanel
+            crossfadeMode={crossfadeMode}
+            onCrossfadeModeChange={setCrossfadeMode}
+            onTriggerFX={handleTriggerFX}
+            activeEffect={activeEffect}
+            onEffectStart={handleEffectStart}
+            onEffectStop={handleEffectStop}
           />
         </div>
       )}

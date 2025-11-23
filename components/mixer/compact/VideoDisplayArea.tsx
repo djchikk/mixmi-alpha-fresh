@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Track } from '../types';
-import VideoFXPanel, { CrossfadeMode } from './VideoFXPanel';
-import { Sparkles } from 'lucide-react';
+
+export type CrossfadeMode = 'slide' | 'blend' | 'cut';
 
 interface VideoDisplayAreaProps {
   deckATrack: Track | null;
@@ -11,6 +11,8 @@ interface VideoDisplayAreaProps {
   deckAPlaying: boolean;
   deckBPlaying: boolean;
   crossfaderPosition: number; // 0-100, where 50 is center
+  crossfadeMode?: CrossfadeMode;
+  videoEffects?: VideoEffects;
 }
 
 interface VideoEffects {
@@ -25,33 +27,17 @@ export default function VideoDisplayArea({
   deckBTrack,
   deckAPlaying,
   deckBPlaying,
-  crossfaderPosition
+  crossfaderPosition,
+  crossfadeMode = 'slide',
+  videoEffects = { colorShift: 0, pixelate: 0, invert: 0, mirror: 0 }
 }: VideoDisplayAreaProps) {
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
-
-  // Video FX state
-  const [fxPanelOpen, setFxPanelOpen] = useState(false);
-  const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('slide');
-  const [videoEffects, setVideoEffects] = useState<VideoEffects>({
-    colorShift: 0,
-    pixelate: 0,
-    invert: 0,
-    mirror: 0
-  });
 
 
   // Check if decks have video content
   const deckAHasVideo = Boolean(deckATrack?.content_type === 'video_clip' && (deckATrack as any).video_url);
   const deckBHasVideo = Boolean(deckBTrack?.content_type === 'video_clip' && (deckBTrack as any).video_url);
-
-  // Handle video FX triggers
-  const handleVideoFX = (fxType: keyof VideoEffects, intensity: number) => {
-    setVideoEffects(prev => ({
-      ...prev,
-      [fxType]: intensity
-    }));
-  };
 
   // Sync video A playback with deck A
   useEffect(() => {
@@ -162,39 +148,13 @@ export default function VideoDisplayArea({
   const filterString = getFilterString();
 
   return (
-    <div className="video-display-area rounded-b-lg overflow-hidden bg-black relative" style={{ height: '338px' }}>
-      {/* VFX Button Overlay */}
-      <button
-        onClick={() => setFxPanelOpen(!fxPanelOpen)}
-        className={`absolute top-2 right-2 z-30 px-2 py-1 rounded text-xs font-bold uppercase transition-all flex items-center gap-1 ${
-          fxPanelOpen
-            ? 'bg-cyan-500 text-slate-900 shadow-lg shadow-cyan-500/50'
-            : 'bg-black/70 text-cyan-400 border border-cyan-400/50 hover:bg-cyan-400/20'
-        }`}
-        title="Video Effects"
-      >
-        <Sparkles size={12} />
-        VFX
-      </button>
-
-      {/* Video FX Panel */}
-      {fxPanelOpen && (
-        <div className="absolute top-12 right-2 z-30">
-          <VideoFXPanel
-            isOpen={fxPanelOpen}
-            onClose={() => setFxPanelOpen(false)}
-            crossfadeMode={crossfadeMode}
-            onCrossfadeModeChange={setCrossfadeMode}
-            onTriggerFX={handleVideoFX}
-          />
-        </div>
-      )}
+    <div className="video-display-area rounded-lg overflow-hidden bg-black relative" style={{ height: '408px' }}>
 
       <div
         className={`w-full ${crossfadeMode === 'blend' ? 'relative' : 'relative flex'}`}
         style={{
           filter: filterString,
-          height: '338px', // Explicit height for positioning context in blend mode
+          height: '408px', // Explicit height for positioning context in blend mode
           position: 'relative' // Ensure positioning context for absolute children
         }}
       >
