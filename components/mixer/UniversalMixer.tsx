@@ -12,7 +12,7 @@ import LoopControlsCompact from './compact/LoopControlsCompact';
 import SectionNavigator from './compact/SectionNavigator';
 import VerticalVolumeSlider from './compact/VerticalVolumeSlider';
 import DeckFXPanel from './compact/DeckFXPanel';
-import { Music, Radio } from 'lucide-react';
+import { Music, Radio, ChevronDown } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -1847,7 +1847,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     }`}
                     title="Instant FX"
                   >
-                    <span className="text-[9px] font-bold">FX</span>
+                    {mixerState.deckA.fxPanelOpen ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <span className="text-[9px] font-bold">FX</span>
+                    )}
                   </button>
                 )}
               </div>
@@ -1939,7 +1943,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
               {/* Deck A FX Panel - Positioned as left sidebar overlay */}
               {mixerState.deckA.track && mixerState.deckA.fxPanelOpen && (
-                <div className="absolute left-0 bottom-0 w-[160px] h-[180px] z-50">
+                <div className="absolute left-0 top-[calc(50%-32px)] -translate-y-1/2 w-[160px] z-50">
                   <DeckFXPanel
                     deck="A"
                     isOpen={mixerState.deckA.fxPanelOpen}
@@ -2097,7 +2101,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
               {/* Deck B FX Panel - Positioned as right sidebar overlay */}
               {mixerState.deckB.track && mixerState.deckB.fxPanelOpen && (
-                <div className="absolute right-0 bottom-0 w-[160px] h-[180px] z-50">
+                <div className="absolute right-0 top-[calc(50%-32px)] -translate-y-1/2 w-[160px] z-50">
                   <DeckFXPanel
                     deck="B"
                     isOpen={mixerState.deckB.fxPanelOpen}
@@ -2180,7 +2184,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     }`}
                     title="Instant FX"
                   >
-                    <span className="text-[9px] font-bold">FX</span>
+                    {mixerState.deckB.fxPanelOpen ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <span className="text-[9px] font-bold">FX</span>
+                    )}
                   </button>
                 )}
               </div>
