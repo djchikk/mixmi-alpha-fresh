@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { Palette, Grid3x3, FlipHorizontal, Wind } from 'lucide-react';
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut';
 type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'mirror';
@@ -24,38 +23,38 @@ export default function VideoControlPanel({
   onEffectStop
 }: VideoControlPanelProps) {
   return (
-    <div className="bg-slate-900/95 backdrop-blur-sm border-t border-slate-700/50 px-4 py-2 rounded-b-lg">
+    <div className="bg-black/90 backdrop-blur-sm px-4 py-3 rounded-b-lg">
       <div className="flex items-center justify-center gap-6">
         {/* Mix Mode Section */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase text-slate-400">MIX:</span>
-          <div className="flex gap-1">
+          <span className="text-[11px] font-bold uppercase text-white/90">MIX:</span>
+          <div className="flex gap-2">
             <button
               onClick={() => onCrossfadeModeChange('slide')}
-              className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all ${
+              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all ${
                 crossfadeMode === 'slide'
-                  ? 'bg-cyan-500 text-slate-900 shadow-lg shadow-cyan-500/50'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-cyan-400'
+                  ? 'bg-[#81E4F2] text-slate-900'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
               }`}
             >
               SLIDE
             </button>
             <button
               onClick={() => onCrossfadeModeChange('blend')}
-              className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all ${
+              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all ${
                 crossfadeMode === 'blend'
-                  ? 'bg-cyan-500 text-slate-900 shadow-lg shadow-cyan-500/50'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-cyan-400'
+                  ? 'bg-[#81E4F2] text-slate-900'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
               }`}
             >
               BLEND
             </button>
             <button
               onClick={() => onCrossfadeModeChange('cut')}
-              className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all ${
+              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all ${
                 crossfadeMode === 'cut'
-                  ? 'bg-cyan-500 text-slate-900 shadow-lg shadow-cyan-500/50'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-cyan-400'
+                  ? 'bg-[#81E4F2] text-slate-900'
+                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
               }`}
             >
               CUT
@@ -63,71 +62,96 @@ export default function VideoControlPanel({
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="h-6 w-px bg-slate-600/50" />
-
         {/* FX Section */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase text-slate-400">FX:</span>
-          <div className="flex gap-1">
-            {/* Color Shift */}
+          <span className="text-[11px] font-bold uppercase text-white/90">FX:</span>
+          <div className="flex gap-2">
+            {/* Color Shift - Pink */}
             <button
               onPointerDown={() => onEffectStart('colorShift')}
               onPointerUp={onEffectStop}
               onPointerLeave={onEffectStop}
-              className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all flex items-center gap-1.5 ${
-                activeEffect === 'colorShift'
-                  ? 'bg-pink-500 text-white scale-95 shadow-lg shadow-pink-500/50'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-pink-400'
-              }`}
+              className="relative overflow-hidden transition-all"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                backgroundColor: '#000000'
+              }}
             >
-              <Palette size={12} />
-              COLOR
+              <div
+                className="absolute inset-0 transition-opacity duration-200"
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #F3C2F7 30%, #EC84F3 100%)',
+                  opacity: activeEffect === 'colorShift' ? 1 : 0.65
+                }}
+              />
             </button>
 
-            {/* Pixelate */}
+            {/* Pixelate - Orange */}
             <button
               onPointerDown={() => onEffectStart('pixelate')}
               onPointerUp={onEffectStop}
               onPointerLeave={onEffectStop}
-              className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all flex items-center gap-1.5 ${
-                activeEffect === 'pixelate'
-                  ? 'bg-cyan-500 text-white scale-95 shadow-lg shadow-cyan-500/50'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-cyan-400'
-              }`}
+              className="relative overflow-hidden transition-all"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                backgroundColor: '#000000'
+              }}
             >
-              <Grid3x3 size={12} />
-              PIXEL
+              <div
+                className="absolute inset-0 transition-opacity duration-200"
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)',
+                  opacity: activeEffect === 'pixelate' ? 1 : 0.65
+                }}
+              />
             </button>
 
-            {/* Invert */}
+            {/* Invert - Yellow */}
             <button
               onPointerDown={() => onEffectStart('invert')}
               onPointerUp={onEffectStop}
               onPointerLeave={onEffectStop}
-              className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all flex items-center gap-1.5 ${
-                activeEffect === 'invert'
-                  ? 'bg-purple-500 text-white scale-95 shadow-lg shadow-purple-500/50'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-purple-400'
-              }`}
+              className="relative overflow-hidden transition-all"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                backgroundColor: '#000000'
+              }}
             >
-              <Wind size={12} />
-              INVERT
+              <div
+                className="absolute inset-0 transition-opacity duration-200"
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFF9A3 30%, #FFE66B 100%)',
+                  opacity: activeEffect === 'invert' ? 1 : 0.65
+                }}
+              />
             </button>
 
-            {/* Mirror */}
+            {/* Mirror - Green */}
             <button
               onPointerDown={() => onEffectStart('mirror')}
               onPointerUp={onEffectStop}
               onPointerLeave={onEffectStop}
-              className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all flex items-center gap-1.5 ${
-                activeEffect === 'mirror'
-                  ? 'bg-green-500 text-white scale-95 shadow-lg shadow-green-500/50'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-green-400'
-              }`}
+              className="relative overflow-hidden transition-all"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                backgroundColor: '#000000'
+              }}
             >
-              <FlipHorizontal size={12} />
-              MIRROR
+              <div
+                className="absolute inset-0 transition-opacity duration-200"
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
+                  opacity: activeEffect === 'mirror' ? 1 : 0.65
+                }}
+              />
             </button>
           </div>
         </div>
