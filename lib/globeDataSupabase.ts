@@ -119,7 +119,7 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
     // Fetch all tracks with proper filtering for loop packs and deleted content
     const { data, error } = await supabase
       .from('ip_tracks')
-      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, tags, description, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations') // Now includes cover_image_url, stream_url for radio stations, and video_url for video clips
+      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, tags, description, notes, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations') // Now includes cover_image_url, stream_url for radio stations, video_url for video clips, and notes for CC text overlay
       .is('pack_id', null) // Only show standalone content and master pack/EP records
       .is('deleted_at', null) // Exclude soft-deleted tracks from globe display
       .order('created_at', { ascending: false })

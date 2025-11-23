@@ -41,7 +41,13 @@ function DraggableDrawerTrack({ track, index, contentType, onPlay, playingLoopId
         ...track,
         imageUrl: getOptimizedTrackImage(track, 64),
         cover_image_url: track.cover_image_url,
-        audioUrl: track.audio_url
+        // For video clips, use video_url as audioUrl since MP4 contains both audio and video
+        audioUrl: track.audio_url || (track.content_type === 'video_clip' ? track.video_url : undefined),
+        // Preserve video_url for video clips
+        ...(track.content_type === 'video_clip' && track.video_url && {
+          video_url: track.video_url
+        }),
+        notes: track.notes // Preserve notes for CC text overlay
       }
     }),
     collect: (monitor) => ({
@@ -246,12 +252,15 @@ export default function CompactTrackCardWithFlip({
         imageUrl: getOptimizedTrackImage(track, 64),
         cover_image_url: track.cover_image_url, // CRITICAL: Keep original high-res URL
         // Ensure we have audioUrl for mixer compatibility
-        // Preserve existing audioUrl if set (e.g., from Globe TrackNode), otherwise use stream_url or audio_url
-        audioUrl: (track as any).audioUrl || track.stream_url || track.audio_url,
+        // For video clips, use video_url as audioUrl since MP4 contains both audio and video
+        // Preserve existing audioUrl if set (e.g., from Globe TrackNode), otherwise use stream_url, audio_url, or video_url
+        audioUrl: (track as any).audioUrl || track.stream_url || track.audio_url || (track.content_type === 'video_clip' ? track.video_url : undefined),
         // Preserve video_url for video clips
-        ...(track.content_type === 'video_clip' && (track as any).video_url && {
-          video_url: (track as any).video_url
-        })
+        ...(track.content_type === 'video_clip' && track.video_url && {
+          video_url: track.video_url
+        }),
+        // Preserve notes for CC text overlay
+        notes: track.notes
       };
 
       return { track: optimizedTrack };

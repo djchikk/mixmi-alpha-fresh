@@ -127,6 +127,7 @@ export default function SimplifiedDeckCompact({
           bpm: item.track.bpm, // Preserve original bpm (may be null for undetected)
           content_type: item.track.content_type,
           pack_position: item.track.pack_position, // Preserve for number badges
+          notes: item.track.notes, // Preserve notes for CC text overlay
           // Preserve stream_url for radio stations (needed for proxying)
           ...(item.track.content_type === 'radio_station' && item.track.stream_url && {
             stream_url: item.track.stream_url

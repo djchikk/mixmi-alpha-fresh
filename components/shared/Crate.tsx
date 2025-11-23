@@ -47,6 +47,7 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           audio_url: track.audio_url, // Preserve original property
           stream_url: (track as any).stream_url, // Include stream_url for radio stations
           video_url: (track as any).video_url, // Include video_url for video clips
+          notes: track.notes, // Include notes for CC text overlay
           content_type: track.content_type,
           price_stx: track.price_stx,
           license: track.license,
@@ -102,6 +103,7 @@ function ExpandedPackTrack({
         audio_url: packTrack.audio_url,
         stream_url: packTrack.stream_url,
         video_url: (packTrack as any).video_url, // Include video_url for video clips
+        notes: packTrack.notes, // Include notes for CC text overlay
         content_type: packTrack.content_type,
         price_stx: packTrack.price_stx,
         license: packTrack.license

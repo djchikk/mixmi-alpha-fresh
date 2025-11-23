@@ -152,6 +152,18 @@ export default function CreatorStorePage() {
         } else {
           const trackData = allTracks || [];
 
+          // DEBUG: Check if notes field is being fetched for video clips
+          const videoClips = trackData.filter(t => t.content_type === 'video_clip');
+          if (videoClips.length > 0) {
+            console.log('🎥 Video clips fetched from database:', videoClips.map(v => ({
+              id: v.id,
+              title: v.title,
+              notes: v.notes,
+              video_url: v.video_url ? '✅' : '❌',
+              audio_url: v.audio_url ? '✅' : '❌'
+            })));
+          }
+
           // TODO: Implement payment status filtering
           // Currently showing all tracks. Need to filter out tracks with payment_status='failed'
           // after confirming the filtering logic doesn't accidentally hide legitimate content.

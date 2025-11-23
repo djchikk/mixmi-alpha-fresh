@@ -78,6 +78,7 @@ export interface IPTrack {
   artist: string;
   description?: string;
   tell_us_more?: string; // New field for additional context
+  notes?: string; // For lyrics/descriptions to display in CC overlay
   tags: string[];
   content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix' | 'radio_station' | 'station_pack' | 'video_clip';
   loop_category?: string; // Only for loops: 'vocals', 'beats', 'instrumental', 'stem', 'other'

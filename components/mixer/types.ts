@@ -12,6 +12,7 @@ export interface Track {
   video_url?: string; // For video clip content
   stream_url?: string; // For radio station streaming
   pack_position?: number; // Position within a pack (for numbering)
+  notes?: string; // For lyrics/descriptions to display in CC overlay
   price_stx?: number; // Legacy price in STX
   download_price_stx?: number; // New pricing model for downloads
   allow_downloads?: boolean; // Download permission flag

@@ -40,9 +40,10 @@ export default function VideoDisplayArea({
     mirror: 0
   });
 
+
   // Check if decks have video content
-  const deckAHasVideo = deckATrack?.content_type === 'video_clip' && (deckATrack as any).video_url;
-  const deckBHasVideo = deckBTrack?.content_type === 'video_clip' && (deckBTrack as any).video_url;
+  const deckAHasVideo = Boolean(deckATrack?.content_type === 'video_clip' && (deckATrack as any).video_url);
+  const deckBHasVideo = Boolean(deckBTrack?.content_type === 'video_clip' && (deckBTrack as any).video_url);
 
   // Handle video FX triggers
   const handleVideoFX = (fxType: keyof VideoEffects, intensity: number) => {
@@ -130,15 +131,15 @@ export default function VideoDisplayArea({
   if (deckAHasVideo && deckBHasVideo) {
     switch (crossfadeMode) {
       case 'slide':
-        // Split-screen with moving divider
+        // Split-screen with moving divider - full brightness, no opacity fade
         deckAWidth = `${100 - crossfaderPosition}%`;
         deckBWidth = `${crossfaderPosition}%`;
-        deckAOpacity = (100 - crossfaderPosition) / 100;
-        deckBOpacity = crossfaderPosition / 100;
+        deckAOpacity = 1; // Keep full brightness
+        deckBOpacity = 1; // Keep full brightness
         break;
 
       case 'blend':
-        // Pure opacity crossfade, both videos full width
+        // Opacity crossfade with screen blend mode to prevent darkening
         deckAWidth = '100%';
         deckBWidth = '100%';
         deckAOpacity = (100 - crossfaderPosition) / 100;
@@ -189,7 +190,14 @@ export default function VideoDisplayArea({
         </div>
       )}
 
-      <div className="relative w-full h-full flex" style={{ filter: filterString }}>
+      <div
+        className={`w-full ${crossfadeMode === 'blend' ? 'relative' : 'relative flex'}`}
+        style={{
+          filter: filterString,
+          height: '338px', // Explicit height for positioning context in blend mode
+          position: 'relative' // Ensure positioning context for absolute children
+        }}
+      >
         {/* CRT Scan Lines Overlay */}
         {videoEffects.pixelate > 0 && (
           <div
@@ -203,8 +211,8 @@ export default function VideoDisplayArea({
         {/* Deck A Video */}
         {showDeckA && (
           <div
-            className={`relative transition-all duration-200 ease-out ${
-              crossfadeMode === 'blend' ? 'absolute inset-0' : ''
+            className={`transition-all duration-200 ease-out ${
+              crossfadeMode === 'blend' ? 'absolute top-0 left-0 w-full h-full' : 'relative'
             }`}
             style={{
               width: crossfadeMode === 'blend' ? '100%' : deckAWidth,
@@ -233,13 +241,15 @@ export default function VideoDisplayArea({
         {/* Deck B Video */}
         {showDeckB && (
           <div
-            className={`relative transition-all duration-200 ease-out ${
-              crossfadeMode === 'blend' ? 'absolute inset-0' : ''
+            className={`transition-all duration-200 ease-out ${
+              crossfadeMode === 'blend' ? 'absolute top-0 left-0 w-full h-full' : 'relative'
             }`}
             style={{
               width: crossfadeMode === 'blend' ? '100%' : deckBWidth,
               opacity: deckBOpacity,
-              transform: videoEffects.mirror > 0 ? 'scaleX(-1)' : 'none'
+              transform: videoEffects.mirror > 0 ? 'scaleX(-1)' : 'none',
+              mixBlendMode: crossfadeMode === 'blend' && deckAOpacity > 0 && deckBOpacity > 0 ? 'screen' : 'normal',
+              zIndex: crossfadeMode === 'blend' ? 10 : 'auto'
             }}
           >
             <video

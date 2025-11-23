@@ -67,6 +67,9 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     audioUrl: (ipTrack as any).audioUrl || ipTrack.audio_url, // Handle both audioUrl and audio_url
     audio_url: ipTrack.audio_url, // Preserve audio_url field
     stream_url: (ipTrack as any).stream_url, // Preserve stream_url for radio stations
+    video_url: ipTrack.video_url, // Preserve video_url for video clips
+    notes: ipTrack.notes, // Preserve notes for CC text overlay
+    pack_position: ipTrack.pack_position, // Preserve pack position for numbering
     content_type: ipTrack.content_type || 'loop', // Preserve original content type!
     price_stx: ipTrack.price_stx, // Preserve price for cart functionality
     download_price_stx: ipTrack.download_price_stx, // Preserve new pricing model
