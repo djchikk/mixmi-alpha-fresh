@@ -1840,17 +1840,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 {mixerState.deckA.track && (
                   <button
                     onClick={handleDeckAFXToggle}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 ${
-                      mixerState.deckA.fxPanelOpen
-                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
-                        : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
-                    }`}
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 border-[#365FC3] text-[#365FC3] bg-transparent hover:bg-[#365FC3]/15 hover:border-[#4195EF]"
                     title="Instant FX"
                   >
                     {mixerState.deckA.fxPanelOpen ? (
-                      <ChevronDown size={16} />
+                      <ChevronDown size={16} strokeWidth={3} />
                     ) : (
-                      <span className="text-[9px] font-bold">FX</span>
+                      <span className="text-[9px] font-extrabold">FX</span>
                     )}
                   </button>
                 )}
@@ -2177,17 +2173,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 {mixerState.deckB.track && (
                   <button
                     onClick={handleDeckBFXToggle}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 ${
-                      mixerState.deckB.fxPanelOpen
-                        ? 'bg-[#81E4F2] border-[#81E4F2] text-slate-900'
-                        : 'bg-slate-900 border-blue-500 text-blue-400 hover:bg-blue-500/10'
-                    }`}
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 border-[#365FC3] text-[#365FC3] bg-transparent hover:bg-[#365FC3]/15 hover:border-[#4195EF]"
                     title="Instant FX"
                   >
                     {mixerState.deckB.fxPanelOpen ? (
-                      <ChevronDown size={16} />
+                      <ChevronDown size={16} strokeWidth={3} />
                     ) : (
-                      <span className="text-[9px] font-bold">FX</span>
+                      <span className="text-[9px] font-extrabold">FX</span>
                     )}
                   </button>
                 )}

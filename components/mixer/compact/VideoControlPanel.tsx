@@ -31,30 +31,30 @@ export default function VideoControlPanel({
           <div className="flex gap-2">
             <button
               onClick={() => onCrossfadeModeChange('slide')}
-              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all ${
+              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
                 crossfadeMode === 'slide'
-                  ? 'bg-[#81E4F2] text-slate-900'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
+                  : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
               }`}
             >
               SLIDE
             </button>
             <button
               onClick={() => onCrossfadeModeChange('blend')}
-              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all ${
+              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
                 crossfadeMode === 'blend'
-                  ? 'bg-[#81E4F2] text-slate-900'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
+                  : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
               }`}
             >
               BLEND
             </button>
             <button
               onClick={() => onCrossfadeModeChange('cut')}
-              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all ${
+              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
                 crossfadeMode === 'cut'
-                  ? 'bg-[#81E4F2] text-slate-900'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
+                  : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
               }`}
             >
               CUT

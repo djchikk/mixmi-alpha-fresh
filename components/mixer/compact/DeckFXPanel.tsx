@@ -172,10 +172,10 @@ const DeckFXPanel = memo(function DeckFXPanel({
         <div className="flex justify-center gap-2">
           <button
             onClick={onLoCutToggle}
-            className={`px-3 py-0.5 rounded-md text-[10px] font-bold uppercase transition-all whitespace-nowrap ${
+            className={`px-3 py-0.5 rounded-md text-[10px] font-bold uppercase transition-all whitespace-nowrap border ${
               loCutEnabled
-                ? 'bg-purple-500 text-slate-900'
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
+                ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
+                : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
             }`}
             title="Low Cut Filter (removes bass)"
           >
@@ -183,10 +183,10 @@ const DeckFXPanel = memo(function DeckFXPanel({
           </button>
           <button
             onClick={onHiCutToggle}
-            className={`px-3 py-0.5 rounded-md text-[10px] font-bold uppercase transition-all whitespace-nowrap ${
+            className={`px-3 py-0.5 rounded-md text-[10px] font-bold uppercase transition-all whitespace-nowrap border ${
               hiCutEnabled
-                ? 'bg-orange-500 text-slate-900'
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
+                ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
+                : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
             }`}
             title="High Cut Filter (removes highs)"
           >
