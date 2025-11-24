@@ -27,6 +27,7 @@ interface MasterTransportControlsProps {
   // Visual feedback
   highlightPlayButton?: boolean; // Show cyan glow when grabbed loop is ready
   hasRadio?: boolean; // Disable sync when radio is present
+  bothVideos?: boolean; // Disable sync when both decks have video clips
 
   className?: string;
 }
@@ -49,6 +50,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   masterBPM,
   highlightPlayButton = false,
   hasRadio = false,
+  bothVideos = false,
   className = ""
 }: MasterTransportControlsProps) {
   const [countingIn, setCountingIn] = useState(false);
@@ -186,7 +188,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
       <div className="flex justify-end">
         <button
           onClick={onSyncToggle}
-          disabled={!deckALoaded || !deckBLoaded}
+          disabled={!deckALoaded || !deckBLoaded || hasRadio || bothVideos}
           className={`px-1.5 py-0.5 rounded-full text-[7px] font-bold transition-all uppercase tracking-wider ${
             syncActive
               ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80'
@@ -195,6 +197,8 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
           title={
             hasRadio
               ? 'Radio stations cannot sync'
+              : bothVideos
+              ? 'Videos of different lengths cannot sync'
               : !deckALoaded || !deckBLoaded
               ? 'Load both decks to enable sync'
               : syncActive

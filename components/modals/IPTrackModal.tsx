@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Music } from "lucide-react";
+import Cropper from "react-easy-crop";
 import Modal from "../ui/Modal";
 import TrackCoverUploader from "../shared/TrackCoverUploader";
 import { IPTrack, SAMPLE_TYPES, CONTENT_TYPES, LOOP_CATEGORIES, ContentType, LoopCategory } from "@/types";
@@ -158,7 +159,19 @@ export default function IPTrackModal({
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [isVideoUploading, setIsVideoUploading] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // Video crop state
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [videoNaturalWidth, setVideoNaturalWidth] = useState<number | null>(null);
+  const [videoNaturalHeight, setVideoNaturalHeight] = useState<number | null>(null);
+
+  // Crop callback
+  const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
   // Use location autocomplete hook
   const {
     suggestions,
@@ -515,6 +528,11 @@ export default function IPTrackModal({
       const duration = videoElement.duration;
       setVideoDuration(duration);
 
+      // Capture video natural dimensions for crop calculations
+      setVideoNaturalWidth(videoElement.videoWidth);
+      setVideoNaturalHeight(videoElement.videoHeight);
+      console.log(`📹 Video natural dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+
       // Validate duration (5 seconds max)
       if (duration > 5.5) { // Allow small buffer for encoding variations
         setValidationErrors([`Video must be 5 seconds or less (yours is ${duration.toFixed(1)}s)`]);
@@ -685,9 +703,30 @@ export default function IPTrackModal({
       // ALWAYS save the location text, even if coordinates weren't found
       // Use null instead of undefined for proper database insertion
       primary_location: locationResult.rawText || null,
-      locations: locationResult.all.length > 0 ? locationResult.all : null
+      locations: locationResult.all.length > 0 ? locationResult.all : null,
+      // Add video crop data if it's a video clip
+      ...(formData.content_type === 'video_clip' && croppedAreaPixels ? {
+        video_crop_x: croppedAreaPixels.x,
+        video_crop_y: croppedAreaPixels.y,
+        video_crop_width: croppedAreaPixels.width,
+        video_crop_height: croppedAreaPixels.height,
+        video_crop_zoom: zoom,
+        video_natural_width: videoNaturalWidth,
+        video_natural_height: videoNaturalHeight
+      } : {})
     };
-    
+
+    // Log crop data being saved
+    if (formData.content_type === 'video_clip') {
+      console.log('📹 Saving video crop data:', {
+        croppedAreaPixels,
+        zoom,
+        videoNaturalWidth,
+        videoNaturalHeight,
+        hasCropData: !!croppedAreaPixels
+      });
+    }
+
     // Log the final data being sent
     console.log('📤 Updated form data with location:', {
       primary_location: updatedFormData.primary_location,
@@ -787,6 +826,22 @@ export default function IPTrackModal({
       console.error('❌ VALIDATION FAILED with errors:', errors);
       setValidationErrors(errors);
       return;
+    }
+
+    // Log what's being submitted for video clips
+    if (updatedFormData.content_type === 'video_clip') {
+      console.log('🎬 SUBMITTING VIDEO CLIP DATA:', {
+        has_crop_x: 'video_crop_x' in updatedFormData,
+        has_crop_y: 'video_crop_y' in updatedFormData,
+        has_natural_width: 'video_natural_width' in updatedFormData,
+        video_crop_x: (updatedFormData as any).video_crop_x,
+        video_crop_y: (updatedFormData as any).video_crop_y,
+        video_crop_width: (updatedFormData as any).video_crop_width,
+        video_crop_height: (updatedFormData as any).video_crop_height,
+        video_crop_zoom: (updatedFormData as any).video_crop_zoom,
+        video_natural_width: (updatedFormData as any).video_natural_width,
+        video_natural_height: (updatedFormData as any).video_natural_height
+      });
     }
 
     try {
@@ -1489,14 +1544,29 @@ export default function IPTrackModal({
                   </div>
                 )}
 
-                {/* Video preview */}
+                {/* Video preview with cropper */}
                 {videoPreviewUrl && (
-                  <div className="mt-4 rounded-lg overflow-hidden bg-black">
-                    <video
-                      src={videoPreviewUrl}
-                      controls
-                      className="w-full max-h-64 object-contain"
-                    />
+                  <div>
+                    <div className="relative rounded-lg overflow-hidden bg-black" style={{ height: '400px' }}>
+                      <Cropper
+                        video={videoPreviewUrl}
+                        crop={crop}
+                        zoom={zoom}
+                        aspect={1}
+                        onCropChange={setCrop}
+                        onZoomChange={setZoom}
+                        onCropComplete={onCropComplete}
+                        objectFit="contain"
+                      />
+                      {videoDuration && (
+                        <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded text-xs text-white z-10">
+                          {videoDuration.toFixed(1)}s
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-2 text-sm text-gray-400 bg-[#2792F5]/10 border border-[#2792F5]/30 rounded-lg p-3">
+                      📐 Drag to reposition • Scroll or pinch to zoom • Square crop will be applied
+                    </div>
                   </div>
                 )}
 

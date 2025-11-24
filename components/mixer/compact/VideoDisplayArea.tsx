@@ -74,6 +74,46 @@ export default function VideoDisplayArea({
     return null;
   }
 
+  // Helper function to get crop styles
+  const getCropStyles = (track: any) => {
+    const cropX = track?.video_crop_x;
+    const cropY = track?.video_crop_y;
+    const cropWidth = track?.video_crop_width;
+    const cropHeight = track?.video_crop_height;
+    const cropZoom = track?.video_crop_zoom || 1.0;
+    const videoWidth = track?.video_natural_width;
+    const videoHeight = track?.video_natural_height;
+
+    console.log('🎬 Crop Data:', { cropX, cropY, cropWidth, cropHeight, cropZoom, videoWidth, videoHeight });
+
+    // If no crop data or no video dimensions, return empty style
+    if (cropX == null || cropY == null || !cropWidth || !cropHeight || !videoWidth || !videoHeight) {
+      console.log('⚠️ Missing crop data, returning empty styles');
+      return {};
+    }
+
+    // Calculate the center of the crop area in pixels
+    const cropCenterX = cropX + (cropWidth / 2);
+    const cropCenterY = cropY + (cropHeight / 2);
+
+    // Convert the crop center to percentage of video dimensions
+    const cropCenterXPercent = (cropCenterX / videoWidth) * 100;
+    const cropCenterYPercent = (cropCenterY / videoHeight) * 100;
+
+    console.log('📐 Calculated crop position:', { cropCenterXPercent, cropCenterYPercent, cropZoom });
+
+    // Use object-position to show the cropped area and scale to apply zoom
+    // object-position moves the video so the specified point is at the center
+    const styles = {
+      transform: `scale(${cropZoom})`,
+      objectPosition: `${cropCenterXPercent}% ${cropCenterYPercent}%`,
+      transformOrigin: 'center center',
+    };
+
+    console.log('✅ Applying crop styles:', styles);
+    return styles;
+  };
+
   // Build CSS filter string from active effects
   const getFilterString = () => {
     const filters: string[] = [];
@@ -185,10 +225,11 @@ export default function VideoDisplayArea({
               src={(deckATrack as any).video_url}
               className="w-full h-full object-cover"
               style={{
-                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto'
+                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto',
+                ...getCropStyles(deckATrack)
               }}
               loop
-              muted
+              muted={true}
               playsInline
             />
             {/* Deck A Label */}
@@ -217,10 +258,11 @@ export default function VideoDisplayArea({
               src={(deckBTrack as any).video_url}
               className="w-full h-full object-cover"
               style={{
-                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto'
+                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto',
+                ...getCropStyles(deckBTrack)
               }}
               loop
-              muted
+              muted={true}
               playsInline
             />
             {/* Deck B Label */}

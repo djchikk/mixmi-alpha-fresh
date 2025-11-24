@@ -12,7 +12,7 @@ import LoopControlsCompact from './compact/LoopControlsCompact';
 import SectionNavigator from './compact/SectionNavigator';
 import VerticalVolumeSlider from './compact/VerticalVolumeSlider';
 import DeckFXPanel from './compact/DeckFXPanel';
-import { Music, Radio, ChevronDown } from 'lucide-react';
+import { Music, Radio, ChevronDown, Volume2, VolumeX } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -42,6 +42,7 @@ interface UniversalMixerState {
     loCutEnabled: boolean; // Lo Cut filter state
     pitchCents: number; // Pitch shift in cents (±1200)
     isPitchProcessing: boolean; // Pitch processing indicator
+    videoMuted: boolean; // Video audio mute state
   };
   deckB: {
     track: Track | null;
@@ -59,6 +60,7 @@ interface UniversalMixerState {
     loCutEnabled: boolean; // Lo Cut filter state
     pitchCents: number; // Pitch shift in cents (±1200)
     isPitchProcessing: boolean; // Pitch processing indicator
+    videoMuted: boolean; // Video audio mute state
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -84,7 +86,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       hiCutEnabled: false,
       loCutEnabled: false,
       pitchCents: 0,
-      isPitchProcessing: false
+      isPitchProcessing: false,
+      videoMuted: false // Default unmuted
     },
     deckB: {
       track: null,
@@ -97,7 +100,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       hiCutEnabled: false,
       loCutEnabled: false,
       pitchCents: 0,
-      isPitchProcessing: false
+      isPitchProcessing: false,
+      videoMuted: false // Default unmuted
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -1595,7 +1599,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       deckATrack: mixerState.deckA.track,
       deckBTrack: mixerState.deckB.track,
       deckAPlaying: mixerState.deckA.playing,
+      deckAMuted: mixerState.deckA.videoMuted,
       deckBPlaying: mixerState.deckB.playing,
+      deckBMuted: mixerState.deckB.videoMuted,
       crossfaderPosition: mixerState.crossfaderPosition
     };
 
@@ -1616,6 +1622,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     mixerState.deckA.contentType === 'grabbed_radio' ||
     mixerState.deckB.contentType === 'radio_station' ||
     mixerState.deckB.contentType === 'grabbed_radio';
+
+  // Check if both decks have video clips - videos of different lengths can't sync
+  const bothVideos =
+    mixerState.deckA.contentType === 'video_clip' &&
+    mixerState.deckB.contentType === 'video_clip';
 
   return (
     <div
@@ -1701,9 +1712,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             {/* Deck A Sync Button */}
             <button
               onClick={() => handleDeckSync('A')}
-              disabled={!mixerState.syncActive || hasRadio}
+              disabled={!mixerState.syncActive || hasRadio || bothVideos}
               className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider border ${
-                hasRadio || !mixerState.syncActive
+                hasRadio || bothVideos || !mixerState.syncActive
                   ? 'text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
                   : mixerState.masterDeckId === 'A'
                   ? 'text-[#81E4F2] border-amber-500/50 bg-amber-500/10 hover:border-amber-500/70 cursor-pointer'
@@ -1712,6 +1723,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               title={
                 hasRadio
                   ? 'Radio stations cannot sync'
+                  : bothVideos
+                  ? 'Videos of different lengths cannot sync'
                   : !mixerState.syncActive
                   ? 'Enable sync from master control first'
                   : mixerState.masterDeckId === 'A'
@@ -1732,9 +1745,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 deckBPlaying={mixerState.deckB.playing}
                 deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
                 recordingRemix={false}
-                syncActive={mixerState.syncActive && !hasRadio}
+                syncActive={mixerState.syncActive && !hasRadio && !bothVideos}
                 highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
                 hasRadio={hasRadio}
+                bothVideos={bothVideos}
                 onMasterPlay={handleMasterPlay}
                 onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
                 onMasterStop={handleMasterStop}
@@ -1756,9 +1770,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             {/* Deck B Sync Button */}
             <button
               onClick={() => handleDeckSync('B')}
-              disabled={!mixerState.syncActive || hasRadio}
+              disabled={!mixerState.syncActive || hasRadio || bothVideos}
               className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider border ${
-                hasRadio || !mixerState.syncActive
+                hasRadio || bothVideos || !mixerState.syncActive
                   ? 'text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
                   : mixerState.masterDeckId === 'B'
                   ? 'text-[#81E4F2] border-amber-500/50 bg-amber-500/10 hover:border-amber-500/70 cursor-pointer'
@@ -1767,6 +1781,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               title={
                 hasRadio
                   ? 'Radio stations cannot sync'
+                  : bothVideos
+                  ? 'Videos of different lengths cannot sync'
                   : !mixerState.syncActive
                   ? 'Enable sync from master control first'
                   : mixerState.masterDeckId === 'B'
@@ -1867,7 +1883,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               </div>
 
               {/* Deck A Section Navigator (Below Deck Image, left-aligned) */}
-              <div className="absolute left-[20px] bottom-[18px]">
+              <div className="absolute left-[20px] bottom-[12px]">
                 {mixerState.deckA.contentType === 'full_song' && mixerState.deckA.loopEnabled && (() => {
                   // Calculate total sections from track duration and BPM
                   const bpm = mixerState.deckA.track?.bpm || 120;
@@ -1887,9 +1903,40 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 })()}
               </div>
 
+              {/* Deck A Video Mute Button (Below Deck Image, left-aligned) */}
+              {mixerState.deckA.contentType === 'video_clip' && (
+                <div className="absolute left-[20px] bottom-[12px] w-[72px] h-[20px]">
+                  <button
+                    onClick={() => {
+                      const newMuted = !mixerState.deckA.videoMuted;
+                      // Update state
+                      setMixerState(prev => ({
+                        ...prev,
+                        deckA: { ...prev.deckA, videoMuted: newMuted }
+                      }));
+                      // Control the audio element volume
+                      if (mixerState.deckA.audioState?.audio) {
+                        mixerState.deckA.audioState.audio.volume = newMuted ? 0 : 1;
+                      }
+                    }}
+                    className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800 hover:bg-slate-700"
+                    style={{
+                      borderColor: mixerState.deckA.videoMuted ? '#ef4444' : '#2792F5',
+                      color: mixerState.deckA.videoMuted ? '#ef4444' : '#2792F5'
+                    }}
+                    title={mixerState.deckA.videoMuted ? 'Unmute video audio' : 'Mute video audio'}
+                  >
+                    {mixerState.deckA.videoMuted ? <VolumeX size={10} /> : <Volume2 size={10} />}
+                    <span className="text-[9px] font-bold">
+                      {mixerState.deckA.videoMuted ? 'MUTED' : 'AUDIO'}
+                    </span>
+                  </button>
+                </div>
+              )}
+
               {/* Deck A Radio Play Button (Below Deck Image, left-aligned) */}
               {(mixerState.deckA.contentType === 'radio_station' || mixerState.deckA.contentType === 'grabbed_radio') && (
-                <div className="absolute left-[20px] bottom-[12px] w-[72px]">
+                <div className="absolute left-[20px] bottom-[12px] w-[72px] h-[20px]">
                   <button
                     onClick={() => {
                       // Don't allow interaction with grabbed_radio
@@ -1902,7 +1949,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       }
                     }}
                     disabled={isGrabbingDeckA || mixerState.deckA.contentType === 'grabbed_radio'}
-                    className={`w-full flex items-center justify-center gap-1 px-2 py-0.5 rounded border transition-all ${
+                    className={`w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all ${
                       mixerState.deckA.contentType === 'grabbed_radio'
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                         : isGrabbingDeckA
@@ -1930,7 +1977,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     }
                   >
                     {!mixerState.deckA.playing && <Radio size={10} />}
-                    <span className={mixerState.deckA.playing && !isGrabbingDeckA && deckARadioPlayTime < 10 ? "text-[9px]" : "text-[9px] font-bold"}>
+                    <span className="text-[9px] font-bold">
                       {mixerState.deckA.contentType === 'grabbed_radio' ? 'DONE' : isGrabbingDeckA ? 'BUFFER' : deckARadioPlayTime >= 10 ? 'GRAB' : mixerState.deckA.playing ? 'buffering...' : 'PLAY'}
                     </span>
                   </button>
@@ -2025,7 +2072,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               </div>
 
               {/* Deck B Section Navigator (Below Deck Image, right-aligned) */}
-              <div className="absolute right-[20px] bottom-[18px]">
+              <div className="absolute right-[20px] bottom-[12px]">
                 {mixerState.deckB.contentType === 'full_song' && mixerState.deckB.loopEnabled && (() => {
                   // Calculate total sections from track duration and BPM
                   const bpm = mixerState.deckB.track?.bpm || 120;
@@ -2045,9 +2092,40 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 })()}
               </div>
 
+              {/* Deck B Video Mute Button (Below Deck Image, right-aligned) */}
+              {mixerState.deckB.contentType === 'video_clip' && (
+                <div className="absolute right-[20px] bottom-[12px] w-[72px] h-[20px]">
+                  <button
+                    onClick={() => {
+                      const newMuted = !mixerState.deckB.videoMuted;
+                      // Update state
+                      setMixerState(prev => ({
+                        ...prev,
+                        deckB: { ...prev.deckB, videoMuted: newMuted }
+                      }));
+                      // Control the audio element volume
+                      if (mixerState.deckB.audioState?.audio) {
+                        mixerState.deckB.audioState.audio.volume = newMuted ? 0 : 1;
+                      }
+                    }}
+                    className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800 hover:bg-slate-700"
+                    style={{
+                      borderColor: mixerState.deckB.videoMuted ? '#ef4444' : '#2792F5',
+                      color: mixerState.deckB.videoMuted ? '#ef4444' : '#2792F5'
+                    }}
+                    title={mixerState.deckB.videoMuted ? 'Unmute video audio' : 'Mute video audio'}
+                  >
+                    {mixerState.deckB.videoMuted ? <VolumeX size={10} /> : <Volume2 size={10} />}
+                    <span className="text-[9px] font-bold">
+                      {mixerState.deckB.videoMuted ? 'MUTED' : 'AUDIO'}
+                    </span>
+                  </button>
+                </div>
+              )}
+
               {/* Deck B Radio Play Button (Below Deck Image, right-aligned) */}
               {(mixerState.deckB.contentType === 'radio_station' || mixerState.deckB.contentType === 'grabbed_radio') && (
-                <div className="absolute right-[20px] bottom-[12px] w-[72px]">
+                <div className="absolute right-[20px] bottom-[12px] w-[72px] h-[20px]">
                   <button
                     onClick={() => {
                       // Don't allow interaction with grabbed_radio
@@ -2060,7 +2138,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       }
                     }}
                     disabled={isGrabbingDeckB || mixerState.deckB.contentType === 'grabbed_radio'}
-                    className={`w-full flex items-center justify-center gap-1 px-2 py-0.5 rounded border transition-all ${
+                    className={`w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all ${
                       mixerState.deckB.contentType === 'grabbed_radio'
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                         : isGrabbingDeckB
@@ -2088,7 +2166,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     }
                   >
                     {!mixerState.deckB.playing && <Radio size={10} />}
-                    <span className={mixerState.deckB.playing && !isGrabbingDeckB && deckBRadioPlayTime < 10 ? "text-[9px]" : "text-[9px] font-bold"}>
+                    <span className="text-[9px] font-bold">
                       {mixerState.deckB.contentType === 'grabbed_radio' ? 'DONE' : isGrabbingDeckB ? 'BUFFER' : deckBRadioPlayTime >= 10 ? 'GRAB' : mixerState.deckB.playing ? 'buffering...' : 'PLAY'}
                     </span>
                   </button>

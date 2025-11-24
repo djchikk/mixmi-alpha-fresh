@@ -67,11 +67,12 @@ export function determineMasterBPM(
     return deckA.track.bpm;
   }
 
-  // Neither is radio - use priority system for loops vs songs
+  // Neither is radio - use priority system for loops vs songs vs videos
   const getPriority = (contentType?: string): number => {
-    if (contentType === 'loop') return 3;
-    if (contentType === 'full_song') return 2;
-    return 0;
+    if (contentType === 'loop') return 3; // Highest - loops always master
+    if (contentType === 'full_song') return 2; // Medium - songs have priority
+    if (contentType === 'video_clip') return 1; // Low - videos yield to audio-only
+    return 0; // Lowest - unknown types
   };
 
   const priorityA = getPriority(deckA.contentType);
