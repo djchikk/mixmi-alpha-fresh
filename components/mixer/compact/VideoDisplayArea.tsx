@@ -229,7 +229,7 @@ export default function VideoDisplayArea({
                 ...getCropStyles(deckATrack)
               }}
               loop
-              muted
+              muted={true}
               playsInline
             />
             {/* Deck A Label */}
@@ -262,7 +262,7 @@ export default function VideoDisplayArea({
                 ...getCropStyles(deckBTrack)
               }}
               loop
-              muted
+              muted={true}
               playsInline
             />
             {/* Deck B Label */}

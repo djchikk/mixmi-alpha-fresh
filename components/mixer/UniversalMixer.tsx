@@ -12,7 +12,7 @@ import LoopControlsCompact from './compact/LoopControlsCompact';
 import SectionNavigator from './compact/SectionNavigator';
 import VerticalVolumeSlider from './compact/VerticalVolumeSlider';
 import DeckFXPanel from './compact/DeckFXPanel';
-import { Music, Radio, ChevronDown } from 'lucide-react';
+import { Music, Radio, ChevronDown, Volume2, VolumeX } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -42,6 +42,7 @@ interface UniversalMixerState {
     loCutEnabled: boolean; // Lo Cut filter state
     pitchCents: number; // Pitch shift in cents (±1200)
     isPitchProcessing: boolean; // Pitch processing indicator
+    videoMuted: boolean; // Video audio mute state
   };
   deckB: {
     track: Track | null;
@@ -59,6 +60,7 @@ interface UniversalMixerState {
     loCutEnabled: boolean; // Lo Cut filter state
     pitchCents: number; // Pitch shift in cents (±1200)
     isPitchProcessing: boolean; // Pitch processing indicator
+    videoMuted: boolean; // Video audio mute state
   };
   masterBPM: number;
   crossfaderPosition: number;
@@ -84,7 +86,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       hiCutEnabled: false,
       loCutEnabled: false,
       pitchCents: 0,
-      isPitchProcessing: false
+      isPitchProcessing: false,
+      videoMuted: false // Default unmuted
     },
     deckB: {
       track: null,
@@ -97,7 +100,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       hiCutEnabled: false,
       loCutEnabled: false,
       pitchCents: 0,
-      isPitchProcessing: false
+      isPitchProcessing: false,
+      videoMuted: false // Default unmuted
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -1595,7 +1599,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       deckATrack: mixerState.deckA.track,
       deckBTrack: mixerState.deckB.track,
       deckAPlaying: mixerState.deckA.playing,
+      deckAMuted: mixerState.deckA.videoMuted,
       deckBPlaying: mixerState.deckB.playing,
+      deckBMuted: mixerState.deckB.videoMuted,
       crossfaderPosition: mixerState.crossfaderPosition
     };
 
@@ -1887,6 +1893,37 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 })()}
               </div>
 
+              {/* Deck A Video Mute Button (Below Deck Image, left-aligned) */}
+              {mixerState.deckA.contentType === 'video_clip' && (
+                <div className="absolute left-[20px] bottom-[12px] w-[72px]">
+                  <button
+                    onClick={() => {
+                      const newMuted = !mixerState.deckA.videoMuted;
+                      // Update state
+                      setMixerState(prev => ({
+                        ...prev,
+                        deckA: { ...prev.deckA, videoMuted: newMuted }
+                      }));
+                      // Control the audio element volume
+                      if (mixerState.deckA.audioState?.audio) {
+                        mixerState.deckA.audioState.audio.volume = newMuted ? 0 : 1;
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-1 px-2 py-0.5 rounded border transition-all bg-slate-800 hover:bg-slate-700"
+                    style={{
+                      borderColor: mixerState.deckA.videoMuted ? '#ef4444' : '#2792F5',
+                      color: mixerState.deckA.videoMuted ? '#ef4444' : '#2792F5'
+                    }}
+                    title={mixerState.deckA.videoMuted ? 'Unmute video audio' : 'Mute video audio'}
+                  >
+                    {mixerState.deckA.videoMuted ? <VolumeX size={10} /> : <Volume2 size={10} />}
+                    <span className="text-[9px] font-bold">
+                      {mixerState.deckA.videoMuted ? 'MUTED' : 'AUDIO'}
+                    </span>
+                  </button>
+                </div>
+              )}
+
               {/* Deck A Radio Play Button (Below Deck Image, left-aligned) */}
               {(mixerState.deckA.contentType === 'radio_station' || mixerState.deckA.contentType === 'grabbed_radio') && (
                 <div className="absolute left-[20px] bottom-[12px] w-[72px]">
@@ -2044,6 +2081,37 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   );
                 })()}
               </div>
+
+              {/* Deck B Video Mute Button (Below Deck Image, right-aligned) */}
+              {mixerState.deckB.contentType === 'video_clip' && (
+                <div className="absolute right-[20px] bottom-[12px] w-[72px]">
+                  <button
+                    onClick={() => {
+                      const newMuted = !mixerState.deckB.videoMuted;
+                      // Update state
+                      setMixerState(prev => ({
+                        ...prev,
+                        deckB: { ...prev.deckB, videoMuted: newMuted }
+                      }));
+                      // Control the audio element volume
+                      if (mixerState.deckB.audioState?.audio) {
+                        mixerState.deckB.audioState.audio.volume = newMuted ? 0 : 1;
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-1 px-2 py-0.5 rounded border transition-all bg-slate-800 hover:bg-slate-700"
+                    style={{
+                      borderColor: mixerState.deckB.videoMuted ? '#ef4444' : '#2792F5',
+                      color: mixerState.deckB.videoMuted ? '#ef4444' : '#2792F5'
+                    }}
+                    title={mixerState.deckB.videoMuted ? 'Unmute video audio' : 'Mute video audio'}
+                  >
+                    {mixerState.deckB.videoMuted ? <VolumeX size={10} /> : <Volume2 size={10} />}
+                    <span className="text-[9px] font-bold">
+                      {mixerState.deckB.videoMuted ? 'MUTED' : 'AUDIO'}
+                    </span>
+                  </button>
+                </div>
+              )}
 
               {/* Deck B Radio Play Button (Below Deck Image, right-aligned) */}
               {(mixerState.deckB.contentType === 'radio_station' || mixerState.deckB.contentType === 'grabbed_radio') && (
