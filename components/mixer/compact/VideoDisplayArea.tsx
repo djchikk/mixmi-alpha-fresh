@@ -74,6 +74,30 @@ export default function VideoDisplayArea({
     return null;
   }
 
+  // Helper function to get crop styles
+  const getCropStyles = (track: any) => {
+    const cropX = track?.video_crop_x;
+    const cropY = track?.video_crop_y;
+    const cropWidth = track?.video_crop_width;
+    const cropHeight = track?.video_crop_height;
+    const cropZoom = track?.video_crop_zoom || 1.0;
+
+    // If no crop data, return empty style
+    if (!cropX && !cropY && !cropWidth && !cropHeight) {
+      return {};
+    }
+
+    // Calculate the center point of the crop area as a percentage
+    // This positions the video so the cropped area is centered
+    const centerX = cropX + (cropWidth / 2);
+    const centerY = cropY + (cropHeight / 2);
+
+    return {
+      transform: `scale(${cropZoom})`,
+      transformOrigin: 'center center',
+    };
+  };
+
   // Build CSS filter string from active effects
   const getFilterString = () => {
     const filters: string[] = [];
@@ -185,7 +209,8 @@ export default function VideoDisplayArea({
               src={(deckATrack as any).video_url}
               className="w-full h-full object-cover"
               style={{
-                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto'
+                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto',
+                ...getCropStyles(deckATrack)
               }}
               loop
               muted
@@ -217,7 +242,8 @@ export default function VideoDisplayArea({
               src={(deckBTrack as any).video_url}
               className="w-full h-full object-cover"
               style={{
-                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto'
+                imageRendering: videoEffects.pixelate > 0 ? 'pixelated' : 'auto',
+                ...getCropStyles(deckBTrack)
               }}
               loop
               muted

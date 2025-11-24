@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Video, Upload, MapPin, Plus, Trash2, Play, Pause } from "lucide-react";
+import Cropper from "react-easy-crop";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { supabase } from "@/lib/supabase";
@@ -45,6 +46,12 @@ export default function VideoClipModal({
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
+  // Crop state
+  const [showCropper, setShowCropper] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
   // Refs
   const locationInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -62,6 +69,11 @@ export default function VideoClipModal({
     debounceMs: 300,
     limit: 5
   });
+
+  // Crop callback
+  const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -85,6 +97,11 @@ export default function VideoClipModal({
       setIsPreviewPlaying(false);
       setUploadProgress(0);
       clearSuggestions();
+      // Reset crop state
+      setShowCropper(false);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
     }
   }, [isOpen, clearSuggestions]);
 
@@ -310,7 +327,13 @@ export default function VideoClipModal({
           location_lat: finalLocationCoords?.lat || null,
           location_lng: finalLocationCoords?.lng || null,
           primary_location: location || null,
-          agreed_to_terms: termsAccepted
+          agreed_to_terms: termsAccepted,
+          // Save crop coordinates
+          video_crop_x: croppedAreaPixels?.x || null,
+          video_crop_y: croppedAreaPixels?.y || null,
+          video_crop_width: croppedAreaPixels?.width || null,
+          video_crop_height: croppedAreaPixels?.height || null,
+          video_crop_zoom: zoom || 1.0
         })
         .select()
         .single();
@@ -386,43 +409,47 @@ export default function VideoClipModal({
                 <p className="text-xs text-gray-500">MP4, MOV, or WebM (max 5 seconds)</p>
               </div>
             ) : (
-              <div className="relative rounded-lg overflow-hidden bg-black">
-                <video
-                  ref={videoPreviewRef}
-                  src={videoPreviewUrl}
-                  className="w-full h-64 object-contain"
-                  loop
-                  onPlay={() => setIsPreviewPlaying(true)}
-                  onPause={() => setIsPreviewPlaying(false)}
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
+              <div>
+                {/* Cropper Container */}
+                <div className="relative rounded-lg overflow-hidden bg-black" style={{ height: '400px' }}>
+                  <Cropper
+                    video={videoPreviewUrl}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={1}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropComplete}
+                    objectFit="contain"
+                  />
+
+                  {/* Remove video button */}
                   <button
-                    onClick={togglePreview}
-                    className="w-16 h-16 rounded-full bg-[#2792F5]/90 hover:bg-[#2792F5] flex items-center justify-center transition-colors"
+                    onClick={() => {
+                      setVideoFile(null);
+                      setVideoPreviewUrl(null);
+                      setVideoDuration(null);
+                      setShowCropper(false);
+                      setCrop({ x: 0, y: 0 });
+                      setZoom(1);
+                      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+                    }}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500/90 hover:bg-red-500 flex items-center justify-center transition-colors z-10"
                   >
-                    {isPreviewPlaying ? (
-                      <Pause className="w-8 h-8 text-white" />
-                    ) : (
-                      <Play className="w-8 h-8 text-white ml-1" />
-                    )}
+                    <X className="w-4 h-4 text-white" />
                   </button>
+
+                  {videoDuration && (
+                    <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded text-xs text-white z-10">
+                      {videoDuration.toFixed(1)}s
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => {
-                    setVideoFile(null);
-                    setVideoPreviewUrl(null);
-                    setVideoDuration(null);
-                    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
-                  }}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500/90 hover:bg-red-500 flex items-center justify-center transition-colors"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
-                {videoDuration && (
-                  <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded text-xs text-white">
-                    {videoDuration.toFixed(1)}s
-                  </div>
-                )}
+
+                {/* Cropper instructions */}
+                <div className="mt-2 text-sm text-gray-400 bg-[#2792F5]/10 border border-[#2792F5]/30 rounded-lg p-3">
+                  📐 Drag to reposition • Scroll or pinch to zoom • Square crop will be applied
+                </div>
               </div>
             )}
 
