@@ -37,19 +37,20 @@ const SectionNavigator = memo(function SectionNavigator({
     }
   };
 
-  const color = deck === 'A' ? '#81E4F2' : '#60A5FA';
+  const color = '#FFE4B5'; // Song color (moccasin/wheat)
 
   return (
-    <div className={`flex items-center gap-0.5 ${className}`}>
+    <div className={`flex items-center gap-0.5 w-[72px] h-[20px] ${className}`}>
       {/* Previous Section Button */}
       <button
         onClick={handlePrev}
         disabled={!canGoPrev}
-        className={`w-4 h-4 rounded flex items-center justify-center transition-all ${
-          canGoPrev
-            ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'
-            : 'bg-slate-900 text-slate-700 cursor-not-allowed border border-slate-800'
-        }`}
+        className="w-[18px] h-[18px] rounded flex items-center justify-center transition-all bg-slate-800 border"
+        style={{
+          borderColor: canGoPrev ? color : '#1e293b',
+          color: canGoPrev ? color : '#475569',
+          cursor: canGoPrev ? 'pointer' : 'not-allowed'
+        }}
         title="Previous section"
       >
         <ChevronLeft size={10} />
@@ -57,10 +58,10 @@ const SectionNavigator = memo(function SectionNavigator({
 
       {/* Section Display */}
       <div
-        className="px-1.5 py-0 rounded bg-slate-800 border border-slate-600 min-w-[32px] flex items-center justify-center"
-        style={{ borderColor: `${color}40` }}
+        className="flex-1 h-[18px] rounded bg-slate-800 border flex items-center justify-center px-1"
+        style={{ borderColor: color }}
       >
-        <div className="text-[9px] font-bold text-slate-200 leading-tight">
+        <div className="text-[9px] font-bold leading-tight" style={{ color }}>
           {startBar}-{endBar}
         </div>
       </div>
@@ -69,11 +70,12 @@ const SectionNavigator = memo(function SectionNavigator({
       <button
         onClick={handleNext}
         disabled={!canGoNext}
-        className={`w-4 h-4 rounded flex items-center justify-center transition-all ${
-          canGoNext
-            ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'
-            : 'bg-slate-900 text-slate-700 cursor-not-allowed border border-slate-800'
-        }`}
+        className="w-[18px] h-[18px] rounded flex items-center justify-center transition-all bg-slate-800 border"
+        style={{
+          borderColor: canGoNext ? color : '#1e293b',
+          color: canGoNext ? color : '#475569',
+          cursor: canGoNext ? 'pointer' : 'not-allowed'
+        }}
         title="Next section"
       >
         <ChevronRight size={10} />
