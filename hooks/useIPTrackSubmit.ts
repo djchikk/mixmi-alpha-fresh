@@ -59,6 +59,14 @@ interface SubmitFormData {
   loop_files?: File[];
   // EP support
   ep_files?: File[];
+  // Video crop support
+  video_crop_x?: number;
+  video_crop_y?: number;
+  video_crop_width?: number;
+  video_crop_height?: number;
+  video_crop_zoom?: number;
+  video_natural_width?: number;
+  video_natural_height?: number;
 }
 
 interface UseIPTrackSubmitProps {
@@ -517,6 +525,15 @@ export function useIPTrackSubmit({
         cover_image_url: formData.cover_image_url,
         audio_url: formData.audio_url,
         video_url: (formData as any).video_url || null,
+
+        // Video crop data
+        video_crop_x: formData.video_crop_x !== undefined ? formData.video_crop_x : null,
+        video_crop_y: formData.video_crop_y !== undefined ? formData.video_crop_y : null,
+        video_crop_width: formData.video_crop_width !== undefined ? formData.video_crop_width : null,
+        video_crop_height: formData.video_crop_height !== undefined ? formData.video_crop_height : null,
+        video_crop_zoom: formData.video_crop_zoom !== undefined ? formData.video_crop_zoom : null,
+        video_natural_width: formData.video_natural_width !== undefined ? formData.video_natural_width : null,
+        video_natural_height: formData.video_natural_height !== undefined ? formData.video_natural_height : null,
 
         // Metadata
         created_at: track?.created_at || new Date().toISOString(),

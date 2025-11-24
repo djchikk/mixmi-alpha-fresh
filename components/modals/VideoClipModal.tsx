@@ -180,6 +180,7 @@ export default function VideoClipModal({
         URL.revokeObjectURL(previewUrl);
       } else {
         setErrors({ ...errors, video: '' });
+        setShowCropper(true); // Enable cropper for valid video
 
         // Capture first frame as thumbnail
         try {

@@ -81,21 +81,37 @@ export default function VideoDisplayArea({
     const cropWidth = track?.video_crop_width;
     const cropHeight = track?.video_crop_height;
     const cropZoom = track?.video_crop_zoom || 1.0;
+    const videoWidth = track?.video_natural_width;
+    const videoHeight = track?.video_natural_height;
 
-    // If no crop data, return empty style
-    if (!cropX && !cropY && !cropWidth && !cropHeight) {
+    console.log('🎬 Crop Data:', { cropX, cropY, cropWidth, cropHeight, cropZoom, videoWidth, videoHeight });
+
+    // If no crop data or no video dimensions, return empty style
+    if (cropX == null || cropY == null || !cropWidth || !cropHeight || !videoWidth || !videoHeight) {
+      console.log('⚠️ Missing crop data, returning empty styles');
       return {};
     }
 
-    // Calculate the center point of the crop area as a percentage
-    // This positions the video so the cropped area is centered
-    const centerX = cropX + (cropWidth / 2);
-    const centerY = cropY + (cropHeight / 2);
+    // Calculate the center of the crop area in pixels
+    const cropCenterX = cropX + (cropWidth / 2);
+    const cropCenterY = cropY + (cropHeight / 2);
 
-    return {
+    // Convert the crop center to percentage of video dimensions
+    const cropCenterXPercent = (cropCenterX / videoWidth) * 100;
+    const cropCenterYPercent = (cropCenterY / videoHeight) * 100;
+
+    console.log('📐 Calculated crop position:', { cropCenterXPercent, cropCenterYPercent, cropZoom });
+
+    // Use object-position to show the cropped area and scale to apply zoom
+    // object-position moves the video so the specified point is at the center
+    const styles = {
       transform: `scale(${cropZoom})`,
+      objectPosition: `${cropCenterXPercent}% ${cropCenterYPercent}%`,
       transformOrigin: 'center center',
     };
+
+    console.log('✅ Applying crop styles:', styles);
+    return styles;
   };
 
   // Build CSS filter string from active effects
