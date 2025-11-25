@@ -23,7 +23,10 @@ export default function VideoControlPanel({
   onEffectStop
 }: VideoControlPanelProps) {
   return (
-    <div className="bg-black/90 backdrop-blur-sm px-4 py-3 rounded-b-lg">
+    <div
+      className="bg-black/90 backdrop-blur-sm px-4 py-3 rounded-b-lg"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       <div className="flex items-center justify-center gap-6">
         {/* Mix Mode Section */}
         <div className="flex items-center gap-2">

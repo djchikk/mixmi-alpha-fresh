@@ -226,12 +226,8 @@ export default function HomePage() {
 
   // Handle video display dragging
   const handleVideoMouseDown = (e: React.MouseEvent) => {
-    // Only drag if clicking on the drag handle area (top 32px)
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const isHeader = e.clientY - rect.top < 32;
-
-    if (!isHeader) return;
-
+    // Allow dragging from anywhere in the video container
+    // (VideoControlPanel will stopPropagation to prevent dragging from buttons)
     setIsDraggingVideo(true);
     setDragOffset({
       x: e.clientX - videoDisplayPosition.x,
@@ -1731,7 +1727,7 @@ export default function HomePage() {
             transform: videoDisplayPosition.x === 0 ? 'translateX(-50%)' : 'none',
             width: '408px',
             zIndex: isDraggingVideo ? 200 : 30,
-            cursor: isDraggingVideo ? 'grabbing' : 'default'
+            cursor: isDraggingVideo ? 'grabbing' : 'grab'
           }}
           onMouseDown={handleVideoMouseDown}
           onMouseEnter={() => setIsVideoMixerHovered(true)}
