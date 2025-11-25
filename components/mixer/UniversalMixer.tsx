@@ -765,8 +765,28 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           // Determine master BPM based on both decks
           const newMasterBPM = determineMasterBPM(newDeckAState, prev.deckB, prev.masterDeckId);
 
-          // 🎯 AUTO-SYNC: If Deck B is empty, make Deck A the master (first loaded = master)
-          const newMasterDeckId = !prev.deckB.track ? 'A' : prev.masterDeckId;
+          // 🎯 AUTO-SYNC: Determine master with audio priority
+          // Priority: Audio (loop/song) > Video. If both are same type, first loaded = master
+          let newMasterDeckId = prev.masterDeckId;
+          if (!prev.deckB.track) {
+            // Deck B is empty, make Deck A the master
+            newMasterDeckId = 'A';
+          } else {
+            // Both decks have tracks - prioritize audio content
+            const deckAIsAudio = contentType === 'loop' || contentType === 'full_song' || contentType === 'loop_pack' || contentType === 'ep';
+            const deckBIsAudio = prev.deckB.contentType === 'loop' || prev.deckB.contentType === 'full_song' || prev.deckB.contentType === 'loop_pack' || prev.deckB.contentType === 'ep';
+
+            if (deckAIsAudio && !deckBIsAudio) {
+              // Deck A has audio, Deck B has video - make A master
+              newMasterDeckId = 'A';
+              console.log('🎵 Audio priority: Setting Deck A as sync master (audio over video)');
+            } else if (!deckAIsAudio && deckBIsAudio) {
+              // Deck A has video, Deck B has audio - make B master
+              newMasterDeckId = 'B';
+              console.log('🎵 Audio priority: Keeping Deck B as sync master (audio over video)');
+            }
+            // If both are same type (both audio or both video), keep existing master
+          }
 
           return {
             ...prev,
@@ -923,8 +943,28 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           // Determine master BPM based on both decks
           const newMasterBPM = determineMasterBPM(prev.deckA, newDeckBState, prev.masterDeckId);
 
-          // 🎯 AUTO-SYNC: If Deck A is empty, make Deck B the master (first loaded = master)
-          const newMasterDeckId = !prev.deckA.track ? 'B' : prev.masterDeckId;
+          // 🎯 AUTO-SYNC: Determine master with audio priority
+          // Priority: Audio (loop/song) > Video. If both are same type, first loaded = master
+          let newMasterDeckId = prev.masterDeckId;
+          if (!prev.deckA.track) {
+            // Deck A is empty, make Deck B the master
+            newMasterDeckId = 'B';
+          } else {
+            // Both decks have tracks - prioritize audio content
+            const deckAIsAudio = prev.deckA.contentType === 'loop' || prev.deckA.contentType === 'full_song' || prev.deckA.contentType === 'loop_pack' || prev.deckA.contentType === 'ep';
+            const deckBIsAudio = contentType === 'loop' || contentType === 'full_song' || contentType === 'loop_pack' || contentType === 'ep';
+
+            if (deckBIsAudio && !deckAIsAudio) {
+              // Deck B has audio, Deck A has video - make B master
+              newMasterDeckId = 'B';
+              console.log('🎵 Audio priority: Setting Deck B as sync master (audio over video)');
+            } else if (!deckBIsAudio && deckAIsAudio) {
+              // Deck B has video, Deck A has audio - make A master
+              newMasterDeckId = 'A';
+              console.log('🎵 Audio priority: Keeping Deck A as sync master (audio over video)');
+            }
+            // If both are same type (both audio or both video), keep existing master
+          }
 
           return {
             ...prev,
@@ -1884,7 +1924,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
               {/* Deck A Section Navigator (Below Deck Image, left-aligned) */}
               <div className="absolute left-[20px] bottom-[12px]">
-                {mixerState.deckA.contentType === 'full_song' && mixerState.deckA.loopEnabled && (() => {
+                {mixerState.deckA.contentType === 'full_song' && (() => {
                   // Calculate total sections from track duration and BPM
                   const bpm = mixerState.deckA.track?.bpm || 120;
                   const duration = mixerState.deckA.audioState?.duration || 0;
@@ -1898,6 +1938,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       totalSections={totalSections}
                       onSectionChange={(position) => handleLoopPositionChange('A', position)}
                       deck="A"
+                      loopEnabled={mixerState.deckA.loopEnabled}
+                      onLoopToggle={() => handleLoopToggle('A')}
                     />
                   );
                 })()}
@@ -2073,7 +2115,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
               {/* Deck B Section Navigator (Below Deck Image, right-aligned) */}
               <div className="absolute right-[20px] bottom-[12px]">
-                {mixerState.deckB.contentType === 'full_song' && mixerState.deckB.loopEnabled && (() => {
+                {mixerState.deckB.contentType === 'full_song' && (() => {
                   // Calculate total sections from track duration and BPM
                   const bpm = mixerState.deckB.track?.bpm || 120;
                   const duration = mixerState.deckB.audioState?.duration || 0;
@@ -2087,6 +2129,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       totalSections={totalSections}
                       onSectionChange={(position) => handleLoopPositionChange('B', position)}
                       deck="B"
+                      loopEnabled={mixerState.deckB.loopEnabled}
+                      onLoopToggle={() => handleLoopToggle('B')}
                     />
                   );
                 })()}

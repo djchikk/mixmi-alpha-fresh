@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import dynamic from 'next/dynamic';
 // Alpha app - no complex auth needed for globe viewing
 import Header from "@/components/layout/Header";
@@ -21,6 +21,7 @@ import ResetConfirmModal from "@/components/modals/ResetConfirmModal";
 const GlobeTrackCard = dynamic(() => import('@/components/cards/GlobeTrackCard'), {
   ssr: false
 });
+
 
 // Dynamically import Globe to avoid SSR issues with Three.js
 const Globe = dynamic(() => import('@/components/globe/Globe'), {
@@ -86,6 +87,9 @@ export default function HomePage() {
   const [centerTrackCard, setCenterTrackCard] = useState<any | null>(null); // For FILL button centered card
   const [fillAddedTrackIds, setFillAddedTrackIds] = useState<Set<string>>(new Set()); // Track IDs added by FILL
 
+  // Dwell timer for auto-pinning cards on hover
+  const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Widget visibility state - persisted in localStorage
   const [isMixerVisible, setIsMixerVisible] = useState(true); // Default
   const [isPlaylistVisible, setIsPlaylistVisible] = useState(false); // Default
@@ -101,9 +105,11 @@ export default function HomePage() {
 
   // Video display position (draggable)
   const [videoDisplayPosition, setVideoDisplayPosition] = useState({ x: 0, y: 0 });
+  const [hasManuallyPositionedVideo, setHasManuallyPositionedVideo] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isVideoMixerHovered, setIsVideoMixerHovered] = useState(false);
+  const [isVideoViewerCollapsed, setIsVideoViewerCollapsed] = useState(false);
 
   // Video mixer controls state
   type CrossfadeMode = 'slide' | 'blend' | 'cut';
@@ -123,9 +129,11 @@ export default function HomePage() {
     position: { x: number; y: number };
     id: string;
     isExpanded?: boolean; // For cluster cards - track expanded state
+    hasDragged?: boolean; // Track if card has been dragged at least once
   }>>([]);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
   // Track card position to prevent jumping when hovering over other nodes
   const [cardPosition, setCardPosition] = useState<{ x: number; y: number } | null>(null);
@@ -157,8 +165,12 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedPosition = localStorage.getItem('video-display-position');
+      const savedManualFlag = localStorage.getItem('video-manually-positioned');
       if (savedPosition) {
         setVideoDisplayPosition(JSON.parse(savedPosition));
+      }
+      if (savedManualFlag) {
+        setHasManuallyPositionedVideo(JSON.parse(savedManualFlag));
       }
     }
   }, []);
@@ -169,6 +181,31 @@ export default function HomePage() {
       localStorage.setItem('video-display-position', JSON.stringify(videoDisplayPosition));
     }
   }, [videoDisplayPosition]);
+
+  // Auto-position video display to right of globe when first shown
+  useEffect(() => {
+    if (typeof window !== 'undefined' && mixerState && !hasManuallyPositionedVideo) {
+      const hasVideo = mixerState.deckATrack?.content_type === 'video_clip' ||
+                       mixerState.deckBTrack?.content_type === 'video_clip';
+
+      // Only auto-position if video appears and hasn't been manually positioned
+      if (hasVideo && videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) {
+        const videoWidth = 408;
+        const videoHeight = 408; // Approximately
+        const headerHeight = 64;
+
+        // Position to right of globe, vertically centered
+        // Globe is centered, so place video at: center + half globe width + spacing
+        const x = window.innerWidth / 2 + 450 + 40; // 450px = ~half globe width, 40px spacing
+        const y = (window.innerHeight - headerHeight - videoHeight) / 2 + headerHeight;
+
+        setVideoDisplayPosition({ x, y });
+        // Mark as manually positioned so we remember their preference
+        setHasManuallyPositionedVideo(true);
+        localStorage.setItem('video-manually-positioned', JSON.stringify(true));
+      }
+    }
+  }, [mixerState, videoDisplayPosition.x, videoDisplayPosition.y, hasManuallyPositionedVideo]);
 
   // Handle video effect triggers
   const handleEffectStart = (fxType: VideoFXType) => {
@@ -190,12 +227,8 @@ export default function HomePage() {
 
   // Handle video display dragging
   const handleVideoMouseDown = (e: React.MouseEvent) => {
-    // Only drag if clicking on the drag handle area (top 32px)
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const isHeader = e.clientY - rect.top < 32;
-
-    if (!isHeader) return;
-
+    // Allow dragging from anywhere in the video container
+    // (VideoControlPanel will stopPropagation to prevent dragging from buttons)
     setIsDraggingVideo(true);
     setDragOffset({
       x: e.clientX - videoDisplayPosition.x,
@@ -211,6 +244,12 @@ export default function HomePage() {
         x: e.clientX - dragOffset.x,
         y: e.clientY - dragOffset.y
       });
+
+      // Mark as manually positioned when user drags
+      if (!hasManuallyPositionedVideo) {
+        setHasManuallyPositionedVideo(true);
+        localStorage.setItem('video-manually-positioned', JSON.stringify(true));
+      }
     };
 
     const handleMouseUp = () => {
@@ -226,7 +265,7 @@ export default function HomePage() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDraggingVideo, dragOffset]);
+  }, [isDraggingVideo, dragOffset, hasManuallyPositionedVideo]);
 
   // Handle card dragging (only from drag handle)
   const handleCardMouseDown = (e: React.MouseEvent, cardId: string, currentPosition: { x: number; y: number }) => {
@@ -250,7 +289,8 @@ export default function HomePage() {
               position: {
                 x: e.clientX - cardDragOffset.x,
                 y: e.clientY - cardDragOffset.y
-              }
+              },
+              hasDragged: true // Mark as dragged when position changes
             }
           : card
       ));
@@ -652,27 +692,27 @@ export default function HomePage() {
   
 
   const handleNodeClick = (node: TrackNode) => {
-    // Check if this is a cluster node
-    if (isClusterNode(node)) {
-      // Show the cluster as selected node - the UI will handle showing multiple cards
-      setSelectedNode(node);
-      setCarouselPage(0); // Reset pagination for new cluster
-
-      // No cluster tags needed - let the modal content speak for itself
-      setSelectedNodeTags(null);
-      return;
+    // Clear any pending dwell timer
+    if (dwellTimerRef.current) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
     }
 
-    // Show the globe track card for this node
-    setSelectedNode(node);
+    // Check if this is a cluster node
+    const isCluster = (node as any).tracks && (node as any).tracks.length > 1;
 
-    // Set the selected node tags (use test tags if no real tags)
-    const tags = node.tags && node.tags.length > 0
-      ? node.tags.slice(0, 5)
-      : ['test', 'hover', 'tag'];
-    setSelectedNodeTags(tags);
-    
-    // Clear any hover state
+    // Auto-pin the card above the cursor
+    const newPinnedCard = {
+      node,
+      position: { x: mousePosition.x, y: mousePosition.y - 180 }, // Above cursor
+      id: `pinned-${node.id}-${Date.now()}`,
+      isExpanded: false, // All cards start collapsed
+      hasDragged: false // Track if card has been dragged
+    };
+
+    setPinnedCards(prev => [...prev, newPinnedCard]);
+
+    // Clear hover state
     setHoveredNode(null);
     setHoveredNodeTags(null);
   };
@@ -680,16 +720,30 @@ export default function HomePage() {
   const handleNodeHover = (node: TrackNode | null) => {
     setHoveredNode(node);
 
-    // Immediately show the card on hover (no more two-stage process)
-    if (node) {
-      setSelectedNode(node);
-      setCarouselPage(0); // Reset pagination for clusters
+    // Clear any existing dwell timer
+    if (dwellTimerRef.current) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
+    }
 
-      // Clear tags since card is now showing
-      setHoveredNodeTags(null);
-      setSelectedNodeTags(null);
+    if (node) {
+      // Start 500ms dwell timer to auto-pin card
+      dwellTimerRef.current = setTimeout(() => {
+        const isCluster = (node as any).tracks && (node as any).tracks.length > 1;
+
+        // Auto-pin card above cursor after dwell
+        const newPinnedCard = {
+          node,
+          position: { x: mousePosition.x, y: mousePosition.y - 180 }, // Above cursor
+          id: `pinned-${node.id}-${Date.now()}`,
+          isExpanded: false,
+          hasDragged: false
+        };
+
+        setPinnedCards(prev => [...prev, newPinnedCard]);
+        dwellTimerRef.current = null;
+      }, 500); // 500ms dwell time
     } else {
-      // When unhover, don't clear the selected node - let user dismiss it manually
       setHoveredNodeTags(null);
     }
   };
@@ -1138,9 +1192,9 @@ export default function HomePage() {
 
         {/* Pinned Cards - Draggable sticky notes */}
         {pinnedCards.map((pinnedCard) => {
-          const isCluster = pinnedCard.node.isAggregated && pinnedCard.node.tracks && pinnedCard.node.tracks.length > 1;
+          const isCluster = (pinnedCard.node as any).tracks && (pinnedCard.node as any).tracks.length > 1;
           const isExpanded = pinnedCard.isExpanded || false;
-          const tracks = isCluster ? pinnedCard.node.tracks || [] : [pinnedCard.node];
+          const tracks = isCluster ? (pinnedCard.node as any).tracks || [] : [pinnedCard.node];
 
 
           return (
@@ -1152,25 +1206,22 @@ export default function HomePage() {
                 top: `${pinnedCard.position.y}px`,
                 zIndex: draggingCardId === pinnedCard.id ? 300 : 100
               }}
+              onMouseEnter={() => setHoveredCardId(pinnedCard.id)}
+              onMouseLeave={() => setHoveredCardId(null)}
             >
               <div className="bg-[#101726]/95 backdrop-blur-sm rounded-lg border border-[#81E4F2]/30 shadow-xl">
-                {/* Drag handle bar */}
-                <div
-                  className="bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing"
-                  onMouseDown={(e) => handleCardMouseDown(e, pinnedCard.id, pinnedCard.position)}
-                  style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
-                >
+                {/* Drag handle bar - auto-hides after first drag unless hovered */}
+                {(!pinnedCard.hasDragged || hoveredCardId === pinnedCard.id) && (
+                  <div
+                    className="bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing transition-all duration-200"
+                    onMouseDown={(e) => handleCardMouseDown(e, pinnedCard.id, pinnedCard.position)}
+                    style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
+                  >
                   <div className="flex items-center gap-2">
                     <svg className="w-3 h-3 text-[#81E4F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
                     </svg>
                     <span className="text-[#81E4F2] text-[10px] font-bold">DRAG TO MOVE</span>
-                    {isCluster && (
-                      <span className="text-[#81E4F2]/70 text-[9px] font-bold flex items-center gap-1">
-                        <Layers className="w-2.5 h-2.5" />
-                        {pinnedCard.node.trackCount} tracks
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -1181,13 +1232,13 @@ export default function HomePage() {
                           e.stopPropagation();
                           handleToggleExpanded(pinnedCard.id);
                         }}
-                        className="hover:bg-cyan-800/50 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-cyan-800/50 rounded-full p-1 transition-colors"
                         title={isExpanded ? "Collapse" : "Expand"}
                       >
                         {isExpanded ? (
-                          <ChevronUp className="w-3 h-3 text-cyan-300 hover:text-white" />
+                          <ChevronUp className="w-4 h-4 text-cyan-300 hover:text-white" strokeWidth={2.5} />
                         ) : (
-                          <ChevronDown className="w-3 h-3 text-cyan-300 hover:text-white" />
+                          <ChevronDown className="w-4 h-4 text-cyan-300 hover:text-white" strokeWidth={2.5} />
                         )}
                       </button>
                     )}
@@ -1198,12 +1249,13 @@ export default function HomePage() {
                         e.stopPropagation();
                         handleRemovePinnedCard(pinnedCard.id);
                       }}
-                      className="hover:bg-cyan-800/50 rounded-full p-0.5 transition-colors"
+                      className="hover:bg-cyan-800/50 rounded-full p-1 transition-colors"
                     >
-                      <X className="w-3 h-3 text-cyan-300 hover:text-white" />
+                      <X className="w-4 h-4 text-cyan-300 hover:text-white" strokeWidth={2.5} />
                     </button>
                   </div>
-                </div>
+                  </div>
+                )}
 
                 {/* Card content - freely draggable to mixer/crate */}
                 <div className="p-2">
@@ -1257,9 +1309,9 @@ export default function HomePage() {
                           />
                         </div>
                       ))}
-                      {/* Click to expand overlay - pointer-events-none allows dragging cards */}
+                      {/* Click to expand overlay - positioned at bottom for visibility */}
                       <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg transition-colors z-10 pointer-events-none"
+                        className="absolute inset-0 flex items-end justify-center pb-6 bg-black/40 rounded-lg transition-colors z-10 pointer-events-none"
                       >
                         <div className="text-center">
                           <button
@@ -1670,32 +1722,65 @@ export default function HomePage() {
             transform: videoDisplayPosition.x === 0 ? 'translateX(-50%)' : 'none',
             width: '408px',
             zIndex: isDraggingVideo ? 200 : 30,
-            cursor: isDraggingVideo ? 'grabbing' : 'default'
+            cursor: isDraggingVideo ? 'grabbing' : 'grab'
           }}
           onMouseDown={handleVideoMouseDown}
           onMouseEnter={() => setIsVideoMixerHovered(true)}
           onMouseLeave={() => setIsVideoMixerHovered(false)}
         >
-          {/* Drag handle - auto-hides when not hovered, overlays video */}
+          {/* Drag handle - auto-hides when not hovered */}
           <div
-            className={`absolute top-0 left-0 right-0 bg-gradient-to-r from-[#2792F5]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-between transition-opacity duration-200 z-20 ${
-              isVideoMixerHovered || (videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            className={`bg-gradient-to-r from-[#2792F5]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-center transition-opacity duration-200 relative ${
+              isVideoMixerHovered || (videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) ? 'opacity-100' : 'opacity-0'
             }`}
             style={{ cursor: 'grab' }}
           >
-            <span>VIDEO MIXER</span>
+            {/* VIDEO MIXER label - absolute positioned left */}
+            <span className="absolute left-3 top-1/2 -translate-y-1/2">VIDEO MIXER</span>
+
+            {/* DRAG TO MOVE - centered */}
             <span className="text-white/60 text-[10px]">DRAG TO MOVE</span>
+
+            {/* Collapse/Expand button - absolute positioned right */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsVideoViewerCollapsed(!isVideoViewerCollapsed);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-white/20 rounded p-0.5 transition-colors pointer-events-auto"
+              title={isVideoViewerCollapsed ? "Expand viewer" : "Collapse viewer"}
+            >
+              {isVideoViewerCollapsed ? (
+                <ChevronUp className="w-5 h-5" strokeWidth={2.5} />
+              ) : (
+                <ChevronDown className="w-5 h-5" strokeWidth={2.5} />
+              )}
+            </button>
           </div>
 
-          <VideoDisplayArea
-            deckATrack={mixerState.deckATrack}
-            deckBTrack={mixerState.deckBTrack}
-            deckAPlaying={mixerState.deckAPlaying}
-            deckBPlaying={mixerState.deckBPlaying}
-            crossfaderPosition={mixerState.crossfaderPosition}
-            crossfadeMode={crossfadeMode}
-            videoEffects={videoEffects}
-          />
+          {/* Video display - conditionally shown */}
+          <div
+            className="transition-all duration-300 ease-in-out overflow-hidden"
+            style={{
+              maxHeight: isVideoViewerCollapsed ? '0px' : '408px',
+              opacity: isVideoViewerCollapsed ? 0 : 1
+            }}
+          >
+            <VideoDisplayArea
+              deckATrack={mixerState.deckATrack}
+              deckBTrack={mixerState.deckBTrack}
+              deckAPlaying={mixerState.deckAPlaying}
+              deckBPlaying={mixerState.deckBPlaying}
+              crossfaderPosition={mixerState.crossfaderPosition}
+              crossfadeMode={crossfadeMode}
+              videoEffects={videoEffects}
+            />
+          </div>
 
           <VideoControlPanel
             crossfadeMode={crossfadeMode}
