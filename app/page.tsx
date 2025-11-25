@@ -22,10 +22,6 @@ const GlobeTrackCard = dynamic(() => import('@/components/cards/GlobeTrackCard')
   ssr: false
 });
 
-// Dynamically import NodePreview - 60px cursor-follow preview
-const NodePreview = dynamic(() => import('@/components/globe/NodePreview'), {
-  ssr: false
-});
 
 // Dynamically import Globe to avoid SSR issues with Three.js
 const Globe = dynamic(() => import('@/components/globe/Globe'), {
@@ -91,9 +87,8 @@ export default function HomePage() {
   const [centerTrackCard, setCenterTrackCard] = useState<any | null>(null); // For FILL button centered card
   const [fillAddedTrackIds, setFillAddedTrackIds] = useState<Set<string>>(new Set()); // Track IDs added by FILL
 
-  // Two-stage reveal system: 60px preview on hover + full card on click
-  const [previewNode, setPreviewNode] = useState<TrackNode | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  // Dwell timer for auto-pinning cards on hover
+  const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Widget visibility state - persisted in localStorage
   const [isMixerVisible, setIsMixerVisible] = useState(true); // Default
@@ -661,37 +656,26 @@ export default function HomePage() {
   
 
   const handleNodeClick = (node: TrackNode) => {
-    // Hide the preview when showing full card
-    setShowPreview(false);
-    setPreviewNode(null);
+    // Clear any pending dwell timer
+    if (dwellTimerRef.current) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
+    }
 
-    // Debug: Log node properties to see what we have
-    console.log('🔍 Node clicked:', {
-      id: node.id,
-      color: node.color,
-      isAggregated: (node as any).isAggregated,
-      hasTracks: !!(node as any).tracks,
-      tracksLength: (node as any).tracks?.length,
-      trackCount: (node as any).trackCount,
-      allProps: Object.keys(node)
-    });
-
-    // Check if this is a cluster node - just check if it has multiple tracks
+    // Check if this is a cluster node
     const isCluster = (node as any).tracks && (node as any).tracks.length > 1;
 
-    console.log('📌 Is cluster?', isCluster, 'Will expand:', isCluster);
-
-    // Auto-pin the card at the click position (mousePosition is tracked globally)
+    // Auto-pin the card above the cursor
     const newPinnedCard = {
       node,
-      position: { x: mousePosition.x + 15, y: mousePosition.y + 15 }, // Offset slightly from cursor
+      position: { x: mousePosition.x, y: mousePosition.y - 180 }, // Above cursor
       id: `pinned-${node.id}-${Date.now()}`,
-      isExpanded: false // All cards start collapsed - user can expand if needed
+      isExpanded: false // All cards start collapsed
     };
 
     setPinnedCards(prev => [...prev, newPinnedCard]);
 
-    // Clear any hover state
+    // Clear hover state
     setHoveredNode(null);
     setHoveredNodeTags(null);
   };
@@ -699,16 +683,30 @@ export default function HomePage() {
   const handleNodeHover = (node: TrackNode | null) => {
     setHoveredNode(node);
 
+    // Clear any existing dwell timer
+    if (dwellTimerRef.current) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
+    }
+
     if (node) {
-      // Show 60px preview immediately and keep it visible
-      setPreviewNode(node);
-      setShowPreview(true);
+      // Start 500ms dwell timer to auto-pin card
+      dwellTimerRef.current = setTimeout(() => {
+        const isCluster = (node as any).tracks && (node as any).tracks.length > 1;
+
+        // Auto-pin card above cursor after dwell
+        const newPinnedCard = {
+          node,
+          position: { x: mousePosition.x, y: mousePosition.y - 180 }, // Above cursor
+          id: `pinned-${node.id}-${Date.now()}`,
+          isExpanded: false
+        };
+
+        setPinnedCards(prev => [...prev, newPinnedCard]);
+        dwellTimerRef.current = null;
+      }, 500); // 500ms dwell time
     } else {
-      // User moved away from node - hide preview
-      setShowPreview(false);
-      setPreviewNode(null);
       setHoveredNodeTags(null);
-      // Don't clear selectedNode - let user dismiss it manually
     }
   };
 
@@ -892,14 +890,6 @@ export default function HomePage() {
       
       {/* Full viewport container with starry background */}
       <div className="fixed inset-0 top-[64px] bottom-0 bg-gradient-to-br from-[#151C2A] to-[#101726]">
-        {/* 60px cursor-follow preview - Stage 1 of two-stage reveal */}
-        <NodePreview
-          node={previewNode}
-          cursorX={mousePosition.x}
-          cursorY={mousePosition.y}
-          visible={showPreview}
-        />
-
         {/* Search component - upper left */}
         <GlobeSearch
           nodes={globeNodes}
