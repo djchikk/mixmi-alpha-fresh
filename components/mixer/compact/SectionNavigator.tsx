@@ -9,6 +9,8 @@ interface SectionNavigatorProps {
   onSectionChange: (section: number) => void;
   deck: 'A' | 'B';
   className?: string;
+  loopEnabled?: boolean; // Whether sectional looping is enabled
+  onLoopToggle?: () => void; // Toggle sectional looping on/off
 }
 
 const SectionNavigator = memo(function SectionNavigator({
@@ -16,7 +18,9 @@ const SectionNavigator = memo(function SectionNavigator({
   totalSections,
   onSectionChange,
   deck,
-  className = ''
+  className = '',
+  loopEnabled = true,
+  onLoopToggle
 }: SectionNavigatorProps) {
   const canGoPrev = currentSection > 0;
   const canGoNext = currentSection < totalSections - 1;
@@ -56,15 +60,23 @@ const SectionNavigator = memo(function SectionNavigator({
         <ChevronLeft size={10} />
       </button>
 
-      {/* Section Display */}
-      <div
-        className="flex-1 h-[18px] rounded bg-slate-800 border flex items-center justify-center px-1"
-        style={{ borderColor: color }}
+      {/* Section Display - Clickable to toggle looping */}
+      <button
+        onClick={onLoopToggle}
+        className="flex-1 h-[18px] rounded bg-slate-800 border flex items-center justify-center px-1 transition-all hover:scale-105 cursor-pointer"
+        style={{
+          borderColor: loopEnabled ? color : '#475569',
+          opacity: loopEnabled ? 1 : 0.6
+        }}
+        title={loopEnabled ? 'Click to disable sectional looping (song will play through)' : 'Click to enable sectional looping'}
       >
-        <div className="text-[9px] font-bold leading-tight" style={{ color }}>
-          {startBar}-{endBar}
+        <div
+          className="text-[9px] font-bold leading-tight"
+          style={{ color: loopEnabled ? color : '#94a3b8' }}
+        >
+          {loopEnabled ? `${startBar}-${endBar}` : 'OFF'}
         </div>
-      </div>
+      </button>
 
       {/* Next Section Button */}
       <button

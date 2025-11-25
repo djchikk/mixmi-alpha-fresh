@@ -10,6 +10,8 @@ interface SectionSelectorProps {
   trackBPM: number;
   loopLength: number;
   className?: string;
+  loopEnabled?: boolean; // Whether sectional looping is enabled
+  onLoopToggle?: () => void; // Toggle sectional looping on/off
 }
 
 const SectionSelectorCompact = memo(function SectionSelectorCompact({
@@ -18,7 +20,9 @@ const SectionSelectorCompact = memo(function SectionSelectorCompact({
   trackDuration,
   trackBPM,
   loopLength,
-  className = ''
+  className = '',
+  loopEnabled = true,
+  onLoopToggle
 }: SectionSelectorProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -70,7 +74,7 @@ const SectionSelectorCompact = memo(function SectionSelectorCompact({
   if (numberOfSections <= 1) return null;
 
   return (
-    <div className={`section-selector-carousel relative flex items-center ${className}`}>
+    <div className={`section-selector-carousel relative flex items-center gap-1 ${className}`}>
       {/* Left Arrow */}
       {showLeftArrow && (
         <button
@@ -81,6 +85,19 @@ const SectionSelectorCompact = memo(function SectionSelectorCompact({
           <ChevronLeft size={10} className="text-slate-400" />
         </button>
       )}
+
+      {/* Center toggle button - shows section range or OFF */}
+      <button
+        onClick={onLoopToggle}
+        className={`px-1.5 py-0.5 rounded text-[8px] font-semibold min-w-[20px] flex-shrink-0 transition-all ${
+          loopEnabled
+            ? 'bg-[#81E4F2] text-slate-900 shadow-sm shadow-[#81E4F2]/50 hover:scale-105'
+            : 'border border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:bg-slate-700'
+        }`}
+        title={loopEnabled ? 'Click to disable sectional looping' : 'Click to enable sectional looping'}
+      >
+        {loopEnabled ? `1-${numberOfSections}` : 'OFF'}
+      </button>
 
       {/* Scrollable section buttons */}
       <div

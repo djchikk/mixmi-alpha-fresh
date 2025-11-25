@@ -37,7 +37,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
     // Scale compensation to maintain constant visual size - smaller due to pulsing animation
     const referenceDistance = 2.5;
     const scaleCompensation = cameraDistance / referenceDistance;
-    let constantSizeScale = scaleCompensation * 0.462; // Increased by 10% for better clickability
+    let constantSizeScale = scaleCompensation * 0.55; // Increased further for better clickability
     const minScale = 0.4;
     const maxScale = 2.5;
     constantSizeScale = Math.max(minScale, Math.min(maxScale, constantSizeScale));

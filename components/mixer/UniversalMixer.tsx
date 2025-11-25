@@ -1924,7 +1924,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
               {/* Deck A Section Navigator (Below Deck Image, left-aligned) */}
               <div className="absolute left-[20px] bottom-[12px]">
-                {mixerState.deckA.contentType === 'full_song' && mixerState.deckA.loopEnabled && (() => {
+                {mixerState.deckA.contentType === 'full_song' && (() => {
                   // Calculate total sections from track duration and BPM
                   const bpm = mixerState.deckA.track?.bpm || 120;
                   const duration = mixerState.deckA.audioState?.duration || 0;
@@ -1938,6 +1938,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       totalSections={totalSections}
                       onSectionChange={(position) => handleLoopPositionChange('A', position)}
                       deck="A"
+                      loopEnabled={mixerState.deckA.loopEnabled}
+                      onLoopToggle={() => handleLoopToggle('A')}
                     />
                   );
                 })()}
@@ -2113,7 +2115,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
               {/* Deck B Section Navigator (Below Deck Image, right-aligned) */}
               <div className="absolute right-[20px] bottom-[12px]">
-                {mixerState.deckB.contentType === 'full_song' && mixerState.deckB.loopEnabled && (() => {
+                {mixerState.deckB.contentType === 'full_song' && (() => {
                   // Calculate total sections from track duration and BPM
                   const bpm = mixerState.deckB.track?.bpm || 120;
                   const duration = mixerState.deckB.audioState?.duration || 0;
@@ -2127,6 +2129,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                       totalSections={totalSections}
                       onSectionChange={(position) => handleLoopPositionChange('B', position)}
                       deck="B"
+                      loopEnabled={mixerState.deckB.loopEnabled}
+                      onLoopToggle={() => handleLoopToggle('B')}
                     />
                   );
                 })()}
