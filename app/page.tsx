@@ -665,8 +665,21 @@ export default function HomePage() {
     setShowPreview(false);
     setPreviewNode(null);
 
-    // Check if this is a cluster node - use same logic as pinned cards rendering
-    const isCluster = (node as any).isAggregated && (node as any).tracks && (node as any).tracks.length > 1;
+    // Debug: Log node properties to see what we have
+    console.log('🔍 Node clicked:', {
+      id: node.id,
+      color: node.color,
+      isAggregated: (node as any).isAggregated,
+      hasTracks: !!(node as any).tracks,
+      tracksLength: (node as any).tracks?.length,
+      trackCount: (node as any).trackCount,
+      allProps: Object.keys(node)
+    });
+
+    // Check if this is a cluster node - just check if it has multiple tracks
+    const isCluster = (node as any).tracks && (node as any).tracks.length > 1;
+
+    console.log('📌 Is cluster?', isCluster, 'Will expand:', isCluster);
 
     // Auto-pin the card at the click position (mousePosition is tracked globally)
     const newPinnedCard = {
@@ -1151,9 +1164,9 @@ export default function HomePage() {
 
         {/* Pinned Cards - Draggable sticky notes */}
         {pinnedCards.map((pinnedCard) => {
-          const isCluster = pinnedCard.node.isAggregated && pinnedCard.node.tracks && pinnedCard.node.tracks.length > 1;
+          const isCluster = (pinnedCard.node as any).tracks && (pinnedCard.node as any).tracks.length > 1;
           const isExpanded = pinnedCard.isExpanded || false;
-          const tracks = isCluster ? pinnedCard.node.tracks || [] : [pinnedCard.node];
+          const tracks = isCluster ? (pinnedCard.node as any).tracks || [] : [pinnedCard.node];
 
 
           return (
