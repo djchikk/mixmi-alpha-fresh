@@ -665,8 +665,8 @@ export default function HomePage() {
     setShowPreview(false);
     setPreviewNode(null);
 
-    // Check if this is a cluster node (cyan color #81E4F2 = multiple tracks)
-    const isCluster = isClusterNode(node);
+    // Check if this is a cluster node - use same logic as pinned cards rendering
+    const isCluster = (node as any).isAggregated && (node as any).tracks && (node as any).tracks.length > 1;
 
     // Auto-pin the card at the click position (mousePosition is tracked globally)
     const newPinnedCard = {
