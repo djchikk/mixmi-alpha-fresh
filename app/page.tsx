@@ -665,25 +665,15 @@ export default function HomePage() {
     setShowPreview(false);
     setPreviewNode(null);
 
-    // Check if this is a cluster node
-    if (isClusterNode(node)) {
-      // Show the cluster as selected node - the UI will handle showing multiple cards
-      setSelectedNode(node);
-      setCarouselPage(0); // Reset pagination for new cluster
+    // Auto-pin the card at the click position (mousePosition is tracked globally)
+    const newPinnedCard = {
+      node,
+      position: { x: mousePosition.x + 15, y: mousePosition.y + 15 }, // Offset slightly from cursor
+      id: `pinned-${node.id}-${Date.now()}`,
+      isExpanded: false
+    };
 
-      // No cluster tags needed - let the modal content speak for itself
-      setSelectedNodeTags(null);
-      return;
-    }
-
-    // Show the globe track card for this node
-    setSelectedNode(node);
-
-    // Set the selected node tags (use test tags if no real tags)
-    const tags = node.tags && node.tags.length > 0
-      ? node.tags.slice(0, 5)
-      : ['test', 'hover', 'tag'];
-    setSelectedNodeTags(tags);
+    setPinnedCards(prev => [...prev, newPinnedCard]);
 
     // Clear any hover state
     setHoveredNode(null);
