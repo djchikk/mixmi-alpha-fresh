@@ -116,6 +116,7 @@ export default function CompactTrackCardWithFlip({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
+  const [isMouseDown, setIsMouseDown] = useState(false); // Track mousedown for drag preview opacity
 
   // Loop pack expansion state
   const [isPackExpanded, setIsPackExpanded] = useState(false);
@@ -273,9 +274,12 @@ export default function CompactTrackCardWithFlip({
   }), [track]);
 
   // Clear hover state when dragging to prevent overlay in drag preview
+  // Reset mousedown state when drag ends
   React.useEffect(() => {
     if (isDragging) {
       setIsHovered(false);
+    } else {
+      setIsMouseDown(false);
     }
   }, [isDragging]);
 
@@ -404,22 +408,30 @@ export default function CompactTrackCardWithFlip({
             // Force synchronous state update before drag snapshot is taken
             flushSync(() => {
               setIsHovered(false);
+              setIsMouseDown(true);
             });
           }}
+          onMouseUp={() => setIsMouseDown(false)}
           style={{
-            cursor: isDragging ? 'grabbing' : 'grab',
-            opacity: isDragging ? 0.75 : 1
+            cursor: isDragging ? 'grabbing' : 'grab'
           }}
         >
           <div className="relative w-full h-full">
               {/* Cover Image - Full Card */}
-              <div className="relative w-full h-full">
+              <div
+                className="relative w-full h-full"
+                style={{
+                  opacity: isMouseDown ? 0.05 : 1,
+                  transition: 'opacity 0.15s ease'
+                }}
+              >
                 {(track.cover_image_url || track.imageUrl) ? (
                   <SafeImage
                     src={getOptimizedTrackImage(track, 320)}
                     alt={track.title}
                     className="w-full h-full object-cover"
                     fill
+                    style={{ opacity: isMouseDown ? 0.2 : 1 }}
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">

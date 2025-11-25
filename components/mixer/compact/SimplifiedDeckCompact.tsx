@@ -81,8 +81,8 @@ export default function SimplifiedDeckCompact({
     canDrag: () => !!currentTrack, // Only draggable if track exists
   }), [currentTrack, deck, onTrackClear]);
 
-  // Drop functionality for collection tracks  
-  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+  // Drop functionality for collection tracks
+  const [{ isOver, canDrop, isGlobeDrag }, drop] = useDrop(() => ({
     accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD'],
     drop: (item: { track: any; sourceDeck?: string; sourceIndex: number }) => {
       console.log(`🎯 Deck ${deck} received drop:`, item);
@@ -148,10 +148,14 @@ export default function SimplifiedDeckCompact({
     canDrop: (item) => {
       return true; // Allow all drops for now
     },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
-    }),
+    collect: (monitor) => {
+      const item = monitor.getItem() as { track: any; source?: string } | null;
+      return {
+        isOver: monitor.isOver(),
+        canDrop: monitor.canDrop(),
+        isGlobeDrag: item?.source === 'globe',
+      };
+    },
   }));
 
   // Detect when a new track is loaded or cleared
@@ -191,18 +195,44 @@ export default function SimplifiedDeckCompact({
   }, [isPlaying, contentType, deck]);
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} style={{ overflow: 'visible' }}>
       <div
         ref={drop as any}
         className="relative p-12 pointer-events-none"
-        style={{ margin: '-48px' }}
+        style={{ margin: '-48px', overflow: 'visible' }}
       >
+        {/* Large ghost outline for globe drags */}
+        {isGlobeDrag && canDrop && !isDragging && (
+          <div
+            className="absolute left-1/2 top-1/2 pointer-events-none"
+            style={{
+              width: '160px',
+              height: '160px',
+              transform: 'translate(-50%, -50%)',
+              border: `3px dashed ${borderColor}`,
+              borderRadius: '8px',
+              backgroundColor: isOver ? `${borderColor}15` : 'transparent',
+              boxShadow: isOver ? `0 0 40px ${borderColor}60` : `0 0 20px ${borderColor}30`,
+              transition: 'all 0.2s ease',
+              zIndex: 1,
+              animation: 'pulse 2s ease-in-out infinite'
+            }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center text-white text-sm font-bold opacity-60">
+              Drop Here
+            </div>
+          </div>
+        )}
+
         <div
           key={currentTrack?.id || 'empty'}
           className={`carousel-track current pointer-events-auto ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target-active' : ''}`}
           style={{
             '--border-color': borderColor,
-            boxShadow: isOver && canDrop && !isDragging ? `0 0 30px ${borderColor}80, 0 0 60px ${borderColor}40` : undefined
+            boxShadow: isOver && canDrop && !isDragging ? `0 0 30px ${borderColor}80, 0 0 60px ${borderColor}40` : undefined,
+            transition: 'box-shadow 0.3s ease-in-out',
+            zIndex: 2,
+            position: 'relative'
           } as React.CSSProperties & { '--border-color': string }}
         >
           {isLoading ? (
@@ -413,6 +443,15 @@ export default function SimplifiedDeckCompact({
             border-color: var(--border-color, #9772F4);
             opacity: 0.7;
             transform: scale(1.12);
+          }
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 0.6;
+          }
+          50% {
+            opacity: 1;
           }
         }
       `}</style>
