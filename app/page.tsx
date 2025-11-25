@@ -91,10 +91,9 @@ export default function HomePage() {
   const [centerTrackCard, setCenterTrackCard] = useState<any | null>(null); // For FILL button centered card
   const [fillAddedTrackIds, setFillAddedTrackIds] = useState<Set<string>>(new Set()); // Track IDs added by FILL
 
-  // Two-stage reveal system: 60px preview + 350ms dwell timer + full card
+  // Two-stage reveal system: 60px preview on hover + full card on click
   const [previewNode, setPreviewNode] = useState<TrackNode | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [dwellTimer, setDwellTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Widget visibility state - persisted in localStorage
   const [isMixerVisible, setIsMixerVisible] = useState(true); // Default
@@ -662,6 +661,10 @@ export default function HomePage() {
   
 
   const handleNodeClick = (node: TrackNode) => {
+    // Hide the preview when showing full card
+    setShowPreview(false);
+    setPreviewNode(null);
+
     // Check if this is a cluster node
     if (isClusterNode(node)) {
       // Show the cluster as selected node - the UI will handle showing multiple cards
@@ -681,7 +684,7 @@ export default function HomePage() {
       ? node.tags.slice(0, 5)
       : ['test', 'hover', 'tag'];
     setSelectedNodeTags(tags);
-    
+
     // Clear any hover state
     setHoveredNode(null);
     setHoveredNodeTags(null);
@@ -690,34 +693,12 @@ export default function HomePage() {
   const handleNodeHover = (node: TrackNode | null) => {
     setHoveredNode(node);
 
-    // Clear any existing dwell timer
-    if (dwellTimer) {
-      clearTimeout(dwellTimer);
-      setDwellTimer(null);
-    }
-
     if (node) {
-      // STAGE 1: Show 60px preview immediately
+      // Show 60px preview immediately and keep it visible
       setPreviewNode(node);
       setShowPreview(true);
-
-      // STAGE 2: Start dwell timer (350ms) to launch full card
-      const timer = setTimeout(() => {
-        console.log('🕒 Dwell timer complete - launching full card');
-        // Hide preview
-        setShowPreview(false);
-        setPreviewNode(null);
-
-        // Show full card
-        setSelectedNode(node);
-        setCarouselPage(0); // Reset pagination for clusters
-        setHoveredNodeTags(null);
-        setSelectedNodeTags(null);
-      }, 350);
-
-      setDwellTimer(timer);
     } else {
-      // User moved away from node - hide preview, don't show card
+      // User moved away from node - hide preview
       setShowPreview(false);
       setPreviewNode(null);
       setHoveredNodeTags(null);
