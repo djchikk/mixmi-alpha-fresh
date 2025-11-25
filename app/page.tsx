@@ -686,7 +686,7 @@ export default function HomePage() {
       node,
       position: { x: mousePosition.x + 15, y: mousePosition.y + 15 }, // Offset slightly from cursor
       id: `pinned-${node.id}-${Date.now()}`,
-      isExpanded: isCluster // Cluster cards start expanded to show grid
+      isExpanded: false // All cards start collapsed - user can expand if needed
     };
 
     setPinnedCards(prev => [...prev, newPinnedCard]);

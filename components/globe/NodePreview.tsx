@@ -21,12 +21,12 @@ export default function NodePreview({ node, cursorX, cursorY, visible }: NodePre
     return null;
   }
 
-  // Check if this is a cluster node (cyan #81E4F2)
-  const isCluster = node.color === '#81E4F2';
+  // Check if this is a cluster node - same logic as handleNodeClick
+  const isCluster = (node as any).tracks && (node as any).tracks.length > 1;
 
   // Get border color based on content type
   const getBorderColor = () => {
-    if (node.color === '#81E4F2') return '#81E4F2'; // Cyan for clusters
+    if (isCluster) return '#81E4F2'; // Cyan for clusters
     if (node.content_type === 'full_song') return '#FFE4B5'; // Gold
     if (node.content_type === 'loop') return '#9772F4'; // Purple
     if (node.content_type === 'video_clip') return '#2792F5'; // Blue
@@ -38,7 +38,13 @@ export default function NodePreview({ node, cursorX, cursorY, visible }: NodePre
   const borderColor = getBorderColor();
 
   if (isCluster) {
-    // Cluster preview: 2x2 mini-grid
+    // Get individual track covers from cluster (up to 4)
+    const clusterTracks = (node as any).tracks || [];
+    const trackCovers = clusterTracks.slice(0, 4).map((track: any) =>
+      track.cover_image_url || track.imageUrl || '/placeholder-track.png'
+    );
+
+    // Cluster preview: 2x2 mini-grid with actual track covers
     return (
       <div
         className="fixed z-[500] rounded-lg overflow-hidden shadow-2xl border-2 bg-slate-900"
@@ -52,12 +58,12 @@ export default function NodePreview({ node, cursorX, cursorY, visible }: NodePre
           opacity: visible ? 1 : 0
         }}
       >
-        {/* 2x2 grid of mini-covers */}
+        {/* 2x2 grid of mini-covers showing actual tracks */}
         <div className="grid grid-cols-2 gap-[2px] w-full h-full p-[2px]">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="relative bg-slate-800 rounded-sm overflow-hidden">
               <img
-                src={node.imageUrl || '/placeholder-track.png'}
+                src={trackCovers[i] || node.imageUrl || '/placeholder-track.png'}
                 alt=""
                 className="w-full h-full object-cover opacity-90"
               />
