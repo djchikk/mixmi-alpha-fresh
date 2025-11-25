@@ -1178,13 +1178,12 @@ export default function HomePage() {
             >
               <div className="bg-[#101726]/95 backdrop-blur-sm rounded-lg border border-[#81E4F2]/30 shadow-xl">
                 {/* Drag handle bar - auto-hides after first drag unless hovered */}
-                <div
-                  className={`bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing transition-opacity duration-200 ${
-                    !pinnedCard.hasDragged || hoveredCardId === pinnedCard.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                  }`}
-                  onMouseDown={(e) => handleCardMouseDown(e, pinnedCard.id, pinnedCard.position)}
-                  style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
-                >
+                {(!pinnedCard.hasDragged || hoveredCardId === pinnedCard.id) && (
+                  <div
+                    className="bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing transition-all duration-200"
+                    onMouseDown={(e) => handleCardMouseDown(e, pinnedCard.id, pinnedCard.position)}
+                    style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
+                  >
                   <div className="flex items-center gap-2">
                     <svg className="w-3 h-3 text-[#81E4F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
@@ -1228,7 +1227,8 @@ export default function HomePage() {
                       <X className="w-3 h-3 text-cyan-300 hover:text-white" />
                     </button>
                   </div>
-                </div>
+                  </div>
+                )}
 
                 {/* Card content - freely draggable to mixer/crate */}
                 <div className="p-2">
