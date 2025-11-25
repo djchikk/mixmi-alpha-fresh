@@ -283,7 +283,10 @@ export default function SimplifiedDeckCompact({
                 ref={dragRef}
                 className="absolute inset-0"
                 title={`Drag Deck ${deck} to Crate`}
-                style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                style={{
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  pointerEvents: (isGlobeDrag || (isOver && canDrop)) ? 'none' : 'auto' // Allow drops to pass through when dragging from globe
+                }}
               />
 
               {/* BPM display - always visible in lower right (except for radio stations) */}

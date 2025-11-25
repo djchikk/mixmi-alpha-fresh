@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { flushSync } from 'react-dom';
 import { IPTrack } from '@/types';
 // Removed mixer dependency for alpha version
 import { useToast } from '@/contexts/ToastContext';
@@ -116,7 +115,6 @@ export default function CompactTrackCardWithFlip({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
-  const [isMouseDown, setIsMouseDown] = useState(false); // Track mousedown for drag preview opacity
 
   // Loop pack expansion state
   const [isPackExpanded, setIsPackExpanded] = useState(false);
@@ -274,12 +272,9 @@ export default function CompactTrackCardWithFlip({
   }), [track]);
 
   // Clear hover state when dragging to prevent overlay in drag preview
-  // Reset mousedown state when drag ends
   React.useEffect(() => {
     if (isDragging) {
       setIsHovered(false);
-    } else {
-      setIsMouseDown(false);
     }
   }, [isDragging]);
 
@@ -404,34 +399,19 @@ export default function CompactTrackCardWithFlip({
           className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${getBorderColor()} ${getBorderThickness()} bg-slate-800`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          onMouseDown={() => {
-            // Force synchronous state update before drag snapshot is taken
-            flushSync(() => {
-              setIsHovered(false);
-              setIsMouseDown(true);
-            });
-          }}
-          onMouseUp={() => setIsMouseDown(false)}
           style={{
             cursor: isDragging ? 'grabbing' : 'grab'
           }}
         >
           <div className="relative w-full h-full">
               {/* Cover Image - Full Card */}
-              <div
-                className="relative w-full h-full"
-                style={{
-                  opacity: isMouseDown ? 0.05 : 1,
-                  transition: 'opacity 0.15s ease'
-                }}
-              >
+              <div className="relative w-full h-full">
                 {(track.cover_image_url || track.imageUrl) ? (
                   <SafeImage
                     src={getOptimizedTrackImage(track, 320)}
                     alt={track.title}
                     className="w-full h-full object-cover"
                     fill
-                    style={{ opacity: isMouseDown ? 0.2 : 1 }}
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
@@ -482,27 +462,20 @@ export default function CompactTrackCardWithFlip({
                 )} */}
 
                 {/* Info Icon - Left side, vertically centered */}
-                <div
-                  className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10"
-                  style={{
-                    display: (isHovered && !isDragging) ? 'block' : 'none'
-                  }}
-                >
-                  <InfoIcon
-                    size="lg"
-                    onClick={handleInfoClick}
-                    title="Click to see all info + drag individual tracks from Loop Packs/EPs"
-                    className="text-white hover:text-white"
-                  />
-                </div>
+                {isHovered && !isDragging && (
+                  <div className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10">
+                    <InfoIcon
+                      size="lg"
+                      onClick={handleInfoClick}
+                      title="Click to see all info + drag individual tracks from Loop Packs/EPs"
+                      className="text-white hover:text-white"
+                    />
+                  </div>
+                )}
 
                 {/* Hover Overlay - Hidden when video is playing or dragging */}
-                <div
-                  className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2"
-                  style={{
-                    display: (isHovered && !isVideoPlaying && !isDragging) ? 'block' : 'none'
-                  }}
-                >
+                {isHovered && !isVideoPlaying && !isDragging && (
+                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2">
 
                     {/* Top Section: Title, Artist (full width) */}
                     <div className="absolute top-1 left-2 right-2">
@@ -901,6 +874,7 @@ export default function CompactTrackCardWithFlip({
                       </div>
                     </div>
                   </div>
+                )}
               </div>
             </div>
         </div>
