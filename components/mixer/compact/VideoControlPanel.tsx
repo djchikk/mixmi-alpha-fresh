@@ -31,33 +31,33 @@ export default function VideoControlPanel({
         {/* Mix Mode Section */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold uppercase text-white/90">MIX:</span>
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             <button
               onClick={() => onCrossfadeModeChange('slide')}
-              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
                 crossfadeMode === 'slide'
                   ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
-                  : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
+                  : 'bg-slate-700/40 text-slate-400 border-transparent hover:bg-slate-600/50'
               }`}
             >
               SLIDE
             </button>
             <button
               onClick={() => onCrossfadeModeChange('blend')}
-              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
                 crossfadeMode === 'blend'
                   ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
-                  : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
+                  : 'bg-slate-700/40 text-slate-400 border-transparent hover:bg-slate-600/50'
               }`}
             >
               BLEND
             </button>
             <button
               onClick={() => onCrossfadeModeChange('cut')}
-              className={`px-4 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
                 crossfadeMode === 'cut'
                   ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
-                  : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
+                  : 'bg-slate-700/40 text-slate-400 border-transparent hover:bg-slate-600/50'
               }`}
             >
               CUT

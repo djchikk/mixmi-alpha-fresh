@@ -37,7 +37,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
     // Scale compensation to maintain constant visual size - smaller due to pulsing animation
     const referenceDistance = 2.5;
     const scaleCompensation = cameraDistance / referenceDistance;
-    let constantSizeScale = scaleCompensation * 0.42; // Reduced further - pulse makes them visually larger
+    let constantSizeScale = scaleCompensation * 0.462; // Increased by 10% for better clickability
     const minScale = 0.4;
     const maxScale = 2.5;
     constantSizeScale = Math.max(minScale, Math.min(maxScale, constantSizeScale));
@@ -109,7 +109,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
       >
-        <sphereGeometry args={[0.009, 16, 16]} />
+        <sphereGeometry args={[0.0099, 16, 16]} />
         <meshStandardMaterial
           color={hovered ? '#ffffff' : RADIO_ORANGE}
           emissive={RADIO_ORANGE}
@@ -126,7 +126,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
       >
-        <sphereGeometry args={[0.009, 16, 16]} />
+        <sphereGeometry args={[0.0099, 16, 16]} />
         <meshBasicMaterial
           color={RADIO_ORANGE}
           transparent
@@ -142,7 +142,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
       >
-        <sphereGeometry args={[0.009, 16, 16]} />
+        <sphereGeometry args={[0.0099, 16, 16]} />
         <meshBasicMaterial
           color={RADIO_ORANGE}
           transparent
@@ -158,7 +158,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
       >
-        <sphereGeometry args={[0.009, 16, 16]} />
+        <sphereGeometry args={[0.0099, 16, 16]} />
         <meshBasicMaterial
           color={RADIO_ORANGE}
           transparent

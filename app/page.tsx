@@ -109,6 +109,7 @@ export default function HomePage() {
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isVideoMixerHovered, setIsVideoMixerHovered] = useState(false);
+  const [isVideoViewerCollapsed, setIsVideoViewerCollapsed] = useState(false);
 
   // Video mixer controls state
   type CrossfadeMode = 'slide' | 'blend' | 'cut';
@@ -1221,12 +1222,6 @@ export default function HomePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
                     </svg>
                     <span className="text-[#81E4F2] text-[10px] font-bold">DRAG TO MOVE</span>
-                    {isCluster && (
-                      <span className="text-[#81E4F2]/70 text-[9px] font-bold flex items-center gap-1">
-                        <Layers className="w-2.5 h-2.5" />
-                        {pinnedCard.node.trackCount} tracks
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -1733,26 +1728,59 @@ export default function HomePage() {
           onMouseEnter={() => setIsVideoMixerHovered(true)}
           onMouseLeave={() => setIsVideoMixerHovered(false)}
         >
-          {/* Drag handle - auto-hides when not hovered, overlays video */}
+          {/* Drag handle - auto-hides when not hovered */}
           <div
-            className={`absolute top-0 left-0 right-0 bg-gradient-to-r from-[#2792F5]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-between transition-opacity duration-200 z-20 ${
-              isVideoMixerHovered || (videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            className={`bg-gradient-to-r from-[#2792F5]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-center transition-opacity duration-200 relative ${
+              isVideoMixerHovered || (videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) ? 'opacity-100' : 'opacity-0'
             }`}
             style={{ cursor: 'grab' }}
           >
-            <span>VIDEO MIXER</span>
+            {/* VIDEO MIXER label - absolute positioned left */}
+            <span className="absolute left-3 top-1/2 -translate-y-1/2">VIDEO MIXER</span>
+
+            {/* DRAG TO MOVE - centered */}
             <span className="text-white/60 text-[10px]">DRAG TO MOVE</span>
+
+            {/* Collapse/Expand button - absolute positioned right */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsVideoViewerCollapsed(!isVideoViewerCollapsed);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-white/20 rounded p-0.5 transition-colors pointer-events-auto"
+              title={isVideoViewerCollapsed ? "Expand viewer" : "Collapse viewer"}
+            >
+              {isVideoViewerCollapsed ? (
+                <ChevronUp className="w-5 h-5" strokeWidth={2.5} />
+              ) : (
+                <ChevronDown className="w-5 h-5" strokeWidth={2.5} />
+              )}
+            </button>
           </div>
 
-          <VideoDisplayArea
-            deckATrack={mixerState.deckATrack}
-            deckBTrack={mixerState.deckBTrack}
-            deckAPlaying={mixerState.deckAPlaying}
-            deckBPlaying={mixerState.deckBPlaying}
-            crossfaderPosition={mixerState.crossfaderPosition}
-            crossfadeMode={crossfadeMode}
-            videoEffects={videoEffects}
-          />
+          {/* Video display - conditionally shown */}
+          <div
+            className="transition-all duration-300 ease-in-out overflow-hidden"
+            style={{
+              maxHeight: isVideoViewerCollapsed ? '0px' : '408px',
+              opacity: isVideoViewerCollapsed ? 0 : 1
+            }}
+          >
+            <VideoDisplayArea
+              deckATrack={mixerState.deckATrack}
+              deckBTrack={mixerState.deckBTrack}
+              deckAPlaying={mixerState.deckAPlaying}
+              deckBPlaying={mixerState.deckBPlaying}
+              crossfaderPosition={mixerState.crossfaderPosition}
+              crossfadeMode={crossfadeMode}
+              videoEffects={videoEffects}
+            />
+          </div>
 
           <VideoControlPanel
             crossfadeMode={crossfadeMode}

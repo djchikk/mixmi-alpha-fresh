@@ -201,7 +201,7 @@ function GridNode({
     <group ref={groupRef} position={position}>
       {/* Extra outer glow for enhanced hover effect */}
       <mesh ref={outerGlowRef}>
-        <sphereGeometry args={[0.0204, 16, 16]} />
+        <sphereGeometry args={[0.02244, 16, 16]} />
         <meshBasicMaterial
           color={color}
           transparent
@@ -212,7 +212,7 @@ function GridNode({
 
       {/* Main glow effect */}
       <mesh ref={glowRef}>
-        <sphereGeometry args={[0.0156, 16, 16]} />
+        <sphereGeometry args={[0.01716, 16, 16]} />
         <meshBasicMaterial
           color={color}
           transparent
@@ -236,7 +236,7 @@ function GridNode({
           document.body.style.cursor = 'default';
         }}
       >
-        <sphereGeometry args={[0.009, 16, 16]} />
+        <sphereGeometry args={[0.0099, 16, 16]} />
         <meshStandardMaterial
           color={hovered ? '#ffffff' : color}
           emissive={color}
@@ -248,7 +248,7 @@ function GridNode({
 
       {/* Ring for better visibility when zoomed in */}
       <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.0114, 0.0138, 16]} />
+        <ringGeometry args={[0.01254, 0.01518, 16]} />
         <meshBasicMaterial
           color={color}
           transparent
