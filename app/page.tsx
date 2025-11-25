@@ -127,6 +127,7 @@ export default function HomePage() {
     position: { x: number; y: number };
     id: string;
     isExpanded?: boolean; // For cluster cards - track expanded state
+    hasDragged?: boolean; // Track if card has been dragged at least once
   }>>([]);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
@@ -255,7 +256,8 @@ export default function HomePage() {
               position: {
                 x: e.clientX - cardDragOffset.x,
                 y: e.clientY - cardDragOffset.y
-              }
+              },
+              hasDragged: true // Mark as dragged when position changes
             }
           : card
       ));
@@ -671,7 +673,8 @@ export default function HomePage() {
       node,
       position: { x: mousePosition.x, y: mousePosition.y - 180 }, // Above cursor
       id: `pinned-${node.id}-${Date.now()}`,
-      isExpanded: false // All cards start collapsed
+      isExpanded: false, // All cards start collapsed
+      hasDragged: false // Track if card has been dragged
     };
 
     setPinnedCards(prev => [...prev, newPinnedCard]);
@@ -700,7 +703,8 @@ export default function HomePage() {
           node,
           position: { x: mousePosition.x, y: mousePosition.y - 180 }, // Above cursor
           id: `pinned-${node.id}-${Date.now()}`,
-          isExpanded: false
+          isExpanded: false,
+          hasDragged: false
         };
 
         setPinnedCards(prev => [...prev, newPinnedCard]);
@@ -1173,9 +1177,11 @@ export default function HomePage() {
               onMouseLeave={() => setHoveredCardId(null)}
             >
               <div className="bg-[#101726]/95 backdrop-blur-sm rounded-lg border border-[#81E4F2]/30 shadow-xl">
-                {/* Drag handle bar */}
+                {/* Drag handle bar - auto-hides after first drag unless hovered */}
                 <div
-                  className="bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing"
+                  className={`bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing transition-opacity duration-200 ${
+                    !pinnedCard.hasDragged || hoveredCardId === pinnedCard.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
                   onMouseDown={(e) => handleCardMouseDown(e, pinnedCard.id, pinnedCard.position)}
                   style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
                 >
@@ -1183,9 +1189,7 @@ export default function HomePage() {
                     <svg className="w-3 h-3 text-[#81E4F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
                     </svg>
-                    {hoveredCardId === pinnedCard.id && (
-                      <span className="text-[#81E4F2] text-[10px] font-bold">DRAG TO MOVE</span>
-                    )}
+                    <span className="text-[#81E4F2] text-[10px] font-bold">DRAG TO MOVE</span>
                     {isCluster && (
                       <span className="text-[#81E4F2]/70 text-[9px] font-bold flex items-center gap-1">
                         <Layers className="w-2.5 h-2.5" />
