@@ -2,8 +2,8 @@
 
 **Component:** `components/mixer/UniversalMixer.tsx`
 **Lines of Code:** 2,129 (refactored from 2,285)
-**Last Updated:** November 19, 2025
-**Status:** Production-ready for loops, songs, and radio
+**Last Updated:** November 24, 2025
+**Status:** Production-ready for loops, songs, radio, and video clips
 
 ---
 
@@ -13,18 +13,22 @@
 2. [Architecture](#architecture)
 3. [Refactoring & Modular Structure](#refactoring--modular-structure)
 4. [Content Type System](#content-type-system)
-5. [Radio GRAB Feature](#radio-grab-feature)
-6. [Synchronized Loop Restart](#synchronized-loop-restart)
-7. [Pack Handling](#pack-handling)
-8. [Memory Management](#memory-management)
-9. [State Management](#state-management)
-10. [UI Components](#ui-components)
-11. [Instant FX System](#instant-fx-system)
-12. [Section Navigator](#section-navigator)
-13. [Integration Points](#integration-points)
-14. [Recent Changes](#recent-changes)
-15. [Edge Cases](#edge-cases)
-16. [Future Enhancements](#future-enhancements)
+5. [Button Standardization System](#button-standardization-system)
+6. [Content-Type Color Theming](#content-type-color-theming)
+7. [Video Integration](#video-integration)
+8. [Sync Logic & Priority System](#sync-logic--priority-system)
+9. [Radio GRAB Feature](#radio-grab-feature)
+10. [Synchronized Loop Restart](#synchronized-loop-restart)
+11. [Pack Handling](#pack-handling)
+12. [Memory Management](#memory-management)
+13. [State Management](#state-management)
+14. [UI Components](#ui-components)
+15. [Instant FX System](#instant-fx-system)
+16. [Section Navigator](#section-navigator)
+17. [Integration Points](#integration-points)
+18. [Recent Changes](#recent-changes)
+19. [Edge Cases](#edge-cases)
+20. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -32,9 +36,10 @@
 
 ### What is the Universal Mixer?
 
-The Universal Mixer is a **2-deck audio mixing interface** that accepts ANY content type:
+The Universal Mixer is a **2-deck audio/video mixing interface** that accepts ANY content type:
 - **Loops** (precise BPM, seamless looping)
 - **Songs** (full_song, fixed BPM)
+- **Video Clips** (5-second loopable videos with optional audio)
 - **Radio Stations** (live streams, continuous playback)
 - **Grabbed Radio** (sampled chunks from radio streams)
 - **Packs** (loop_pack, station_pack, ep)
@@ -68,10 +73,11 @@ components/mixer/
 ├── compact/
 │   ├── SimplifiedDeckCompact.tsx         # Individual deck UI
 │   ├── WaveformDisplayCompact.tsx        # Waveform visualization
+│   ├── VideoDisplayArea.tsx              # Video crossfade display (NEW - Nov 2025)
 │   ├── CrossfaderControlCompact.tsx      # Crossfader slider
 │   ├── MasterTransportControlsCompact.tsx # Play/stop/sync controls
 │   ├── LoopControlsCompact.tsx           # Loop length/position controls
-│   ├── SectionNavigator.tsx              # djay-style section selector
+│   ├── SectionNavigator.tsx              # Song section navigator
 │   ├── DeckFXPanel.tsx                   # Per-deck FX controls
 │   └── VerticalVolumeSlider.tsx          # Volume controls
 ```
@@ -205,11 +211,532 @@ Deck B: 131 BPM loop
 | Content Type | Looping | BPM Control | Waveform | Special Features |
 |--------------|---------|-------------|----------|------------------|
 | `loop` | ✅ Always | ✅ Highest priority | Full | Seamless loops |
-| `full_song` | ✅ Optional | ⚠️ Medium priority | Full | One-shot or loop |
+| `full_song` | ✅ Optional | ⚠️ Medium priority | Full | One-shot or loop, Section Navigator |
+| `video_clip` | ✅ Always | ❌ Excluded | Video display | Video mute button, cannot sync two videos |
 | `radio_station` | ❌ Disabled | ❌ No control | Live stream | GRAB + RE-GRAB buttons |
 | `grabbed_radio` | ✅ Enabled | ❌ No control | Full | Locked to 1.0x speed, synchronized restart |
 
 **BPM Display:** Tracks without declared BPM show "~" (tilde) instead of a number, indicating unquantized or unknown tempo.
+
+---
+
+## Button Standardization System
+
+### Overview (November 24, 2025)
+
+All **contextual buttons** displayed below deck images now use **identical dimensions and positioning** for visual consistency and professional polish.
+
+### Standard Dimensions
+
+**Container specifications:**
+```typescript
+// Position and dimensions
+className="absolute left-[20px] bottom-[12px] w-[72px] h-[20px]"  // Deck A
+className="absolute right-[20px] bottom-[12px] w-[72px] h-[20px]" // Deck B
+
+// Button fills container
+className="w-full h-full"  // Button takes full 72×20px space
+```
+
+**Typography and icons:**
+```typescript
+// Text styling
+className="text-[9px] font-bold"
+
+// Icon size (lucide-react)
+size={10}  // All icons use 10px size
+```
+
+### Positioning Standards
+
+- **Horizontal:** `20px` from deck edge (left for Deck A, right for Deck B)
+- **Vertical:** `12px` from bottom of deck image container
+- **Height:** Explicit `20px` height prevents browser-calculated inconsistencies
+- **Width:** Fixed `72px` provides consistent visual weight across all button types
+
+### Button Types
+
+**1. Video Mute Button** (when `video_clip` loaded)
+- **Shows when:** Deck has video content
+- **Purpose:** Mutes/unmutes video audio track
+- **Colors:**
+  - Unmuted: Blue (#2792F5), Volume2 icon, "AUDIO" text
+  - Muted: Red (#ef4444), VolumeX icon, "MUTED" text
+- **Location:** UniversalMixer.tsx:1908 (Deck A), :2097 (Deck B)
+
+**2. Radio GRAB Button** (when `radio_station` or `grabbed_radio` loaded)
+- **Shows when:** Deck has radio content
+- **Purpose:** Handles play → buffer → grab → done workflow
+- **Colors:**
+  - PLAY/DONE: Cyan border, white text
+  - Buffering: Cyan border with pulse animation
+  - GRAB ready: Orange border (#FB923C), orange text
+  - Recording: Red border with pulse animation
+- **Location:** UniversalMixer.tsx:1939 (Deck A), :2128 (Deck B)
+
+**3. Section Navigator** (when `full_song` loaded)
+- **Shows when:** Deck has song content
+- **Purpose:** Navigate 8-bar sections of song
+- **Color:** Wheat/Moccasin (#FFE4B5) - song content color
+- **Features:**
+  - Previous/next section buttons (18×18px each)
+  - Middle display shows bar range (e.g., "1-8", "9-16")
+  - Flex-1 middle section, total width 72px
+- **Location:** UniversalMixer.tsx:1886 (Deck A), :2075 (Deck B)
+- **Component:** `components/mixer/compact/SectionNavigator.tsx`
+
+### Implementation Pattern
+
+```tsx
+// Example: Video Mute Button
+<div className="absolute left-[20px] bottom-[12px] w-[72px] h-[20px]">
+  <button
+    onClick={handleVideoMute}
+    className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800"
+    style={{
+      borderColor: videoMuted ? '#ef4444' : '#2792F5',
+      color: videoMuted ? '#ef4444' : '#2792F5'
+    }}
+  >
+    {videoMuted ? <VolumeX size={10} /> : <Volume2 size={10} />}
+    <span className="text-[9px] font-bold">
+      {videoMuted ? 'MUTED' : 'AUDIO'}
+    </span>
+  </button>
+</div>
+```
+
+### Why This Matters
+
+**Before standardization:**
+- Buttons had varying widths and heights
+- Vertical positioning was inconsistent (bottom-[12px] vs bottom-[18px])
+- Browser-calculated heights caused subtle rendering differences
+- Visual hierarchy was unclear
+
+**After standardization:**
+- Perfect visual consistency across all button states
+- Predictable layout regardless of content type
+- Professional polish matching industry DJ software standards
+- Easy to maintain and extend for future content types
+
+---
+
+## Content-Type Color Theming
+
+### Color System
+
+Each content type has a dedicated color applied to its contextual controls for instant visual recognition:
+
+| Content Type | Color | Hex Code | Applied To |
+|-------------|-------|----------|------------|
+| `loop` | Purple | `#9772F4` | Loop-related controls and indicators |
+| `full_song` | Wheat/Moccasin | `#FFE4B5` | Section Navigator borders and text |
+| `video_clip` | Blue/Red | `#2792F5` / `#ef4444` | Video mute button (unmuted/muted) |
+| `radio_station` | Orange | `#FB923C` | Radio GRAB button when ready |
+| `grabbed_radio` | Orange | `#FB923C` | Inherited from radio |
+| Sync active | Cyan | `#81E4F2` | All sync buttons and master controls |
+
+### Implementation Pattern
+
+**Inline styles for dynamic colors:**
+```typescript
+style={{
+  borderColor: isActive ? contentColor : '#1e293b',  // Dark slate when inactive
+  color: isActive ? contentColor : '#475569'          // Lighter slate when inactive
+}}
+```
+
+**Example: Section Navigator**
+```typescript
+// SectionNavigator.tsx:40
+const color = '#FFE4B5'; // Song color (moccasin/wheat)
+
+// Applied to all elements
+<button style={{ borderColor: canGoPrev ? color : '#1e293b', color: canGoPrev ? color : '#475569' }}>
+  <ChevronLeft size={10} />
+</button>
+
+<div style={{ borderColor: color }}>
+  <div style={{ color }}>{startBar}-{endBar}</div>
+</div>
+```
+
+### Disabled States
+
+All contextual buttons use consistent disabled styling:
+- **Border:** Dark slate (`#1e293b` or `#475569`)
+- **Text:** Lighter slate (`#475569` or `#64748b`)
+- **Cursor:** `not-allowed`
+- **Opacity:** Maintained at 100% (color change only, no opacity reduction)
+
+---
+
+## Video Integration
+
+### Overview
+
+Video clips (`video_clip` content type) are 5-second loopable videos with optional audio, integrated seamlessly into the Universal Mixer alongside audio-only content.
+
+### Video Display System
+
+**Component:** `components/mixer/compact/VideoDisplayArea.tsx`
+
+**Behavior:**
+- Displays when one or both decks have video content
+- Height: 408px (matches deck image dimensions)
+- Positioned above deck controls
+- Synced with deck playback state (play/pause/loop)
+
+### Video Features
+
+#### 1. Video Cropping Support
+
+Videos can be cropped during upload with crop data stored in track metadata:
+
+```typescript
+interface VideoCropData {
+  video_crop_x: number;        // Crop rectangle X (pixels)
+  video_crop_y: number;        // Crop rectangle Y (pixels)
+  video_crop_width: number;    // Crop rectangle width (pixels)
+  video_crop_height: number;   // Crop rectangle height (pixels)
+  video_crop_zoom: number;     // Zoom level (1.0 = no zoom)
+  video_natural_width: number; // Original video width
+  video_natural_height: number;// Original video height
+}
+```
+
+**Rendering:**
+- Uses CSS `object-position` to center cropped area
+- Uses CSS `transform: scale()` to apply zoom
+- Crop calculation: `VideoDisplayArea.tsx:78-115`
+
+#### 2. Video Audio Muting
+
+Each deck independently controls video audio:
+
+```typescript
+// Deck state
+mixerState.deckA.videoMuted: boolean;
+mixerState.deckB.videoMuted: boolean;
+
+// Toggling mute
+setMixerState(prev => ({
+  ...prev,
+  deckA: { ...prev.deckA, videoMuted: !prev.deckA.videoMuted }
+}));
+
+// Audio element volume control
+if (audioState?.audio) {
+  audioState.audio.volume = videoMuted ? 0 : 1;
+}
+```
+
+**Video Mute Button:**
+- Positioned below deck image (72×20px standard)
+- Blue border/text when unmuted, red when muted
+- Volume2 icon (unmuted) or VolumeX icon (muted)
+
+#### 3. Video Crossfade Modes
+
+**Three modes for dual-video display:**
+
+**Slide Mode** (default)
+- Split-screen with moving divider
+- Both videos at full brightness
+- Divider position controlled by crossfader (0-100%)
+- Visual split line at transition point
+- Width calculation: `deckAWidth = ${100 - crossfaderPosition}%`
+
+**Blend Mode**
+- Opacity crossfade with screen blend mode
+- Videos overlap with varying opacity
+- Prevents darkening via `mixBlendMode: 'screen'`
+- Smooth visual transitions
+- Opacity calculation: `deckAOpacity = (100 - crossfaderPosition) / 100`
+
+**Cut Mode**
+- Hard cut at 50% crossfader position
+- Shows only one video at a time
+- Instant switch at center
+- Clean A/B switching
+- Logic: `crossfaderPosition < 50 ? showA : showB`
+
+#### 4. Video Effects
+
+**Four effects applied via CSS filters:**
+
+1. **Color Shift** - Hue rotation with saturation boost
+   ```typescript
+   hue-rotate(${colorShift * 360}deg)
+   saturate(${1 + colorShift * 2})
+   contrast(${1 + colorShift * 0.5})
+   brightness(${1 + colorShift * 0.3})
+   ```
+
+2. **Pixelate** - Retro pixelated look
+   ```typescript
+   imageRendering: 'pixelated'
+   contrast(1.5)
+   saturate(1.3)
+   + CRT scan lines overlay
+   ```
+
+3. **Invert** - Psychedelic color inversion
+   ```typescript
+   invert(${invert * 0.6})
+   saturate(${1 + invert * 4})  // Up to 5x saturation!
+   contrast(${1 + invert * 1.2})
+   hue-rotate(${invert * 180}deg)
+   ```
+
+4. **Mirror** - Horizontal flip
+   ```typescript
+   transform: scaleX(-1)
+   ```
+
+### Video Playback Sync
+
+**Synchronization with deck state:**
+```typescript
+// React effect watches deck playing state
+useEffect(() => {
+  if (!videoRef.current || !deckHasVideo) return;
+
+  if (deckPlaying) {
+    video.play().catch(err => console.warn('Autoplay prevented:', err));
+  } else {
+    video.pause();
+  }
+}, [deckPlaying, deckHasVideo]);
+```
+
+**Video element configuration:**
+```tsx
+<video
+  ref={videoRef}
+  src={videoUrl}
+  className="w-full h-full object-cover"
+  loop
+  muted={true}  // Video audio handled via separate audio element
+  playsInline
+/>
+```
+
+### Single Video vs. Dual Video
+
+**Single video loaded:**
+- Video fills entire 408px height display
+- Normal playback and looping
+- Audio mixes normally via crossfader
+- Sync works normally with audio-only deck
+
+**Both decks have videos:**
+- Crossfade mode determines visual mix
+- **SYNC DISABLED** - Videos of different lengths cannot sync
+- Each video plays at its own pace
+- Audio from both videos can still be crossfaded
+
+### Video State Management
+
+**Deck state additions:**
+```typescript
+interface DeckState {
+  // ... existing state
+  videoMuted: boolean;        // Video audio muted state
+  contentType: string;        // Includes 'video_clip'
+}
+```
+
+**Video detection:**
+```typescript
+const deckAHasVideo = Boolean(
+  deckATrack?.content_type === 'video_clip' &&
+  (deckATrack as any).video_url
+);
+```
+
+**Component references:**
+- `UniversalMixer.tsx:1908-1935` - Deck A Video Mute button
+- `UniversalMixer.tsx:2097-2124` - Deck B Video Mute button
+- `VideoDisplayArea.tsx` - Complete video display system
+- `MasterTransportControlsCompact.tsx:30,53,191` - bothVideos prop integration
+
+---
+
+## Sync Logic & Priority System
+
+### Overview
+
+The mixer uses an intelligent priority system to determine which content controls the master BPM and when sync should be available.
+
+### BPM Priority Hierarchy
+
+**Priority calculation** (from `mixerBPMCalculator.ts`):
+
+```typescript
+const getPriority = (contentType?: string): number => {
+  if (contentType === 'loop') return 3;           // Highest - precise BPM
+  if (contentType === 'full_song') return 2;      // Medium - fixed BPM
+  if (contentType === 'video_clip') return 1;     // Low - videos yield to audio
+  return 0;                                       // None (radio excluded)
+};
+```
+
+**Manual override:** If user sets master deck manually, that always takes precedence over automatic priority.
+
+**Radio exclusion:** Radio stations (`radio_station`, `grabbed_radio`) are **completely excluded** from master BPM calculation. They don't affect master tempo.
+
+### Sync Availability Rules
+
+**Sync is DISABLED when:**
+
+1. **Either deck is empty** - Need content on both decks
+   ```typescript
+   !deckALoaded || !deckBLoaded
+   ```
+
+2. **Either deck has radio** - Radio is live/unquantized content
+   ```typescript
+   const hasRadio =
+     deckA.contentType === 'radio_station' ||
+     deckB.contentType === 'radio_station' ||
+     deckA.contentType === 'grabbed_radio' ||
+     deckB.contentType === 'grabbed_radio';
+   ```
+
+3. **Both decks have videos** - Videos of different lengths can't sync
+   ```typescript
+   const bothVideos =
+     deckA.contentType === 'video_clip' &&
+     deckB.contentType === 'video_clip';
+   ```
+
+### bothVideos Sync Logic
+
+**Calculation** (UniversalMixer.tsx:1626-1629):
+```typescript
+const bothVideos =
+  mixerState.deckA.contentType === 'video_clip' &&
+  mixerState.deckB.contentType === 'video_clip';
+```
+
+**Master Sync Button** (MasterTransportControlsCompact.tsx:191):
+```typescript
+<button
+  onClick={onSyncToggle}
+  disabled={!deckALoaded || !deckBLoaded || hasRadio || bothVideos}
+  title={
+    bothVideos
+      ? 'Videos of different lengths cannot sync'
+      : // ... other tooltips
+  }
+>
+  SYNC
+</button>
+```
+
+**Deck Sync Buttons** (UniversalMixer.tsx:1713-1736):
+```typescript
+<button
+  onClick={() => handleDeckSync('A')}
+  disabled={!syncActive || hasRadio || bothVideos}
+  className={
+    hasRadio || bothVideos || !syncActive
+      ? 'text-slate-600 border-slate-700 opacity-40 cursor-not-allowed'
+      : masterDeckId === 'A'
+      ? 'text-[#81E4F2] border-amber-500 bg-amber-500/10' // Master
+      : 'text-slate-400 border-slate-600'                 // Follower
+  }
+  title={
+    bothVideos
+      ? 'Videos of different lengths cannot sync'
+      : // ... other tooltips
+  }
+>
+  SYNC
+</button>
+```
+
+### Sync Button Visual States
+
+**Master deck (when sync active):**
+- Border: Amber (`border-amber-500/50`)
+- Background: Amber glow (`bg-amber-500/10`)
+- Text: Cyan (`text-[#81E4F2]`)
+- Tooltip: "Deck A is master"
+
+**Follower deck (when sync active):**
+- Border: Slate (`border-slate-600`)
+- Background: Dark slate (`bg-slate-800/40`)
+- Text: Light slate (`text-slate-400`)
+- Tooltip: "Switch to Deck A as master"
+
+**Disabled (radio/videos/not loaded):**
+- Border: Dark slate (`border-slate-700`)
+- Background: Very dark (`bg-slate-800/20`)
+- Text: Very dark slate (`text-slate-600`)
+- Opacity: 40%
+- Cursor: `not-allowed`
+
+### Example Scenarios
+
+**Scenario 1: Loop + Song**
+```
+Deck A: 131 BPM loop (priority 3)
+Deck B: 120 BPM song (priority 2)
+→ Master BPM: 131 (loop has higher priority)
+→ Sync: AVAILABLE (both quantized audio)
+→ Result: Song can sync to loop's 131 BPM
+```
+
+**Scenario 2: Video + Loop**
+```
+Deck A: Video clip with audio (priority 1)
+Deck B: 128 BPM loop (priority 3)
+→ Master BPM: 128 (loop has higher priority)
+→ Sync: AVAILABLE (different content types)
+→ Result: Video plays freely, loop controls tempo
+```
+
+**Scenario 3: Video + Video**
+```
+Deck A: Video clip 5sec (priority 1)
+Deck B: Video clip 5sec (priority 1)
+→ Master BPM: From video A (same priority, default to A)
+→ Sync: DISABLED (bothVideos = true)
+→ Tooltip: "Videos of different lengths cannot sync"
+→ Result: Visual mixing only, no tempo sync
+```
+
+**Scenario 4: Radio + Loop**
+```
+Deck A: Radio station (priority 0, excluded)
+Deck B: 131 BPM loop (priority 3)
+→ Master BPM: 131 (radio excluded from calculation)
+→ Sync: DISABLED (hasRadio = true)
+→ Tooltip: "Radio stations cannot sync"
+→ Result: Radio plays freely, loop controls tempo
+```
+
+### Master BPM Display
+
+The mixer displays the calculated master BPM in the transport controls:
+
+```typescript
+// Determined by mixerBPMCalculator.ts
+const masterBPM = determineMasterBPM(
+  { track: deckA.track, contentType: deckA.contentType },
+  { track: deckB.track, contentType: deckB.contentType },
+  mixerState.masterDeckId  // Manual override
+);
+
+// Display in MasterTransportControlsCompact
+<div className="text-xl font-bold">{masterBPM}</div>
+<div className="text-[9px]">BPM</div>
+```
+
+**Default:** When no tracks loaded or only radio, defaults to 120 BPM.
 
 ---
 
@@ -873,31 +1400,42 @@ window.dispatchEvent(new CustomEvent('audioSourcePlaying', {
 
 ### Major Updates (November 2025)
 
-#### 1. Refactoring & Code Organization
+#### 1. Video Integration & Button Standardization (November 24, 2025)
+- **NEW**: Complete video clip support with crossfade modes (slide/blend/cut)
+- **NEW**: Video cropping system with zoom support
+- **NEW**: Video audio muting per deck with visual controls
+- **NEW**: Video effects (color shift, pixelate, invert, mirror)
+- **Button standardization**: All contextual buttons now 72×20px with consistent positioning
+- **Content-type color theming**: Visual color coding for all content types
+- **Section Navigator**: Updated to match 72×20px standard with wheat/moccasin theming
+- **bothVideos sync logic**: Disables sync when both decks have videos
+- **Sync button tooltips**: Clear messaging for disabled states
+
+#### 2. Refactoring & Code Organization (November 19, 2025)
 - **Extracted BPM calculator** to `/utils/mixerBPMCalculator.ts` (71 lines)
 - **Extracted pack handler** to `/hooks/useMixerPackHandler.ts` (85 lines)
 - **Reduced main component** from 2,285 to 2,129 lines (6.8% decrease)
 - **Improved maintainability** with modular structure
 - **Preserved stability** by keeping coupled logic together
 
-#### 2. Synchronized Loop Restart Feature
+#### 3. Synchronized Loop Restart Feature (November 19, 2025)
 - **NEW**: Grabbed radio automatically restarts when master deck loops
 - **Coordinated timing** without time-stretching
 - **PreciseLooper callback system** for extensibility
 - **Automatic setup** based on content types
 - **Predictable mixing** of grabbed radio with loops/songs
 
-#### 3. Radio Station Bug Fixes
+#### 4. Radio Station Bug Fixes (November 19, 2025)
 - **Fixed stream_url preservation** in pack handler
 - **Fixed stream_url preservation** on direct deck drops
 - **Fixed radio looping** by disabling PreciseLooper for live radio
 - **Stable playback** for live radio streams
 
-#### 4. UI Polish
+#### 5. UI Polish (November 19, 2025)
 - **Master play button** now uses accent color #81E4F2
 - **Consistent branding** across UI elements
 
-#### 5. Previous Improvements (November 6-18, 2025)
+#### 6. Previous Improvements (November 6-18, 2025)
 - **Simplified radio workflow**: GRAB-only interface
 - **RE-GRAB capability**: Multiple grabs from same station
 - **Instant FX System**: Hold-to-activate pads
@@ -1267,7 +1805,7 @@ The recent additions (Synchronized Loop Restart, Radio Fixes, Code Refactoring, 
 
 ---
 
-*Documentation updated November 19, 2025*
+*Documentation updated November 24, 2025*
 *For: mixmi alpha platform*
 *Component: Universal Mixer*
 *Authors: Sandy Hoover + Claude Code*
