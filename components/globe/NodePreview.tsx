@@ -55,7 +55,7 @@ export default function NodePreview({ node, cursorX, cursorY, visible }: NodePre
           height: '60px',
           borderColor,
           pointerEvents: 'none',
-          opacity: visible ? 1 : 0
+          opacity: visible ? 0.3 : 0
         }}
       >
         {/* 2x2 grid of mini-covers showing actual tracks */}
@@ -95,7 +95,7 @@ export default function NodePreview({ node, cursorX, cursorY, visible }: NodePre
         height: '60px',
         borderColor,
         pointerEvents: 'none',
-        opacity: visible ? 1 : 0
+        opacity: visible ? 0.3 : 0
       }}
     >
       {/* Cover Image */}

@@ -633,7 +633,7 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
 
   return (
     <div
-      className={`simplified-mixer bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 overflow-hidden ${className}`}
+      className={`simplified-mixer bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 overflow-visible ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
@@ -761,12 +761,12 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
           </div>
 
           {/* Decks, Waveforms, and Crossfader Section */}
-          <div className="h-[100px] relative">
+          <div className="h-[100px] relative" style={{ overflow: 'visible' }}>
           {/* Decks positioned at edges with waveforms between */}
-          <div>
+          <div style={{ overflow: 'visible' }}>
             {/* Deck A - positioned to center-align with gap between waveforms */}
-            <div className="absolute left-0 bottom-[42px]">
-              <SimplifiedDeckCompact 
+            <div className="absolute left-0 bottom-[42px]" style={{ overflow: 'visible' }}>
+              <SimplifiedDeckCompact
                 currentTrack={mixerState.deckA.track}
                 isPlaying={mixerState.deckA.playing}
                 isLoading={mixerState.deckA.loading}
@@ -816,8 +816,8 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
             </div>
 
             {/* Deck B - positioned to center-align with gap between waveforms */}
-            <div className="absolute right-0 bottom-[42px]">
-              <SimplifiedDeckCompact 
+            <div className="absolute right-0 bottom-[42px]" style={{ overflow: 'visible' }}>
+              <SimplifiedDeckCompact
                 currentTrack={mixerState.deckB.track}
                 isPlaying={mixerState.deckB.playing}
                 isLoading={mixerState.deckB.loading}
