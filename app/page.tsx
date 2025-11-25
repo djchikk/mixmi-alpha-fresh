@@ -1314,9 +1314,9 @@ export default function HomePage() {
                           />
                         </div>
                       ))}
-                      {/* Click to expand overlay - pointer-events-none allows dragging cards */}
+                      {/* Click to expand overlay - positioned at bottom for visibility */}
                       <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg transition-colors z-10 pointer-events-none"
+                        className="absolute inset-0 flex items-end justify-center pb-6 bg-black/40 rounded-lg transition-colors z-10 pointer-events-none"
                       >
                         <div className="text-center">
                           <button
