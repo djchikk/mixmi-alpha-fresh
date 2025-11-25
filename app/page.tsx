@@ -105,6 +105,7 @@ export default function HomePage() {
 
   // Video display position (draggable)
   const [videoDisplayPosition, setVideoDisplayPosition] = useState({ x: 0, y: 0 });
+  const [hasManuallyPositionedVideo, setHasManuallyPositionedVideo] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isVideoMixerHovered, setIsVideoMixerHovered] = useState(false);
@@ -163,8 +164,12 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedPosition = localStorage.getItem('video-display-position');
+      const savedManualFlag = localStorage.getItem('video-manually-positioned');
       if (savedPosition) {
         setVideoDisplayPosition(JSON.parse(savedPosition));
+      }
+      if (savedManualFlag) {
+        setHasManuallyPositionedVideo(JSON.parse(savedManualFlag));
       }
     }
   }, []);
@@ -175,6 +180,31 @@ export default function HomePage() {
       localStorage.setItem('video-display-position', JSON.stringify(videoDisplayPosition));
     }
   }, [videoDisplayPosition]);
+
+  // Auto-position video display to right of globe when first shown
+  useEffect(() => {
+    if (typeof window !== 'undefined' && mixerState && !hasManuallyPositionedVideo) {
+      const hasVideo = mixerState.deckATrack?.content_type === 'video_clip' ||
+                       mixerState.deckBTrack?.content_type === 'video_clip';
+
+      // Only auto-position if video appears and hasn't been manually positioned
+      if (hasVideo && videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) {
+        const videoWidth = 408;
+        const videoHeight = 408; // Approximately
+        const headerHeight = 64;
+
+        // Position to right of globe, vertically centered
+        // Globe is centered, so place video at: center + half globe width + spacing
+        const x = window.innerWidth / 2 + 450 + 40; // 450px = ~half globe width, 40px spacing
+        const y = (window.innerHeight - headerHeight - videoHeight) / 2 + headerHeight;
+
+        setVideoDisplayPosition({ x, y });
+        // Mark as manually positioned so we remember their preference
+        setHasManuallyPositionedVideo(true);
+        localStorage.setItem('video-manually-positioned', JSON.stringify(true));
+      }
+    }
+  }, [mixerState, videoDisplayPosition.x, videoDisplayPosition.y, hasManuallyPositionedVideo]);
 
   // Handle video effect triggers
   const handleEffectStart = (fxType: VideoFXType) => {
@@ -217,6 +247,12 @@ export default function HomePage() {
         x: e.clientX - dragOffset.x,
         y: e.clientY - dragOffset.y
       });
+
+      // Mark as manually positioned when user drags
+      if (!hasManuallyPositionedVideo) {
+        setHasManuallyPositionedVideo(true);
+        localStorage.setItem('video-manually-positioned', JSON.stringify(true));
+      }
     };
 
     const handleMouseUp = () => {
@@ -232,7 +268,7 @@ export default function HomePage() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDraggingVideo, dragOffset]);
+  }, [isDraggingVideo, dragOffset, hasManuallyPositionedVideo]);
 
   // Handle card dragging (only from drag handle)
   const handleCardMouseDown = (e: React.MouseEvent, cardId: string, currentPosition: { x: number; y: number }) => {
