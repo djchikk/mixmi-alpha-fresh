@@ -130,6 +130,7 @@ export default function HomePage() {
   }>>([]);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
   // Track card position to prevent jumping when hovering over other nodes
   const [cardPosition, setCardPosition] = useState<{ x: number; y: number } | null>(null);
@@ -1168,6 +1169,8 @@ export default function HomePage() {
                 top: `${pinnedCard.position.y}px`,
                 zIndex: draggingCardId === pinnedCard.id ? 300 : 100
               }}
+              onMouseEnter={() => setHoveredCardId(pinnedCard.id)}
+              onMouseLeave={() => setHoveredCardId(null)}
             >
               <div className="bg-[#101726]/95 backdrop-blur-sm rounded-lg border border-[#81E4F2]/30 shadow-xl">
                 {/* Drag handle bar */}
@@ -1180,7 +1183,9 @@ export default function HomePage() {
                     <svg className="w-3 h-3 text-[#81E4F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
                     </svg>
-                    <span className="text-[#81E4F2] text-[10px] font-bold">DRAG TO MOVE</span>
+                    {hoveredCardId === pinnedCard.id && (
+                      <span className="text-[#81E4F2] text-[10px] font-bold">DRAG TO MOVE</span>
+                    )}
                     {isCluster && (
                       <span className="text-[#81E4F2]/70 text-[9px] font-bold flex items-center gap-1">
                         <Layers className="w-2.5 h-2.5" />
