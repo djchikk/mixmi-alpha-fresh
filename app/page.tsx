@@ -665,12 +665,15 @@ export default function HomePage() {
     setShowPreview(false);
     setPreviewNode(null);
 
+    // Check if this is a cluster node (cyan color #81E4F2 = multiple tracks)
+    const isCluster = isClusterNode(node);
+
     // Auto-pin the card at the click position (mousePosition is tracked globally)
     const newPinnedCard = {
       node,
       position: { x: mousePosition.x + 15, y: mousePosition.y + 15 }, // Offset slightly from cursor
       id: `pinned-${node.id}-${Date.now()}`,
-      isExpanded: false
+      isExpanded: isCluster // Cluster cards start expanded to show grid
     };
 
     setPinnedCards(prev => [...prev, newPinnedCard]);
