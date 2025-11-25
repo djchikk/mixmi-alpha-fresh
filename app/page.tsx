@@ -22,6 +22,11 @@ const GlobeTrackCard = dynamic(() => import('@/components/cards/GlobeTrackCard')
   ssr: false
 });
 
+// Dynamically import NodePreview - 60px cursor-follow preview
+const NodePreview = dynamic(() => import('@/components/globe/NodePreview'), {
+  ssr: false
+});
+
 // Dynamically import Globe to avoid SSR issues with Three.js
 const Globe = dynamic(() => import('@/components/globe/Globe'), {
   ssr: false,
@@ -85,6 +90,11 @@ export default function HomePage() {
   const [selectedNodeTags, setSelectedNodeTags] = useState<string[] | null>(null);
   const [centerTrackCard, setCenterTrackCard] = useState<any | null>(null); // For FILL button centered card
   const [fillAddedTrackIds, setFillAddedTrackIds] = useState<Set<string>>(new Set()); // Track IDs added by FILL
+
+  // Two-stage reveal system: 60px preview + 350ms dwell timer + full card
+  const [previewNode, setPreviewNode] = useState<TrackNode | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [dwellTimer, setDwellTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Widget visibility state - persisted in localStorage
   const [isMixerVisible, setIsMixerVisible] = useState(true); // Default
@@ -680,17 +690,38 @@ export default function HomePage() {
   const handleNodeHover = (node: TrackNode | null) => {
     setHoveredNode(node);
 
-    // Immediately show the card on hover (no more two-stage process)
-    if (node) {
-      setSelectedNode(node);
-      setCarouselPage(0); // Reset pagination for clusters
+    // Clear any existing dwell timer
+    if (dwellTimer) {
+      clearTimeout(dwellTimer);
+      setDwellTimer(null);
+    }
 
-      // Clear tags since card is now showing
-      setHoveredNodeTags(null);
-      setSelectedNodeTags(null);
+    if (node) {
+      // STAGE 1: Show 60px preview immediately
+      setPreviewNode(node);
+      setShowPreview(true);
+
+      // STAGE 2: Start dwell timer (350ms) to launch full card
+      const timer = setTimeout(() => {
+        console.log('🕒 Dwell timer complete - launching full card');
+        // Hide preview
+        setShowPreview(false);
+        setPreviewNode(null);
+
+        // Show full card
+        setSelectedNode(node);
+        setCarouselPage(0); // Reset pagination for clusters
+        setHoveredNodeTags(null);
+        setSelectedNodeTags(null);
+      }, 350);
+
+      setDwellTimer(timer);
     } else {
-      // When unhover, don't clear the selected node - let user dismiss it manually
+      // User moved away from node - hide preview, don't show card
+      setShowPreview(false);
+      setPreviewNode(null);
       setHoveredNodeTags(null);
+      // Don't clear selectedNode - let user dismiss it manually
     }
   };
 
@@ -874,6 +905,14 @@ export default function HomePage() {
       
       {/* Full viewport container with starry background */}
       <div className="fixed inset-0 top-[64px] bottom-0 bg-gradient-to-br from-[#151C2A] to-[#101726]">
+        {/* 60px cursor-follow preview - Stage 1 of two-stage reveal */}
+        <NodePreview
+          node={previewNode}
+          cursorX={mousePosition.x}
+          cursorY={mousePosition.y}
+          visible={showPreview}
+        />
+
         {/* Search component - upper left */}
         <GlobeSearch
           nodes={globeNodes}
