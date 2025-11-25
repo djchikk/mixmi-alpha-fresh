@@ -1205,13 +1205,13 @@ export default function HomePage() {
                           e.stopPropagation();
                           handleToggleExpanded(pinnedCard.id);
                         }}
-                        className="hover:bg-cyan-800/50 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-cyan-800/50 rounded-full p-1 transition-colors"
                         title={isExpanded ? "Collapse" : "Expand"}
                       >
                         {isExpanded ? (
-                          <ChevronUp className="w-3 h-3 text-cyan-300 hover:text-white" />
+                          <ChevronUp className="w-4 h-4 text-cyan-300 hover:text-white" strokeWidth={2.5} />
                         ) : (
-                          <ChevronDown className="w-3 h-3 text-cyan-300 hover:text-white" />
+                          <ChevronDown className="w-4 h-4 text-cyan-300 hover:text-white" strokeWidth={2.5} />
                         )}
                       </button>
                     )}
@@ -1222,9 +1222,9 @@ export default function HomePage() {
                         e.stopPropagation();
                         handleRemovePinnedCard(pinnedCard.id);
                       }}
-                      className="hover:bg-cyan-800/50 rounded-full p-0.5 transition-colors"
+                      className="hover:bg-cyan-800/50 rounded-full p-1 transition-colors"
                     >
-                      <X className="w-3 h-3 text-cyan-300 hover:text-white" />
+                      <X className="w-4 h-4 text-cyan-300 hover:text-white" strokeWidth={2.5} />
                     </button>
                   </div>
                   </div>
