@@ -55,6 +55,11 @@ const SimpleRadioPlayer = dynamic(() => import('@/components/SimpleRadioPlayer')
   ssr: false
 });
 
+// Dynamically import SimplePlaylistPlayer - simplified playlist UI
+const SimplePlaylistPlayer = dynamic(() => import('@/components/SimplePlaylistPlayer'), {
+  ssr: false
+});
+
 // Dynamically import VideoDisplayArea - video mixer display
 const VideoDisplayArea = dynamic(() => import('@/components/mixer/compact/VideoDisplayArea'), {
   ssr: false
@@ -1810,6 +1815,9 @@ export default function HomePage() {
 
       {/* Simple Radio Player - Always available, shows when station loaded */}
       <SimpleRadioPlayer />
+
+      {/* Simple Playlist Player - Always available, bottom-left corner */}
+      <SimplePlaylistPlayer />
     </>
   );
 }
