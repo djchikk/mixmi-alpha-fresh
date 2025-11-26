@@ -33,6 +33,8 @@ interface Track {
   };
   stream_url?: string;
   primary_location?: string;
+  ai_assisted_idea?: boolean;
+  ai_assisted_implementation?: boolean;
 }
 
 interface CertificateViewerProps {
@@ -128,6 +130,21 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   };
 
   const licenseInfo = getLicenseInfo();
+
+  const getAIContribution = () => {
+    const ideaAI = track.ai_assisted_idea || false;
+    const implAI = track.ai_assisted_implementation || false;
+
+    if (!ideaAI && !implAI) {
+      return '100% Human';
+    } else if (ideaAI && implAI) {
+      return 'AI-Assisted (Idea + Implementation)';
+    } else if (ideaAI) {
+      return 'AI-Assisted Idea';
+    } else {
+      return 'AI-Assisted Implementation';
+    }
+  };
 
   const getGenerationInfo = () => {
     // Radio stations don't have generations
@@ -353,6 +370,10 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
         <span class="info-label">Location:</span>
         <span class="info-value">${track.primary_location}</span>
       </div>` : ''}
+      ${track.content_type === 'video_clip' ? `<div class="info-row">
+        <span class="info-label">AI Contribution:</span>
+        <span class="info-value">${getAIContribution()}</span>
+      </div>` : ''}
       ${!isRadio && track.content_type !== 'video_clip' && track.bpm ? `<div class="info-row">
         <span class="info-label">BPM:</span>
         <span class="info-value">${track.bpm}</span>
@@ -530,6 +551,7 @@ Platform Price: ${licenseInfo.platformPrice}
 Download Price: ${licenseInfo.downloadPrice}
 
 Uploader Wallet: ${track.primary_uploader_wallet}
+${track.content_type === 'video_clip' ? `AI Contribution: ${getAIContribution()}` : ''}
 ${track.bpm && track.content_type !== 'video_clip' ? `BPM: ${track.bpm}` : ''}
 ${track.key ? `Key: ${track.key}` : ''}
 Price: ${track.price_stx} STX
@@ -638,6 +660,7 @@ mixmi.app • Discover • Mix • Create
                   <DetailRow label="Uploader" value={shortenWallet(track.primary_uploader_wallet)} />
                   {isRadio && track.stream_url && <DetailRow label="Stream URL" value={track.stream_url} />}
                   {isRadio && track.primary_location && <DetailRow label="Location" value={track.primary_location} />}
+                  {track.content_type === 'video_clip' && <DetailRow label="AI Contribution" value={getAIContribution()} />}
                   {!isRadio && track.content_type !== 'video_clip' && track.bpm && <DetailRow label="BPM" value={track.bpm.toString()} />}
                   {!isRadio && track.key && <DetailRow label="Key" value={track.key} />}
                   {!isRadio && <DetailRow label="Price" value={`${track.price_stx} STX`} />}
