@@ -74,7 +74,21 @@ function DraggableTrack({
           className="crate-track-image"
           draggable={false} // Prevent native image drag
         />
-        <div 
+
+        {/* Pack position badge - top left */}
+        {track.pack_position && (
+          <div
+            className="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded text-[9px] font-bold flex items-center justify-center pointer-events-none z-10"
+            style={{
+              backgroundColor: track.content_type === 'radio_station' ? '#FB923C' : '#9772F4',
+              color: '#FFFFFF'
+            }}
+          >
+            {track.pack_position}
+          </div>
+        )}
+
+        <div
           className="absolute bottom-1 right-1 bg-black/70 px-1 py-0.5 rounded text-[10px] text-white/90 font-mono"
         >
           {track.bpm}
