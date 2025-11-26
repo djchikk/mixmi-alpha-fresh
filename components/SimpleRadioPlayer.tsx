@@ -56,12 +56,14 @@ export default function SimpleRadioPlayer() {
           setIsExpanded(true);
 
           if (audioRef.current) {
-            const audioSource = firstStation.stream_url || firstStation.audio_url;
-            if (!audioSource) {
+            const rawStreamUrl = firstStation.stream_url || firstStation.audio_url;
+            if (!rawStreamUrl) {
               console.error('📻 SimpleRadioPlayer: No audio source found for station!', firstStation);
               return;
             }
 
+            // Proxy radio streams through API to avoid CORS issues
+            const audioSource = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
             audioRef.current.src = audioSource;
             audioRef.current.load();
 
@@ -85,12 +87,14 @@ export default function SimpleRadioPlayer() {
         setIsExpanded(true); // Auto-expand when loading from card
 
         if (audioRef.current) {
-          const audioSource = track.stream_url || track.audio_url;
-          if (!audioSource) {
+          const rawStreamUrl = track.stream_url || track.audio_url;
+          if (!rawStreamUrl) {
             console.error('📻 SimpleRadioPlayer: No audio source found!', track);
             return;
           }
 
+          // Proxy radio streams through API to avoid CORS issues
+          const audioSource = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
           audioRef.current.src = audioSource;
           audioRef.current.load();
 
