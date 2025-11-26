@@ -135,14 +135,13 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     const ideaAI = track.ai_assisted_idea || false;
     const implAI = track.ai_assisted_implementation || false;
 
+    // Match the logic from aiAssistanceUtils.ts
     if (!ideaAI && !implAI) {
       return '100% Human';
     } else if (ideaAI && implAI) {
-      return 'AI-Assisted (Idea + Implementation)';
-    } else if (ideaAI) {
-      return 'AI-Assisted Idea';
+      return 'AI-Generated';
     } else {
-      return 'AI-Assisted Implementation';
+      return 'AI-Assisted';
     }
   };
 
