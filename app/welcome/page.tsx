@@ -79,186 +79,34 @@ export default function Welcome() {
             welcome to mixmi alpha
           </h1>
           <p className="text-[#a8b2c3] text-lg max-w-2xl mx-auto">
-            Hey friends! You're the first to populate a world of infinite remix, 
+            Hey friends! You're the first to populate a world of infinite remix,
             where you own your distribution and every collaboration gets proper credit.
           </p>
         </div>
 
-        {/* What's Live Section */}
-        <div className="section-card mb-16" style={{
-          background: 'rgba(20, 25, 39, 0.6)',
-          border: '1px solid rgba(129, 228, 242, 0.1)',
-          borderRadius: '16px',
-          padding: '40px',
-          backdropFilter: 'blur(10px)',
+        {/* Feature Overview - Clean & Minimal */}
+        <div className="max-w-2xl mx-auto mb-16" style={{
           position: 'relative',
           zIndex: 1
         }}>
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-6" style={{ fontSize: '2rem', fontWeight: '600', color: '#e1e5f0' }}>
-              What's Live
+          {/* Globe Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              The Globe
             </h2>
-
-            <div className="text-left max-w-3xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">🌍</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Globe Browser with Tiny Mixer</h3>
-                    <p className="text-[#a8b2c3]">Discover sounds pinned anywhere on Earth and mix loops in the tiny DJ mixer. Launch playlist and radio widgets, search content, and fully functional shopping cart</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">🎛️</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Big Mixer with Recording</h3>
-                    <p className="text-[#a8b2c3]">Dual decks with waveform displays, BPM sync, crossfader, EQ, FX, gate effects, keyboard shortcuts, and live mix recording - built for extended sessions</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">💰</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">STX Payments & Smart Contracts</h3>
-                    <p className="text-[#a8b2c3]">Buy and sell with real on-chain transactions - automatic payment splits for all collaborators</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">🔗</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Remix Tracking & Lineage</h3>
-                    <p className="text-[#a8b2c3]">Every remix traces its parent loops - Gen 0 loops and Gen 1 remixes with full attribution</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">🏪</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Creator Stores</h3>
-                    <p className="text-[#a8b2c3]">Your own music marketplace for loops, loop packs, songs, EPs, and remixes</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">👤</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Artist Profiles</h3>
-                    <p className="text-[#a8b2c3]">Customizable showcases for creators with social links and bio</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">⚙️</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Account Management</h3>
-                    <p className="text-[#a8b2c3]">View and edit all your uploads, access certificates, and manage account settings</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">⏺️</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Mix Recording</h3>
-                    <p className="text-[#a8b2c3]">Record your live DJ mixes in the Big Mixer and download them as audio files</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg md:col-span-2">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">📻</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Playlist Streaming & Radio</h3>
-                    <p className="text-[#a8b2c3]">Compile playlists and stream previews in the player widget. Radio mode continuously plays random content from the database</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">📻</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Live Radio Integrations</h3>
-                    <p className="text-[#a8b2c3]">Partner stations streaming directly through the globe</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#81E4F2] text-lg mt-0.5">📻</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Simplified Radio Player</h3>
-                    <p className="text-[#a8b2c3]">Persistent radio player with drag & drop support for stations and packs - auto-unpacks station packs to your crate</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <p className="text-[#a8b2c3] text-sm leading-relaxed" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              Discover music from creators worldwide. Browse sounds pinned to Earth's surface, preview tracks instantly, and add them to your crate. The globe is your gateway to the mixmi community.
+            </p>
           </div>
-        </div>
 
-        {/* Coming Soon Section */}
-        <div className="section-card mb-16" style={{
-          background: 'rgba(20, 25, 39, 0.6)',
-          border: '1px solid rgba(129, 228, 242, 0.1)',
-          borderRadius: '16px',
-          padding: '40px',
-          backdropFilter: 'blur(10px)',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-6" style={{ fontSize: '2rem', fontWeight: '600', color: '#e1e5f0' }}>
-              Coming Soon
+          {/* Universal Mixer Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              Universal Mixer
             </h2>
-
-            <div className="max-w-3xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">🎖️</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">On-Chain Certification</h3>
-                    <p className="text-[#a8b2c3]">Downloadable certificates with permanent proof of ownership and splits</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">🎵</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Gen 2 Remixes</h3>
-                    <p className="text-[#a8b2c3]">Remix the remixes - deeper collaboration trees with managed attribution</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">🌟</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Production Content Migration</h3>
-                    <p className="text-[#a8b2c3]">Test content will be replaced with curated professional loops and tracks</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">💎</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Playlist Curation Earnings</h3>
-                    <p className="text-[#a8b2c3]">Earn through curation - create and share playlists that connect listeners with great music</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">💰</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Streaming Earnings</h3>
-                    <p className="text-[#a8b2c3]">Monetized streaming for full tracks and playlists - artists earn when listeners stream their complete works</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-[rgba(20,25,39,0.4)] border border-[rgba(129,228,242,0.2)] rounded-lg">
-                  <span className="text-[#9772F4] text-lg mt-0.5">🎵</span>
-                  <div>
-                    <h3 className="text-[#e1e5f0] font-semibold mb-1">Full Song Playback in Mixer</h3>
-                    <p className="text-[#a8b2c3]">Mix complete songs and EPs in the DJ decks - currently supports 8-bar loops and radio stations</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <p className="text-[#a8b2c3] text-sm leading-relaxed" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              Mix loops in real-time with the compact mixer below the globe. Dual decks, crossfader, and EQ controls. Drop tracks from the crate, blend seamlessly, and create something new.
+            </p>
           </div>
         </div>
 
