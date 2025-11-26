@@ -545,7 +545,7 @@ export default function Header() {
                     </div>
                     <div className="text-center">
                       <h3 className="text-xl font-bold text-white mb-2">Video</h3>
-                      <p className="text-sm text-gray-400">Upload video clips</p>
+                      <p className="text-sm text-gray-400">Upload 5 second video clips</p>
                     </div>
                   </div>
                 </button>
