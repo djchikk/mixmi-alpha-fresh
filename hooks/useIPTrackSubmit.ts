@@ -45,6 +45,11 @@ interface SubmitFormData {
   allow_downloads: boolean;
   open_to_commercial: boolean;
   open_to_collaboration: boolean;
+  // AI Assistance tracking
+  ai_assisted_idea?: boolean;
+  ai_assisted_implementation?: boolean;
+  // Audio source tracking (for video clips)
+  audio_source?: 'included' | 'silent' | 'separate';
   price_stx: number;
   remix_price: number;
   combined_price: number;
@@ -491,6 +496,13 @@ export function useIPTrackSubmit({
         open_to_commercial: formData.open_to_commercial,
         open_to_collaboration: formData.open_to_collaboration,
         // Removed agree_* fields - not in current database schema
+
+        // AI Assistance tracking
+        ai_assisted_idea: formData.ai_assisted_idea ?? false,
+        ai_assisted_implementation: formData.ai_assisted_implementation ?? false,
+
+        // Audio source tracking (for video clips)
+        audio_source: formData.audio_source || 'included',
 
         // NEW PRICING MODEL (separate remix and download pricing)
         // Songs/EPs: Only download price (no remix)

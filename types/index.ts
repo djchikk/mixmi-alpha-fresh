@@ -103,6 +103,9 @@ export interface IPTrack {
   ai_assisted_idea?: boolean; // AI used in concept, direction, creative ideas
   ai_assisted_implementation?: boolean; // AI used in production, editing, technical execution
 
+  // Audio source tracking (for video clips - enables future modular audio IP)
+  audio_source?: 'included' | 'silent' | 'separate'; // included = audio inherits video IP (default for 5-sec clips)
+
   // Pricing fields
   price_stx?: number; // Legacy combined price (kept for backward compatibility)
   remix_price_stx?: number; // Price to use this loop in a remix (default 1 STX per loop, 0 for free)

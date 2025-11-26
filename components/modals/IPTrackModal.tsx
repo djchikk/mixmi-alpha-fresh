@@ -1448,6 +1448,17 @@ export default function IPTrackModal({
         </div>
       </div>
 
+      {/* Audio IP Policy for Video Clips */}
+      {formData.content_type === 'video_clip' && (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mt-4">
+          <p className="text-sm text-gray-300 leading-relaxed">
+            <span className="font-semibold text-white">Audio IP Policy:</span> Audio included in video clips inherits the video's IP attribution.
+            Audio must be 100% human-created (original recording, licensed sample, or public domain).
+            No AI-generated music allowed.
+          </p>
+        </div>
+      )}
+
     </div>
   );
 

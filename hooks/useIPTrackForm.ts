@@ -54,7 +54,14 @@ interface IPTrackFormData {
   allow_downloads: boolean;
   open_to_commercial: boolean;
   open_to_collaboration: boolean;
-  
+
+  // AI Assistance tracking
+  ai_assisted_idea: boolean;
+  ai_assisted_implementation: boolean;
+
+  // Audio source tracking (for video clips)
+  audio_source: 'included' | 'silent' | 'separate';
+
   // Pricing
   price_stx: number;
   remix_price: number;
@@ -178,6 +185,9 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     // AI Assistance tracking
     ai_assisted_idea: track?.ai_assisted_idea ?? false,
     ai_assisted_implementation: track?.ai_assisted_implementation ?? false,
+
+    // Audio source tracking (for video clips)
+    audio_source: (track as any)?.audio_source || 'included',
 
     // Pricing
     price_stx: track?.price_stx || 0,
