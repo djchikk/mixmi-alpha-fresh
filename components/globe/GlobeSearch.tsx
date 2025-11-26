@@ -19,6 +19,7 @@ const FILTER_TYPES = [
   { id: 'loop_pack', label: 'Loop Packs' },
   { id: 'ep', label: 'EPs' },
   { id: 'songs', label: 'Songs' },
+  { id: 'videos', label: 'Videos' }, // NEW: For video clips!
   { id: 'radio', label: 'Radio' }, // NEW: For radio stations!
   { id: 'instrumental', label: 'Instrumental' },
   { id: 'beats', label: 'Beats' },
@@ -187,6 +188,7 @@ export default function GlobeSearch({
         if (activeFilters.has('loop_pack') && track.content_type === 'loop_pack') return true;
         if (activeFilters.has('ep') && track.content_type === 'ep') return true;
         if (activeFilters.has('songs') && track.content_type === 'full_song') return true;
+        if (activeFilters.has('videos') && track.content_type === 'video_clip') return true;
         if (activeFilters.has('radio') && track.content_type === 'radio_station') return true;
         if (activeFilters.has('instrumental') && tags.includes('instrumental')) return true;
         if (activeFilters.has('beats') && tags.includes('beats')) return true;
