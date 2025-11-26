@@ -226,13 +226,18 @@ export default function HomePage() {
   };
 
   // Handle video display dragging
-  const handleVideoMouseDown = (e: React.MouseEvent) => {
+  const handleVideoMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     // Allow dragging from anywhere in the video container
     // (VideoControlPanel will stopPropagation to prevent dragging from buttons)
+
+    // Get actual rendered position to calculate offset correctly
+    // (handles centered position with transform vs absolute positioning)
+    const rect = e.currentTarget.getBoundingClientRect();
+
     setIsDraggingVideo(true);
     setDragOffset({
-      x: e.clientX - videoDisplayPosition.x,
-      y: e.clientY - videoDisplayPosition.y
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
     });
   };
 
