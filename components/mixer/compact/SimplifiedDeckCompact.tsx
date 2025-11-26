@@ -253,7 +253,6 @@ export default function SimplifiedDeckCompact({
                   src={(currentTrack as any).video_url}
                   className="w-full h-full object-cover"
                   loop
-                  muted
                   playsInline
                 />
               ) : (

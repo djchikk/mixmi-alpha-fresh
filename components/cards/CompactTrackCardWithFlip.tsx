@@ -432,7 +432,6 @@ export default function CompactTrackCardWithFlip({
                     }}
                     src={(track as any).video_url}
                     className="absolute inset-0 w-full h-full object-cover"
-                    muted
                     playsInline
                     onEnded={() => setIsVideoPlaying(false)}
                   />

@@ -34,7 +34,6 @@ export default function GalleryCard({ item, onEdit, onDelete }: GalleryCardProps
               className="w-full h-full object-cover"
               autoPlay
               loop
-              muted
               playsInline
               onError={() => console.warn('Failed to load gallery video:', item.image)}
             />

@@ -23,6 +23,7 @@ interface Track {
   cover_image_url: string;
   audio_url?: string;
   stream_url?: string;
+  video_url?: string;
   content_type: string;
   price_stx: number;
   bpm?: number;
@@ -480,6 +481,8 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [detailsTrack, setDetailsTrack] = useState<Track | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   const handleEditClick = (track: Track, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -513,6 +516,29 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
 
   const handlePlayClick = (track: Track, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Handle video clips differently - play inline
+    if (track.content_type === 'video_clip' && track.video_url) {
+      if (isVideoPlaying && videoElement && playingTrackId === track.id) {
+        // Pause video
+        videoElement.pause();
+        setIsVideoPlaying(false);
+        setPlayingTrackId(null);
+      } else {
+        // Stop any previous video
+        if (videoElement) {
+          videoElement.pause();
+        }
+        // Stop any audio
+        if (audioElement) {
+          audioElement.pause();
+        }
+        // Play video - will be handled by video element ref
+        setIsVideoPlaying(true);
+        setPlayingTrackId(track.id);
+      }
+      return;
+    }
 
     if (playingTrackId === track.id) {
       // Pause current track
@@ -559,6 +585,28 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
       }
     };
   }, [audioElement]);
+
+  // Video playback auto-stop after 20 seconds
+  useEffect(() => {
+    if (isVideoPlaying && videoElement) {
+      const timer = setTimeout(() => {
+        videoElement.pause();
+        setIsVideoPlaying(false);
+        setPlayingTrackId(null);
+      }, 20000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isVideoPlaying, videoElement]);
+
+  // Cleanup video on unmount
+  useEffect(() => {
+    return () => {
+      if (videoElement) {
+        videoElement.pause();
+      }
+    };
+  }, [videoElement]);
 
   // Get border color based on content type
   const getBorderColor = (track: Track) => {
@@ -607,6 +655,25 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
 
+                  {/* Video Player Overlay - only for video_clip content */}
+                  {track.content_type === 'video_clip' && track.video_url && isVideoPlaying && playingTrackId === track.id && (
+                    <video
+                      ref={(el) => {
+                        setVideoElement(el);
+                        if (el && isVideoPlaying) {
+                          el.play().catch(err => console.error('Video play error:', err));
+                        }
+                      }}
+                      src={track.video_url}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      playsInline
+                      onEnded={() => {
+                        setIsVideoPlaying(false);
+                        setPlayingTrackId(null);
+                      }}
+                    />
+                  )}
+
                   {/* Hover Overlay - Exact same pattern as store cards */}
                   <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2 animate-fadeIn opacity-0 group-hover:opacity-100 transition-opacity">
                     {/* Top Section: Title, Artist (full width) */}
@@ -644,12 +711,12 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
 
                     {/* Center: Play Button - Absolutely centered */}
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                      {(track.audio_url || track.stream_url) && (
+                      {(track.audio_url || track.stream_url || (track.content_type === 'video_clip' && track.video_url)) && (
                         <button
                           onClick={(e) => handlePlayClick(track, e)}
                           className="transition-all hover:scale-110"
                         >
-                          {playingTrackId === track.id ? (
+                          {playingTrackId === track.id && (isVideoPlaying || !track.video_url) ? (
                             <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                             </svg>
