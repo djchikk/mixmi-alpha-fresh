@@ -10,7 +10,9 @@ import IPTrackModal from "@/components/modals/IPTrackModal";
 import RadioStationModal from "@/components/modals/RadioStationModal";
 import TrackDetailsModal from "@/components/modals/TrackDetailsModal";
 import EditOptionsModal from "@/components/modals/EditOptionsModal";
+import ContentTypeSelector from "@/components/modals/ContentTypeSelector";
 import InfoIcon from "@/components/shared/InfoIcon";
+import { Plus } from 'lucide-react';
 
 type Tab = "uploads" | "history" | "settings";
 
@@ -49,6 +51,12 @@ export default function AccountPage() {
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>('');
+
+  // Upload modal states (separate from editing modals)
+  const [isContentTypeSelectorOpen, setIsContentTypeSelectorOpen] = useState(false);
+  const [isMusicUploadModalOpen, setIsMusicUploadModalOpen] = useState(false);
+  const [isRadioUploadModalOpen, setIsRadioUploadModalOpen] = useState(false);
+  const [isVideoUploadModalOpen, setIsVideoUploadModalOpen] = useState(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -226,6 +234,17 @@ export default function AccountPage() {
               </h1>
               <p className="text-gray-400 mt-1">Manage your uploads, certificates, and settings</p>
             </div>
+          </div>
+
+          {/* Upload Content Button */}
+          <div className="flex justify-start mb-6">
+            <button
+              onClick={() => setIsContentTypeSelectorOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
+            >
+              <Plus size={18} />
+              <span>Upload Content</span>
+            </button>
           </div>
 
           {/* Content Filters */}
@@ -406,6 +425,47 @@ export default function AccountPage() {
           onClose={() => setSelectedTrack(null)}
         />
       )}
+
+      {/* Content Type Selector for Upload */}
+      <ContentTypeSelector
+        isOpen={isContentTypeSelectorOpen}
+        onClose={() => setIsContentTypeSelectorOpen(false)}
+        onSelectMusic={() => {
+          setIsContentTypeSelectorOpen(false);
+          setIsMusicUploadModalOpen(true);
+        }}
+        onSelectRadio={() => {
+          setIsContentTypeSelectorOpen(false);
+          setIsRadioUploadModalOpen(true);
+        }}
+        onSelectVideo={() => {
+          setIsContentTypeSelectorOpen(false);
+          setIsVideoUploadModalOpen(true);
+        }}
+      />
+
+      {/* Music Upload Modal */}
+      <IPTrackModal
+        isOpen={isMusicUploadModalOpen}
+        onClose={() => setIsMusicUploadModalOpen(false)}
+        onUploadComplete={fetchTracks}
+        contentCategory="music"
+      />
+
+      {/* Radio Station Upload Modal */}
+      <RadioStationModal
+        isOpen={isRadioUploadModalOpen}
+        onClose={() => setIsRadioUploadModalOpen(false)}
+        onUploadComplete={fetchTracks}
+      />
+
+      {/* Video Clip Upload Modal */}
+      <IPTrackModal
+        isOpen={isVideoUploadModalOpen}
+        onClose={() => setIsVideoUploadModalOpen(false)}
+        onSave={fetchTracks}
+        contentCategory="visual"
+      />
     </>
   );
 }
