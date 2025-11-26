@@ -997,8 +997,8 @@ export default function IPTrackModal({
             </>
           )}
 
-          {/* Visual content types - show when category is 'visual' or undefined (default/legacy) */}
-          {(!contentCategory || contentCategory === 'visual') && (
+          {/* Visual content types - show ONLY when category is 'visual' */}
+          {(contentCategory === 'visual') && (
             <>
               {/* Video Clip - Permanently ON until still images are added */}
               <button
