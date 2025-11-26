@@ -853,7 +853,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
               onSave={handleEditComplete}
             />
           ) : (
-            /* Show IPTrackModal for other content types */
+            /* Show IPTrackModal for music and video content types */
             <IPTrackModal
               isOpen={isEditModalOpen}
               onClose={() => {
@@ -862,6 +862,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
               }}
               track={editingTrack as any}
               onSave={handleEditComplete}
+              contentCategory={editingTrack.content_type === 'video_clip' ? 'visual' : 'music'}
             />
           )}
         </>
