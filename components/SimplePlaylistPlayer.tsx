@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ListMusic, Play, Pause, Volume2, VolumeX, X, GripVertical, Trash2 } from 'lucide-react';
 import { useDrag, useDrop } from 'react-dnd';
+import type { Identifier } from 'dnd-core';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import { supabase } from '@/lib/supabase';
@@ -238,6 +239,22 @@ export default function SimplePlaylistPlayer() {
     }
   };
 
+  const moveTrack = (fromIndex: number, toIndex: number) => {
+    const newPlaylist = [...playlist];
+    const [moved] = newPlaylist.splice(fromIndex, 1);
+    newPlaylist.splice(toIndex, 0, moved);
+    setPlaylist(newPlaylist);
+
+    // Adjust current index if needed
+    if (currentIndex === fromIndex) {
+      setCurrentIndex(toIndex);
+    } else if (fromIndex < currentIndex && toIndex >= currentIndex) {
+      setCurrentIndex(prev => prev - 1);
+    } else if (fromIndex > currentIndex && toIndex <= currentIndex) {
+      setCurrentIndex(prev => prev + 1);
+    }
+  };
+
   const clearPlaylist = () => {
     setPlaylist([]);
     setCurrentIndex(-1);
@@ -316,42 +333,18 @@ export default function SimplePlaylistPlayer() {
               </div>
             ) : (
               playlist.map((track, index) => (
-                <div
+                <PlaylistTrackItem
                   key={`${track.id}-${index}`}
-                  className={`flex items-center gap-2 p-1.5 rounded mb-1 bg-slate-800/30 hover:bg-slate-800/50 transition-colors ${
-                    isPlaying && index === currentIndex ? 'ring-1 ring-cyan-400' : ''
-                  }`}
-                >
-                  {/* Album art */}
-                  <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0">
-                    <img
-                      src={getOptimizedTrackImage({ cover_image_url: track.imageUrl } as any, 32)}
-                      alt={track.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Track info - clickable to play */}
-                  <button
-                    onClick={() => {
-                      setCurrentIndex(index);
-                      setIsPlaying(true);
-                    }}
-                    className="flex-1 min-w-0 text-left"
-                  >
-                    <div className="text-xs text-white truncate">{track.title}</div>
-                    <div className="text-[10px] text-gray-500 truncate">{track.artist}</div>
-                  </button>
-
-                  {/* Remove button */}
-                  <button
-                    onClick={() => removeTrack(index)}
-                    className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
-                    title="Remove"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
+                  track={track}
+                  index={index}
+                  isPlaying={isPlaying && index === currentIndex}
+                  onPlay={() => {
+                    setCurrentIndex(index);
+                    setIsPlaying(true);
+                  }}
+                  onRemove={() => removeTrack(index)}
+                  moveTrack={moveTrack}
+                />
               ))
             )}
           </div>
@@ -500,3 +493,115 @@ export default function SimplePlaylistPlayer() {
     </div>
   );
 }
+
+// Draggable/Droppable playlist item component
+interface PlaylistTrackItemProps {
+  track: PlaylistTrack;
+  index: number;
+  isPlaying: boolean;
+  onPlay: () => void;
+  onRemove: () => void;
+  moveTrack: (fromIndex: number, toIndex: number) => void;
+}
+
+const PlaylistTrackItem: React.FC<PlaylistTrackItemProps> = ({
+  track,
+  index,
+  isPlaying,
+  onPlay,
+  onRemove,
+  moveTrack
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Drag for both reordering within playlist AND dragging to external targets (Crate, Mixer, etc)
+  const [{ isDragging }, drag] = useDrag({
+    type: 'COLLECTION_TRACK',
+    item: () => ({
+      track: {
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        imageUrl: track.imageUrl,
+        cover_image_url: track.imageUrl,
+        audioUrl: track.audioUrl,
+        audio_url: track.audioUrl,
+        content_type: track.content_type
+      },
+      sourceIndex: index,
+      fromPlaylist: true // Flag to identify playlist items for reordering
+    }),
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging()
+    })
+  });
+
+  // Drop zone for reordering within playlist
+  const [{ handlerId }, drop] = useDrop<
+    { track?: any; sourceIndex?: number; fromPlaylist?: boolean },
+    void,
+    { handlerId: Identifier | null }
+  >({
+    accept: 'COLLECTION_TRACK',
+    collect(monitor) {
+      return {
+        handlerId: monitor.getHandlerId(),
+      };
+    },
+    hover(item: { track?: any; sourceIndex?: number; fromPlaylist?: boolean }) {
+      if (!ref.current) {
+        return;
+      }
+
+      // Only reorder if it's from the same playlist and has a valid index
+      if (item.fromPlaylist && item.sourceIndex !== undefined && item.sourceIndex !== index) {
+        moveTrack(item.sourceIndex, index);
+        item.sourceIndex = index;
+      }
+    },
+  });
+
+  drag(drop(ref));
+
+  return (
+    <div
+      ref={ref}
+      data-handler-id={handlerId}
+      className={`flex items-center gap-2 p-1.5 rounded mb-1 bg-slate-800/30 hover:bg-slate-800/50 transition-colors cursor-move ${
+        isDragging ? 'opacity-50' : ''
+      } ${isPlaying ? 'ring-1 ring-cyan-400' : ''}`}
+    >
+      {/* Reorder handle */}
+      <div className="cursor-move">
+        <GripVertical className="w-3 h-3 text-gray-600" />
+      </div>
+
+      {/* Album art */}
+      <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0">
+        <img
+          src={getOptimizedTrackImage({ cover_image_url: track.imageUrl } as any, 32)}
+          alt={track.title}
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* Track info - clickable to play */}
+      <button
+        onClick={onPlay}
+        className="flex-1 min-w-0 text-left"
+      >
+        <div className="text-xs text-white truncate">{track.title}</div>
+        <div className="text-[10px] text-gray-500 truncate">{track.artist}</div>
+      </button>
+
+      {/* Remove button */}
+      <button
+        onClick={onRemove}
+        className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
+        title="Remove"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+};
