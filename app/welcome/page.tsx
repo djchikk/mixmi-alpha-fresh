@@ -53,7 +53,7 @@ export default function Welcome() {
             left: '0',
             width: '100vw',
             height: '100vh',
-            opacity: 0.40,
+            opacity: 0.15,
             pointerEvents: 'none',
             zIndex: 0
           }}
@@ -104,8 +104,48 @@ export default function Welcome() {
             <h2 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-geist-mono)' }}>
               Universal Mixer
             </h2>
-            <p className="text-[#a8b2c3] text-sm leading-relaxed" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+            <p className="text-[#a8b2c3] text-sm leading-relaxed mb-4" style={{ fontFamily: 'var(--font-geist-mono)' }}>
               Mix loops in real-time with the compact mixer below the globe. Dual decks, crossfader, and EQ controls. Drop tracks from the crate, blend seamlessly, and create something new.
+            </p>
+
+            {/* Content Types */}
+            <div className="mt-4 space-y-2">
+              <p className="text-[#a8b2c3] text-xs mb-2" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+                Mix any combination of content types:
+              </p>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#9772F4' }}></div>
+                  <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Loops</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FB923C' }}></div>
+                  <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Radio Stations</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FFE4B5' }}></div>
+                  <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Songs</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#2792F5' }}></div>
+                  <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Videos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Coming Soon */}
+        <div className="max-w-2xl mx-auto mb-16" style={{
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              Coming Soon
+            </h2>
+            <p className="text-[#a8b2c3] text-sm leading-relaxed" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              Quick video guides dropping soon to help you upload, mix, and vibe with the community. Stay tuned!
             </p>
           </div>
         </div>
