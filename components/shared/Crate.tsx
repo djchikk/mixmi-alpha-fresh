@@ -106,7 +106,8 @@ function ExpandedPackTrack({
         notes: packTrack.notes, // Include notes for CC text overlay
         content_type: packTrack.content_type,
         price_stx: packTrack.price_stx,
-        license: packTrack.license
+        license: packTrack.license,
+        pack_position: packTrack.pack_position // Preserve pack position for numbered badges
       },
       sourceIndex: -1
     }),
