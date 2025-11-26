@@ -131,7 +131,8 @@ export default function DeckCrate({ deck, currentTrack, loading = false, classNa
         cover_image_url: item.track.cover_image_url || item.track.imageUrl, // Use original high-res URL
         audio_url: item.track.audioUrl,
         bpm: item.track.bpm,
-        content_type: 'loop' as const
+        content_type: 'loop' as const,
+        pack_position: item.track.pack_position // Preserve pack position for numbered badges
       };
 
       // Add to this crate (displacing last if full)
