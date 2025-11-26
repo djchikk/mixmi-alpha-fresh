@@ -1137,3 +1137,224 @@ Final Result:
 ---
 
 *Documentation by Claude Code - Video integration complete, button standardization achieved, content-type color theming implemented. Production-ready mixer with professional polish.*
+
+---
+
+## Session: November 25, 2025
+
+**Focus:** Complete drag symmetry, critical bug fixes, and alpha readiness
+
+### 🔄 Complete Drag Symmetry Achievement
+
+**What We Built:**
+The missing piece: drag-to-reorder within SimplePlaylistPlayer + bidirectional drag support.
+
+**Implementation:**
+- Created `PlaylistTrackItem` component with dual drag/drop capabilities
+- `useDrag` exports as `COLLECTION_TRACK` type (for dragging TO external targets)
+- `useDrop` accepts `COLLECTION_TRACK` type (for reordering WITHIN playlist)
+- Added `fromPlaylist` flag to distinguish internal vs external drags
+- Hover-based reordering with smart currentIndex adjustment
+- GripVertical icon for visual drag affordance
+
+**File Modified:**
+- `components/SimplePlaylistPlayer.tsx` (lines 11-20, 104-113, 125-134, 523-545)
+
+**Result:**
+```
+✅ Globe → Crate/Playlist/Decks
+✅ Crate → Playlist/Decks
+✅ Playlist → Crate/Decks (NEW!) + internal reordering (NEW!)
+✅ Decks → Playlist/Crate
+✅ Collections → Playlist/Decks/Crate
+```
+
+**Complete bidirectional drag flow achieved across entire platform.**
+
+---
+
+### 🐛 Critical Bug Fixes
+
+**1. BPM Not Preserved from Playlist to Decks**
+
+**Issue:** Dragging loops with BPM from playlist to mixer would lose BPM value.
+
+**Root Cause:** `PlaylistTrack` interface didn't include `bpm` field.
+
+**Fix:**
+```typescript
+// Added to interface (line 18)
+bpm?: number;
+
+// Preserved when adding tracks (lines 110, 132)
+bpm: t.bpm
+
+// Included in drag export (line 536)
+bpm: track.bpm
+```
+
+**File:** `components/SimplePlaylistPlayer.tsx`
+
+**Result:** BPM now flows correctly: Globe → Playlist → Mixer Decks
+
+---
+
+**2. Radio Stations Lose stream_url in Playlist**
+
+**Issue:** Radio stations from playlist wouldn't play when dropped on mixer, but worked fine from crate.
+
+**Root Cause:** Playlist wasn't preserving `stream_url` field that radio stations need.
+
+**Discovery:** Crate explicitly includes `stream_url`, playlist was stripping it out.
+
+**Fix:**
+```typescript
+// Added to interface (line 19)
+stream_url?: string;
+
+// Preserved when adding (lines 109, 130)
+audioUrl: t.audio_url || t.stream_url,
+stream_url: t.stream_url
+
+// Included in drag export (line 537)
+stream_url: track.stream_url
+```
+
+**File:** `components/SimplePlaylistPlayer.tsx`
+
+**Result:** Radio stations maintain streaming URL through entire data flow.
+
+---
+
+**3. CORS Blocking Radio Player in Production**
+
+**Issue:** Eritrean radio station (and others) worked in mixer but not radio player when deployed.
+
+**Root Cause:**
+- Mixer uses `/api/radio-proxy` to bypass CORS
+- Radio player connected directly to stream URLs
+- Works on localhost (no CORS) but fails in production
+
+**Fix:**
+```typescript
+// Before (direct connection - CORS blocked):
+audioRef.current.src = firstStation.stream_url;
+
+// After (proxied through API - works everywhere):
+const rawStreamUrl = firstStation.stream_url || firstStation.audio_url;
+const audioSource = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+audioRef.current.src = audioSource;
+```
+
+**File:** `components/SimpleRadioPlayer.tsx` (lines 59-67, 90-98)
+
+**Result:** All radio stations now work consistently in both mixer and radio player, on localhost and production.
+
+---
+
+### 📝 Git Commits
+
+1. **feat: Add drag-to-reorder and complete drag symmetry to SimplePlaylistPlayer**
+   - Drag handle with GripVertical icon
+   - Reorder within playlist
+   - Drag to/from external components
+   - Complete bidirectional flow
+
+2. **fix: Preserve BPM when dragging tracks from playlist to decks**
+   - Add bpm field to PlaylistTrack interface
+   - Preserve BPM through all data flows
+   - Enable deck sync features with playlist tracks
+
+3. **fix: Preserve stream_url for radio stations in playlist**
+   - Add stream_url field to PlaylistTrack interface
+   - Include stream_url in audioUrl fallback chain
+   - Fix edge case: radio + loop from playlist
+
+4. **fix: Route radio streams through proxy to fix CORS issues in production**
+   - Apply same proxy approach mixer uses
+   - All radio streams now route through `/api/radio-proxy`
+   - Consistent behavior across components
+
+---
+
+### 🎯 Alpha Readiness Milestone
+
+**Platform State:**
+- ✅ Complete drag symmetry across all components
+- ✅ Radio streaming works everywhere (localhost + production)
+- ✅ BPM preservation through entire data pipeline
+- ✅ Playlist fully functional with reordering
+- ✅ No critical bugs blocking user workflows
+
+**Technical Completeness:**
+- ✅ UniversalMixer with video, radio, loops, songs
+- ✅ SimplePlaylistPlayer with full drag support
+- ✅ SimpleRadioPlayer with CORS proxy
+- ✅ Crate with pack unpacking
+- ✅ Globe with track discovery
+- ✅ Collections with attribution tracking
+
+**User Reaction:**
+> "YESSS!! that fixed it THANK YOU! wow, I'm In a state of shock because we have achieved a huge goal, and things are in good shape to start adding the alpha users in. This is quite momentous."
+
+---
+
+### 🔍 Technical Insights for Future Claude
+
+**Drag Symmetry Pattern:**
+When implementing drag between components, ensure:
+1. Both `useDrag` and `useDrop` use same type (`COLLECTION_TRACK`)
+2. Include ALL required fields in drag item (id, title, audioUrl, bpm, stream_url, etc.)
+3. Use flags like `fromPlaylist` to distinguish internal vs external operations
+4. Combine refs: `drag(drop(ref))` for dual capability
+5. Test both directions: A→B and B→A
+
+**Radio Station Data Flow:**
+Radio stations require special handling:
+- `stream_url` is the primary audio source
+- Must be proxied through `/api/radio-proxy?url=...` to avoid CORS
+- Include fallback: `audioUrl: track.audio_url || track.stream_url`
+- Preserve both fields through all transformations
+
+**CORS Proxy Pattern:**
+When audio sources come from external domains:
+```typescript
+const rawUrl = track.stream_url || track.audio_url;
+const proxiedUrl = `/api/radio-proxy?url=${encodeURIComponent(rawUrl)}`;
+```
+This works for both development and production environments.
+
+**BPM Preservation:**
+BPM must flow through:
+1. Database → Globe/Collections/Crate
+2. Crate → Playlist
+3. Playlist → Mixer Decks
+4. Each component must preserve `bpm` field in track objects
+
+---
+
+### 📊 Impact Summary
+
+**Before Today:**
+- Playlist couldn't reorder tracks internally
+- Dragging from playlist to mixer lost BPM
+- Radio stations from playlist couldn't play in mixer
+- Radio player failed in production due to CORS
+- Drag flow was one-directional in some areas
+
+**After Today:**
+- ✅ Complete drag symmetry achieved
+- ✅ BPM preserved through all data flows
+- ✅ Radio stations work from any source
+- ✅ Radio player works in production
+- ✅ Platform ready for alpha users
+
+**Technical Debt Eliminated:**
+- Incomplete drag implementations
+- Data field loss during transforms
+- CORS inconsistencies between components
+- Production vs localhost behavior differences
+
+---
+
+*Documentation by Claude Code - Complete drag symmetry achieved, critical bugs eliminated, platform alpha-ready. All components now work seamlessly together with full bidirectional data flow.*
