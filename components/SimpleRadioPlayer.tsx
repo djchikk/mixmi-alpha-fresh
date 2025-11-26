@@ -5,6 +5,7 @@ import { Radio, Play, Pause, Volume2, VolumeX, X } from 'lucide-react';
 import { useDrop } from 'react-dnd';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
+import { supabase } from '@/lib/supabase';
 
 export default function SimpleRadioPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -22,8 +23,64 @@ export default function SimpleRadioPlayer() {
 
     // Expose global function for cards to load radio stations
     if (typeof window !== 'undefined') {
-      (window as any).loadRadioTrack = (track: IPTrack) => {
-        console.log('📻 SimpleRadioPlayer: Loading radio station:', track.title);
+      (window as any).loadRadioTrack = async (track: IPTrack) => {
+        console.log('📻 SimpleRadioPlayer: Loading track:', track.title, 'content_type:', track.content_type, 'pack_position:', track.pack_position);
+
+        // Handle Radio Packs: load the first station in the pack
+        if (track.content_type === 'station_pack') {
+          console.log('📻 SimpleRadioPlayer: Detected station pack, fetching first station...');
+          const packId = track.pack_id || track.id.split('-loc-')[0];
+
+          // Fetch the first station from the pack
+          const { data: stations, error } = await supabase
+            .from('ip_tracks')
+            .select('*')
+            .eq('pack_id', packId)
+            .eq('content_type', 'radio_station')
+            .order('pack_position', { ascending: true })
+            .limit(1);
+
+          if (error) {
+            console.error('📻 SimpleRadioPlayer: Error fetching stations from pack:', error);
+            return;
+          }
+
+          if (!stations || stations.length === 0) {
+            console.error('📻 SimpleRadioPlayer: No stations found in pack!');
+            return;
+          }
+
+          const firstStation = stations[0];
+          console.log('📻 SimpleRadioPlayer: Loading first station from pack:', firstStation.title, 'pack_position:', firstStation.pack_position);
+          setCurrentStation(firstStation);
+          setIsExpanded(true);
+
+          if (audioRef.current) {
+            const audioSource = firstStation.stream_url || firstStation.audio_url;
+            if (!audioSource) {
+              console.error('📻 SimpleRadioPlayer: No audio source found for station!', firstStation);
+              return;
+            }
+
+            audioRef.current.src = audioSource;
+            audioRef.current.load();
+
+            // Auto-play when loading new station
+            audioRef.current.play()
+              .then(() => {
+                setIsPlaying(true);
+                console.log('📻 SimpleRadioPlayer: First station from pack playing');
+              })
+              .catch(error => {
+                console.error('📻 SimpleRadioPlayer: Playback failed:', error);
+                setIsPlaying(false);
+              });
+          }
+          return;
+        }
+
+        // Handle individual radio stations
+        console.log('📻 SimpleRadioPlayer: Loading individual station, pack_position:', track.pack_position);
         setCurrentStation(track);
         setIsExpanded(true); // Auto-expand when loading from card
 
@@ -201,12 +258,25 @@ export default function SimpleRadioPlayer() {
       {/* Station Info & Controls */}
       <div className="flex gap-3">
         {/* Station Artwork */}
-        <div className="loaded-radio-artwork flex-shrink-0 rounded-lg overflow-hidden">
+        <div className="loaded-radio-artwork flex-shrink-0 rounded-lg overflow-hidden relative">
           <img
             src={getOptimizedTrackImage(currentStation, 60)}
             alt={currentStation.title}
             className="w-full h-full object-cover"
           />
+
+          {/* Pack position badge - top left */}
+          {currentStation.pack_position && (
+            <div
+              className="absolute top-1 left-1 w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center pointer-events-none z-10"
+              style={{
+                backgroundColor: '#FB923C',
+                color: '#FFFFFF'
+              }}
+            >
+              {currentStation.pack_position}
+            </div>
+          )}
         </div>
 
         {/* Info & Controls */}

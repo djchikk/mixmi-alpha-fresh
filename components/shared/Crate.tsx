@@ -116,7 +116,7 @@ function ExpandedPackTrack({
     }),
   }), [packTrack]);
 
-  const badgeColor = parentTrack.content_type === 'ep' ? '#FFE4B5' : parentTrack.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8';
+  const badgeColor = parentTrack.content_type === 'ep' ? '#FFE4B5' : parentTrack.content_type === 'station_pack' ? '#FB923C' : '#9772F4';
   const textColor = parentTrack.content_type === 'ep' ? '#000000' : '#FFFFFF';
 
   return (
@@ -498,15 +498,6 @@ export default function Crate({ className = '' }: CrateProps) {
   if (pathname === '/profile') {
     return null;
   }
-
-  // Handle navigation - back or to mixer
-  const handleNavigation = () => {
-    if (context === 'mixer') {
-      router.back();
-    } else {
-      router.push('/mixer');
-    }
-  };
 
   // Determine border color based on content type
   const getBorderColor = (track: any) => {
@@ -995,40 +986,6 @@ export default function Crate({ className = '' }: CrateProps) {
             →
           </button>
         )}
-
-        {/* Navigation button - Back or Full Mixer */}
-        <button
-          onClick={handleNavigation}
-          className="px-4 py-2 text-sm text-gray-300 font-medium rounded-md border border-white/40 hover:border-[#81E4F2] hover:shadow-[0_0_12px_rgba(129,228,242,0.3)] transition-all"
-          style={{
-            backgroundColor: '#061F3C',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexDirection: context === 'mixer' ? 'row-reverse' : 'row'
-          }}
-        >
-          {context === 'mixer' ? 'Back' : 'Big Mixer'}
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{
-              transform: context === 'mixer' ? 'rotate(180deg)' : 'none'
-            }}
-          >
-            <path
-              d="M9 18L15 12L9 6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
       </div>
 
       {/* CSS for animations and scrollbar hiding */}

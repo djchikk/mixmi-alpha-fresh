@@ -110,14 +110,32 @@ export default function MixerRoute() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#151C2A] to-[#101726] pt-16">
       <Header />
+
       <GlobeSearch
         nodes={globeNodes}
         onPlayPreview={handlePlayPreview}
         playingTrackId={playingTrackId}
       />
-      <div className="flex items-center justify-center mt-10" style={{ minHeight: 'calc(100vh - 64px - 200px)' }}>
-        <SimplifiedMixer className="mx-auto" />
+
+      <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 64px - 100px)' }}>
+        <div className="relative">
+          {/* Sandbox Explanation - Positioned above mixer, left-aligned */}
+          <div className="absolute bottom-full mb-6" style={{ width: '256px' }}>
+            <h1 className="text-lg font-bold text-white mb-3" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              Sandbox Mixer
+            </h1>
+            <p className="text-gray-400 text-xs leading-relaxed mb-4" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              Experiment with Loops
+            </p>
+            <p className="text-gray-500 text-xs leading-relaxed" style={{ fontFamily: 'var(--font-geist-mono)' }}>
+              Explore advanced mixing features with loops. Try effects and record mixes.
+            </p>
+          </div>
+
+          <SimplifiedMixer />
+        </div>
       </div>
+
       <Crate />
     </div>
   );

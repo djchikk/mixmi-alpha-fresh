@@ -184,7 +184,7 @@ export default function Header() {
               : 'text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95'
           }`}
         >
-          mixer
+          sandbox
         </Link>
         <button
           onClick={() => {
@@ -366,7 +366,7 @@ export default function Header() {
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Mixer
+              Sandbox
             </Link>
 
             <button

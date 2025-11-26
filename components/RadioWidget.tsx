@@ -57,7 +57,8 @@ export default function RadioWidget() {
         }
 
         const firstStation = stations[0];
-        console.log('📻 Radio: Loading first station from pack:', firstStation.title);
+        console.log('📻 Radio: Loading first station from pack:', firstStation.title, 'pack_position:', firstStation.pack_position);
+        console.log('📻 Radio: Full station data:', firstStation);
         setCurrentTrack(firstStation);
         setPlayedTracks(prev => new Set([...prev, firstStation.id]));
 
@@ -77,6 +78,8 @@ export default function RadioWidget() {
       }
 
       // Handle regular tracks (non-packs)
+      console.log('📻 Radio: Loading regular track (non-pack):', item.track.title, 'pack_position:', item.track.pack_position);
+      console.log('📻 Radio: Full track data:', item.track);
       setCurrentTrack(item.track);
       setPlayedTracks(prev => new Set([...prev, item.track.id]));
 
@@ -343,8 +346,55 @@ export default function RadioWidget() {
 
   // Expose loadRadioTrack and clearRadio globally for FILL/RESET buttons
   useEffect(() => {
-    (window as any).loadRadioTrack = (track: any) => {
-      console.log('📻 Radio: Loading track from FILL:', track.title);
+    (window as any).loadRadioTrack = async (track: any) => {
+      console.log('📻 Radio: Loading track from click:', track.title, 'pack_position:', track.pack_position);
+      console.log('📻 Radio: Full track data from click:', track);
+
+      // Handle Radio Packs: load the first station in the pack
+      if (track.content_type === 'station_pack') {
+        console.log('📻 Radio: Detected station pack, fetching first station...');
+        const packId = track.pack_id || track.id.split('-loc-')[0];
+
+        // Fetch the first station from the pack
+        const { data: stations, error } = await supabase
+          .from('ip_tracks')
+          .select('*')
+          .eq('pack_id', packId)
+          .eq('content_type', 'radio_station')
+          .order('pack_position', { ascending: true })
+          .limit(1);
+
+        if (error) {
+          console.error('📻 Radio: Error fetching stations from pack:', error);
+          return;
+        }
+
+        if (!stations || stations.length === 0) {
+          console.error('📻 Radio: No stations found in pack!');
+          return;
+        }
+
+        const firstStation = stations[0];
+        console.log('📻 Radio: Loading first station from pack:', firstStation.title, 'pack_position:', firstStation.pack_position);
+        setCurrentTrack(firstStation);
+        setPlayedTracks(prev => new Set([...prev, firstStation.id]));
+
+        // Load the station's audio
+        if (audioRef.current) {
+          const audioSource = firstStation.stream_url || firstStation.audio_url;
+          if (!audioSource) {
+            console.error('📻 Radio: No audio source found for station!', firstStation);
+            return;
+          }
+          audioRef.current.src = audioSource;
+          audioRef.current.volume = volume;
+          audioRef.current.load();
+          console.log('📻 Radio: First station from pack loaded');
+        }
+        return;
+      }
+
+      // Handle individual stations
       setCurrentTrack(track);
       setPlayedTracks(prev => new Set([...prev, track.id]));
 
@@ -481,6 +531,7 @@ export default function RadioWidget() {
                     }`}
                     title="Drag to crate or mixer"
                   >
+                    {(() => { console.log('📻 Radio: Rendering badge check - pack_position:', currentTrack.pack_position, 'currentTrack:', currentTrack); return null; })()}
                     {currentTrack.cover_image_url ? (
                       <img
                         src={getOptimizedTrackImage(currentTrack, 128)}
