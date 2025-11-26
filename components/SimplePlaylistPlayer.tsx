@@ -16,6 +16,7 @@ interface PlaylistTrack {
   audioUrl: string;
   content_type: string;
   bpm?: number;
+  stream_url?: string; // For radio stations
 }
 
 export default function SimplePlaylistPlayer() {
@@ -105,9 +106,10 @@ export default function SimplePlaylistPlayer() {
             title: t.title,
             artist: t.artist || t.artist_name || 'Unknown',
             imageUrl: t.cover_image_url || '',
-            audioUrl: t.audio_url,
+            audioUrl: t.audio_url || t.stream_url,
             content_type: t.content_type,
-            bpm: t.bpm
+            bpm: t.bpm,
+            stream_url: t.stream_url
           }));
 
           setPlaylist(prev => {
@@ -125,9 +127,10 @@ export default function SimplePlaylistPlayer() {
           title: track.title,
           artist: track.artist || track.artist_name || 'Unknown',
           imageUrl: track.cover_image_url || track.imageUrl || '',
-          audioUrl: track.audio_url || track.audioUrl,
+          audioUrl: track.audio_url || track.audioUrl || track.stream_url,
           content_type: track.content_type,
-          bpm: track.bpm
+          bpm: track.bpm,
+          stream_url: track.stream_url
         };
 
         setPlaylist(prev => {
@@ -530,7 +533,8 @@ const PlaylistTrackItem: React.FC<PlaylistTrackItemProps> = ({
         audioUrl: track.audioUrl,
         audio_url: track.audioUrl,
         content_type: track.content_type,
-        bpm: track.bpm
+        bpm: track.bpm,
+        stream_url: track.stream_url
       },
       sourceIndex: index,
       fromPlaylist: true // Flag to identify playlist items for reordering
