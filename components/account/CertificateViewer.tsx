@@ -48,6 +48,9 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     if (isRadio) {
       return '#FB923C'; // Orange for radio stations
     }
+    if (track.content_type === 'video_clip') {
+      return '#2792F5'; // Blue for video clips
+    }
     if (track.content_type === 'loop' || track.content_type === 'loop_pack') {
       return '#9772F4'; // Purple for remixable
     }
@@ -89,6 +92,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   const getLicenseInfo = () => {
     const isLoop = track.content_type === 'loop' || track.content_type === 'loop_pack';
     const isSong = track.content_type === 'full_song' || track.content_type === 'ep';
+    const isVideo = track.content_type === 'video_clip';
 
     if (isLoop) {
       return {
@@ -102,6 +106,14 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       return {
         type: 'Platform Streaming Only',
         platformPrice: '~0.08 STX (per full play)',
+        downloadPrice: track.allow_downloads && track.download_price_stx
+          ? `${track.download_price_stx} STX`
+          : 'Not Available'
+      };
+    } else if (isVideo) {
+      return {
+        type: 'Platform Remix Only',
+        platformPrice: '1 STX (per recording)',
         downloadPrice: track.allow_downloads && track.download_price_stx
           ? `${track.download_price_stx} STX`
           : 'Not Available'
@@ -341,7 +353,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
         <span class="info-label">Location:</span>
         <span class="info-value">${track.primary_location}</span>
       </div>` : ''}
-      ${!isRadio && track.bpm ? `<div class="info-row">
+      ${!isRadio && track.content_type !== 'video_clip' && track.bpm ? `<div class="info-row">
         <span class="info-label">BPM:</span>
         <span class="info-value">${track.bpm}</span>
       </div>` : ''}
@@ -518,7 +530,7 @@ Platform Price: ${licenseInfo.platformPrice}
 Download Price: ${licenseInfo.downloadPrice}
 
 Uploader Wallet: ${track.primary_uploader_wallet}
-${track.bpm ? `BPM: ${track.bpm}` : ''}
+${track.bpm && track.content_type !== 'video_clip' ? `BPM: ${track.bpm}` : ''}
 ${track.key ? `Key: ${track.key}` : ''}
 Price: ${track.price_stx} STX
 
@@ -626,7 +638,7 @@ mixmi.app • Discover • Mix • Create
                   <DetailRow label="Uploader" value={shortenWallet(track.primary_uploader_wallet)} />
                   {isRadio && track.stream_url && <DetailRow label="Stream URL" value={track.stream_url} />}
                   {isRadio && track.primary_location && <DetailRow label="Location" value={track.primary_location} />}
-                  {!isRadio && track.bpm && <DetailRow label="BPM" value={track.bpm.toString()} />}
+                  {!isRadio && track.content_type !== 'video_clip' && track.bpm && <DetailRow label="BPM" value={track.bpm.toString()} />}
                   {!isRadio && track.key && <DetailRow label="Key" value={track.key} />}
                   {!isRadio && <DetailRow label="Price" value={`${track.price_stx} STX`} />}
                 </div>
