@@ -14,18 +14,42 @@ const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 // Max file sizes
 const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_VIDEO_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB (videos can be large)
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function POST(request: NextRequest) {
+  console.log('📤 Upload endpoint hit');
+
   try {
-    const formData = await request.formData();
+    let formData;
+    try {
+      formData = await request.formData();
+      console.log('📤 FormData parsed, keys:', Array.from(formData.keys()));
+    } catch (formError) {
+      console.error('❌ FormData parsing failed:', formError);
+      return NextResponse.json(
+        { error: 'Failed to parse form data' },
+        { status: 400 }
+      );
+    }
+
     const file = formData.get('file') as File;
     const type = formData.get('type') as string;
     const walletAddress = formData.get('walletAddress') as string;
 
+    // Debug logging
+    console.log('📤 Upload request received:', {
+      hasFile: !!file,
+      fileName: file?.name,
+      fileType: file?.type,
+      fileSize: file?.size,
+      walletAddress: walletAddress?.substring(0, 15) + '...',
+      type
+    });
+
     // Validate required fields
     if (!file || !walletAddress) {
+      console.log('❌ Missing required fields:', { hasFile: !!file, hasWallet: !!walletAddress });
       return NextResponse.json(
         { error: 'File and wallet address required' },
         { status: 400 }

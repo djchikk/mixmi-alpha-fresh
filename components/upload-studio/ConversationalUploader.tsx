@@ -155,11 +155,12 @@ Just describe what you've got, or drop your files here and we'll figure it out t
         body: formData
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        // Throw with the server's error message for better user feedback
+        throw new Error(result.error || 'Upload failed');
+      }
 
       setAttachments(prev => prev.map(a =>
         a.id === attachment.id ? { ...a, status: 'uploaded', url: result.url, progress: 100 } : a
@@ -191,12 +192,30 @@ Just describe what you've got, or drop your files here and we'll figure it out t
 
       showToast(`✅ ${attachment.name} uploaded successfully`, 'success');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
+      const errorMessage = error.message || 'Upload failed';
+
       setAttachments(prev => prev.map(a =>
         a.id === attachment.id ? { ...a, status: 'error' } : a
       ));
-      showToast(`❌ Failed to upload ${attachment.name}`, 'error');
+
+      // Show descriptive error toast
+      showToast(`❌ ${attachment.name}: ${errorMessage}`, 'error');
+
+      // Add a helpful message to the chat explaining the error
+      const helpMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `I noticed there was an issue uploading "${attachment.name}": **${errorMessage}**
+
+${errorMessage.includes('too large') ? 'Try compressing the file or using a shorter clip.' : ''}
+${errorMessage.includes('Unsupported') ? 'Supported formats are: MP3, WAV, FLAC, M4A for audio; MP4, MOV, WebM for video; and JPG, PNG, GIF, WebP for images.' : ''}
+
+Feel free to try again with a different file, or let me know if you need help!`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, helpMessage]);
     }
   };
 
