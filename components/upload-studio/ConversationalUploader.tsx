@@ -86,10 +86,12 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   const [conversationId, setConversationId] = useState<string>('');
   const [isReadyToSubmit, setIsReadyToSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const dragCounterRef = useRef(0); // Track nested drag events
 
   // Initialize conversation
   useEffect(() => {
@@ -487,6 +489,83 @@ Feel free to try again with a different file, or let me know if you need help!`,
     }
   };
 
+  // Drag and Drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+
+    // Check if files are being dragged
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+
+    // Only hide overlay when truly leaving the drop zone
+    if (dragCounterRef.current === 0) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    // Filter for supported file types
+    const supportedFiles = files.filter(file => {
+      const isAudio = file.type.startsWith('audio/');
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
+      return isAudio || isVideo || isImage;
+    });
+
+    if (supportedFiles.length === 0) {
+      showToast('⚠️ Please drop audio, video, or image files', 'warning');
+      return;
+    }
+
+    if (supportedFiles.length < files.length) {
+      showToast(`ℹ️ ${files.length - supportedFiles.length} unsupported file(s) skipped`, 'info');
+    }
+
+    // Create attachments from dropped files
+    const newAttachments: FileAttachment[] = supportedFiles.map(file => {
+      let type: 'audio' | 'video' | 'image' = 'audio';
+      if (file.type.startsWith('video/')) type = 'video';
+      if (file.type.startsWith('image/')) type = 'image';
+
+      return {
+        id: crypto.randomUUID(),
+        name: file.name,
+        type,
+        file,
+        status: 'pending'
+      };
+    });
+
+    setAttachments(prev => [...prev, ...newAttachments]);
+
+    // Upload files immediately
+    for (const attachment of newAttachments) {
+      await uploadFile(attachment);
+    }
+  };
+
   // Submit track
   const submitTrack = async () => {
     setIsSubmitting(true);
@@ -545,7 +624,26 @@ Would you like to upload another track, or shall I show you where to find your n
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto">
+    <div
+      className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 bg-[#0a0e1a]/90 backdrop-blur-sm flex items-center justify-center border-2 border-dashed border-[#81E4F2] rounded-xl m-2">
+          <div className="text-center">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#81E4F2]/20 flex items-center justify-center">
+              <Upload size={40} className="text-[#81E4F2]" />
+            </div>
+            <p className="text-xl font-semibold text-white mb-2">Drop your files here</p>
+            <p className="text-gray-400">Audio, video, or images</p>
+          </div>
+        </div>
+      )}
+
       {/* Chat Header */}
       <div className="px-6 py-4 border-b border-slate-700/50">
         <div className="flex items-center justify-between">

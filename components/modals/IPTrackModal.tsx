@@ -204,6 +204,27 @@ export default function IPTrackModal({
           const locations = track.primary_location.split(',').map(l => l.trim());
           setSelectedLocations(locations);
         }
+
+        // Load existing video crop data if editing a video clip
+        if (track.content_type === 'video_clip') {
+          if (track.video_crop_x !== undefined && track.video_crop_x !== null) {
+            setCroppedAreaPixels({
+              x: track.video_crop_x,
+              y: track.video_crop_y,
+              width: track.video_crop_width,
+              height: track.video_crop_height
+            });
+          }
+          if (track.video_crop_zoom) {
+            setZoom(track.video_crop_zoom);
+          }
+          if (track.video_natural_width) {
+            setVideoNaturalWidth(track.video_natural_width);
+          }
+          if (track.video_natural_height) {
+            setVideoNaturalHeight(track.video_natural_height);
+          }
+        }
       }
     } else {
       // Modal closing - cleanup
@@ -705,14 +726,16 @@ export default function IPTrackModal({
       primary_location: locationResult.rawText || null,
       locations: locationResult.all.length > 0 ? locationResult.all : null,
       // Add video crop data if it's a video clip
-      ...(formData.content_type === 'video_clip' && croppedAreaPixels ? {
-        video_crop_x: croppedAreaPixels.x,
-        video_crop_y: croppedAreaPixels.y,
-        video_crop_width: croppedAreaPixels.width,
-        video_crop_height: croppedAreaPixels.height,
-        video_crop_zoom: zoom,
-        video_natural_width: videoNaturalWidth,
-        video_natural_height: videoNaturalHeight
+      // Use current crop state (which may have been loaded from existing track or set by user)
+      // Fall back to existing track data if no crop state exists
+      ...(formData.content_type === 'video_clip' ? {
+        video_crop_x: croppedAreaPixels?.x ?? track?.video_crop_x ?? null,
+        video_crop_y: croppedAreaPixels?.y ?? track?.video_crop_y ?? null,
+        video_crop_width: croppedAreaPixels?.width ?? track?.video_crop_width ?? null,
+        video_crop_height: croppedAreaPixels?.height ?? track?.video_crop_height ?? null,
+        video_crop_zoom: zoom ?? track?.video_crop_zoom ?? 1,
+        video_natural_width: videoNaturalWidth ?? track?.video_natural_width ?? null,
+        video_natural_height: videoNaturalHeight ?? track?.video_natural_height ?? null
       } : {})
     };
 

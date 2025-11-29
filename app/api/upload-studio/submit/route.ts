@@ -17,12 +17,22 @@ interface TrackSubmission {
 
   // Optional metadata
   description?: string;
+  notes?: string;
   tags?: string[];
   bpm?: number;
   key?: string;
   duration?: number;
   loop_category?: string;
   tell_us_more?: string;
+
+  // Video crop data
+  video_crop_x?: number;
+  video_crop_y?: number;
+  video_crop_width?: number;
+  video_crop_height?: number;
+  video_crop_zoom?: number;
+  video_natural_width?: number;
+  video_natural_height?: number;
 
   // Location
   primary_location?: string;
@@ -141,7 +151,7 @@ export async function POST(request: NextRequest) {
       artist: trackData.artist,
       description: trackData.description || '',
       tags: trackData.tags || [],
-      notes: trackData.tell_us_more || '',
+      notes: trackData.notes || trackData.tell_us_more || '',
       content_type: contentType,
       loop_category: contentType === 'loop' ? (trackData.loop_category || 'instrumental') : null,
       sample_type: contentType === 'loop' ? 'instrumentals' : 'FULL SONGS',
@@ -155,6 +165,15 @@ export async function POST(request: NextRequest) {
       audio_url: trackData.audio_url || null,
       video_url: trackData.video_url || null,
       cover_image_url: trackData.cover_image_url || null,
+
+      // Video crop data (for video clips)
+      video_crop_x: trackData.video_crop_x ?? null,
+      video_crop_y: trackData.video_crop_y ?? null,
+      video_crop_width: trackData.video_crop_width ?? null,
+      video_crop_height: trackData.video_crop_height ?? null,
+      video_crop_zoom: trackData.video_crop_zoom ?? null,
+      video_natural_width: trackData.video_natural_width ?? null,
+      video_natural_height: trackData.video_natural_height ?? null,
 
       // Location
       primary_location: trackData.primary_location || null,

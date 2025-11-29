@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { IPTrack } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import IPTrackModal from '@/components/modals/IPTrackModal';
 import ContentTypeSelector from '@/components/modals/ContentTypeSelector';
 import RadioStationModal from '@/components/modals/RadioStationModal';
@@ -29,6 +29,7 @@ export default function CreatorStorePage() {
   const [tracks, setTracks] = useState<IPTrack[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<IPTrack[]>([]);
   const [activeFilter, setActiveFilter] = useState<ContentFilter>({ type: 'all' });
+  const [showFilters, setShowFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState<string>('');
@@ -529,110 +530,140 @@ export default function CreatorStorePage() {
           )}
 
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => setActiveFilter({ type: 'all' })}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeFilter.type === 'all'
-                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
-                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                }`}
-              >
-                All ({getFilterCount({ type: 'all' })})
-              </button>
+            {/* Filter Toggle Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                activeFilter.type !== 'all'
+                  ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                  : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+              }`}
+            >
+              <span>
+                {activeFilter.type === 'all'
+                  ? `Filter (${getFilterCount({ type: 'all' })})`
+                  : `Filtered: ${activeFilter.type === 'full_song' ? 'Songs' :
+                      activeFilter.type === 'loop' ? (activeFilter.category ? `Loops - ${activeFilter.category}` : 'Loops') :
+                      activeFilter.type === 'loop_pack' ? 'Loop Packs' :
+                      activeFilter.type === 'ep' ? 'EPs' :
+                      activeFilter.type === 'radio_station' ? 'Radio' :
+                      activeFilter.type === 'station_pack' ? 'Radio Packs' :
+                      activeFilter.type === 'video_clip' ? 'Videos' :
+                      activeFilter.type === 'hidden' ? 'Hidden' : 'All'
+                    } (${getFilterCount(activeFilter)})`
+                }
+              </span>
+              {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
 
-              <button
-                onClick={() => setActiveFilter({ type: 'full_song' })}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeFilter.type === 'full_song'
-                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
-                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                }`}
-              >
-                Songs ({getFilterCount({ type: 'full_song' })})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter({ type: 'loop' })}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeFilter.type === 'loop'
-                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
-                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                }`}
-              >
-                Loops ({getFilterCount({ type: 'loop' })})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter({ type: 'loop_pack' })}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeFilter.type === 'loop_pack'
-                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
-                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                }`}
-              >
-                Loop Packs ({getFilterCount({ type: 'loop_pack' })})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter({ type: 'ep' })}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeFilter.type === 'ep'
-                    ? 'bg-[#81E4F2] text-slate-900 font-medium'
-                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                }`}
-              >
-                EPs ({getFilterCount({ type: 'ep' })})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter({ type: 'radio_station' })}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeFilter.type === 'radio_station'
-                    ? 'bg-[#FB923C] text-slate-900 font-medium'
-                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                }`}
-              >
-                Radio Stations ({getFilterCount({ type: 'radio_station' })})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter({ type: 'station_pack' })}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeFilter.type === 'station_pack'
-                    ? 'bg-[#FB923C] text-slate-900 font-medium'
-                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                }`}
-              >
-                Radio Packs ({getFilterCount({ type: 'station_pack' })})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter({ type: 'video_clip' })}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeFilter.type === 'video_clip'
-                    ? 'bg-[#2792F5] text-slate-900 font-medium'
-                    : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                }`}
-              >
-                Video Clips ({getFilterCount({ type: 'video_clip' })})
-              </button>
-
-              {isOwnStore && (
+            {/* Collapsible Filter Options */}
+            {showFilters && (
+              <div className="flex flex-wrap gap-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
                 <button
-                  onClick={() => setActiveFilter({ type: 'hidden' })}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                    activeFilter.type === 'hidden'
+                  onClick={() => { setActiveFilter({ type: 'all' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'all'
                       ? 'bg-[#81E4F2] text-slate-900 font-medium'
-                      : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                   }`}
                 >
-                  <span>👁️‍🗨️</span>
-                  Hidden ({getFilterCount({ type: 'hidden' })})
+                  All ({getFilterCount({ type: 'all' })})
                 </button>
-              )}
-            </div>
 
+                <button
+                  onClick={() => { setActiveFilter({ type: 'full_song' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'full_song'
+                      ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  Songs ({getFilterCount({ type: 'full_song' })})
+                </button>
+
+                <button
+                  onClick={() => { setActiveFilter({ type: 'loop' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'loop'
+                      ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  Loops ({getFilterCount({ type: 'loop' })})
+                </button>
+
+                <button
+                  onClick={() => { setActiveFilter({ type: 'loop_pack' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'loop_pack'
+                      ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  Loop Packs ({getFilterCount({ type: 'loop_pack' })})
+                </button>
+
+                <button
+                  onClick={() => { setActiveFilter({ type: 'ep' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'ep'
+                      ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  EPs ({getFilterCount({ type: 'ep' })})
+                </button>
+
+                <button
+                  onClick={() => { setActiveFilter({ type: 'radio_station' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'radio_station'
+                      ? 'bg-[#FB923C] text-slate-900 font-medium'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  Radio ({getFilterCount({ type: 'radio_station' })})
+                </button>
+
+                <button
+                  onClick={() => { setActiveFilter({ type: 'station_pack' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'station_pack'
+                      ? 'bg-[#FB923C] text-slate-900 font-medium'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  Radio Packs ({getFilterCount({ type: 'station_pack' })})
+                </button>
+
+                <button
+                  onClick={() => { setActiveFilter({ type: 'video_clip' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'video_clip'
+                      ? 'bg-[#2792F5] text-slate-900 font-medium'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  Videos ({getFilterCount({ type: 'video_clip' })})
+                </button>
+
+                {isOwnStore && (
+                  <button
+                    onClick={() => { setActiveFilter({ type: 'hidden' }); setShowFilters(false); }}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1 ${
+                      activeFilter.type === 'hidden'
+                        ? 'bg-[#81E4F2] text-slate-900 font-medium'
+                        : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    <span>👁️‍🗨️</span>
+                    Hidden ({getFilterCount({ type: 'hidden' })})
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Loop Categories Sub-filter (shows when loops are selected) */}
             {activeFilter.type === 'loop' && availableCategories.length > 0 && (
               <div className="ml-4 pl-4 border-l-2 border-slate-700">
                 <p className="text-gray-400 text-sm mb-2">Loop Categories:</p>
