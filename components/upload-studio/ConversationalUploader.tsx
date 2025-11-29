@@ -49,6 +49,9 @@ interface ExtractedTrackData {
   download_price_stx?: number;
   open_to_collaboration?: boolean;
   open_to_commercial?: boolean;
+  // Contact access
+  contact_email?: string;
+  contact_fee_stx?: number;
   // Splits (ownership)
   composition_splits?: Array<{ wallet?: string; name?: string; percentage: number }>;
   production_splits?: Array<{ wallet?: string; name?: string; percentage: number }>;
@@ -68,8 +71,11 @@ interface ExtractedTrackData {
   video_natural_height?: number;
   // For packs
   pack_title?: string;
+  ep_title?: string;
   loop_files?: string[];
   ep_files?: string[];
+  // Multi-file BPM tracking
+  detected_bpms?: number[];
 }
 
 interface ConversationalUploaderProps {
@@ -322,13 +328,46 @@ Just describe what you've got, or drop your files here and we'll figure it out t
 
       // Update extracted data based on file type
       if (attachment.type === 'audio') {
-        setExtractedData(prev => ({
-          ...prev,
-          audio_url: result.url,
-          // If BPM was detected, add it
-          ...(result.bpm && { bpm: result.bpm }),
-          ...(result.duration && { duration: result.duration })
-        }));
+        setExtractedData(prev => {
+          // Check if this is potentially a multi-file upload (loop pack or EP)
+          // If we already have an audio_url, add to an array instead
+          const existingAudioUrl = prev.audio_url;
+          const existingLoopFiles = prev.loop_files || [];
+          const existingEpFiles = prev.ep_files || [];
+
+          // If there's already an audio file, we might be building a pack/EP
+          // Store both in arrays for the chatbot to later determine the type
+          if (existingAudioUrl && existingAudioUrl !== result.url) {
+            // Convert to multi-file mode - store all URLs in both arrays
+            // The chatbot will decide which to use based on content_type
+            const allAudioFiles = [...new Set([existingAudioUrl, ...existingLoopFiles, ...existingEpFiles, result.url])];
+            return {
+              ...prev,
+              audio_url: result.url, // Keep most recent as primary
+              loop_files: allAudioFiles,
+              ep_files: allAudioFiles,
+              // Store detected BPMs for validation
+              ...(result.bpm && {
+                bpm: result.bpm,
+                // Track all detected BPMs for consistency checking
+                detected_bpms: [...(prev.detected_bpms || [prev.bpm].filter(Boolean)), result.bpm]
+              }),
+              ...(result.duration && { duration: result.duration })
+            };
+          }
+
+          // First audio file - just store normally
+          return {
+            ...prev,
+            audio_url: result.url,
+            // If BPM was detected, add it
+            ...(result.bpm && {
+              bpm: result.bpm,
+              detected_bpms: [result.bpm]
+            }),
+            ...(result.duration && { duration: result.duration })
+          };
+        });
       } else if (attachment.type === 'video') {
         // Auto-capture thumbnail from video first frame with smart crop
         const { thumbnailUrl, cropData } = await captureVideoThumbnail(attachment.file);

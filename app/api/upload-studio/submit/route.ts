@@ -51,6 +51,9 @@ interface TrackSubmission {
   open_to_commercial?: boolean;
   commercial_contact?: string;
   collab_contact?: string;
+  // Contact access (new)
+  contact_email?: string;
+  contact_fee_stx?: number;
 
   // Media URLs
   audio_url?: string;
@@ -116,7 +119,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!trackData.audio_url && contentType !== 'video_clip') {
+    // For multi-file content types, audio is in loop_files or ep_files arrays
+    const hasMultiFileAudio = (trackData.loop_files?.length > 0) || (trackData.ep_files?.length > 0);
+
+    if (!trackData.audio_url && contentType !== 'video_clip' && contentType !== 'loop_pack' && contentType !== 'ep' && !hasMultiFileAudio) {
       return NextResponse.json(
         { error: 'Audio file is required' },
         { status: 400 }
@@ -127,6 +133,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Video file is required for video clips' },
         { status: 400 }
+      );
+    }
+
+    // Handle multi-file uploads (loop packs and EPs)
+    if ((contentType === 'loop_pack' || contentType === 'ep') &&
+        (trackData.loop_files?.length > 0 || trackData.ep_files?.length > 0)) {
+      return await handleMultiFileSubmission(
+        trackData,
+        contentType,
+        effectiveWallet,
+        conversationId
       );
     }
 
@@ -207,8 +224,11 @@ export async function POST(request: NextRequest) {
       allow_downloads: trackData.allow_downloads || false,
       open_to_collaboration: trackData.open_to_collaboration || false,
       open_to_commercial: trackData.open_to_commercial || false,
-      commercial_contact: trackData.commercial_contact || null,
-      collab_contact: trackData.collab_contact || null,
+      // Contact access - use same email/fee for both commercial and collab
+      commercial_contact: trackData.contact_email || trackData.commercial_contact || null,
+      commercial_contact_fee: trackData.contact_fee_stx || null,
+      collab_contact: trackData.contact_email || trackData.collab_contact || null,
+      collab_contact_fee: trackData.contact_fee_stx || null,
 
       // Pricing
       remix_price_stx: contentType === 'full_song' ? 0 : 1.0,
@@ -338,4 +358,256 @@ async function savePendingCollaborators(
   //     split_type: c.type,
   //     status: 'pending'
   //   })));
+}
+
+/**
+ * Handle multi-file submissions for loop packs and EPs
+ * Creates a parent container record + individual track records
+ */
+async function handleMultiFileSubmission(
+  trackData: TrackSubmission,
+  contentType: string,
+  effectiveWallet: string,
+  conversationId: string
+) {
+  const now = new Date().toISOString();
+  const packId = uuidv4();
+
+  // Get the files array based on content type
+  const files = contentType === 'loop_pack'
+    ? trackData.loop_files || []
+    : trackData.ep_files || [];
+
+  if (files.length === 0) {
+    return NextResponse.json(
+      { error: 'No files provided for pack/EP' },
+      { status: 400 }
+    );
+  }
+
+  // Determine child content type
+  const childContentType = contentType === 'loop_pack' ? 'loop' : 'full_song';
+
+  // Get the pack/EP title
+  const containerTitle = contentType === 'loop_pack'
+    ? trackData.pack_title || trackData.title
+    : trackData.ep_title || trackData.title;
+
+  console.log(`📦 Creating ${contentType} with ${files.length} tracks:`, containerTitle);
+
+  // Process splits - same for all tracks in the pack
+  const compositionSplits = processSplits(trackData.composition_splits, effectiveWallet);
+  const productionSplits = processSplits(trackData.production_splits, effectiveWallet);
+
+  // 1. Create the container record (the pack/EP itself)
+  const containerRecord = {
+    id: packId,
+    title: containerTitle,
+    version: '',
+    artist: trackData.artist,
+    description: trackData.description || '',
+    tags: trackData.tags || [],
+    notes: trackData.notes || trackData.tell_us_more || '',
+    content_type: contentType,
+    loop_category: contentType === 'loop_pack' ? (trackData.loop_category || 'instrumental') : null,
+    sample_type: contentType === 'loop_pack' ? 'instrumentals' : 'FULL SONGS',
+
+    // BPM (only for loop packs)
+    bpm: contentType === 'loop_pack' ? (trackData.bpm || null) : null,
+    key: trackData.key || null,
+    duration: trackData.duration || null,
+
+    // Container doesn't have its own audio - first child's audio is preview
+    audio_url: files[0] || null,
+    video_url: null,
+    cover_image_url: trackData.cover_image_url || null,
+
+    // Location
+    primary_location: trackData.primary_location || null,
+    location_lat: trackData.location_lat || null,
+    location_lng: trackData.location_lng || null,
+
+    // Splits
+    composition_split_1_wallet: compositionSplits[0]?.wallet || effectiveWallet,
+    composition_split_1_percentage: compositionSplits[0]?.percentage || 100,
+    composition_split_2_wallet: compositionSplits[1]?.wallet || null,
+    composition_split_2_percentage: compositionSplits[1]?.percentage || 0,
+    composition_split_3_wallet: compositionSplits[2]?.wallet || null,
+    composition_split_3_percentage: compositionSplits[2]?.percentage || 0,
+    production_split_1_wallet: productionSplits[0]?.wallet || effectiveWallet,
+    production_split_1_percentage: productionSplits[0]?.percentage || 100,
+    production_split_2_wallet: productionSplits[1]?.wallet || null,
+    production_split_2_percentage: productionSplits[1]?.percentage || 0,
+    production_split_3_wallet: productionSplits[2]?.wallet || null,
+    production_split_3_percentage: productionSplits[2]?.percentage || 0,
+
+    // AI tracking
+    ai_assisted_idea: trackData.ai_assisted_idea || false,
+    ai_assisted_implementation: trackData.ai_assisted_implementation || false,
+
+    // Licensing
+    license_type: trackData.allow_downloads ? 'remix_external' : 'remix_only',
+    license_selection: contentType === 'ep' ? 'platform_download' : 'platform_remix',
+    allow_remixing: contentType !== 'ep' ? (trackData.allow_remixing ?? true) : false,
+    allow_downloads: trackData.allow_downloads || false,
+    open_to_collaboration: trackData.open_to_collaboration || false,
+    open_to_commercial: trackData.open_to_commercial || false,
+    // Contact access - use same email/fee for both commercial and collab
+    commercial_contact: trackData.contact_email || trackData.commercial_contact || null,
+    commercial_contact_fee: trackData.contact_fee_stx || null,
+    collab_contact: trackData.contact_email || trackData.collab_contact || null,
+    collab_contact_fee: trackData.contact_fee_stx || null,
+
+    // Pricing
+    remix_price_stx: contentType === 'ep' ? 0 : 1.0,
+    download_price_stx: trackData.allow_downloads
+      ? (trackData.download_price_stx || (contentType === 'ep' ? 2 : 1))
+      : null,
+    price_stx: trackData.allow_downloads
+      ? (trackData.download_price_stx || (contentType === 'ep' ? 2 : 1))
+      : 1.0,
+
+    // Metadata
+    created_at: now,
+    updated_at: now,
+    is_live: true,
+    uploader_address: effectiveWallet,
+    primary_uploader_wallet: effectiveWallet,
+    account_name: effectiveWallet,
+    main_wallet_name: effectiveWallet,
+
+    // Pack metadata
+    pack_id: packId, // Self-referential for container
+    pack_position: 0,
+
+    // Remix tracking
+    remix_depth: contentType === 'loop_pack' ? 0 : null,
+    source_track_ids: [],
+
+    // Collaboration
+    collaboration_preferences: {},
+    store_display_policy: 'primary_only',
+    collaboration_type: 'primary_artist',
+
+    // Source metadata
+    upload_source: 'conversational',
+    conversation_id: conversationId
+  };
+
+  // 2. Create individual track records for each file
+  const childRecords = files.map((fileUrl, index) => {
+    const trackId = uuidv4();
+    return {
+      id: trackId,
+      title: `${containerTitle} - Track ${index + 1}`,
+      version: '',
+      artist: trackData.artist,
+      description: '',
+      tags: trackData.tags || [],
+      notes: '',
+      content_type: childContentType,
+      loop_category: contentType === 'loop_pack' ? (trackData.loop_category || 'instrumental') : null,
+      sample_type: contentType === 'loop_pack' ? 'instrumentals' : 'FULL SONGS',
+
+      // BPM (inherit from pack for loops)
+      bpm: contentType === 'loop_pack' ? (trackData.bpm || null) : null,
+      key: trackData.key || null,
+      duration: null,
+
+      // Audio
+      audio_url: fileUrl,
+      video_url: null,
+      cover_image_url: trackData.cover_image_url || null,
+
+      // Location (inherit from container)
+      primary_location: trackData.primary_location || null,
+      location_lat: trackData.location_lat || null,
+      location_lng: trackData.location_lng || null,
+
+      // Splits (same as container)
+      composition_split_1_wallet: compositionSplits[0]?.wallet || effectiveWallet,
+      composition_split_1_percentage: compositionSplits[0]?.percentage || 100,
+      composition_split_2_wallet: compositionSplits[1]?.wallet || null,
+      composition_split_2_percentage: compositionSplits[1]?.percentage || 0,
+      composition_split_3_wallet: compositionSplits[2]?.wallet || null,
+      composition_split_3_percentage: compositionSplits[2]?.percentage || 0,
+      production_split_1_wallet: productionSplits[0]?.wallet || effectiveWallet,
+      production_split_1_percentage: productionSplits[0]?.percentage || 100,
+      production_split_2_wallet: productionSplits[1]?.wallet || null,
+      production_split_2_percentage: productionSplits[1]?.percentage || 0,
+      production_split_3_wallet: productionSplits[2]?.wallet || null,
+      production_split_3_percentage: productionSplits[2]?.percentage || 0,
+
+      // AI tracking
+      ai_assisted_idea: trackData.ai_assisted_idea || false,
+      ai_assisted_implementation: trackData.ai_assisted_implementation || false,
+
+      // Licensing (inherit from container)
+      license_type: containerRecord.license_type,
+      license_selection: containerRecord.license_selection,
+      allow_remixing: containerRecord.allow_remixing,
+      allow_downloads: containerRecord.allow_downloads,
+      open_to_collaboration: containerRecord.open_to_collaboration,
+      open_to_commercial: containerRecord.open_to_commercial,
+      commercial_contact: containerRecord.commercial_contact,
+      collab_contact: containerRecord.collab_contact,
+
+      // Pricing
+      remix_price_stx: containerRecord.remix_price_stx,
+      download_price_stx: containerRecord.download_price_stx,
+      price_stx: containerRecord.price_stx,
+
+      // Metadata
+      created_at: now,
+      updated_at: now,
+      is_live: true,
+      uploader_address: effectiveWallet,
+      primary_uploader_wallet: effectiveWallet,
+      account_name: effectiveWallet,
+      main_wallet_name: effectiveWallet,
+
+      // Pack relationship
+      pack_id: packId,
+      pack_position: index + 1, // 1-indexed for children
+
+      // Remix tracking
+      remix_depth: childContentType === 'loop' ? 0 : null,
+      source_track_ids: [],
+
+      // Collaboration
+      collaboration_preferences: {},
+      store_display_policy: 'primary_only',
+      collaboration_type: 'primary_artist',
+
+      // Source metadata
+      upload_source: 'conversational',
+      conversation_id: conversationId
+    };
+  });
+
+  // 3. Insert all records
+  const allRecords = [containerRecord, ...childRecords];
+
+  const { data, error } = await supabase
+    .from('ip_tracks')
+    .insert(allRecords)
+    .select('id, title, artist, content_type, pack_id, pack_position, created_at');
+
+  if (error) {
+    console.error('❌ Multi-file insert error:', error);
+    return NextResponse.json(
+      { error: `Failed to save ${contentType}: ${error.message}` },
+      { status: 500 }
+    );
+  }
+
+  console.log(`✅ ${contentType} saved with ${files.length} tracks:`, data[0]);
+
+  return NextResponse.json({
+    success: true,
+    packId,
+    trackCount: files.length,
+    tracks: data,
+    pendingCollaborators: 0
+  });
 }
