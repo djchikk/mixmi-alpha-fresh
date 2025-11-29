@@ -230,7 +230,7 @@ export default function AccountPage() {
             <div>
               <h1 className="text-4xl font-bold">
                 <span className="bg-gradient-to-r from-[#a3f3ff] to-[#81E4F2] bg-clip-text text-transparent">
-                  Account Page
+                  Dashboard
                 </span>
               </h1>
               <p className="text-gray-400 mt-1">Manage your uploads, certificates, and settings</p>

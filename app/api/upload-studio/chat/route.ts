@@ -48,15 +48,36 @@ export async function POST(request: NextRequest) {
       attachmentInfo
     );
 
+    // Filter out empty messages and prepare for API
+    const filteredMessages = messages
+      .slice(1) // Remove system message (it's passed separately)
+      .filter(m => m.content && m.content.trim() !== '') // Remove empty messages
+      .filter(m => m.role === 'user' || m.role === 'assistant'); // Only user/assistant roles
+
+    // Ensure messages alternate properly (Anthropic requires this)
+    const apiMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    let lastRole: 'user' | 'assistant' | null = null;
+
+    for (const m of filteredMessages) {
+      const role = m.role as 'user' | 'assistant';
+      // Skip if same role as previous (shouldn't happen, but safety check)
+      if (role === lastRole) {
+        console.warn('⚠️ Skipping duplicate role message:', { role, content: m.content.substring(0, 50) });
+        continue;
+      }
+      apiMessages.push({ role, content: m.content });
+      lastRole = role;
+    }
+
+    // Debug: Log the final message structure
+    console.log('📨 API Messages:', apiMessages.map(m => ({ role: m.role, contentLength: m.content.length })));
+
     // Call Claude API
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
       system: UPLOAD_STUDIO_SYSTEM_PROMPT,
-      messages: messages.slice(1).map(m => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content
-      }))
+      messages: apiMessages
     });
 
     // Extract the response text

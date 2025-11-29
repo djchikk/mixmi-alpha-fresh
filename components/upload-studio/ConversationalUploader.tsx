@@ -28,21 +28,25 @@ interface ExtractedTrackData {
   title?: string;
   artist?: string;
   description?: string;
+  notes?: string;
   tags?: string[];
   bpm?: number;
   key?: string;
   loop_category?: string;
   tell_us_more?: string;
   location?: string;
+  additional_locations?: string[];
   ai_assisted_idea?: boolean;
   ai_assisted_implementation?: boolean;
   allow_downloads?: boolean;
   download_price_stx?: number;
   open_to_collaboration?: boolean;
   open_to_commercial?: boolean;
-  // Splits
+  // Splits (ownership)
   composition_splits?: Array<{ wallet?: string; name?: string; percentage: number }>;
   production_splits?: Array<{ wallet?: string; name?: string; percentage: number }>;
+  // Credits (attribution - no ownership, just recognition)
+  credits?: Array<{ name: string; role: string }>;
   // Files
   audio_url?: string;
   video_url?: string;

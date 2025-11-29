@@ -288,8 +288,8 @@ export default function Header() {
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
                       onClick={() => setShowAvatarDropdown(false)}
                     >
-                      <span className="text-lg">⚙️</span>
-                      <span>Account</span>
+                      <span className="text-lg">📊</span>
+                      <span>Dashboard</span>
                     </Link>
                   </div>
 
@@ -436,8 +436,8 @@ export default function Header() {
                       className="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <span>⚙️</span>
-                      <span>Account</span>
+                      <span>📊</span>
+                      <span>Dashboard</span>
                     </Link>
                   </div>
 
