@@ -3,6 +3,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, Upload, Music, Video, Loader2, CheckCircle, X } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client for thumbnail uploads
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface Message {
   id: string;
@@ -51,6 +58,14 @@ interface ExtractedTrackData {
   audio_url?: string;
   video_url?: string;
   cover_image_url?: string;
+  // Video crop data
+  video_crop_x?: number;
+  video_crop_y?: number;
+  video_crop_width?: number;
+  video_crop_height?: number;
+  video_crop_zoom?: number;
+  video_natural_width?: number;
+  video_natural_height?: number;
   // For packs
   pack_title?: string;
   loop_files?: string[];
@@ -142,6 +157,139 @@ Just describe what you've got, or drop your files here and we'll figure it out t
     }
   };
 
+  // Calculate smart crop for square aspect ratio
+  const calculateSmartCrop = (videoWidth: number, videoHeight: number) => {
+    const aspectRatio = videoWidth / videoHeight;
+    let cropX = 0;
+    let cropY = 0;
+    let cropSize = Math.min(videoWidth, videoHeight);
+
+    if (aspectRatio > 1) {
+      // Landscape video - crop from center horizontally
+      cropX = Math.floor((videoWidth - cropSize) / 2);
+      cropY = 0;
+    } else if (aspectRatio < 1) {
+      // Portrait video - crop from top (weighted toward top where interesting content usually is)
+      cropX = 0;
+      // Take from top third instead of exact center - more likely to have faces/action
+      cropY = Math.floor((videoHeight - cropSize) * 0.2); // 20% from top
+    }
+    // Square video - no crop needed, use as is
+
+    return { cropX, cropY, cropSize };
+  };
+
+  // Capture first frame of video as thumbnail with smart cropping
+  const captureVideoThumbnail = async (file: File): Promise<{
+    thumbnailUrl: string | null;
+    cropData: { x: number; y: number; width: number; height: number; zoom: number; naturalWidth: number; naturalHeight: number } | null
+  }> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+
+      const objectUrl = URL.createObjectURL(file);
+      video.src = objectUrl;
+
+      video.onloadeddata = () => {
+        // Seek to 0.1 seconds to avoid black frames
+        video.currentTime = 0.1;
+      };
+
+      video.onseeked = async () => {
+        try {
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
+
+          // Calculate smart crop
+          const { cropX, cropY, cropSize } = calculateSmartCrop(videoWidth, videoHeight);
+
+          // Create canvas for the cropped square thumbnail
+          const canvas = document.createElement('canvas');
+          const outputSize = 800; // Output thumbnail size
+          canvas.width = outputSize;
+          canvas.height = outputSize;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            console.error('Failed to get canvas context');
+            URL.revokeObjectURL(objectUrl);
+            resolve({ thumbnailUrl: null, cropData: null });
+            return;
+          }
+
+          // Draw the cropped portion of the video frame to canvas
+          ctx.drawImage(
+            video,
+            cropX, cropY, cropSize, cropSize,  // Source rectangle (from video)
+            0, 0, outputSize, outputSize       // Destination rectangle (on canvas)
+          );
+
+          // Convert to blob
+          canvas.toBlob(async (blob) => {
+            URL.revokeObjectURL(objectUrl);
+
+            if (!blob) {
+              console.error('Failed to create thumbnail blob');
+              resolve({ thumbnailUrl: null, cropData: null });
+              return;
+            }
+
+            // Upload thumbnail to cover-images bucket
+            const thumbnailFileName = `${crypto.randomUUID()}.jpg`;
+            const { data: thumbnailData, error: thumbnailError } = await supabase.storage
+              .from('cover-images')
+              .upload(thumbnailFileName, blob, {
+                cacheControl: '3600',
+                upsert: false
+              });
+
+            if (thumbnailError) {
+              console.error('Failed to upload thumbnail:', thumbnailError);
+              resolve({ thumbnailUrl: null, cropData: null });
+              return;
+            }
+
+            // Get public URL for thumbnail
+            const { data: { publicUrl } } = supabase.storage
+              .from('cover-images')
+              .getPublicUrl(thumbnailFileName);
+
+            const cropData = {
+              x: cropX,
+              y: cropY,
+              width: cropSize,
+              height: cropSize,
+              zoom: 1.0,
+              naturalWidth: videoWidth,
+              naturalHeight: videoHeight
+            };
+
+            console.log('✅ Auto-generated cover image with smart crop:', {
+              videoSize: `${videoWidth}x${videoHeight}`,
+              aspectRatio: (videoWidth / videoHeight).toFixed(2),
+              cropArea: `${cropSize}x${cropSize} at (${cropX}, ${cropY})`
+            });
+
+            resolve({ thumbnailUrl: publicUrl, cropData });
+          }, 'image/jpeg', 0.9);
+        } catch (error) {
+          console.error('Error capturing thumbnail:', error);
+          URL.revokeObjectURL(objectUrl);
+          resolve({ thumbnailUrl: null, cropData: null });
+        }
+      };
+
+      video.onerror = () => {
+        console.error('Error loading video for thumbnail');
+        URL.revokeObjectURL(objectUrl);
+        resolve({ thumbnailUrl: null, cropData: null });
+      };
+    });
+  };
+
   // Upload file to storage
   const uploadFile = async (attachment: FileAttachment) => {
     setAttachments(prev => prev.map(a =>
@@ -180,13 +328,32 @@ Just describe what you've got, or drop your files here and we'll figure it out t
           ...(result.duration && { duration: result.duration })
         }));
       } else if (attachment.type === 'video') {
+        // Auto-capture thumbnail from video first frame with smart crop
+        const { thumbnailUrl, cropData } = await captureVideoThumbnail(attachment.file);
+
         setExtractedData(prev => ({
           ...prev,
           video_url: result.url,
           content_type: 'video_clip',
-          // Auto-generated thumbnail
-          ...(result.thumbnailUrl && { cover_image_url: result.thumbnailUrl })
+          // Use captured thumbnail
+          ...(thumbnailUrl && { cover_image_url: thumbnailUrl }),
+          // Save crop data for video playback
+          ...(cropData && {
+            video_crop_x: cropData.x,
+            video_crop_y: cropData.y,
+            video_crop_width: cropData.width,
+            video_crop_height: cropData.height,
+            video_crop_zoom: cropData.zoom,
+            video_natural_width: cropData.naturalWidth,
+            video_natural_height: cropData.naturalHeight
+          })
         }));
+
+        if (thumbnailUrl) {
+          showToast('🎬 Cover image auto-generated from video', 'success');
+        } else {
+          showToast('⚠️ Could not auto-generate cover image - you can add one manually', 'warning');
+        }
       } else if (attachment.type === 'image') {
         setExtractedData(prev => ({
           ...prev,
