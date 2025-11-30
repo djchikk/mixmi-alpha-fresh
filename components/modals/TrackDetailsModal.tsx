@@ -68,6 +68,18 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     download_price_stx: number | null;
   } | null>(null);
 
+  // Pending collaborators state
+  const [pendingCollaborators, setPendingCollaborators] = useState<Array<{
+    collaborator_name: string;
+    split_percentage: number;
+    split_type: string;
+    split_position: number;
+    status: string;
+  }>>([]);
+
+  // Derived-from track state (provenance - where this content came from)
+  const [derivedFromTrack, setDerivedFromTrack] = useState<{ id: string; title: string; artist: string } | null>(null);
+
   // Audio playback state for individual loops
   const [playingLoopId, setPlayingLoopId] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
@@ -97,12 +109,71 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     }
   }, [track.primary_uploader_wallet, isOpen]);
 
+  // Fetch pending collaborators from database
+  useEffect(() => {
+    if (isOpen && track.id) {
+      const baseId = track.id.split('-loc-')[0];
+      console.log('🔍 Fetching pending collaborators for track ID:', baseId);
+
+      supabase
+        .from('pending_collaborators')
+        .select('collaborator_name, split_percentage, split_type, split_position, status')
+        .eq('track_id', baseId)
+        .order('split_position', { ascending: true })
+        .then(({ data, error }) => {
+          if (error) {
+            console.log('📝 No pending_collaborators table or no records:', error.message);
+            setPendingCollaborators([]);
+          } else {
+            console.log('✅ Pending collaborators:', data);
+            setPendingCollaborators(data || []);
+          }
+        });
+    }
+  }, [isOpen, track.id]);
+
+  // Fetch derived-from track (provenance) if this track has one
+  useEffect(() => {
+    if (isOpen && track.id) {
+      const baseId = track.id.split('-loc-')[0];
+
+      // First get the derived_from_track_id from this track
+      supabase
+        .from('ip_tracks')
+        .select('derived_from_track_id')
+        .eq('id', baseId)
+        .single()
+        .then(({ data, error }) => {
+          if (error || !data?.derived_from_track_id) {
+            setDerivedFromTrack(null);
+            return;
+          }
+
+          // Now fetch the derived-from track's details
+          supabase
+            .from('ip_tracks')
+            .select('id, title, artist')
+            .eq('id', data.derived_from_track_id)
+            .single()
+            .then(({ data: trackData, error: trackError }) => {
+              if (trackError || !trackData) {
+                console.log('⚠️ Could not fetch derived-from track:', trackError);
+                setDerivedFromTrack(null);
+              } else {
+                console.log('✅ Found derived-from track:', trackData.title);
+                setDerivedFromTrack(trackData);
+              }
+            });
+        });
+    }
+  }, [isOpen, track.id]);
+
   // Fetch IP rights directly from database
   useEffect(() => {
     if (isOpen && track.id) {
       const baseId = track.id.split('-loc-')[0]; // Remove location suffix
       console.log('🔍 Fetching IP rights for track ID:', baseId);
-      
+
       supabase
         .from('ip_tracks')
         .select(`
@@ -459,6 +530,31 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       return `${wallet.slice(0, 8)}...${wallet.slice(-8)}`;
     }
     return wallet;
+  };
+
+  // Get collaborator display info - resolves name from pending: prefix or pending_collaborators table
+  const getCollaboratorDisplay = (wallet: string, splitType: 'composition' | 'production', position: number): { name: string; isPending: boolean } => {
+    // Check if wallet has pending: prefix (name-only collaborator)
+    if (wallet.startsWith('pending:')) {
+      const name = wallet.replace('pending:', '');
+      return { name, isPending: true };
+    }
+
+    // Check pending_collaborators table for this position
+    const pendingCollab = pendingCollaborators.find(
+      pc => pc.split_type === splitType && pc.split_position === position
+    );
+    if (pendingCollab) {
+      return { name: pendingCollab.collaborator_name, isPending: pendingCollab.status === 'pending' };
+    }
+
+    // Check if it's the creator's wallet (primary uploader)
+    if (wallet === track.primary_uploader_wallet) {
+      return { name: track.artist || 'Creator', isPending: false };
+    }
+
+    // Default: show "Creator" with wallet
+    return { name: 'Creator', isPending: false };
   };
 
   // Create section divider
@@ -1017,6 +1113,23 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             </div>
           </div>
 
+          {/* Derived From - Shows where this content came from (NOT remixes) */}
+          {derivedFromTrack && (
+            <div>
+              <Divider title="DERIVED FROM" />
+              <div className="p-2 bg-slate-800/50 rounded border border-gray-700">
+                <div className="text-xs text-gray-400 mb-1">This content was extracted from:</div>
+                <Link
+                  href={`/store/${track.primary_uploader_wallet}`}
+                  className="text-[#81E4F2] hover:underline text-sm font-medium"
+                >
+                  {derivedFromTrack.title}
+                </Link>
+                <div className="text-gray-500 text-xs">by {derivedFromTrack.artist}</div>
+              </div>
+            </div>
+          )}
+
           {/* Source Tracks - For Remixes Only */}
           {track.remix_depth && track.remix_depth > 0 && (
             <div>
@@ -1241,14 +1354,23 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   <div className="text-gray-400 text-xs font-semibold mb-2">IDEA (Composition):</div>
                   <div className="space-y-1 text-xs pl-4">
                     {ipRights && ipRights.composition_splits.length > 0 ? (
-                      ipRights.composition_splits.map((split, index) => (
-                        <div key={index} className="flex items-center">
-                          <span className="text-gray-300">
-                            • Creator: {split.percentage}%
-                          </span>
-                          <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
-                        </div>
-                      ))
+                      ipRights.composition_splits.map((split, index) => {
+                        const { name, isPending } = getCollaboratorDisplay(split.wallet, 'composition', index + 1);
+                        const showWallet = !split.wallet.startsWith('pending:') && split.wallet.length > 10;
+                        return (
+                          <div key={index} className="flex items-center flex-wrap">
+                            <span className="text-gray-300">
+                              • {name}: {split.percentage}%
+                            </span>
+                            {isPending && (
+                              <span className="text-yellow-500 ml-2 text-xs">[wallet pending]</span>
+                            )}
+                            {showWallet && !isPending && (
+                              <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
+                            )}
+                          </div>
+                        );
+                      })
                     ) : (
                       <div className="text-gray-500">No composition splits defined</div>
                     )}
@@ -1260,14 +1382,23 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   <div className="text-gray-400 text-xs font-semibold mb-2">IMPLEMENTATION (Recording):</div>
                   <div className="space-y-1 text-xs pl-4">
                     {ipRights && ipRights.production_splits.length > 0 ? (
-                      ipRights.production_splits.map((split, index) => (
-                        <div key={index} className="flex items-center">
-                          <span className="text-gray-300">
-                            • Creator: {split.percentage}%
-                          </span>
-                          <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
-                        </div>
-                      ))
+                      ipRights.production_splits.map((split, index) => {
+                        const { name, isPending } = getCollaboratorDisplay(split.wallet, 'production', index + 1);
+                        const showWallet = !split.wallet.startsWith('pending:') && split.wallet.length > 10;
+                        return (
+                          <div key={index} className="flex items-center flex-wrap">
+                            <span className="text-gray-300">
+                              • {name}: {split.percentage}%
+                            </span>
+                            {isPending && (
+                              <span className="text-yellow-500 ml-2 text-xs">[wallet pending]</span>
+                            )}
+                            {showWallet && !isPending && (
+                              <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
+                            )}
+                          </div>
+                        );
+                      })
                     ) : (
                       <div className="text-gray-500">No production splits defined</div>
                     )}

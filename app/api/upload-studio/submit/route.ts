@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
+import { parseLocationsAndGetCoordinates } from '@/lib/locationLookup';
 
 // Initialize Supabase with service role
 const supabase = createClient(
@@ -190,6 +191,66 @@ export async function POST(request: NextRequest) {
       ...extractPendingCollaborators(trackData.production_splits, 'production')
     ];
 
+    // Handle "derived from" relationship (loop from a song) - NOT the same as remix!
+    // This is provenance/lineage tracking, stored in notes and a separate field
+    // remix_depth and source_track_ids are ONLY for mixer-created remixes
+    let derivedFromTrackId: string | null = null;
+
+    if (trackData.source_track_title) {
+      console.log('🔗 Looking up derived-from track:', trackData.source_track_title);
+
+      // Search for tracks by this user with matching title
+      const { data: matchingTracks, error: searchError } = await supabase
+        .from('ip_tracks')
+        .select('id, title')
+        .eq('primary_uploader_wallet', effectiveWallet)
+        .ilike('title', `%${trackData.source_track_title}%`)
+        .limit(5);
+
+      if (searchError) {
+        console.warn('⚠️ Derived-from track search error:', searchError);
+      } else if (matchingTracks && matchingTracks.length > 0) {
+        derivedFromTrackId = matchingTracks[0].id;
+        console.log('✅ Found derived-from track:', matchingTracks[0].title, matchingTracks[0].id);
+        // ID is stored in derived_from_track_id field - no need to duplicate in notes
+      } else {
+        console.log('⚠️ No matching track found for:', trackData.source_track_title);
+        // Couldn't find the track by ID, store the title in notes as fallback
+        trackData.notes = (trackData.notes || '') + `\n\nDerived from: ${trackData.source_track_title}`;
+      }
+    }
+
+    // Geocode location if provided as text but without coordinates
+    let locationLat = trackData.location_lat;
+    let locationLng = trackData.location_lng;
+    let primaryLocation = trackData.primary_location;
+    let allLocations: Array<{ lat: number; lng: number; name: string }> | null = null;
+
+    // The chatbot stores location as "location" (text), we need to geocode it
+    const locationText = (trackData as any).location || trackData.primary_location;
+    if (locationText && (!locationLat || !locationLng)) {
+      console.log('📍 Geocoding location:', locationText);
+      const locationResult = await parseLocationsAndGetCoordinates(locationText);
+      if (locationResult.primary && locationResult.primary.lat !== 0 && locationResult.primary.lng !== 0) {
+        locationLat = locationResult.primary.lat;
+        locationLng = locationResult.primary.lng;
+        primaryLocation = locationResult.primary.name;
+        console.log('✅ Geocoded to:', primaryLocation, `(${locationLat}, ${locationLng})`);
+
+        // Store all locations if there are multiple
+        if (locationResult.all.length > 0) {
+          allLocations = locationResult.all.filter(loc => loc.lat !== 0 && loc.lng !== 0);
+          if (allLocations.length > 1) {
+            console.log('📍 Multiple locations found:', allLocations.map(l => l.name).join(', '));
+          }
+        }
+      } else {
+        // Store the text even if we couldn't geocode
+        primaryLocation = locationText;
+        console.log('⚠️ Could not geocode location, storing text only:', locationText);
+      }
+    }
+
     // Build the track record
     const trackId = uuidv4();
     const now = new Date().toISOString();
@@ -225,10 +286,11 @@ export async function POST(request: NextRequest) {
       video_natural_width: trackData.video_natural_width ?? null,
       video_natural_height: trackData.video_natural_height ?? null,
 
-      // Location
-      primary_location: trackData.primary_location || null,
-      location_lat: trackData.location_lat || null,
-      location_lng: trackData.location_lng || null,
+      // Location (geocoded)
+      primary_location: primaryLocation || null,
+      location_lat: locationLat || null,
+      location_lng: locationLng || null,
+      locations: allLocations && allLocations.length > 0 ? allLocations : null,
 
       // Composition splits
       composition_split_1_wallet: compositionSplits[0]?.wallet || effectiveWallet,
@@ -254,14 +316,15 @@ export async function POST(request: NextRequest) {
       license_type: trackData.allow_downloads ? 'remix_external' : 'remix_only',
       license_selection: contentType === 'full_song' ? 'platform_download' : 'platform_remix',
       allow_remixing: contentType !== 'full_song' ? (trackData.allow_remixing ?? true) : false,
-      allow_downloads: trackData.allow_downloads || false,
-      open_to_collaboration: trackData.open_to_collaboration || false,
-      open_to_commercial: trackData.open_to_commercial || false,
+      allow_downloads: trackData.allow_downloads ?? false,
+      open_to_collaboration: trackData.open_to_collaboration ?? false,
+      open_to_commercial: trackData.open_to_commercial ?? false,
       // Contact access - use same email/fee for both commercial and collab
+      // Default to 2 STX if they're open to collaboration/commercial but didn't set a fee
       commercial_contact: trackData.contact_email || trackData.commercial_contact || null,
-      commercial_contact_fee: trackData.contact_fee_stx || null,
+      commercial_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
       collab_contact: trackData.contact_email || trackData.collab_contact || null,
-      collab_contact_fee: trackData.contact_fee_stx || null,
+      collab_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
 
       // Pricing
       remix_price_stx: contentType === 'full_song' ? 0 : 1.0,
@@ -277,9 +340,15 @@ export async function POST(request: NextRequest) {
       account_name: effectiveWallet,
       main_wallet_name: effectiveWallet,
 
-      // Remix tracking
+      // Remix tracking (ONLY for mixer-created remixes, not for "derived from" relationships)
       remix_depth: contentType === 'loop' ? 0 : null,
       source_track_ids: [],
+
+      // External release linkage
+      isrc: trackData.isrc || null,
+
+      // Provenance tracking (where this content came from)
+      derived_from_track_id: derivedFromTrackId,
 
       // Collaboration
       collaboration_preferences: {},
@@ -316,7 +385,7 @@ export async function POST(request: NextRequest) {
 
     // If there are pending collaborators, save them for later resolution
     if (pendingCollaborators.length > 0) {
-      await savePendingCollaborators(trackId, pendingCollaborators);
+      await savePendingCollaborators(trackId, pendingCollaborators, effectiveWallet);
     }
 
     return NextResponse.json({
@@ -337,19 +406,34 @@ export async function POST(request: NextRequest) {
 
 /**
  * Process splits array, using default wallet for entries without wallets
+ * Name-only collaborators get a placeholder wallet that indicates pending status
  */
 function processSplits(
   splits: Array<{ wallet?: string; name?: string; percentage: number }> | undefined,
   defaultWallet: string
-): Array<{ wallet: string; percentage: number }> {
+): Array<{ wallet: string; percentage: number; name?: string }> {
   if (!splits || splits.length === 0) {
     return [{ wallet: defaultWallet, percentage: 100 }];
   }
 
-  return splits.map((split, index) => ({
-    wallet: split.wallet || (index === 0 ? defaultWallet : ''), // First split defaults to uploader
-    percentage: split.percentage
-  })).filter(s => s.percentage > 0);
+  return splits.map((split, index) => {
+    let wallet = split.wallet || '';
+
+    // First split defaults to uploader if no wallet specified
+    if (!wallet && index === 0) {
+      wallet = defaultWallet;
+    }
+    // Name-only collaborators get a "pending:" prefix so we know to look them up
+    else if (!wallet && split.name) {
+      wallet = `pending:${split.name}`;
+    }
+
+    return {
+      wallet,
+      percentage: split.percentage,
+      name: split.name
+    };
+  }).filter(s => s.percentage > 0);
 }
 
 /**
@@ -358,39 +442,53 @@ function processSplits(
 function extractPendingCollaborators(
   splits: Array<{ wallet?: string; name?: string; percentage: number }> | undefined,
   type: 'composition' | 'production'
-): Array<{ name: string; percentage: number; type: string }> {
+): Array<{ name: string; percentage: number; type: string; position: number }> {
   if (!splits) return [];
 
   return splits
+    .map((s, index) => ({ ...s, position: index + 1 }))
     .filter(s => s.name && !s.wallet && s.percentage > 0)
     .map(s => ({
       name: s.name!,
       percentage: s.percentage,
-      type
+      type,
+      position: s.position
     }));
 }
 
 /**
  * Save pending collaborators for later wallet resolution
- * This would go into a pending_collaborators table
+ * Inserts into pending_collaborators table
  */
 async function savePendingCollaborators(
   trackId: string,
-  collaborators: Array<{ name: string; percentage: number; type: string }>
+  collaborators: Array<{ name: string; percentage: number; type: string; position: number }>,
+  createdBy: string
 ) {
-  // For now, just log - we'll create the table when needed
-  console.log('📋 Pending collaborators for track', trackId, ':', collaborators);
+  if (collaborators.length === 0) return;
 
-  // TODO: Insert into pending_collaborators table when created
-  // const { error } = await supabase
-  //   .from('pending_collaborators')
-  //   .insert(collaborators.map(c => ({
-  //     track_id: trackId,
-  //     collaborator_name: c.name,
-  //     split_percentage: c.percentage,
-  //     split_type: c.type,
-  //     status: 'pending'
-  //   })));
+  console.log('📋 Saving pending collaborators for track', trackId, ':', collaborators);
+
+  const records = collaborators.map(c => ({
+    track_id: trackId,
+    collaborator_name: c.name,
+    split_percentage: c.percentage,
+    split_type: c.type,
+    split_position: c.position,
+    status: 'pending',
+    created_by: createdBy
+  }));
+
+  const { error } = await supabase
+    .from('pending_collaborators')
+    .insert(records);
+
+  if (error) {
+    console.error('❌ Error saving pending collaborators:', error);
+    // Don't throw - the track is already saved, this is supplementary
+  } else {
+    console.log('✅ Saved', records.length, 'pending collaborators');
+  }
 }
 
 /**
@@ -432,6 +530,35 @@ async function handleMultiFileSubmission(
   const compositionSplits = processSplits(trackData.composition_splits, effectiveWallet);
   const productionSplits = processSplits(trackData.production_splits, effectiveWallet);
 
+  // Geocode location if provided as text but without coordinates
+  let locationLat = trackData.location_lat;
+  let locationLng = trackData.location_lng;
+  let primaryLocation = trackData.primary_location;
+  let allLocations: Array<{ lat: number; lng: number; name: string }> | null = null;
+
+  const locationText = (trackData as any).location || trackData.primary_location;
+  if (locationText && (!locationLat || !locationLng)) {
+    console.log('📍 Geocoding location for pack:', locationText);
+    const locationResult = await parseLocationsAndGetCoordinates(locationText);
+    if (locationResult.primary && locationResult.primary.lat !== 0 && locationResult.primary.lng !== 0) {
+      locationLat = locationResult.primary.lat;
+      locationLng = locationResult.primary.lng;
+      primaryLocation = locationResult.primary.name;
+      console.log('✅ Geocoded to:', primaryLocation, `(${locationLat}, ${locationLng})`);
+
+      // Store all locations if there are multiple
+      if (locationResult.all.length > 0) {
+        allLocations = locationResult.all.filter(loc => loc.lat !== 0 && loc.lng !== 0);
+        if (allLocations.length > 1) {
+          console.log('📍 Multiple locations found:', allLocations.map(l => l.name).join(', '));
+        }
+      }
+    } else {
+      primaryLocation = locationText;
+      console.log('⚠️ Could not geocode location, storing text only:', locationText);
+    }
+  }
+
   // 1. Create the container record (the pack/EP itself)
   const containerRecord = {
     id: packId,
@@ -455,10 +582,11 @@ async function handleMultiFileSubmission(
     video_url: null,
     cover_image_url: trackData.cover_image_url || null,
 
-    // Location
-    primary_location: trackData.primary_location || null,
-    location_lat: trackData.location_lat || null,
-    location_lng: trackData.location_lng || null,
+    // Location (geocoded)
+    primary_location: primaryLocation || null,
+    location_lat: locationLat || null,
+    location_lng: locationLng || null,
+    locations: allLocations && allLocations.length > 0 ? allLocations : null,
 
     // Splits
     composition_split_1_wallet: compositionSplits[0]?.wallet || effectiveWallet,
@@ -482,14 +610,15 @@ async function handleMultiFileSubmission(
     license_type: trackData.allow_downloads ? 'remix_external' : 'remix_only',
     license_selection: contentType === 'ep' ? 'platform_download' : 'platform_remix',
     allow_remixing: contentType !== 'ep' ? (trackData.allow_remixing ?? true) : false,
-    allow_downloads: trackData.allow_downloads || false,
-    open_to_collaboration: trackData.open_to_collaboration || false,
-    open_to_commercial: trackData.open_to_commercial || false,
+    allow_downloads: trackData.allow_downloads ?? false,
+    open_to_collaboration: trackData.open_to_collaboration ?? false,
+    open_to_commercial: trackData.open_to_commercial ?? false,
     // Contact access - use same email/fee for both commercial and collab
+    // Default to 2 STX if they're open to collaboration/commercial but didn't set a fee
     commercial_contact: trackData.contact_email || trackData.commercial_contact || null,
-    commercial_contact_fee: trackData.contact_fee_stx || null,
+    commercial_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
     collab_contact: trackData.contact_email || trackData.collab_contact || null,
-    collab_contact_fee: trackData.contact_fee_stx || null,
+    collab_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
 
     // Pricing
     remix_price_stx: contentType === 'ep' ? 0 : 1.0,
@@ -552,10 +681,11 @@ async function handleMultiFileSubmission(
       video_url: null,
       cover_image_url: trackData.cover_image_url || null,
 
-      // Location (inherit from container)
-      primary_location: trackData.primary_location || null,
-      location_lat: trackData.location_lat || null,
-      location_lng: trackData.location_lng || null,
+      // Location (inherit from container - geocoded)
+      primary_location: primaryLocation || null,
+      location_lat: locationLat || null,
+      location_lng: locationLng || null,
+      locations: allLocations && allLocations.length > 0 ? allLocations : null,
 
       // Splits (same as container)
       composition_split_1_wallet: compositionSplits[0]?.wallet || effectiveWallet,

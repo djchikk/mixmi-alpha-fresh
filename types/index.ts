@@ -138,9 +138,12 @@ export interface IPTrack {
   pack_position?: number; // Position within the loop pack (1, 2, 3, etc.)
   total_loops?: number; // For loop pack master records - total number of loops in the pack
   
-  // Remix tracking
+  // Remix tracking (for mixer-created remixes only)
   remix_depth?: number; // Generation depth: 0=original, 1+=remix generation, null=full song
   source_track_ids?: string[]; // IDs of tracks this was remixed from
+
+  // Provenance tracking (where this content came from)
+  derived_from_track_id?: string; // UUID of track this was extracted from (e.g., loop from a song)
   
   // Metadata
   created_at: string;
