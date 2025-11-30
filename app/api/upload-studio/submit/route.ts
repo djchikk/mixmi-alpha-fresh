@@ -84,24 +84,52 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { trackData, walletAddress, conversationId } = body;
 
+    // Debug logging
+    console.log('📥 Submit request received:', {
+      hasTrackData: !!trackData,
+      walletAddress: walletAddress?.substring(0, 15) + '...',
+      conversationId,
+      contentType: trackData?.content_type,
+      title: trackData?.title,
+      artist: trackData?.artist,
+      hasAudioUrl: !!trackData?.audio_url,
+      loopFilesCount: trackData?.loop_files?.length || 0,
+      epFilesCount: trackData?.ep_files?.length || 0,
+      bpm: trackData?.bpm
+    });
+
     // Validate required fields
     if (!walletAddress) {
+      console.log('❌ Validation failed: No wallet address');
       return NextResponse.json(
         { error: 'Wallet address required' },
         { status: 400 }
       );
     }
 
-    if (!trackData || !trackData.title || !trackData.artist) {
+    // For packs/EPs, title comes from pack_title or ep_title
+    const effectiveTitle = trackData?.title || trackData?.pack_title || trackData?.ep_title;
+
+    if (!trackData || !effectiveTitle || !trackData.artist) {
+      console.log('❌ Validation failed: Missing title or artist', {
+        title: trackData?.title,
+        pack_title: trackData?.pack_title,
+        ep_title: trackData?.ep_title,
+        artist: trackData?.artist
+      });
       return NextResponse.json(
         { error: 'Track title and artist required' },
         { status: 400 }
       );
     }
 
+    // Normalize title for downstream use
+    trackData.title = effectiveTitle;
+
     // Resolve wallet address (handle alpha codes)
     const effectiveWallet = await getWalletFromAuthIdentity(walletAddress);
     if (!effectiveWallet) {
+      console.log('❌ Validation failed: Could not resolve wallet', { walletAddress });
       return NextResponse.json(
         { error: 'Could not resolve wallet address' },
         { status: 400 }
@@ -110,9 +138,11 @@ export async function POST(request: NextRequest) {
 
     // Determine content type
     const contentType = trackData.content_type || 'loop';
+    console.log('📋 Content type determined:', contentType);
 
     // Validate content type specific requirements
     if (contentType === 'loop' && !trackData.bpm) {
+      console.log('❌ Validation failed: Loop missing BPM');
       return NextResponse.json(
         { error: 'BPM is required for loops' },
         { status: 400 }
@@ -121,8 +151,10 @@ export async function POST(request: NextRequest) {
 
     // For multi-file content types, audio is in loop_files or ep_files arrays
     const hasMultiFileAudio = (trackData.loop_files?.length > 0) || (trackData.ep_files?.length > 0);
+    console.log('📋 Multi-file check:', { hasMultiFileAudio, loopFiles: trackData.loop_files?.length, epFiles: trackData.ep_files?.length });
 
     if (!trackData.audio_url && contentType !== 'video_clip' && contentType !== 'loop_pack' && contentType !== 'ep' && !hasMultiFileAudio) {
+      console.log('❌ Validation failed: No audio file');
       return NextResponse.json(
         { error: 'Audio file is required' },
         { status: 400 }
@@ -130,6 +162,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (contentType === 'video_clip' && !trackData.video_url) {
+      console.log('❌ Validation failed: Video clip missing video');
       return NextResponse.json(
         { error: 'Video file is required for video clips' },
         { status: 400 }
