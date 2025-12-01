@@ -72,6 +72,8 @@ interface SubmitFormData {
   video_crop_zoom?: number;
   video_natural_width?: number;
   video_natural_height?: number;
+  // Sacred/devotional content protection
+  remix_protected?: boolean;
 }
 
 interface UseIPTrackSubmitProps {
@@ -503,6 +505,9 @@ export function useIPTrackSubmit({
 
         // Audio source tracking (for video clips)
         audio_source: formData.audio_source || 'included',
+
+        // Sacred/devotional content protection
+        remix_protected: formData.remix_protected ?? false,
 
         // NEW PRICING MODEL (separate remix and download pricing)
         // Songs/EPs: Only download price (no remix)

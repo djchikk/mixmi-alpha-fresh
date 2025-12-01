@@ -8,27 +8,38 @@ interface SimplifiedLicensingStepProps {
 export default function SimplifiedLicensingStep({ formData, handleInputChange }: SimplifiedLicensingStepProps) {
   // Simplified licensing for alpha version - keep custom pricing but remove complex options
   if (formData.content_type === 'full_song') {
-    // Songs: Platform Streaming (required) + Optional Downloads
+    // Songs: Platform Remix (default ON, can opt out) + Optional Downloads
     return (
       <div className="space-y-6">
-        {/* Platform Streaming - Always Required */}
-        <div className="bg-[#81E4F2]/10 border border-[#81E4F2]/30 rounded-lg p-4">
+        {/* Platform Remix - Default ON, can be unchecked to protect */}
+        <div className={`${formData.remix_protected ? 'bg-amber-900/20 border-amber-700/30' : 'bg-[#81E4F2]/10 border-[#81E4F2]/30'} border rounded-lg p-4`}>
           <div className="flex items-start gap-3">
             <input
               type="checkbox"
-              checked={true}
-              disabled={true}
-              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
+              checked={!formData.remix_protected}
+              onChange={(e) => {
+                handleInputChange('remix_protected', !e.target.checked);
+              }}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
             />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-gray-300 font-medium">PLATFORM STREAMING</span>
-                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
+                <span className="text-gray-300 font-medium">ALLOW IN MIXER</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
               <p className="text-gray-400 text-sm mb-3">
-                Your song earns approximately <strong>0.08 STX per full play</strong> from 30-minute streaming passes
+                Your song can be used in the platform mixer. You earn approximately <strong>0.08 STX per full play</strong> from 30-minute streaming passes
                 (currently ~$0.036 USD - 9-12x better than Spotify).
               </p>
+
+              {/* Protected message when unchecked */}
+              {formData.remix_protected && (
+                <div className="bg-amber-900/30 border border-amber-700/50 p-3 rounded mb-3">
+                  <p className="text-amber-300 text-sm">
+                    Your song will be available for streaming and download only - not for mixing with other content.
+                  </p>
+                </div>
+              )}
 
               {/* Streaming info display */}
               <div className="bg-slate-900/50 p-3 rounded">
@@ -120,7 +131,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
     );
   }
 
-  // EPs: Platform Streaming (required) + Optional Downloads per song
+  // EPs: Platform Remix (default ON, can opt out) + Optional Downloads per song
   if (formData.content_type === 'ep') {
     const songCount = formData.ep_files?.length || 0;
     const downloadPricePerSong = formData.price_per_song || 2;
@@ -128,24 +139,35 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
 
     return (
       <div className="space-y-6">
-        {/* Platform Streaming - Always Required */}
-        <div className="bg-[#81E4F2]/10 border border-[#81E4F2]/30 rounded-lg p-4">
+        {/* Platform Remix - Default ON, can be unchecked to protect */}
+        <div className={`${formData.remix_protected ? 'bg-amber-900/20 border-amber-700/30' : 'bg-[#81E4F2]/10 border-[#81E4F2]/30'} border rounded-lg p-4`}>
           <div className="flex items-start gap-3">
             <input
               type="checkbox"
-              checked={true}
-              disabled={true}
-              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
+              checked={!formData.remix_protected}
+              onChange={(e) => {
+                handleInputChange('remix_protected', !e.target.checked);
+              }}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
             />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-gray-300 font-medium">PLATFORM STREAMING</span>
-                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
+                <span className="text-gray-300 font-medium">ALLOW IN MIXER</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
               <p className="text-gray-400 text-sm mb-3">
-                Each song in your EP earns approximately <strong>0.08 STX per full play</strong> from 30-minute streaming passes
+                Songs in your EP can be used in the platform mixer. Each song earns approximately <strong>0.08 STX per full play</strong> from 30-minute streaming passes
                 (currently ~$0.036 USD - 9-12x better than Spotify).
               </p>
+
+              {/* Protected message when unchecked */}
+              {formData.remix_protected && (
+                <div className="bg-amber-900/30 border border-amber-700/50 p-3 rounded mb-3">
+                  <p className="text-amber-300 text-sm">
+                    Your EP will be available for streaming and download only - not for mixing with other content.
+                  </p>
+                </div>
+              )}
 
               {/* Streaming info display */}
               <div className="bg-slate-900/50 p-3 rounded">
@@ -253,7 +275,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
     );
   }
 
-  // Loop Packs: Show pack pricing + same licensing options as individual loops
+  // Loop Packs: Platform Remix (default ON, can opt out) + Optional Downloads
   if (formData.content_type === 'loop_pack') {
     const loopCount = formData.loop_files?.length || 0;
     const downloadPricePerLoop = formData.price_per_loop || 1;
@@ -261,30 +283,43 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
 
     return (
       <div className="space-y-6">
-        {/* Remix Pricing - Always Required */}
-        <div className="bg-[#81E4F2]/10 border border-[#81E4F2]/30 rounded-lg p-4">
+        {/* Platform Remix - Default ON, can be unchecked to protect */}
+        <div className={`${formData.remix_protected ? 'bg-amber-900/20 border-amber-700/30' : 'bg-[#81E4F2]/10 border-[#81E4F2]/30'} border rounded-lg p-4`}>
           <div className="flex items-start gap-3">
             <input
               type="checkbox"
-              checked={true}
-              disabled={true}
-              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
+              checked={!formData.remix_protected}
+              onChange={(e) => {
+                handleInputChange('remix_protected', !e.target.checked);
+              }}
+              className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
             />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
-                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
               <p className="text-gray-400 text-sm mb-3">You earn 1 STX each time someone records a remix using a loop from this pack</p>
 
-              {/* Remix fee prominently displayed */}
-              <div className="bg-slate-900/50 p-3 rounded">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm">Recording fee:</span>
-                  <span className="text-[#81E4F2] font-bold text-lg">1 STX</span>
-                  <span className="text-gray-500 text-xs">per loop</span>
+              {/* Protected message when unchecked */}
+              {formData.remix_protected && (
+                <div className="bg-amber-900/30 border border-amber-700/50 p-3 rounded mb-3">
+                  <p className="text-amber-300 text-sm">
+                    Your loops will be available for streaming and download only - not for mixing with other content.
+                  </p>
                 </div>
-              </div>
+              )}
+
+              {/* Remix fee prominently displayed - only when remix allowed */}
+              {!formData.remix_protected && (
+                <div className="bg-slate-900/50 p-3 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-sm">Recording fee:</span>
+                    <span className="text-[#81E4F2] font-bold text-lg">1 STX</span>
+                    <span className="text-gray-500 text-xs">per loop</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -496,39 +531,52 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
     );
   }
 
-  // Individual Loops: Platform Remix (always on) + Optional Download
+  // Individual Loops: Platform Remix (default ON, can opt out) + Optional Download
   return (
     <div className="space-y-6">
       {/* License Type Selection - Checkboxes (not radio!) */}
       <div className="space-y-4">
 
-      {/* Platform Remix - Always checked, default 1 STX */}
-      <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
+      {/* Platform Remix - Default ON, can be unchecked to protect */}
+      <div className={`space-y-3 p-4 rounded-lg border ${formData.remix_protected ? 'bg-amber-900/20 border-amber-700/30' : 'bg-slate-800/30 border-slate-700'}`}>
         <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
-            checked={true}
-            disabled={true}
-            className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2] opacity-100"
+            checked={!formData.remix_protected}
+            onChange={(e) => {
+              handleInputChange('remix_protected', !e.target.checked);
+            }}
+            className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
           />
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
-              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
+              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
             </div>
             <p className="text-gray-400 text-sm mt-1">You earn 1 STX each time someone records a remix using this loop</p>
           </div>
         </label>
 
-        {/* Fixed remix price display */}
-        <div className="ml-8 p-3 bg-slate-900/50 rounded">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">Recording fee:</span>
-            <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded text-[#81E4F2] font-medium text-sm">
-              1 STX
+        {/* Protected message when unchecked */}
+        {formData.remix_protected && (
+          <div className="ml-8 bg-amber-900/30 border border-amber-700/50 p-3 rounded">
+            <p className="text-amber-300 text-sm">
+              Your loop will be available for streaming and download only - not for mixing with other content.
+            </p>
+          </div>
+        )}
+
+        {/* Fixed remix price display - only when remix allowed */}
+        {!formData.remix_protected && (
+          <div className="ml-8 p-3 bg-slate-900/50 rounded">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-sm">Recording fee:</span>
+              <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded text-[#81E4F2] font-medium text-sm">
+                1 STX
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Optional Download - Checkbox with custom price */}

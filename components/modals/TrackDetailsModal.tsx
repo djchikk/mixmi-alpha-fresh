@@ -506,12 +506,14 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   };
 
   const getLicense = () => {
-    // All content types now support platform remix (mixer accepts loops, songs, videos)
-    // The only distinction is whether downloads are also allowed
-    if (track.allow_downloads || ipRights?.allow_downloads) {
-      return 'Platform Remix + Download';
+    // Check if track is protected from remixing
+    const isRemixProtected = track.remix_protected || ipRights?.remix_protected;
+    const allowsDownloads = track.allow_downloads || ipRights?.allow_downloads;
+
+    if (isRemixProtected) {
+      return allowsDownloads ? 'Streaming + Download Only' : 'Streaming Only';
     }
-    return 'Platform Remix Only';
+    return allowsDownloads ? 'Platform Remix + Download' : 'Platform Remix Only';
   };
 
   const formatDuration = (seconds?: number) => {
@@ -965,10 +967,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             <div className="space-y-1 text-xs">
               <div className="flex">
                 <span className="text-gray-500 w-24">License:</span>
-                <span className="text-gray-300">
-                  {ipRights?.allow_downloads
-                    ? 'Platform Remix + Download'
-                    : 'Platform Remix Only'}
+                <span className={`${(track.remix_protected || ipRights?.remix_protected) ? 'text-amber-300' : 'text-gray-300'}`}>
+                  {getLicense()}
                 </span>
               </div>
               {track.content_type === 'loop_pack' ? (
