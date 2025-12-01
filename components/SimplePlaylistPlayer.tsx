@@ -278,6 +278,33 @@ export default function SimplePlaylistPlayer() {
     }
   }, [volume, isMuted]);
 
+  // Expose API for other components (e.g., mixer) to add tracks programmatically
+  useEffect(() => {
+    (window as any).addTrackToPlaylist = (track: any) => {
+      const newTrack: PlaylistTrack = {
+        id: track.id,
+        title: track.title,
+        artist: track.artist || track.artist_name || 'Unknown',
+        imageUrl: track.cover_image_url || track.imageUrl || '',
+        audioUrl: track.audio_url || track.audioUrl || track.stream_url,
+        content_type: track.content_type,
+        bpm: track.bpm,
+        stream_url: track.stream_url
+      };
+
+      setPlaylist(prev => {
+        if (prev.some(t => t.id === newTrack.id)) return prev;
+        return [newTrack, ...prev];
+      });
+
+      setIsExpanded(true);
+    };
+
+    return () => {
+      delete (window as any).addTrackToPlaylist;
+    };
+  }, []);
+
   const currentTrack = playlist[currentIndex];
 
   return (

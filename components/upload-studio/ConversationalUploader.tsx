@@ -784,6 +784,16 @@ Would you like to upload another track, or shall I show you where to find your n
                   'bg-slate-800 border border-slate-700'
                 }`}
               >
+                {/* Image thumbnail preview */}
+                {att.type === 'image' && (
+                  <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
+                    <img
+                      src={URL.createObjectURL(att.file)}
+                      alt={att.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
                 {att.type === 'audio' && <Music size={14} />}
                 {att.type === 'video' && <Video size={14} />}
                 <span className="truncate max-w-[150px] text-white">{att.name}</span>

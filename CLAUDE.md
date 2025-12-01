@@ -1358,3 +1358,237 @@ BPM must flow through:
 ---
 
 *Documentation by Claude Code - Complete drag symmetry achieved, critical bugs eliminated, platform alpha-ready. All components now work seamlessly together with full bidirectional data flow.*
+
+---
+
+## Session: November 30, 2025
+
+**Focus:** User persona handling, sacred content protection, and inclusive platform design
+
+### 🎭 User Persona System in Chatbot
+
+**What We Built:**
+A sophisticated persona detection system that adapts the chatbot's communication style based on user signals.
+
+---
+
+### 👔 Professional/Industry Users ("The Charles Persona")
+
+**Detection Signals:**
+- Industry terminology (sync licensing, publishing splits, PRO registration)
+- Professional context mentions (label, distributor, manager)
+- Protective/skeptical attitudes about IP
+- Questions about platform's legal framework
+
+**Response Approach:**
+```
+1. Respect their knowledge - don't over-explain basics
+2. Clear boundaries - be direct about what platform does/doesn't do
+3. Reframe opportunity - show how mixmi complements (not replaces) existing systems
+4. Handle skepticism gracefully - acknowledge concerns, provide specifics
+```
+
+**Key Messaging:**
+- "mixmi handles platform-specific remix licensing, not your broader IP rights"
+- "Your PRO registrations, publishing deals stay exactly as they are"
+- "Think of this as additional exposure with built-in attribution"
+
+**File:** `lib/upload-studio/system-prompt.ts` (lines 601-670)
+
+---
+
+### 🌍 Community-Creator Users ("The Rural Kenya Persona")
+
+**Detection Signals:**
+- Simple, direct language
+- Mentions of community, village, church, family music
+- Traditional/cultural content references
+- First-time or hesitant uploaders
+- Non-Western musical contexts
+
+**Response Approach:**
+```
+1. Use simple, clear language - avoid jargon
+2. Be warm and encouraging - celebrate their contribution
+3. Explain concepts gently - percentages, licensing in plain terms
+4. Don't assume Western music industry knowledge
+5. Respect traditional/communal ownership models
+```
+
+**Key Messaging:**
+- "Your music can help people all over the world"
+- "You keep control - you decide who can use it"
+- "The platform helps protect your work and share it safely"
+
+**Special Handling for Covers/Traditional:**
+```
+When someone uploads a cover or traditional song:
+- Gently explain they can only claim their performance/arrangement
+- Suggest crediting original songwriter if known
+- For traditional music, help them describe the cultural origin
+- Offer remix protection for sacred content (see below)
+```
+
+**File:** `lib/upload-studio/system-prompt.ts` (lines 672-724)
+
+---
+
+### 🙏 Sacred/Devotional Content Protection
+
+**The Feature:**
+New `remix_protected` boolean field that prevents sacred content from being loaded into the mixer while still allowing streaming and downloads.
+
+**Detection Signals in Chatbot:**
+- Religious/spiritual context (worship, prayer, hymn, devotional, sacred)
+- Ceremonial music mentions
+- Cultural/traditional sacred content
+- User expressing discomfort about remixing
+
+**Chatbot Approach:**
+```
+When sacred content detected:
+1. Acknowledge the spiritual nature respectfully
+2. Explain remix protection option clearly
+3. Don't assume - always ask if they want protection
+4. Emphasize their content stays accessible for listening
+```
+
+**Example Flow:**
+```
+User: "This is a worship song from our church"
+Bot: "That's beautiful - worship music is such a meaningful way to share
+faith. Would you like to protect this from remixing? Some creators prefer
+their devotional music to be heard as-is rather than mixed with other
+content. It would still be available for streaming and download."
+```
+
+**Technical Implementation:**
+
+**Database:**
+```sql
+ALTER TABLE ip_tracks
+ADD COLUMN remix_protected BOOLEAN DEFAULT FALSE;
+```
+
+**Submit Route** (`app/api/upload-studio/submit/route.ts`):
+- Added `remix_protected` to TrackSubmission interface
+- Stores field for single tracks, packs, and child records
+
+**Mixer Protection** (`components/mixer/UniversalMixer.tsx`):
+```typescript
+if ((track as any).remix_protected) {
+  // Redirect to playlist instead of blocking
+  if ((window as any).addTrackToPlaylist) {
+    (window as any).addTrackToPlaylist(track);
+    showToast('This track is protected from remixing - added to your playlist for listening', 'info');
+  }
+  return;
+}
+```
+
+**Globe Data Flow** (`lib/globeDataSupabase.ts`):
+- Added `remix_protected` to select query
+- Passes through to TrackNode for display and filtering
+
+**Playlist API** (`components/SimplePlaylistPlayer.tsx`):
+```typescript
+(window as any).addTrackToPlaylist = (track) => {
+  // Add track and expand playlist widget
+  setPlaylist(prev => [newTrack, ...prev]);
+  setIsExpanded(true);
+};
+```
+
+**User Experience:**
+1. Creator uploads worship song, chatbot detects and offers protection
+2. Creator confirms, `remix_protected: true` saved to database
+3. Track appears on globe, can be streamed, downloaded
+4. When dragged to mixer deck:
+   - Track is NOT loaded to deck
+   - Track IS added to playlist widget
+   - Playlist expands automatically
+   - Toast: "This track is protected from remixing - added to your playlist for listening"
+
+---
+
+### 🎵 Sample Credit Culture
+
+**Enhancement:**
+When users mention sampling another person's work, chatbot now proactively suggests IP credit.
+
+**Before:** Chatbot dismissed samples as not affecting ownership
+**After:** Chatbot encourages generosity
+
+**Example:**
+```
+User: "I sampled a vocal from Muneeb's YouTube video"
+Bot: "That's a meaningful creative contribution! Would you like to give
+Muneeb some percentage of the composition credit? Some producers feel
+like 10-25% is fair for samples that inspired the track. Totally your
+call - what feels right to you?"
+```
+
+**File:** `lib/upload-studio/system-prompt.ts` (lines 278-293)
+
+---
+
+### 🔧 Other Fixes
+
+**License Display Fix:**
+- TrackDetailsModal now shows "Platform Remix + Download" for all content types when downloads enabled
+- Previously showed "Download Only" for songs (incorrect since mixer now accepts songs)
+
+**File:** `components/modals/TrackDetailsModal.tsx`
+
+---
+
+### 📁 Files Modified
+
+**Core Changes:**
+- `lib/upload-studio/system-prompt.ts` - +240 lines of persona handling and sacred content guidance
+- `app/api/upload-studio/submit/route.ts` - Added remix_protected field handling
+- `components/mixer/UniversalMixer.tsx` - Protected track redirect to playlist
+- `components/SimplePlaylistPlayer.tsx` - Added window.addTrackToPlaylist API
+- `lib/globeDataSupabase.ts` - Added remix_protected to data flow
+
+**Supporting:**
+- `components/modals/TrackDetailsModal.tsx` - License display fix
+- `scripts/add-remix-protected-column.js` - Database migration script
+
+---
+
+### 🎯 Key Achievements
+
+**Inclusive Design:**
+- ✅ Professional users feel respected, not patronized
+- ✅ Community creators feel welcomed, not overwhelmed
+- ✅ Sacred content protected while remaining accessible
+- ✅ Sample contributors encouraged to receive credit
+
+**Technical:**
+- ✅ New database field with graceful default (false)
+- ✅ Full data flow from upload to mixer blocking
+- ✅ Elegant UX: blocked tracks redirect to playlist
+- ✅ Clear, respectful messaging throughout
+
+**Philosophy:**
+- Platform adapts to users, not the other way around
+- Respect for diverse musical traditions and contexts
+- Encouraging generosity in creative attribution
+- Protection without restriction (stream/download OK, just no remix)
+
+---
+
+### 💬 Session Vibes
+
+This session was about empathy in software design. We built systems that:
+- Recognize when someone needs professional respect vs. gentle guidance
+- Protect sacred content without making it inaccessible
+- Encourage generosity toward sample sources
+- Adapt language to the user's context
+
+The remix protection feature is particularly meaningful - it allows devotional music to exist on a creative platform without being altered, respecting both the creator's wishes and the listener's ability to enjoy the music.
+
+---
+
+*Documentation by Claude Code - User persona system, sacred content protection, and sample credit culture implemented. Platform now adapts to serve professional, community, and devotional creators with appropriate care and respect.*

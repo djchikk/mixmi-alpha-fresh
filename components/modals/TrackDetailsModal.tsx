@@ -506,15 +506,12 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   };
 
   const getLicense = () => {
-    if (track.content_type === 'loop') {
-      // Loops have two options
-      if (track.license_selection === 'platform_remix') return 'Remix Only';
-      if (track.license_selection === 'platform_download') return 'Remix + Download';
-      return 'Remix Only'; // Default for loops
-    } else {
-      // Songs and EPs are download only (no remixing allowed)
-      return 'Download Only';
+    // All content types now support platform remix (mixer accepts loops, songs, videos)
+    // The only distinction is whether downloads are also allowed
+    if (track.allow_downloads || ipRights?.allow_downloads) {
+      return 'Platform Remix + Download';
     }
+    return 'Platform Remix Only';
   };
 
   const formatDuration = (seconds?: number) => {
@@ -969,19 +966,9 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               <div className="flex">
                 <span className="text-gray-500 w-24">License:</span>
                 <span className="text-gray-300">
-                  {track.content_type === 'full_song' || track.content_type === 'ep'
-                    ? 'Download Only'
-                    : track.content_type === 'loop'
-                      ? ipRights?.allow_downloads
-                        ? 'Platform Remix + Download'
-                        : 'Platform Remix Only'
-                      : track.content_type === 'loop_pack'
-                        ? ipRights?.allow_downloads
-                          ? 'Platform Remix + Download'
-                          : 'Platform Remix Only'
-                        : ipRights?.license_selection === 'platform_download'
-                          ? 'Download Only'
-                          : 'Platform Remix Only'}
+                  {ipRights?.allow_downloads
+                    ? 'Platform Remix + Download'
+                    : 'Platform Remix Only'}
                 </span>
               </div>
               {track.content_type === 'loop_pack' ? (

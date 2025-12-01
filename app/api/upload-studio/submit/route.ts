@@ -52,9 +52,11 @@ interface TrackSubmission {
   open_to_commercial?: boolean;
   commercial_contact?: string;
   collab_contact?: string;
-  // Contact access (new)
+  // Contact access
   contact_email?: string;
   contact_fee_stx?: number;
+  // Sacred/devotional content protection
+  remix_protected?: boolean;
 
   // Media URLs
   audio_url?: string;
@@ -317,6 +319,7 @@ export async function POST(request: NextRequest) {
       license_selection: contentType === 'full_song' ? 'platform_download' : 'platform_remix',
       allow_remixing: contentType !== 'full_song' ? (trackData.allow_remixing ?? true) : false,
       allow_downloads: trackData.allow_downloads ?? false,
+      remix_protected: trackData.remix_protected ?? false, // Sacred/devotional content protection
       open_to_collaboration: trackData.open_to_collaboration ?? false,
       open_to_commercial: trackData.open_to_commercial ?? false,
       // Contact access - use same email/fee for both commercial and collab
@@ -419,13 +422,14 @@ function processSplits(
   return splits.map((split, index) => {
     let wallet = split.wallet || '';
 
-    // First split defaults to uploader if no wallet specified
-    if (!wallet && index === 0) {
-      wallet = defaultWallet;
-    }
-    // Name-only collaborators get a "pending:" prefix so we know to look them up
-    else if (!wallet && split.name) {
+    // If no wallet but has a name, use "pending:name" format
+    // This allows us to display the name and later resolve to a wallet
+    if (!wallet && split.name) {
       wallet = `pending:${split.name}`;
+    }
+    // Only default to uploader wallet if NEITHER wallet nor name is specified
+    else if (!wallet && !split.name && index === 0) {
+      wallet = defaultWallet;
     }
 
     return {
@@ -611,6 +615,7 @@ async function handleMultiFileSubmission(
     license_selection: contentType === 'ep' ? 'platform_download' : 'platform_remix',
     allow_remixing: contentType !== 'ep' ? (trackData.allow_remixing ?? true) : false,
     allow_downloads: trackData.allow_downloads ?? false,
+    remix_protected: trackData.remix_protected ?? false, // Sacred/devotional content protection
     open_to_collaboration: trackData.open_to_collaboration ?? false,
     open_to_commercial: trackData.open_to_commercial ?? false,
     // Contact access - use same email/fee for both commercial and collab
@@ -710,6 +715,7 @@ async function handleMultiFileSubmission(
       license_selection: containerRecord.license_selection,
       allow_remixing: containerRecord.allow_remixing,
       allow_downloads: containerRecord.allow_downloads,
+      remix_protected: containerRecord.remix_protected, // Inherit protection from container
       open_to_collaboration: containerRecord.open_to_collaboration,
       open_to_commercial: containerRecord.open_to_commercial,
       commercial_contact: containerRecord.commercial_contact,

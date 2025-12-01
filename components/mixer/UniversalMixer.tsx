@@ -631,6 +631,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const loadTrackToDeckA = async (track: Track) => {
     console.log('🎵 UniversalMixer: Loading track to Deck A:', track);
 
+    // Check if track is protected from remixing (sacred/devotional content)
+    if ((track as any).remix_protected) {
+      console.log('🔒 Track is protected from remixing, redirecting to playlist:', track.title);
+      // Redirect to playlist instead of blocking
+      if ((window as any).addTrackToPlaylist) {
+        (window as any).addTrackToPlaylist(track);
+        showToast('This track is protected from remixing - added to your playlist for listening', 'info');
+      } else {
+        showToast('This track is protected from remixing by the creator', 'info');
+      }
+      return;
+    }
+
     if (mixerState.deckA.loading) {
       console.log('⚠️ Deck A already loading, skipping');
       return;
@@ -808,6 +821,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   // Load track to Deck B
   const loadTrackToDeckB = async (track: Track) => {
     console.log('🎵 UniversalMixer: Loading track to Deck B:', track);
+
+    // Check if track is protected from remixing (sacred/devotional content)
+    if ((track as any).remix_protected) {
+      console.log('🔒 Track is protected from remixing, redirecting to playlist:', track.title);
+      // Redirect to playlist instead of blocking
+      if ((window as any).addTrackToPlaylist) {
+        (window as any).addTrackToPlaylist(track);
+        showToast('This track is protected from remixing - added to your playlist for listening', 'info');
+      } else {
+        showToast('This track is protected from remixing by the creator', 'info');
+      }
+      return;
+    }
 
     if (mixerState.deckB.loading) {
       console.log('⚠️ Deck B already loading, skipping');
