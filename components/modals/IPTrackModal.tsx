@@ -199,10 +199,29 @@ export default function IPTrackModal({
         clearSuggestions();
       } else {
         // Editing existing track - populate location if it exists
+        // First try primary_location field
         if (track.primary_location) {
           // Parse existing locations from primary_location field
           const locations = track.primary_location.split(',').map(l => l.trim());
           setSelectedLocations(locations);
+        }
+        // Also check for location tags in the tags array (prefixed with 🌍)
+        if (track.tags && Array.isArray(track.tags)) {
+          const locationTags = track.tags
+            .filter(tag => tag.startsWith('🌍'))
+            .map(tag => tag.replace('🌍 ', '').replace('🌍', '').trim());
+          if (locationTags.length > 0) {
+            setSelectedLocations(prev => {
+              // Merge without duplicates
+              const merged = [...prev];
+              locationTags.forEach(loc => {
+                if (!merged.includes(loc)) {
+                  merged.push(loc);
+                }
+              });
+              return merged;
+            });
+          }
         }
 
         // Load existing video crop data if editing a video clip
@@ -710,8 +729,10 @@ export default function IPTrackModal({
     });
     
     // Add location tags with 🌍 prefix - use all location names
+    // First, remove any existing location tags to avoid duplicates
+    const nonLocationTags = formData.tags.filter(tag => !tag.startsWith('🌍'));
     const locationTags = locationResult.all.map(loc => `🌍 ${loc.name}`);
-    const allTags = [...formData.tags, ...locationTags];
+    const allTags = [...nonLocationTags, ...locationTags];
     
     // Update form data with location info
     // IMPORTANT: Always save the raw text, coordinates may be 0 (which becomes NULL in DB)
@@ -1231,9 +1252,21 @@ export default function IPTrackModal({
         />
         {formData.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
-            {formData.tags.map((tag, index) => (
-              <span key={index} className="px-2 py-1 bg-slate-700 text-gray-300 rounded-md text-sm">
+            {formData.tags.filter(tag => !tag.startsWith('🌍')).map((tag, index) => (
+              <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-700 text-gray-300 rounded-md text-sm">
                 {tag}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newTags = formData.tags.filter(t => t !== tag);
+                    handleInputChange('tags', newTags);
+                    // Also update the tag input value
+                    setTagInputValue(newTags.filter(t => !t.startsWith('🌍')).join(', '));
+                  }}
+                  className="ml-1 hover:text-red-400 transition-colors text-gray-400"
+                >
+                  ×
+                </button>
               </span>
             ))}
           </div>
@@ -1263,8 +1296,12 @@ export default function IPTrackModal({
                 <button
                   type="button"
                   onClick={() => {
+                    const locationToRemove = selectedLocations[index];
                     setSelectedLocations(prev => prev.filter((_, i) => i !== index));
                     setSelectedLocationCoords(prev => prev.filter((_, i) => i !== index)); // Also remove coordinates
+                    // Also remove from formData.tags if it exists as a location tag
+                    const newTags = formData.tags.filter(tag => !tag.includes(locationToRemove));
+                    handleInputChange('tags', newTags);
                   }}
                   className="ml-1 hover:text-red-400 transition-colors"
                 >
@@ -2464,33 +2501,40 @@ export default function IPTrackModal({
           <div className="flex justify-between">
             <span className="text-gray-400">License:</span>
             <span className="text-white">
-              {formData.content_type === 'full_song'
-                ? 'Download Only'
-                : formData.content_type === 'ep'
-                ? 'Download Only'
-                : 'Platform Remix' + (formData.allow_downloads ? ' + Download' : ' Only')}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">
               {formData.content_type === 'full_song' || formData.content_type === 'ep'
-                ? 'Download Price:'
-                : formData.allow_downloads
-                  ? 'Download Price:'
-                  : 'Remix Fee:'}
-            </span>
-            <span className="text-white">
-              {formData.content_type === 'full_song'
-                ? `${(formData as any).download_price_stx || (formData as any).download_price || 2.5} STX`
-                : formData.content_type === 'ep'
-                  ? `${(((formData as any).price_per_song || 2.5) * ((formData as any).ep_files?.length || 0)).toFixed(1)} STX`
-                : formData.content_type === 'loop_pack'
-                  ? `${(((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || 0)).toFixed(1)} STX (pack)`
-                  : formData.allow_downloads
-                    ? `${(formData as any).download_price_stx || 2.5} STX`
-                    : '1 STX per mix'}
+                ? (formData.remix_protected
+                    ? (formData.allow_downloads ? 'Download Only' : 'Preview Only')
+                    : (formData.allow_downloads ? 'Mixer + Download' : 'Mixer Only'))
+                : (formData.remix_protected
+                    ? (formData.allow_downloads ? 'Download Only' : 'Preview Only')
+                    : 'Platform Remix' + (formData.allow_downloads ? ' + Download' : ' Only'))}
             </span>
           </div>
+          {/* Only show pricing if there's something to price */}
+          {!(formData.remix_protected && !formData.allow_downloads) && (
+            <div className="flex justify-between">
+              <span className="text-gray-400">
+                {formData.content_type === 'full_song' || formData.content_type === 'ep'
+                  ? (formData.allow_downloads ? 'Download Price:' : 'Recording Fee:')
+                  : formData.allow_downloads
+                    ? 'Download Price:'
+                    : 'Remix Fee:'}
+              </span>
+              <span className="text-white">
+                {formData.content_type === 'full_song'
+                  ? (formData.allow_downloads
+                      ? `${(formData as any).download_price_stx || (formData as any).download_price || 2} STX`
+                      : '1 STX per recorded remix')
+                  : formData.content_type === 'ep'
+                    ? `${(((formData as any).price_per_song || 2.5) * ((formData as any).ep_files?.length || 0)).toFixed(1)} STX`
+                  : formData.content_type === 'loop_pack'
+                    ? `${(((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || 0)).toFixed(1)} STX (pack)`
+                    : formData.allow_downloads
+                      ? `${(formData as any).download_price_stx || 2.5} STX`
+                      : '1 STX per mix'}
+              </span>
+            </div>
+          )}
           {/* Show remix fee separately if download is also available */}
           {(formData.content_type === 'loop' || formData.content_type === 'loop_pack') && formData.allow_downloads && (
             <div className="flex justify-between">
@@ -2835,8 +2879,8 @@ export default function IPTrackModal({
       size="lg"
     >
       <div className="space-y-6">
-        {/* Mode Toggle - Only show for new tracks and after authentication */}
-        {!track && isAuthenticated && (
+        {/* Mode Toggle - Show for both new and existing tracks after authentication */}
+        {isAuthenticated && (
           <div>
             <div className="flex justify-center mb-2">
               <div className="inline-flex p-1 rounded-xl" style={{

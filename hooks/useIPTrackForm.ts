@@ -52,6 +52,7 @@ interface IPTrackFormData {
   license_selection: 'platform_remix' | 'platform_download';
   allow_remixing: boolean;
   allow_downloads: boolean;
+  allow_streaming: boolean;
   open_to_commercial: boolean;
   open_to_collaboration: boolean;
 
@@ -179,6 +180,7 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     license_selection: (track as any)?.license_selection || 'platform_remix',
     allow_remixing: track?.allow_remixing ?? true,
     allow_downloads: (track as any)?.allow_downloads ?? false,
+    allow_streaming: (track as any)?.allow_streaming ?? true,
     open_to_commercial: (track as any)?.open_to_commercial ?? false,
     open_to_collaboration: track?.open_to_collaboration ?? false,
 
@@ -480,6 +482,7 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
       license_selection: 'platform_remix',
       allow_remixing: true,
       allow_downloads: false,
+      allow_streaming: true,
       open_to_commercial: false,
       open_to_collaboration: false,
       price_stx: 2.5,

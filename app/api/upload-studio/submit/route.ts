@@ -46,6 +46,7 @@ interface TrackSubmission {
 
   // Licensing
   allow_downloads?: boolean;
+  allow_streaming?: boolean;
   allow_remixing?: boolean;
   download_price_stx?: number;
   open_to_collaboration?: boolean;
@@ -226,7 +227,9 @@ export async function POST(request: NextRequest) {
     let locationLat = trackData.location_lat;
     let locationLng = trackData.location_lng;
     let primaryLocation = trackData.primary_location;
-    let allLocations: Array<{ lat: number; lng: number; name: string }> | null = null;
+    let locationCountry: string | null = null;
+    let locationRegion: string | null = null;
+    let allLocations: Array<{ lat: number; lng: number; name: string; country?: string; region?: string }> | null = null;
 
     // The chatbot stores location as "location" (text), we need to geocode it
     const locationText = (trackData as any).location || trackData.primary_location;
@@ -237,7 +240,9 @@ export async function POST(request: NextRequest) {
         locationLat = locationResult.primary.lat;
         locationLng = locationResult.primary.lng;
         primaryLocation = locationResult.primary.name;
-        console.log('✅ Geocoded to:', primaryLocation, `(${locationLat}, ${locationLng})`);
+        locationCountry = locationResult.primary.country || null;
+        locationRegion = locationResult.primary.region || null;
+        console.log('✅ Geocoded to:', primaryLocation, `(${locationLat}, ${locationLng})`, `[${locationRegion}, ${locationCountry}]`);
 
         // Store all locations if there are multiple
         if (locationResult.all.length > 0) {
@@ -253,6 +258,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Build tags array with location tag (🌍 prefix like the form does)
+    let tags = trackData.tags || [];
+    if (primaryLocation) {
+      const locationTag = `🌍 ${primaryLocation}`;
+      // Add location tag if not already present
+      if (!tags.some((t: string) => t.startsWith('🌍'))) {
+        tags = [...tags, locationTag];
+      }
+    }
+
     // Build the track record
     const trackId = uuidv4();
     const now = new Date().toISOString();
@@ -263,7 +278,7 @@ export async function POST(request: NextRequest) {
       version: '',
       artist: trackData.artist,
       description: trackData.description || '',
-      tags: trackData.tags || [],
+      tags: tags,
       notes: trackData.notes || trackData.tell_us_more || '',
       content_type: contentType,
       loop_category: contentType === 'loop' ? (trackData.loop_category || 'instrumental') : null,
@@ -292,6 +307,7 @@ export async function POST(request: NextRequest) {
       primary_location: primaryLocation || null,
       location_lat: locationLat || null,
       location_lng: locationLng || null,
+      // Note: location_country and location_region columns don't exist yet - storing in locations array
       locations: allLocations && allLocations.length > 0 ? allLocations : null,
 
       // Composition splits
@@ -319,6 +335,7 @@ export async function POST(request: NextRequest) {
       license_selection: contentType === 'full_song' ? 'platform_download' : 'platform_remix',
       allow_remixing: contentType !== 'full_song' ? (trackData.allow_remixing ?? true) : false,
       allow_downloads: trackData.allow_downloads ?? false,
+      allow_streaming: trackData.allow_streaming ?? true,
       remix_protected: trackData.remix_protected ?? false, // Sacred/devotional content protection
       open_to_collaboration: trackData.open_to_collaboration ?? false,
       open_to_commercial: trackData.open_to_commercial ?? false,
@@ -538,7 +555,9 @@ async function handleMultiFileSubmission(
   let locationLat = trackData.location_lat;
   let locationLng = trackData.location_lng;
   let primaryLocation = trackData.primary_location;
-  let allLocations: Array<{ lat: number; lng: number; name: string }> | null = null;
+  let locationCountry: string | null = null;
+  let locationRegion: string | null = null;
+  let allLocations: Array<{ lat: number; lng: number; name: string; country?: string; region?: string }> | null = null;
 
   const locationText = (trackData as any).location || trackData.primary_location;
   if (locationText && (!locationLat || !locationLng)) {
@@ -548,7 +567,9 @@ async function handleMultiFileSubmission(
       locationLat = locationResult.primary.lat;
       locationLng = locationResult.primary.lng;
       primaryLocation = locationResult.primary.name;
-      console.log('✅ Geocoded to:', primaryLocation, `(${locationLat}, ${locationLng})`);
+      locationCountry = locationResult.primary.country || null;
+      locationRegion = locationResult.primary.region || null;
+      console.log('✅ Geocoded to:', primaryLocation, `(${locationLat}, ${locationLng})`, `[${locationRegion}, ${locationCountry}]`);
 
       // Store all locations if there are multiple
       if (locationResult.all.length > 0) {
@@ -563,14 +584,24 @@ async function handleMultiFileSubmission(
     }
   }
 
+  // Build tags array with location tag (🌍 prefix like the form does)
+  let tags = trackData.tags || [];
+  if (primaryLocation) {
+    const locationTag = `🌍 ${primaryLocation}`;
+    // Add location tag if not already present
+    if (!tags.some((t: string) => t.startsWith('🌍'))) {
+      tags = [...tags, locationTag];
+    }
+  }
+
   // 1. Create the container record (the pack/EP itself)
   const containerRecord = {
     id: packId,
     title: containerTitle,
     version: '',
-    artist: trackData.artist,
+    artist_name: trackData.artist,
     description: trackData.description || '',
-    tags: trackData.tags || [],
+    tags: tags,
     notes: trackData.notes || trackData.tell_us_more || '',
     content_type: contentType,
     loop_category: contentType === 'loop_pack' ? (trackData.loop_category || 'instrumental') : null,
@@ -590,6 +621,7 @@ async function handleMultiFileSubmission(
     primary_location: primaryLocation || null,
     location_lat: locationLat || null,
     location_lng: locationLng || null,
+    // Note: location_country and location_region columns don't exist yet
     locations: allLocations && allLocations.length > 0 ? allLocations : null,
 
     // Splits
@@ -670,7 +702,7 @@ async function handleMultiFileSubmission(
       version: '',
       artist: trackData.artist,
       description: '',
-      tags: trackData.tags || [],
+      tags: tags, // Use the same tags with location as the container
       notes: '',
       content_type: childContentType,
       loop_category: contentType === 'loop_pack' ? (trackData.loop_category || 'instrumental') : null,
@@ -690,6 +722,7 @@ async function handleMultiFileSubmission(
       primary_location: primaryLocation || null,
       location_lat: locationLat || null,
       location_lng: locationLng || null,
+      // Note: location_country and location_region columns don't exist yet
       locations: allLocations && allLocations.length > 0 ? allLocations : null,
 
       // Splits (same as container)

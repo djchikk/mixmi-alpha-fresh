@@ -28,27 +28,29 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
               <p className="text-gray-400 text-sm mb-3">
-                Your song can be used in the platform mixer. You earn approximately <strong>0.08 STX per full play</strong> from 30-minute streaming passes
-                (currently ~$0.036 USD - 9-12x better than Spotify).
+                Your song can be used in the platform mixer for live mixing and recorded remixes.
+                You earn <strong>1 STX</strong> each time someone records a remix that includes your song.
               </p>
 
               {/* Protected message when unchecked */}
               {formData.remix_protected && (
                 <div className="bg-amber-900/30 border border-amber-700/50 p-3 rounded mb-3">
                   <p className="text-amber-300 text-sm">
-                    Your song will be available for streaming and download only - not for mixing with other content.
+                    Your song won't be available for mixing. It can still appear on the globe with 20-second previews.
                   </p>
                 </div>
               )}
 
-              {/* Streaming info display */}
-              <div className="bg-slate-900/50 p-3 rounded">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm">Streaming rate:</span>
-                  <span className="text-[#81E4F2] font-bold text-lg">~0.08 STX</span>
-                  <span className="text-gray-500 text-xs">per full play</span>
+              {/* Remix fee display - only when remix allowed */}
+              {!formData.remix_protected && (
+                <div className="bg-slate-900/50 p-3 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-sm">Recording fee:</span>
+                    <span className="text-[#81E4F2] font-bold text-lg">1 STX</span>
+                    <span className="text-gray-500 text-xs">per recorded remix</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -127,6 +129,47 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
             </div>
           )}
         </div>
+
+        {/* Streaming Option - separate from mixer and downloads */}
+        <div className={`${formData.allow_streaming ? 'bg-green-900/20 border-green-700/30' : 'bg-slate-800/30 border-slate-700'} border rounded-lg p-4`}>
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={formData.allow_streaming !== false}
+              onChange={(e) => {
+                handleInputChange('allow_streaming', e.target.checked);
+              }}
+              className="w-5 h-5 mt-0.5 text-green-500 bg-slate-800 border-slate-600 focus:ring-green-500"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-gray-300 font-medium">ALLOW STREAMING</span>
+                <span className="text-xs px-2 py-0.5 bg-green-900/50 text-green-300 rounded">Coming Soon</span>
+              </div>
+              <p className="text-gray-400 text-sm mb-3">
+                Right now: 20-second previews play in the playlist widget.
+                When streaming launches, full plays earn ~0.08 STX each (~$0.04, 9-12x better than Spotify).
+              </p>
+
+              {formData.allow_streaming !== false && (
+                <div className="bg-slate-900/50 p-3 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400 text-sm">✓</span>
+                    <span className="text-gray-400 text-xs">You'll automatically start earning when streaming goes live</span>
+                  </div>
+                </div>
+              )}
+
+              {formData.allow_streaming === false && (
+                <div className="bg-amber-900/30 border border-amber-700/50 p-3 rounded">
+                  <p className="text-amber-300 text-xs">
+                    Preview-only mode: 20-second clips will play but you won't earn from full streams.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -156,27 +199,29 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
               <p className="text-gray-400 text-sm mb-3">
-                Songs in your EP can be used in the platform mixer. Each song earns approximately <strong>0.08 STX per full play</strong> from 30-minute streaming passes
-                (currently ~$0.036 USD - 9-12x better than Spotify).
+                Songs in your EP can be used in the platform mixer for live mixing and recorded remixes.
+                You earn <strong>1 STX</strong> per song each time someone records a remix that includes a song from your EP.
               </p>
 
               {/* Protected message when unchecked */}
               {formData.remix_protected && (
                 <div className="bg-amber-900/30 border border-amber-700/50 p-3 rounded mb-3">
                   <p className="text-amber-300 text-sm">
-                    Your EP will be available for streaming and download only - not for mixing with other content.
+                    Your EP won't be available for mixing. Songs can still appear on the globe with 20-second previews.
                   </p>
                 </div>
               )}
 
-              {/* Streaming info display */}
-              <div className="bg-slate-900/50 p-3 rounded">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm">Streaming rate:</span>
-                  <span className="text-[#81E4F2] font-bold text-lg">~0.08 STX</span>
-                  <span className="text-gray-500 text-xs">per song per full play</span>
+              {/* Remix fee display - only when remix allowed */}
+              {!formData.remix_protected && (
+                <div className="bg-slate-900/50 p-3 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-sm">Recording fee:</span>
+                    <span className="text-[#81E4F2] font-bold text-lg">1 STX</span>
+                    <span className="text-gray-500 text-xs">per song per recorded remix</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -270,6 +315,47 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               Enable downloads to set EP pricing
             </div>
           )}
+        </div>
+
+        {/* Streaming Option - separate from mixer and downloads */}
+        <div className={`${formData.allow_streaming ? 'bg-green-900/20 border-green-700/30' : 'bg-slate-800/30 border-slate-700'} border rounded-lg p-4`}>
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={formData.allow_streaming !== false}
+              onChange={(e) => {
+                handleInputChange('allow_streaming', e.target.checked);
+              }}
+              className="w-5 h-5 mt-0.5 text-green-500 bg-slate-800 border-slate-600 focus:ring-green-500"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-gray-300 font-medium">ALLOW STREAMING</span>
+                <span className="text-xs px-2 py-0.5 bg-green-900/50 text-green-300 rounded">Coming Soon</span>
+              </div>
+              <p className="text-gray-400 text-sm mb-3">
+                Right now: 20-second previews play in the playlist widget.
+                When streaming launches, full plays earn ~0.08 STX per song (~$0.04, 9-12x better than Spotify).
+              </p>
+
+              {formData.allow_streaming !== false && (
+                <div className="bg-slate-900/50 p-3 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400 text-sm">✓</span>
+                    <span className="text-gray-400 text-xs">You'll automatically start earning when streaming goes live</span>
+                  </div>
+                </div>
+              )}
+
+              {formData.allow_streaming === false && (
+                <div className="bg-amber-900/30 border border-amber-700/50 p-3 rounded">
+                  <p className="text-amber-300 text-xs">
+                    Preview-only mode: 20-second clips will play but you won't earn from full streams.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );

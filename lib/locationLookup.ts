@@ -170,6 +170,8 @@ export interface LocationData {
   lat: number;
   lng: number;
   name: string;
+  country?: string;
+  region?: string;
 }
 
 // Geocode location using Mapbox API
@@ -193,7 +195,7 @@ async function geocodeWithMapbox(location: string): Promise<LocationData | null>
     }
 
     const data = await response.json();
-    
+
     if (!data.features || data.features.length === 0) {
       console.log(`📍 No results found for "${location}"`);
       return null;
@@ -202,10 +204,34 @@ async function geocodeWithMapbox(location: string): Promise<LocationData | null>
     const feature = data.features[0];
     const [lng, lat] = feature.center;
     const name = feature.place_name || location;
-    
-    console.log(`✅ Geocoded "${location}" → ${name} (${lat}, ${lng})`);
-    return { lat, lng, name };
-    
+
+    // Extract country and region from context array
+    // Mapbox returns context items with id prefixes like "country.xxx", "region.xxx"
+    let country: string | undefined;
+    let region: string | undefined;
+
+    if (feature.context && Array.isArray(feature.context)) {
+      for (const ctx of feature.context) {
+        if (ctx.id?.startsWith('country.')) {
+          country = ctx.text;
+        } else if (ctx.id?.startsWith('region.')) {
+          region = ctx.text;
+        }
+      }
+    }
+
+    // If the feature itself is a country, use its text
+    if (!country && feature.place_type?.includes('country')) {
+      country = feature.text;
+    }
+    // If the feature itself is a region, use its text
+    if (!region && feature.place_type?.includes('region')) {
+      region = feature.text;
+    }
+
+    console.log(`✅ Geocoded "${location}" → ${name} (${lat}, ${lng}) [${region || 'no region'}, ${country || 'no country'}]`);
+    return { lat, lng, name, country, region };
+
   } catch (error) {
     console.error('❌ Error geocoding with Mapbox:', error);
     return null;
