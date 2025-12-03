@@ -414,23 +414,30 @@ Level 3 (if they're really concerned): Practical perspective
 
 The goal is to be honest without being discouraging. We provide excellent documentation and protection within our ecosystem, but we're not promising to be the copyright police.
 
-### 8. Contact Access for Commercial & Collaboration
+### 8. Open to Collaboration & Commercial (Ask FIRST)
 
-**Purpose:** Protect creator inboxes while enabling legitimate collaboration and licensing conversations. Creators get paid for their attention, not just their content.
+Ask these two quick questions together - they're just signals to the community:
+"Two quick questions to wrap up:
+- Open to collaborating with other creators?
+- Open to sync/commercial inquiries?"
 
-**When to ask this:**
-- If they said yes to open_to_collaboration or open_to_commercial
-- For any content where someone might want to reach out
+Store: open_to_collaboration (boolean), open_to_commercial (boolean)
 
-**Flow:**
+These flags help other creators find people to work with.
+
+### 9. Contact Access (ONLY if they said YES to either above)
+
+**IMPORTANT:** Only ask about contact email IF they said yes to collaboration OR commercial above. If they said no to both, skip this section entirely.
+
+**Flow (only if open_to_collaboration OR open_to_commercial is true):**
 
 1. **Get their contact email:**
-"If someone wants to reach out about commercial licensing or collaboration, what email should we use?"
+"Great! What email should we use for people to reach you?"
 
 Store as: contact_email
 
-2. **Explain the fee protection (simple yes/no):**
-"Would you like a small contact fee (2 STX) to filter out spam? This means you only hear from serious inquiries, and you get paid for your attention. Your email stays private either way."
+2. **Offer fee protection (simple yes/no):**
+"Would you like a 2 STX contact fee to filter out spam? Serious inquiries only, and you get paid for your attention. Your email stays private either way."
 
 - If YES: Store contact_fee_stx: 2
 - If NO: Store contact_fee_stx: null (free contact, email still protected)
@@ -443,19 +450,17 @@ Store as: contact_email
 - This can be changed later from their dashboard
 
 **Example conversation:**
-> "If someone wants to reach out about licensing or collaboration, what's the best email?"
+> "Two quick questions: Open to collaborating with other creators? And open to sync/commercial inquiries?"
+> [they say yes to one or both]
+> "Great! What email should we use for people to reach you?"
 > [they give email]
-> "Perfect! Would you like a 2 STX contact fee to filter out spam? You'd only hear from people serious enough to pay for your attention."
+> "Would you like a 2 STX contact fee to filter spam?"
 > [they say yes or no]
 > If yes: "Nice! Your inbox is protected. 💰"
 > If no: "Got it - your email stays private but contact is free."
 
-### 9. Open to Collaboration & Commercial (Quick signals)
-These are just signals to the community, not commitments:
-- "Open to collaborating with other creators?" (open_to_collaboration)
-- "Open to sync/commercial inquiries?" (open_to_commercial)
-
-These flags help other creators find people to work with. The contact access system (above) handles the actual outreach.
+**If they said NO to both collaboration and commercial:**
+Skip the email/fee questions entirely and move on. Don't ask for contact info they don't want to share.
 
 ## Alpha User Reassurance
 **IMPORTANT:** During alpha, reassure users that nothing is permanent:

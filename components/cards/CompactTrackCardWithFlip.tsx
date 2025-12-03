@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IPTrack } from '@/types';
 // Removed mixer dependency for alpha version
 import { useToast } from '@/contexts/ToastContext';
@@ -127,6 +127,9 @@ export default function CompactTrackCardWithFlip({
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
 
+  // Ref for audio auto-stop timeout (so we can clear it)
+  const audioTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Fetch username for the track's primary uploader wallet
   useEffect(() => {
     const fetchUsername = async () => {
@@ -184,6 +187,12 @@ export default function CompactTrackCardWithFlip({
 
   // Handle loop playback
   const handleLoopPlay = (loop: IPTrack) => {
+    // Clear any existing timeout
+    if (audioTimeoutRef.current) {
+      clearTimeout(audioTimeoutRef.current);
+      audioTimeoutRef.current = null;
+    }
+
     if (playingLoopId === loop.id) {
       // Stop current loop
       if (loopAudio) {
@@ -204,12 +213,29 @@ export default function CompactTrackCardWithFlip({
       setLoopAudio(audio);
       setPlayingLoopId(loop.id);
 
-      // Auto-stop after 20 seconds
-      setTimeout(() => {
-        audio.pause();
-        setLoopAudio(null);
-        setPlayingLoopId(null);
-      }, 20000);
+      // Content-type based auto-stop behavior:
+      // - Radio stations: play indefinitely (user controls stop)
+      // - Loops: play full length (let audio end naturally)
+      // - Other content: 20 second preview
+      const isRadio = loop.content_type === 'radio_station';
+      const isLoop = loop.content_type === 'loop';
+
+      if (!isRadio && !isLoop) {
+        // Auto-stop after 20 seconds for songs, EPs, etc.
+        audioTimeoutRef.current = setTimeout(() => {
+          audio.pause();
+          setLoopAudio(null);
+          setPlayingLoopId(null);
+        }, 20000);
+      }
+
+      // For loops, let the audio end naturally and reset state
+      if (isLoop) {
+        audio.onended = () => {
+          setLoopAudio(null);
+          setPlayingLoopId(null);
+        };
+      }
     }
   };
 
@@ -218,6 +244,9 @@ export default function CompactTrackCardWithFlip({
     return () => {
       if (loopAudio) {
         loopAudio.pause();
+      }
+      if (audioTimeoutRef.current) {
+        clearTimeout(audioTimeoutRef.current);
       }
     };
   }, [loopAudio]);
