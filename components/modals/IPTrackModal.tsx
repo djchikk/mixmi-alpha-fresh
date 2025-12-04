@@ -170,9 +170,11 @@ export default function IPTrackModal({
 
   // Track metadata for EPs/Loop Packs (title, bpm per track)
   interface TrackMetadata {
-    file: File;
+    file: File | null; // null for existing tracks (edit mode)
     title: string;
     bpm?: number;
+    id?: string; // Track ID for existing tracks (edit mode)
+    position?: number; // Pack position for existing tracks
   }
   const [trackMetadata, setTrackMetadata] = useState<TrackMetadata[]>([]);
 
@@ -254,26 +256,36 @@ export default function IPTrackModal({
           }
         }
 
-        // Load EP song count when editing an EP
-        if (track.content_type === 'ep' && track.id) {
-          // Fetch the count of child tracks for this EP
-          const fetchEPSongCount = async () => {
+        // Load EP/Loop Pack child tracks when editing
+        if ((track.content_type === 'ep' || track.content_type === 'loop_pack') && track.id) {
+          // Fetch child tracks with title, bpm, and position for editing
+          const fetchChildTracks = async () => {
             try {
               const { data: children, error } = await supabase
                 .from('ip_tracks')
-                .select('id')
+                .select('id, title, bpm, pack_position')
                 .eq('pack_id', track.id)
-                .neq('id', track.id); // Exclude the container itself
+                .neq('id', track.id) // Exclude the container itself
+                .order('pack_position', { ascending: true });
 
-              if (!error && children) {
-                console.log(`📀 EP has ${children.length} songs`);
+              if (!error && children && children.length > 0) {
+                console.log(`📀 ${track.content_type === 'ep' ? 'EP' : 'Loop Pack'} has ${children.length} tracks`);
                 handleInputChange('ep_song_count', children.length);
+
+                // Initialize trackMetadata from existing database records
+                setTrackMetadata(children.map(child => ({
+                  file: null as any, // No file for existing tracks
+                  title: child.title || `Track ${child.pack_position}`,
+                  bpm: child.bpm || undefined,
+                  id: child.id, // Store ID for updating existing records
+                  position: child.pack_position
+                })));
               }
             } catch (err) {
-              console.error('Error fetching EP song count:', err);
+              console.error('Error fetching child tracks:', err);
             }
           };
-          fetchEPSongCount();
+          fetchChildTracks();
         }
       }
     } else {
@@ -804,6 +816,7 @@ export default function IPTrackModal({
       // Add track metadata for EPs and Loop Packs (per-track titles and BPM)
       ...((formData.content_type === 'ep' || formData.content_type === 'loop_pack') && trackMetadata.length > 0 ? {
         track_metadata: trackMetadata.map((tm, idx) => ({
+          id: tm.id || null, // Include track ID for existing tracks (edit mode)
           title: tm.title,
           bpm: tm.bpm || null,
           position: idx + 1 // 1-indexed position based on current order

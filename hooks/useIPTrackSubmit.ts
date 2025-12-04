@@ -367,10 +367,21 @@ async function processEP(formData: SubmitFormData, authSession: any, walletAddre
   }
   
   console.log('✅ All songs processed successfully:', songResults);
-  
+
+  // Detect uniform BPM from track_metadata if all songs have the same BPM
+  const trackMetadata: Array<{ title: string; bpm: number | null; position: number }> = (formData as any).track_metadata || [];
+  let uniformBpm: number | null = null;
+  if (trackMetadata.length > 0) {
+    const bpms = trackMetadata.map(m => m.bpm).filter(b => b !== null && b !== undefined);
+    if (bpms.length > 0 && bpms.every(b => b === bpms[0])) {
+      uniformBpm = bpms[0] as number;
+      console.log(`🎵 Detected uniform BPM (${uniformBpm}) for all EP songs`);
+    }
+  }
+
   // Step 3: Create master EP record for globe/store display
   console.log('🎯 Creating master EP record for globe display...');
-  
+
   const masterEPRecord = {
     ...baseTrackData,
     id: epId, // Use the same EP ID so individual songs can be found!
@@ -380,7 +391,7 @@ async function processEP(formData: SubmitFormData, authSession: any, walletAddre
     pack_position: null, // Master record has no position
     audio_url: firstSongAudioUrl, // Use first song's audio
     duration: null, // EP duration could be sum of all songs, but null for now
-    bpm: null, // EPs can have songs with different BPMs, so no master BPM
+    bpm: uniformBpm, // Set to uniform BPM if all songs have same BPM, otherwise null
     key: null, // EPs can have songs with different keys, so no master key
     // Use form pricing for EPs
     price_stx: ((formData as any).price_per_song || 2.5) * formData.ep_files!.length, // Total EP price
@@ -665,12 +676,63 @@ export function useIPTrackSubmit({
           .from('ip_tracks')
           .update(mappedTrackData)
           .eq('id', track.id);
-        
+
         if (error) {
           console.error('❌ UPDATE ERROR:', error);
           throw error;
         }
         console.log('✅ UPDATE SUCCESS!');
+
+        // Update child tracks for EPs and Loop Packs (title, bpm, position)
+        const trackMetadata: Array<{ id: string | null; title: string; bpm: number | null; position: number }> = (formData as any).track_metadata || [];
+        if ((track.content_type === 'ep' || track.content_type === 'loop_pack') && trackMetadata.length > 0) {
+          console.log('📋 Updating child tracks:', trackMetadata);
+
+          for (const meta of trackMetadata) {
+            if (meta.id) {
+              const updateData: { title: string; bpm?: number | null; pack_position: number } = {
+                title: meta.title,
+                pack_position: meta.position
+              };
+
+              // Only include BPM for EPs (Loop Packs inherit pack BPM)
+              if (track.content_type === 'ep') {
+                updateData.bpm = meta.bpm;
+              }
+
+              const { error: childError } = await authSession.supabase
+                .from('ip_tracks')
+                .update(updateData)
+                .eq('id', meta.id);
+
+              if (childError) {
+                console.error(`❌ Error updating child track ${meta.id}:`, childError);
+              } else {
+                console.log(`✅ Updated child track: ${meta.title} (position ${meta.position})`);
+              }
+            }
+          }
+
+          // Detect uniform BPM for EPs - if all songs have the same BPM, set it on the container
+          if (track.content_type === 'ep') {
+            const bpms = trackMetadata.map(m => m.bpm).filter(b => b !== null && b !== undefined);
+            if (bpms.length > 0 && bpms.every(b => b === bpms[0])) {
+              const uniformBpm = bpms[0];
+              console.log(`🎵 All EP songs have same BPM (${uniformBpm}), updating container`);
+              await authSession.supabase
+                .from('ip_tracks')
+                .update({ bpm: uniformBpm })
+                .eq('id', track.id);
+            } else if (bpms.length === 0 || !bpms.every(b => b === bpms[0])) {
+              // Songs have different BPMs or no BPMs - clear container BPM
+              console.log('🎵 EP songs have different or no BPMs, clearing container BPM');
+              await authSession.supabase
+                .from('ip_tracks')
+                .update({ bpm: null })
+                .eq('id', track.id);
+            }
+          }
+        }
       } else {
         // Insert new track
         console.log('➕ INSERTING new track...');
