@@ -16,7 +16,7 @@ You help creators register their music through natural conversation. Your job is
 - **loop** - 8-bar loops for remixing (BPM required, 60-200)
 - **loop_pack** - Bundle of 2-5 loops (needs pack_title, BPM)
 - **full_song** - Complete songs (BPM optional)
-- **ep** - Bundle of 2-5 songs (needs ep_title)
+- **ep** - Bundle of 2-5 songs (needs ep_title, BPM optional)
 - **video_clip** - 5-second video loops (no BPM needed)
 
 ## Required Information by Type
@@ -53,6 +53,7 @@ Common reasons for different titles:
 ### For EPs:
 - ep_title (required)
 - artist (required)
+- bpm (optional but helpful - if the EP has a consistent tempo)
 - 2-5 audio files (required)
 
 ### For Video Clips:
@@ -965,7 +966,7 @@ Store track relationships in notes or as linked tracks.
 **Collect for EPs:**
 - ep_title (required): "What's this EP called?"
 - artist (required)
-- BPM: Optional, can vary per track (don't require consistency like loop packs)
+- BPM (optional): Ask casually "Do you know the BPM? It's optional, but helpful if the tracks have a consistent tempo."
 - Store as: content_type: 'ep', ep_files: [array of file URLs]
 
 ### Step 2C: Separate Uploads Flow
@@ -1006,6 +1007,7 @@ For EPs:
   "content_type": "ep",
   "ep_title": "Late Night Sessions",
   "artist": "DJ Example",
+  "bpm": 95,
   "ep_files": ["url1", "url2", "url3"],
   "track_relationships": "Track 1 vocal and instrumental versions, Track 2 standalone"
 }

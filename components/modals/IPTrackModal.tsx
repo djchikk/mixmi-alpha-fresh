@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Music } from "lucide-react";
+import { Music, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import Cropper from "react-easy-crop";
 import Modal from "../ui/Modal";
 import TrackCoverUploader from "../shared/TrackCoverUploader";
@@ -11,6 +11,7 @@ import { IPTrack, SAMPLE_TYPES, CONTENT_TYPES, LOOP_CATEGORIES, ContentType, Loo
 import { useToast } from "@/contexts/ToastContext";
 import SplitPresetManagerUI from "./SplitPresetManager";
 import { parseLocationsAndGetCoordinates } from "@/lib/locationLookup";
+import { supabase } from "@/lib/supabase";
 
 // Import custom hooks
 import { useIPTrackForm } from "@/hooks/useIPTrackForm";
@@ -167,6 +168,14 @@ export default function IPTrackModal({
   const [videoNaturalWidth, setVideoNaturalWidth] = useState<number | null>(null);
   const [videoNaturalHeight, setVideoNaturalHeight] = useState<number | null>(null);
 
+  // Track metadata for EPs/Loop Packs (title, bpm per track)
+  interface TrackMetadata {
+    file: File;
+    title: string;
+    bpm?: number;
+  }
+  const [trackMetadata, setTrackMetadata] = useState<TrackMetadata[]>([]);
+
   // Crop callback
   const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -243,6 +252,28 @@ export default function IPTrackModal({
           if (track.video_natural_height) {
             setVideoNaturalHeight(track.video_natural_height);
           }
+        }
+
+        // Load EP song count when editing an EP
+        if (track.content_type === 'ep' && track.id) {
+          // Fetch the count of child tracks for this EP
+          const fetchEPSongCount = async () => {
+            try {
+              const { data: children, error } = await supabase
+                .from('ip_tracks')
+                .select('id')
+                .eq('pack_id', track.id)
+                .neq('id', track.id); // Exclude the container itself
+
+              if (!error && children) {
+                console.log(`📀 EP has ${children.length} songs`);
+                handleInputChange('ep_song_count', children.length);
+              }
+            } catch (err) {
+              console.error('Error fetching EP song count:', err);
+            }
+          };
+          fetchEPSongCount();
         }
       }
     } else {
@@ -433,6 +464,12 @@ export default function IPTrackModal({
         
         // Store files in form data
         handleInputChange('loop_files', files);
+        // Initialize track metadata with filenames (strip extension for cleaner titles)
+        setTrackMetadata(files.map(file => ({
+          file,
+          title: file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '), // Remove extension, replace underscores
+          bpm: formData.bpm || undefined // Loops inherit pack BPM
+        })));
         setValidationErrors([]);
         console.log('✅ Loop pack files validated and stored');
         
@@ -464,12 +501,18 @@ export default function IPTrackModal({
         
         // Store files in form data
         handleInputChange('ep_files', files);
-        
+        // Initialize track metadata with filenames (strip extension for cleaner titles)
+        setTrackMetadata(files.map(file => ({
+          file,
+          title: file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '), // Remove extension, replace underscores
+          bpm: undefined // Songs have individual BPMs - user can set in review step
+        })));
+
         // Calculate and set total EP price
         const pricePerSong = (formData as any).price_per_song || 2.5;
         const totalPrice = pricePerSong * files.length;
         handleInputChange('price_stx', totalPrice);
-        
+
         setValidationErrors([]);
         console.log('✅ EP files validated and stored, total price:', totalPrice);
         
@@ -757,6 +800,14 @@ export default function IPTrackModal({
         video_crop_zoom: zoom ?? track?.video_crop_zoom ?? 1,
         video_natural_width: videoNaturalWidth ?? track?.video_natural_width ?? null,
         video_natural_height: videoNaturalHeight ?? track?.video_natural_height ?? null
+      } : {}),
+      // Add track metadata for EPs and Loop Packs (per-track titles and BPM)
+      ...((formData.content_type === 'ep' || formData.content_type === 'loop_pack') && trackMetadata.length > 0 ? {
+        track_metadata: trackMetadata.map((tm, idx) => ({
+          title: tm.title,
+          bpm: tm.bpm || null,
+          position: idx + 1 // 1-indexed position based on current order
+        }))
       } : {})
     };
 
@@ -1450,62 +1501,80 @@ export default function IPTrackModal({
         />
       </div>
 
-      {/* AI Assistance - Three radio buttons in one row */}
+      {/* AI Assistance - Different UI for music vs video clips */}
       <div>
         <label className="block text-sm font-normal text-gray-300 mb-3">Creation Method</label>
-        <div className="flex gap-4">
-          {/* 100% Human */}
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type="radio"
-              name="ai_assistance"
-              checked={!formData.ai_assisted_idea && !formData.ai_assisted_implementation}
-              onChange={() => {
-                handleInputChange('ai_assisted_idea', false);
-                handleInputChange('ai_assisted_implementation', false);
-              }}
-              className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
-            />
-            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-              🙌 100% Human
-            </span>
-          </label>
 
-          {/* AI-Assisted */}
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type="radio"
-              name="ai_assistance"
-              checked={(formData.ai_assisted_idea || formData.ai_assisted_implementation) &&
-                       !(formData.ai_assisted_idea && formData.ai_assisted_implementation)}
-              onChange={() => {
-                handleInputChange('ai_assisted_idea', true);
-                handleInputChange('ai_assisted_implementation', false);
-              }}
-              className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
-            />
-            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-              🙌🤖 AI-Assisted
-            </span>
-          </label>
+        {/* For music content types - 100% Human only */}
+        {(formData.content_type === 'loop' || formData.content_type === 'loop_pack' ||
+          formData.content_type === 'full_song' || formData.content_type === 'ep') && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-white font-medium">🙌 100% Human</span>
+              <span className="text-xs text-green-400 bg-green-400/10 px-2 py-0.5 rounded">Required</span>
+            </div>
+            <p className="text-xs text-gray-400">
+              We only accept 100% human-created music at this time. Cover images can be AI-assisted or AI-generated.
+            </p>
+          </div>
+        )}
 
-          {/* AI-Generated */}
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type="radio"
-              name="ai_assistance"
-              checked={formData.ai_assisted_idea && formData.ai_assisted_implementation}
-              onChange={() => {
-                handleInputChange('ai_assisted_idea', true);
-                handleInputChange('ai_assisted_implementation', true);
-              }}
-              className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
-            />
-            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-              🤖 AI-Generated
-            </span>
-          </label>
-        </div>
+        {/* For video clips - Show all three options */}
+        {formData.content_type === 'video_clip' && (
+          <div className="flex gap-4">
+            {/* 100% Human */}
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="radio"
+                name="ai_assistance"
+                checked={!formData.ai_assisted_idea && !formData.ai_assisted_implementation}
+                onChange={() => {
+                  handleInputChange('ai_assisted_idea', false);
+                  handleInputChange('ai_assisted_implementation', false);
+                }}
+                className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
+              />
+              <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                🙌 100% Human
+              </span>
+            </label>
+
+            {/* AI-Assisted */}
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="radio"
+                name="ai_assistance"
+                checked={(formData.ai_assisted_idea || formData.ai_assisted_implementation) &&
+                         !(formData.ai_assisted_idea && formData.ai_assisted_implementation)}
+                onChange={() => {
+                  handleInputChange('ai_assisted_idea', true);
+                  handleInputChange('ai_assisted_implementation', false);
+                }}
+                className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
+              />
+              <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                🙌🤖 AI-Assisted
+              </span>
+            </label>
+
+            {/* AI-Generated */}
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="radio"
+                name="ai_assistance"
+                checked={formData.ai_assisted_idea && formData.ai_assisted_implementation}
+                onChange={() => {
+                  handleInputChange('ai_assisted_idea', true);
+                  handleInputChange('ai_assisted_implementation', true);
+                }}
+                className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
+              />
+              <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                🤖 AI-Generated
+              </span>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Audio IP Policy for Video Clips */}
@@ -2454,10 +2523,10 @@ export default function IPTrackModal({
                formData.content_type === 'ep' ? 'EP Title:' : 'Title:'}
             </span>
             <span className="text-white">
-              {formData.content_type === 'loop_pack' 
+              {formData.content_type === 'loop_pack'
                 ? ((formData as any).pack_title || '-')
                 : formData.content_type === 'ep'
-                ? ((formData as any).ep_title || '-')
+                ? ((formData as any).ep_title || formData.title || '-')
                 : (formData.title || '-')}
             </span>
           </div>
@@ -2526,7 +2595,7 @@ export default function IPTrackModal({
                       ? `${(formData as any).download_price_stx || (formData as any).download_price || 2} STX`
                       : '1 STX per recorded remix')
                   : formData.content_type === 'ep'
-                    ? `${(((formData as any).price_per_song || 2.5) * ((formData as any).ep_files?.length || 0)).toFixed(1)} STX`
+                    ? `${(((formData as any).price_per_song || 2.5) * ((formData as any).ep_files?.length || (formData as any).ep_song_count || 0)).toFixed(1)} STX`
                   : formData.content_type === 'loop_pack'
                     ? `${(((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || 0)).toFixed(1)} STX (pack)`
                     : formData.allow_downloads
@@ -2550,7 +2619,7 @@ export default function IPTrackModal({
                 : formData.content_type === 'loop_pack'
                 ? ((formData as any).loop_files && (formData as any).loop_files.length > 0 ? `✓ ${(formData as any).loop_files.length} Files` : '✗ Upload Your Loops')
                 : formData.content_type === 'ep'
-                ? ((formData as any).ep_files && (formData as any).ep_files.length > 0 ? `✓ ${(formData as any).ep_files.length} Songs` : '✗ Upload Your Songs')
+                ? (((formData as any).ep_files && (formData as any).ep_files.length > 0) || (formData as any).ep_song_count > 0 ? `✓ ${(formData as any).ep_files?.length || (formData as any).ep_song_count} Songs` : '✗ Upload Your Songs')
                 : (formData.audio_url ? '✓ Uploaded' : '✗ Missing')}
             </span>
           </div>
@@ -2580,6 +2649,97 @@ export default function IPTrackModal({
         </div>
       </div>
 
+      {/* Track List Editor for EPs and Loop Packs */}
+      {(formData.content_type === 'ep' || formData.content_type === 'loop_pack') && trackMetadata.length > 0 && (
+        <div className="bg-slate-800 p-6 rounded-lg">
+          <h4 className="text-white font-medium mb-4">
+            {formData.content_type === 'ep' ? '🎵 Songs in EP' : '🔁 Loops in Pack'} ({trackMetadata.length})
+          </h4>
+          <p className="text-gray-400 text-xs mb-4">
+            Edit titles and {formData.content_type === 'ep' ? 'BPM ' : ''}reorder tracks before uploading.
+          </p>
+
+          <div className="space-y-2">
+            {trackMetadata.map((track, index) => (
+              <div key={index} className="flex items-center gap-2 bg-slate-700/50 p-2 rounded">
+                {/* Position number */}
+                <span className="text-gray-500 text-xs w-5 text-center">{index + 1}</span>
+
+                {/* Reorder buttons */}
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (index > 0) {
+                        const newMetadata = [...trackMetadata];
+                        [newMetadata[index - 1], newMetadata[index]] = [newMetadata[index], newMetadata[index - 1]];
+                        setTrackMetadata(newMetadata);
+                      }
+                    }}
+                    disabled={index === 0}
+                    className={`p-0.5 rounded ${index === 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white hover:bg-slate-600'}`}
+                    title="Move up"
+                  >
+                    <ChevronUp size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (index < trackMetadata.length - 1) {
+                        const newMetadata = [...trackMetadata];
+                        [newMetadata[index], newMetadata[index + 1]] = [newMetadata[index + 1], newMetadata[index]];
+                        setTrackMetadata(newMetadata);
+                      }
+                    }}
+                    disabled={index === trackMetadata.length - 1}
+                    className={`p-0.5 rounded ${index === trackMetadata.length - 1 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white hover:bg-slate-600'}`}
+                    title="Move down"
+                  >
+                    <ChevronDown size={12} />
+                  </button>
+                </div>
+
+                {/* Title input */}
+                <input
+                  type="text"
+                  value={track.title}
+                  onChange={(e) => {
+                    const newMetadata = [...trackMetadata];
+                    newMetadata[index].title = e.target.value;
+                    setTrackMetadata(newMetadata);
+                  }}
+                  className="flex-1 bg-slate-600 text-white text-sm px-2 py-1 rounded border border-slate-500 focus:border-[#81E4F2] focus:outline-none"
+                  placeholder="Track title"
+                />
+
+                {/* BPM input for EPs only */}
+                {formData.content_type === 'ep' && (
+                  <input
+                    type="number"
+                    value={track.bpm || ''}
+                    onChange={(e) => {
+                      const newMetadata = [...trackMetadata];
+                      newMetadata[index].bpm = e.target.value ? parseInt(e.target.value) : undefined;
+                      setTrackMetadata(newMetadata);
+                    }}
+                    className="w-16 bg-slate-600 text-white text-sm px-2 py-1 rounded border border-slate-500 focus:border-[#81E4F2] focus:outline-none text-center"
+                    placeholder="BPM"
+                    min="60"
+                    max="200"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {formData.content_type === 'ep' && (
+            <p className="text-gray-500 text-xs mt-3">
+              💡 Tip: Adding BPM to songs enables 8-bar section navigation in the mixer.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Terms of Service */}
       <div className="space-y-4">
         <label className="flex items-start gap-3 cursor-pointer">
@@ -2593,9 +2753,9 @@ export default function IPTrackModal({
             <span className="text-gray-300">
               I agree to the mixmi Terms of Service and confirm I have rights to distribute this content
             </span>
-            <a 
-              href="/terms" 
-              target="_blank" 
+            <a
+              href="/terms"
+              target="_blank"
               rel="noopener noreferrer"
               className="block text-[#81E4F2] hover:text-[#81E4F2]/80 text-sm mt-1"
             >
@@ -2617,10 +2777,10 @@ export default function IPTrackModal({
                  formData.content_type === 'ep' ? 'EP' : 'Track'} Saved & Uploaded!
           </div>
           <div className="text-sm">
-            {formData.content_type === 'loop_pack' 
+            {formData.content_type === 'loop_pack'
               ? `Your loop pack with ${(formData as any).loop_files?.length || 'multiple'} loops has been saved. Refresh the page to see it on the globe!`
               : formData.content_type === 'ep'
-              ? `Your EP with ${(formData as any).ep_files?.length || 'multiple'} songs has been saved. Refresh the page to see it on the globe!`
+              ? `Your EP with ${(formData as any).ep_files?.length || (formData as any).ep_song_count || 'multiple'} songs has been saved. Refresh the page to see it on the globe!`
               : 'Your track has been saved. Refresh the page to see it on the globe!'
             }
           </div>

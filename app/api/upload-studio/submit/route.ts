@@ -607,8 +607,8 @@ async function handleMultiFileSubmission(
     loop_category: contentType === 'loop_pack' ? (trackData.loop_category || 'instrumental') : null,
     sample_type: contentType === 'loop_pack' ? 'instrumentals' : 'FULL SONGS',
 
-    // BPM (only for loop packs)
-    bpm: contentType === 'loop_pack' ? (trackData.bpm || null) : null,
+    // BPM (for loop packs and optionally for EPs)
+    bpm: (contentType === 'loop_pack' || contentType === 'ep') ? (trackData.bpm || null) : null,
     key: trackData.key || null,
     duration: trackData.duration || null,
 
@@ -693,12 +693,29 @@ async function handleMultiFileSubmission(
     conversation_id: conversationId
   };
 
+  // Get track metadata for custom titles and BPM
+  // Metadata is sent from the form with per-track title/bpm, indexed by position
+  const trackMetadata: Array<{ title: string; bpm: number | null; position: number }> = (trackData as any).track_metadata || [];
+  console.log('📋 Track metadata received:', trackMetadata.length > 0 ? trackMetadata : 'none (using defaults)');
+
   // 2. Create individual track records for each file
   const childRecords = files.map((fileUrl, index) => {
     const trackId = uuidv4();
+
+    // Find matching metadata by position (1-indexed in metadata, 0-indexed in files array)
+    const meta = trackMetadata.find(m => m.position === index + 1);
+
+    // Use metadata title if available, otherwise fall back to default
+    const trackTitle = meta?.title || `${containerTitle} - Track ${index + 1}`;
+
+    // For BPM: loops inherit pack BPM, EPs use per-track BPM from metadata
+    const trackBpm = contentType === 'loop_pack'
+      ? (trackData.bpm || null)  // Loops inherit pack BPM
+      : (meta?.bpm || null);     // EPs use per-track BPM
+
     return {
       id: trackId,
-      title: `${containerTitle} - Track ${index + 1}`,
+      title: trackTitle,
       version: '',
       artist: trackData.artist,
       description: '',
@@ -708,8 +725,8 @@ async function handleMultiFileSubmission(
       loop_category: contentType === 'loop_pack' ? (trackData.loop_category || 'instrumental') : null,
       sample_type: contentType === 'loop_pack' ? 'instrumentals' : 'FULL SONGS',
 
-      // BPM (inherit from pack for loops)
-      bpm: contentType === 'loop_pack' ? (trackData.bpm || null) : null,
+      // BPM (loops inherit pack BPM, EPs use per-track BPM)
+      bpm: trackBpm,
       key: trackData.key || null,
       duration: null,
 

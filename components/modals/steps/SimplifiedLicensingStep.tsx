@@ -176,7 +176,8 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
 
   // EPs: Platform Remix (default ON, can opt out) + Optional Downloads per song
   if (formData.content_type === 'ep') {
-    const songCount = formData.ep_files?.length || 0;
+    // Use ep_files length for new uploads, or ep_song_count for editing existing EPs
+    const songCount = formData.ep_files?.length || formData.ep_song_count || 0;
     const downloadPricePerSong = formData.price_per_song || 2;
     const totalEPPrice = (downloadPricePerSong * songCount).toFixed(1);
 

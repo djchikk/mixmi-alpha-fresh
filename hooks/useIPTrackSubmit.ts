@@ -175,8 +175,10 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
       };
       
       // Create individual loop record
-      // Use audio filename (without extension) as loop title for better UX
-      const loopTitle = file.name.replace(/\.[^/.]+$/, "") || `Loop ${i + 1}`;
+      // Use track_metadata if available (from review step), otherwise fall back to filename
+      const trackMetadata: Array<{ title: string; bpm: number | null; position: number }> = (formData as any).track_metadata || [];
+      const meta = trackMetadata.find(m => m.position === i + 1);
+      const loopTitle = meta?.title || file.name.replace(/\.[^/.]+$/, "") || `Loop ${i + 1}`;
       const loopData = {
         ...baseTrackData,
         id: crypto.randomUUID(),
@@ -323,16 +325,22 @@ async function processEP(formData: SubmitFormData, authSession: any, walletAddre
       }
       
       // Create individual song record
+      // Use track_metadata if available (from review step), otherwise fall back to filename
+      const trackMetadata: Array<{ title: string; bpm: number | null; position: number }> = (formData as any).track_metadata || [];
+      const meta = trackMetadata.find(m => m.position === i + 1);
+      const songTitle = meta?.title || file.name.replace(/\.[^/.]+$/, "") || `Song ${i + 1}`;
+      const songBpm = meta?.bpm || null; // Per-track BPM from review step
+
       const songRecord = {
         ...baseTrackData,
         id: crypto.randomUUID(),
-        title: file.name.replace(/\.[^/.]+$/, "") || `Song ${i + 1}`, // Remove file extension
+        title: songTitle,
         content_type: 'full_song', // Individual songs are full_song type
         pack_id: epId, // Link to parent EP
         pack_position: i + 1, // Position in EP
         audio_url: audioUrl,
         price_stx: (formData as any).price_per_song || 2.5, // Per song price
-        bpm: null, // Individual songs may have different BPMs
+        bpm: songBpm, // Per-track BPM enables 8-bar section navigation in mixer
         key: null, // Individual songs may have different keys
         description: `Song ${i + 1} from ${(formData as any).ep_title || formData.title}`,
       };

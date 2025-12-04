@@ -121,11 +121,13 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
     // - Add pagination with "load more" for dense areas
     // - Consider clustering/aggregation for performance
     // Fetch all tracks with proper filtering for loop packs and deleted content
+    // We want: standalone content (pack_id null) OR container records (pack_position = 0)
+    // This excludes individual tracks within packs/EPs but includes the pack/EP containers themselves
     const { data, error } = await supabase
       .from('ip_tracks')
-      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, tags, description, notes, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations, remix_protected') // Now includes remix_protected for sacred/devotional content
-      .is('pack_id', null) // Only show standalone content and master pack/EP records
+      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, tags, description, notes, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations, remix_protected, pack_id, pack_position') // Now includes remix_protected for sacred/devotional content
       .is('deleted_at', null) // Exclude soft-deleted tracks from globe display
+      .or('pack_id.is.null,pack_position.eq.0') // Standalone content OR pack/EP container records
       .order('created_at', { ascending: false })
     
     // Tracks found in Supabase
