@@ -1007,11 +1007,16 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   )}
                 </>
               ) : (
-                // Songs/EPs: Always show download price
-                (ipRights?.download_price_stx !== null || ipRights?.price_stx) && (
+                // Songs/EPs: Only show download price if downloads are enabled
+                ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
                   <div className="flex">
                     <span className="text-gray-500 w-24">Download:</span>
-                    <span className="text-gray-300">{ipRights?.download_price_stx || ipRights?.price_stx} STX</span>
+                    <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                  </div>
+                ) : (
+                  <div className="flex">
+                    <span className="text-gray-500 w-24">Downloads:</span>
+                    <span className="text-gray-400">Not available</span>
                   </div>
                 )
               )}
