@@ -599,7 +599,7 @@ async function handleMultiFileSubmission(
     id: packId,
     title: containerTitle,
     version: '',
-    artist_name: trackData.artist,
+    artist: trackData.artist,
     description: trackData.description || '',
     tags: tags,
     notes: trackData.notes || trackData.tell_us_more || '',
