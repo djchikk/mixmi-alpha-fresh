@@ -141,7 +141,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine content type
-    const contentType = trackData.content_type || 'loop';
+    // Auto-detect loop_pack if multiple loop files are provided (chatbot may say "loop" but mean "loop_pack")
+    let contentType = trackData.content_type || 'loop';
+    if (contentType === 'loop' && trackData.loop_files && trackData.loop_files.length > 1) {
+      console.log('📦 Auto-upgrading content_type to loop_pack (detected multiple loop_files)');
+      contentType = 'loop_pack';
+    }
     console.log('📋 Content type determined:', contentType);
 
     // Validate content type specific requirements
@@ -451,7 +456,7 @@ function processSplits(
 
     return {
       wallet,
-      percentage: split.percentage,
+      percentage: Math.round(split.percentage), // Round to integer for database compatibility
       name: split.name
     };
   }).filter(s => s.percentage > 0);
@@ -529,6 +534,11 @@ async function handleMultiFileSubmission(
   const files = contentType === 'loop_pack'
     ? trackData.loop_files || []
     : trackData.ep_files || [];
+
+  // Get original filenames array (parallel to files array)
+  // These are the actual filenames users uploaded, preserved for track titles
+  const originalFilenames: string[] = trackData.original_filenames || [];
+  console.log('📎 Original filenames received:', originalFilenames.length > 0 ? originalFilenames : 'none');
 
   if (files.length === 0) {
     return NextResponse.json(
@@ -705,8 +715,26 @@ async function handleMultiFileSubmission(
     // Find matching metadata by position (1-indexed in metadata, 0-indexed in files array)
     const meta = trackMetadata.find(m => m.position === index + 1);
 
-    // Use metadata title if available, otherwise fall back to default
-    const trackTitle = meta?.title || `${containerTitle} - Track ${index + 1}`;
+    // Use metadata title if available, then original filename, fallback to generic name
+    // Priority: 1) explicit metadata 2) original filename 3) generic name
+    let trackTitle = meta?.title;
+    if (!trackTitle) {
+      // Try to use original filename (preserved from upload) - this is the user's actual filename
+      const originalFilename = originalFilenames[index];
+      if (originalFilename) {
+        // Remove file extension and use as title
+        const nameWithoutExt = originalFilename.replace(/\.(mp3|wav|m4a|aac|flac|ogg|webm)$/i, '');
+        if (nameWithoutExt && nameWithoutExt.length > 0) {
+          trackTitle = nameWithoutExt;
+          console.log(`📎 Using original filename for track ${index + 1}: "${trackTitle}"`);
+        }
+      }
+      // Final fallback to generic name
+      if (!trackTitle) {
+        trackTitle = `${containerTitle} - Track ${index + 1}`;
+        console.log(`⚠️ No original filename for track ${index + 1}, using generic name: "${trackTitle}"`);
+      }
+    }
 
     // For BPM: loops inherit pack BPM, EPs use per-track BPM from metadata
     const trackBpm = contentType === 'loop_pack'

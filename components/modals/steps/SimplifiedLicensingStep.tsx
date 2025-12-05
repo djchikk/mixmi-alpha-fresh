@@ -29,7 +29,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               </div>
               <p className="text-gray-400 text-sm mb-3">
                 Your song can be used in the platform mixer for live mixing and recorded remixes.
-                You earn <strong>1 STX</strong> each time someone records a remix that includes your song.
+                You earn <strong>1 STX</strong> each time someone records a remix that includes an 8-bar section from your song.
               </p>
 
               {/* Protected message when unchecked */}
@@ -201,7 +201,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               </div>
               <p className="text-gray-400 text-sm mb-3">
                 Songs in your EP can be used in the platform mixer for live mixing and recorded remixes.
-                You earn <strong>1 STX</strong> per song each time someone records a remix that includes a song from your EP.
+                You earn <strong>1 STX</strong> per song each time someone records a remix that includes an 8-bar section from a song in your EP.
               </p>
 
               {/* Protected message when unchecked */}
@@ -364,7 +364,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
 
   // Loop Packs: Platform Remix (default ON, can opt out) + Optional Downloads
   if (formData.content_type === 'loop_pack') {
-    const loopCount = formData.loop_files?.length || 0;
+    const loopCount = formData.loop_files?.length || formData.loop_count || 0;
     const downloadPricePerLoop = formData.price_per_loop || 1;
     const totalPackPrice = (downloadPricePerLoop * loopCount).toFixed(1);
 
