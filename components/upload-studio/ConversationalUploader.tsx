@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Upload, Music, Video, Loader2, CheckCircle, X } from 'lucide-react';
+import { Send, Mic, Upload, Music, Video, Loader2, CheckCircle, X, Globe } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { createClient } from '@supabase/supabase-js';
 
@@ -101,33 +101,14 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const dragCounterRef = useRef(0); // Track nested drag events
 
+  // Track if we should show the welcome hero (before any user interaction)
+  const [showWelcomeHero, setShowWelcomeHero] = useState(true);
+
   // Initialize conversation
   useEffect(() => {
-    const initConversation = async () => {
-      const newConversationId = crypto.randomUUID();
-      setConversationId(newConversationId);
-
-      // Send initial greeting
-      const initialMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `Hey! 👋 Welcome to the Upload Studio. I'm here to help you register your creative work on mixmi.
-
-What are you uploading today? You can tell me about:
-• **8-Bar Loops** - Perfect for remixing and collaboration
-• **Loop Packs** - Bundle of 2-5 loops together
-• **Songs** - Full tracks for streaming
-• **EPs** - Collection of 2-5 songs
-• **Video Clips** - 5-second visual loops
-
-Just describe what you've got, or drop your files here and we'll figure it out together!`,
-        timestamp: new Date()
-      };
-
-      setMessages([initialMessage]);
-    };
-
-    initConversation();
+    const newConversationId = crypto.randomUUID();
+    setConversationId(newConversationId);
+    // Don't add initial message - we'll show the hero instead
   }, []);
 
   // Scroll to bottom on new messages
@@ -135,10 +116,27 @@ Just describe what you've got, or drop your files here and we'll figure it out t
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Add initial greeting when transitioning from hero to chat
+  const addInitialGreeting = () => {
+    if (messages.length === 0) {
+      const greeting: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: "Hey! I'm here to help you register your music. Drop your files and tell me a bit about what you're uploading - I'll handle the rest!",
+        timestamp: new Date()
+      };
+      setMessages([greeting]);
+    }
+  };
+
   // Handle file selection
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+
+    // Hide the welcome hero when files are selected
+    setShowWelcomeHero(false);
+    addInitialGreeting();
 
     const newAttachments: FileAttachment[] = files.map(file => {
       let type: 'audio' | 'video' | 'image' = 'audio';
@@ -453,6 +451,9 @@ Feel free to try again with a different file, or let me know if you need help!`,
       return;
     }
 
+    // Hide the welcome hero when user sends first message
+    setShowWelcomeHero(false);
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -575,6 +576,10 @@ Feel free to try again with a different file, or let me know if you need help!`,
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
+
+    // Hide the welcome hero when files are dropped
+    setShowWelcomeHero(false);
+    addInitialGreeting();
 
     // Filter for supported file types
     const supportedFiles = files.filter(file => {
@@ -719,6 +724,51 @@ Would you like to upload another track, or shall I show you where to find your n
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
       >
+        {/* Welcome Hero - shows before any interaction */}
+        {showWelcomeHero && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center transition-all duration-500 ease-out">
+            {/* Glowing orb icon */}
+            <div className="relative mb-8">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#81E4F2]/30 to-[#9772F4]/30 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#81E4F2] to-[#9772F4] flex items-center justify-center shadow-lg shadow-[#81E4F2]/20">
+                  <Globe size={32} className="text-white" />
+                </div>
+              </div>
+              {/* Subtle pulse animation */}
+              <div className="absolute inset-0 w-24 h-24 rounded-full bg-[#81E4F2]/20 animate-ping opacity-30" />
+            </div>
+
+            {/* Main headline */}
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Register Your Work
+            </h2>
+
+            {/* Subheadline */}
+            <p className="text-lg text-gray-300 mb-8 max-w-lg">
+              Drop your files and I'll guide you through timestamping your work on the blockchain and pinning it to the globe
+            </p>
+
+            {/* Action prompts */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <div className="flex items-center gap-3 px-5 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl">
+                <Upload size={20} className="text-[#81E4F2]" />
+                <span className="text-gray-300">Drop audio, video, or images</span>
+              </div>
+              <div className="flex items-center gap-3 px-5 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl">
+                <Send size={20} className="text-[#9772F4]" />
+                <span className="text-gray-300">Or just start typing</span>
+              </div>
+            </div>
+
+            {/* What you can upload */}
+            <div className="text-sm text-gray-500 space-y-1">
+              <p>Loops, loop packs, songs, EPs, video clips, radio stations</p>
+              <p>Set pricing, splits, and licensing as we chat</p>
+            </div>
+          </div>
+        )}
+
+        {/* Chat messages - shown after first interaction */}
         {messages.map((message) => (
           <div
             key={message.id}
