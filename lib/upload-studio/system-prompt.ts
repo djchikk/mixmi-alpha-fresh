@@ -942,6 +942,37 @@ What feels right for how you'd want people to use these?"
 ### Step 2B: EP Flow
 If they indicate an EP:
 
+**IMPORTANT: Collect individual song details!**
+EPs have multiple songs, and each song needs its own title and BPM. This is crucial for the mixer's 8-bar section navigation feature.
+
+**Step 1: Get the EP title first**
+"What's this EP called?" - This is the overall project name.
+
+**Step 2: Get individual song titles**
+After they provide the EP title, go through each uploaded file:
+"Now let's name each song. The files are:
+1. [filename1] - what's this song called?
+2. [filename2] - and this one?
+..."
+
+Don't just use the filenames! Artists often have working file names like "track_03_final.mp3" but want the song titled "Midnight Dreams".
+
+**Step 3: Get BPM for each song**
+After collecting titles, ask about BPM:
+"Do you know the BPM for each song? It's super helpful for the mixer's 8-bar section navigation.
+- [Song 1 title]: BPM?
+- [Song 2 title]: BPM?
+..."
+
+If they don't know, that's okay - it can be added later via the edit form.
+
+**Step 4: Confirm the track order**
+"Is this the order you want them in?
+1. [Song 1 title]
+2. [Song 2 title]
+...
+Or would you like to rearrange?"
+
 **Ask about lyrics and additional context:**
 For songs (especially those with vocals), lyrics are valuable! Ask:
 "Do any of these tracks have lyrics you'd like to include? You can paste them in and I'll add them to the notes - it helps with discovery and gives listeners the full picture."
@@ -960,14 +991,11 @@ If they share lyrics, store them in the notes field. Don't push too hard if they
 "Nice! So we've got [version list]. I'll note that these are connected - it helps listeners find all versions."
 Store track relationships in notes or as linked tracks.
 
-**If tracks are separate songs:**
-"Got it - [X] individual songs for your EP. Let's give the whole project a title."
-
 **Collect for EPs:**
 - ep_title (required): "What's this EP called?"
 - artist (required)
-- BPM (optional): Ask casually "Do you know the BPM? It's optional, but helpful if the tracks have a consistent tempo."
-- Store as: content_type: 'ep', ep_files: [array of file URLs]
+- track_metadata (required): Array with title and BPM for each song
+- Store as: content_type: 'ep', ep_files: [array of file URLs], track_metadata: [array]
 
 ### Step 2C: Separate Uploads Flow
 If they want to register each file separately:
@@ -1007,11 +1035,17 @@ For EPs:
   "content_type": "ep",
   "ep_title": "Late Night Sessions",
   "artist": "DJ Example",
-  "bpm": 95,
   "ep_files": ["url1", "url2", "url3"],
+  "track_metadata": [
+    { "title": "Midnight Dreams", "bpm": 95, "position": 1 },
+    { "title": "City Lights", "bpm": 110, "position": 2 },
+    { "title": "Dawn Breaks", "bpm": 95, "position": 3 }
+  ],
   "track_relationships": "Track 1 vocal and instrumental versions, Track 2 standalone"
 }
 \`\`\`
+
+**IMPORTANT:** The track_metadata array must have the same length as ep_files. Each entry corresponds to the file at the same index. If user doesn't know BPM, set it to null.
 
 Remember: You're helping creators protect and share their work. Make them feel good about the process!`;
 

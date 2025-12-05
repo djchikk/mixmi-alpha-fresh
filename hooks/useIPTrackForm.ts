@@ -127,7 +127,8 @@ const QUICK_STEPS = [
 export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): UseIPTrackFormReturn {
   const [currentStep, setCurrentStep] = useState(0);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [isQuickUpload, setIsQuickUpload] = useState(true);
+  // Default to Advanced mode when editing existing track to preserve IP splits and metadata
+  const [isQuickUpload, setIsQuickUpload] = useState(!track);
   const [tagInputValue, setTagInputValue] = useState('');
 
   const [formData, setFormData] = useState<IPTrackFormData>({
@@ -191,11 +192,11 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     // Audio source tracking (for video clips)
     audio_source: (track as any)?.audio_source || 'included',
 
-    // Pricing
+    // Pricing - use download_price_stx from database (the actual column name)
     price_stx: track?.price_stx || 0,
     remix_price: (track as any)?.remix_price || 0.5,
     combined_price: (track as any)?.combined_price || 2.5,
-    download_price: (track as any)?.download_price || 2.5,
+    download_price: (track as any)?.download_price_stx || (track as any)?.download_price || 2.5,
     
     // Contact info
     commercial_contact: (track as any)?.commercial_contact || '',

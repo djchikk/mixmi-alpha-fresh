@@ -804,13 +804,19 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         <div className="text-gray-300 text-xs font-medium truncate">
                           {song.title || `Song ${index + 1}`}
                         </div>
-                        {song.duration && (
-                          <div className="text-gray-500 text-xs">
-                            {formatDuration(song.duration)}
-                          </div>
-                        )}
+                        <div className="text-gray-500 text-xs">
+                          {song.bpm ? `${song.bpm} BPM` : ''}{song.bpm && song.duration ? ' · ' : ''}{song.duration ? formatDuration(song.duration) : ''}
+                        </div>
                       </div>
-                      
+
+                      {/* Drag Handle - appears on hover */}
+                      <div
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-600 rounded transition-all cursor-grab"
+                        title="Drag to Crate or Mixer"
+                      >
+                        <GripVertical className="w-3 h-3 text-gray-400 hover:text-white" />
+                      </div>
+
                       {/* Play/Pause Button */}
                       <button
                         onClick={() => handleLoopPlayPause(song)}
@@ -1239,11 +1245,11 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           )}
 
           {/* Notes & Credits */}
-          {(track.tell_us_more || track.notes) && (
+          {(track.tell_us_more || track.notes || ipRights?.notes) && (
             <div>
               <Divider title="NOTES & CREDITS" />
               <p className="text-xs text-gray-300 leading-relaxed">
-                {track.tell_us_more || track.notes}
+                {track.tell_us_more || track.notes || ipRights?.notes}
               </p>
             </div>
           )}

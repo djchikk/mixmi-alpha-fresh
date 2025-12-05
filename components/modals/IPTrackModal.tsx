@@ -210,28 +210,22 @@ export default function IPTrackModal({
         clearSuggestions();
       } else {
         // Editing existing track - populate location if it exists
-        // First try primary_location field
+        // Use primary_location as the canonical source (tags are just visual duplicates)
         if (track.primary_location) {
           // Parse existing locations from primary_location field
-          const locations = track.primary_location.split(',').map(l => l.trim());
-          setSelectedLocations(locations);
-        }
-        // Also check for location tags in the tags array (prefixed with 🌍)
-        if (track.tags && Array.isArray(track.tags)) {
-          const locationTags = track.tags
-            .filter(tag => tag.startsWith('🌍'))
-            .map(tag => tag.replace('🌍 ', '').replace('🌍', '').trim());
-          if (locationTags.length > 0) {
-            setSelectedLocations(prev => {
-              // Merge without duplicates
-              const merged = [...prev];
-              locationTags.forEach(loc => {
-                if (!merged.includes(loc)) {
-                  merged.push(loc);
-                }
-              });
-              return merged;
-            });
+          const locations = track.primary_location.split(',').map(l => l.trim()).filter(l => l.length > 0);
+          // Deduplicate in case of any existing duplicates
+          const uniqueLocations = [...new Set(locations)];
+          setSelectedLocations(uniqueLocations);
+        } else {
+          // Fallback: if no primary_location, try extracting from tags
+          if (track.tags && Array.isArray(track.tags)) {
+            const locationTags = track.tags
+              .filter(tag => tag.startsWith('🌍'))
+              .map(tag => tag.replace('🌍 ', '').replace('🌍', '').trim())
+              .filter(l => l.length > 0);
+            const uniqueLocations = [...new Set(locationTags)];
+            setSelectedLocations(uniqueLocations);
           }
         }
 
@@ -853,15 +847,22 @@ export default function IPTrackModal({
     const errors = [...compositionValidation.errors, ...productionValidation.errors];
     console.log('📝 Initial errors from splits:', errors);
     
+    // Check if we're in edit mode (track already exists)
+    const isEditMode = !!track;
+
     // Validate required fields - conditional for multi-content types
     if (updatedFormData.content_type === 'loop_pack') {
       // Loop packs need pack title, not track title
-      if (!(updatedFormData as any).pack_title || (updatedFormData as any).pack_title.trim() === '') {
+      // In edit mode, check both pack_title and title (title is used for existing records)
+      const packTitle = (updatedFormData as any).pack_title || (isEditMode ? updatedFormData.title : '');
+      if (!packTitle || packTitle.trim() === '') {
         errors.push('Pack title is required');
       }
     } else if (updatedFormData.content_type === 'ep') {
       // EPs need EP title, not track title
-      if (!(updatedFormData as any).ep_title || (updatedFormData as any).ep_title.trim() === '') {
+      // In edit mode, check both ep_title and title (title is used for existing records)
+      const epTitle = (updatedFormData as any).ep_title || (isEditMode ? updatedFormData.title : '');
+      if (!epTitle || epTitle.trim() === '') {
         errors.push('EP title is required');
       }
     } else {
@@ -870,43 +871,46 @@ export default function IPTrackModal({
         errors.push('Track title is required');
       }
     }
-    
+
     if (!updatedFormData.artist || updatedFormData.artist.trim() === '') {
       errors.push('Artist name is required');
     }
-    
+
     // Validate BPM for loops - always required for loops in advanced mode
     if (!isQuickUpload && updatedFormData.content_type === 'loop' && (!updatedFormData.bpm || updatedFormData.bpm <= 0 || isNaN(updatedFormData.bpm))) {
       errors.push('BPM is required for loops and must be a valid number greater than 0');
     }
-    
+
     // Validate stem/other category details
     if (updatedFormData.content_type === 'loop' && (updatedFormData.loop_category === 'stem' || updatedFormData.loop_category === 'other')) {
       if (!updatedFormData.tell_us_more || updatedFormData.tell_us_more.trim() === '') {
         errors.push(updatedFormData.loop_category === 'stem' ? 'Stem type is required' : 'Category description is required for "Other" loops');
       }
     }
-    
+
     // Validate audio - different for multi-content vs regular tracks
-    if (updatedFormData.content_type === 'loop_pack') {
-      // Loop packs need multiple audio files
-      if (!(updatedFormData as any).loop_files || (updatedFormData as any).loop_files.length === 0) {
-        errors.push('At least 2 audio files are required for loop packs');
-      }
-    } else if (updatedFormData.content_type === 'ep') {
-      // EPs need multiple song files
-      if (!(updatedFormData as any).ep_files || (updatedFormData as any).ep_files.length === 0) {
-        errors.push('At least 2 song files are required for EPs');
-      }
-    } else if (updatedFormData.content_type === 'video_clip') {
-      // Video clips need video URL
-      if (!(updatedFormData as any).video_url || (updatedFormData as any).video_url.trim() === '') {
-        errors.push('Video file is required');
-      }
-    } else {
-      // Regular tracks need audio URL
-      if (!updatedFormData.audio_url || updatedFormData.audio_url.trim() === '') {
-        errors.push('Audio file is required');
+    // Skip file validation in edit mode - files already exist in database
+    if (!isEditMode) {
+      if (updatedFormData.content_type === 'loop_pack') {
+        // Loop packs need multiple audio files
+        if (!(updatedFormData as any).loop_files || (updatedFormData as any).loop_files.length === 0) {
+          errors.push('At least 2 audio files are required for loop packs');
+        }
+      } else if (updatedFormData.content_type === 'ep') {
+        // EPs need multiple song files
+        if (!(updatedFormData as any).ep_files || (updatedFormData as any).ep_files.length === 0) {
+          errors.push('At least 2 song files are required for EPs');
+        }
+      } else if (updatedFormData.content_type === 'video_clip') {
+        // Video clips need video URL
+        if (!(updatedFormData as any).video_url || (updatedFormData as any).video_url.trim() === '') {
+          errors.push('Video file is required');
+        }
+      } else {
+        // Regular tracks need audio URL
+        if (!updatedFormData.audio_url || updatedFormData.audio_url.trim() === '') {
+          errors.push('Audio file is required');
+        }
       }
     }
 
@@ -2578,7 +2582,18 @@ export default function IPTrackModal({
           )}
           <div className="flex justify-between">
             <span className="text-gray-400">BPM:</span>
-            <span className="text-white">{formData.bpm || '-'}</span>
+            <span className="text-white">
+              {formData.content_type === 'ep' && trackMetadata.length > 0
+                ? (() => {
+                    // Check for uniform BPM across all songs in EP
+                    const bpms = trackMetadata.map(t => t.bpm).filter(b => b !== null && b !== undefined);
+                    if (bpms.length > 0 && bpms.every(b => b === bpms[0])) {
+                      return `${bpms[0]} (all songs)`;
+                    }
+                    return bpms.length > 0 ? 'Varies by song' : '-';
+                  })()
+                : (formData.bpm || '-')}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400">License:</span>
