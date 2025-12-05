@@ -266,6 +266,13 @@ export default function IPTrackModal({
                 console.log(`📀 ${track.content_type === 'ep' ? 'EP' : 'Loop Pack'} has ${children.length} tracks`);
                 handleInputChange('ep_song_count', children.length);
 
+                // Calculate and set price_per_song from stored download_price_stx for EPs
+                if (track.content_type === 'ep' && (track as any).download_price_stx && children.length > 0) {
+                  const pricePerSong = (track as any).download_price_stx / children.length;
+                  handleInputChange('price_per_song', pricePerSong);
+                  console.log(`💰 EP price per song calculated: ${pricePerSong} STX (total: ${(track as any).download_price_stx} / ${children.length} songs)`);
+                }
+
                 // Initialize trackMetadata from existing database records
                 setTrackMetadata(children.map(child => ({
                   file: null as any, // No file for existing tracks

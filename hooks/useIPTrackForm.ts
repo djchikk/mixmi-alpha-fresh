@@ -129,7 +129,14 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   // Default to Advanced mode when editing existing track to preserve IP splits and metadata
   const [isQuickUpload, setIsQuickUpload] = useState(!track);
-  const [tagInputValue, setTagInputValue] = useState('');
+  // Initialize tag input value with existing non-location tags when editing
+  const [tagInputValue, setTagInputValue] = useState(() => {
+    if (track?.tags && Array.isArray(track.tags)) {
+      // Filter out location tags (🌍) since they're displayed separately
+      return track.tags.filter(tag => !tag.startsWith('🌍')).join(', ');
+    }
+    return '';
+  });
 
   const [formData, setFormData] = useState<IPTrackFormData>({
     id: track?.id || uuidv4(),
@@ -403,12 +410,19 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
   };
 
   const handleTagsChange = (tagString: string) => {
-    const tagsArray = tagString
+    // Parse new tags from the text input
+    const newNonLocationTags = tagString
       .split(',')
       .map(tag => tag.trim())
       .filter(tag => tag.length > 0);
-    
-    handleInputChange('tags', tagsArray);
+
+    // Preserve existing location tags (🌍) - they're managed separately
+    const existingLocationTags = formData.tags.filter(tag => tag.startsWith('🌍'));
+
+    // Combine: new non-location tags + existing location tags
+    const combinedTags = [...newNonLocationTags, ...existingLocationTags];
+
+    handleInputChange('tags', combinedTags);
     setTagInputValue(tagString);
   };
 
