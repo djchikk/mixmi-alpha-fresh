@@ -177,7 +177,17 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     // Media
     cover_image_url: track?.cover_image_url || '',
     audio_url: track?.audio_url || '',
-    
+    video_url: (track as any)?.video_url || '',
+
+    // Video crop data (for video clips)
+    video_crop_x: (track as any)?.video_crop_x,
+    video_crop_y: (track as any)?.video_crop_y,
+    video_crop_width: (track as any)?.video_crop_width,
+    video_crop_height: (track as any)?.video_crop_height,
+    video_crop_zoom: (track as any)?.video_crop_zoom,
+    video_natural_width: (track as any)?.video_natural_width,
+    video_natural_height: (track as any)?.video_natural_height,
+
     // Location fields
     location_lat: track?.location_lat || undefined,
     location_lng: track?.location_lng || undefined,

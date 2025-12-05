@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
       url: publicUrl,
       type: fileCategory,
       filename: fileName,
+      originalFilename: file.name, // Preserve original filename for track titles
       size: file.size
     };
 

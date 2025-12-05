@@ -35,6 +35,8 @@ interface Track {
   remix_depth?: number;
   allow_downloads?: boolean;
   download_price_stx?: number;
+  pack_id?: string;
+  pack_position?: number;
 }
 
 interface ContentFilter {
@@ -135,16 +137,26 @@ export default function AccountPage() {
     }
   }, [walletAddress]);
 
+  // Helper: Check if a track is a child item inside a pack/EP (should be hidden from dashboard)
+  // Child items have pack_id AND pack_position >= 1
+  // Container items (packs/EPs) have pack_position = 0 or null
+  const isChildItem = (track: Track) => {
+    return track.pack_id && track.pack_position !== undefined && track.pack_position >= 1;
+  };
+
   // Filter tracks based on active filter
+  // IMPORTANT: Always hide child items (loops/songs inside packs/EPs) - only show containers
   useEffect(() => {
     let filtered = tracks;
 
     switch (activeFilter.type) {
       case 'full_song':
-        filtered = tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted);
+        // Show standalone songs only, not songs inside EPs
+        filtered = tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted && !isChildItem(track));
         break;
       case 'loop':
-        filtered = tracks.filter(track => track.content_type === 'loop' && !track.is_deleted);
+        // Show standalone loops only, not loops inside loop packs
+        filtered = tracks.filter(track => track.content_type === 'loop' && !track.is_deleted && !isChildItem(track));
         break;
       case 'loop_pack':
         filtered = tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted);
@@ -153,7 +165,8 @@ export default function AccountPage() {
         filtered = tracks.filter(track => track.content_type === 'ep' && !track.is_deleted);
         break;
       case 'radio_station':
-        filtered = tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted);
+        // Show standalone radio stations only, not stations inside station packs
+        filtered = tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted && !isChildItem(track));
         break;
       case 'station_pack':
         filtered = tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted);
@@ -162,32 +175,34 @@ export default function AccountPage() {
         filtered = tracks.filter(track => track.content_type === 'video_clip' && !track.is_deleted);
         break;
       case 'hidden':
+        // For hidden, show all deleted items including child items
         filtered = tracks.filter(track => track.is_deleted === true);
         break;
       case 'all':
       default:
-        filtered = tracks.filter(track => !track.is_deleted);
+        // Show all non-deleted items EXCEPT child items
+        filtered = tracks.filter(track => !track.is_deleted && !isChildItem(track));
         break;
     }
 
     setFilteredTracks(filtered);
   }, [tracks, activeFilter]);
 
-  // Get count for each filter
+  // Get count for each filter (excluding child items except for hidden)
   const getFilterCount = (filter: ContentFilter) => {
     switch (filter.type) {
       case 'all':
-        return tracks.filter(track => !track.is_deleted).length;
+        return tracks.filter(track => !track.is_deleted && !isChildItem(track)).length;
       case 'full_song':
-        return tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted).length;
+        return tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted && !isChildItem(track)).length;
       case 'loop':
-        return tracks.filter(track => track.content_type === 'loop' && !track.is_deleted).length;
+        return tracks.filter(track => track.content_type === 'loop' && !track.is_deleted && !isChildItem(track)).length;
       case 'loop_pack':
         return tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted).length;
       case 'ep':
         return tracks.filter(track => track.content_type === 'ep' && !track.is_deleted).length;
       case 'radio_station':
-        return tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted).length;
+        return tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted && !isChildItem(track)).length;
       case 'station_pack':
         return tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted).length;
       case 'video_clip':

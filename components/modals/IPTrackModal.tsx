@@ -209,6 +209,12 @@ export default function IPTrackModal({
         setSelectedLocationCoords([]); // Also clear the coordinates
         clearSuggestions();
       } else {
+        // Editing existing track - ensure title is set (in case form state wasn't initialized properly)
+        if (track.title && formData.title !== track.title) {
+          handleInputChange('title', track.title);
+          console.log(`📝 Setting pack title from track: "${track.title}"`);
+        }
+
         // Editing existing track - populate location if it exists
         // Use primary_location as the canonical source (tags are just visual duplicates)
         if (track.primary_location) {
@@ -271,6 +277,16 @@ export default function IPTrackModal({
                   const pricePerSong = (track as any).download_price_stx / children.length;
                   handleInputChange('price_per_song', pricePerSong);
                   console.log(`💰 EP price per song calculated: ${pricePerSong} STX (total: ${(track as any).download_price_stx} / ${children.length} songs)`);
+                }
+
+                // Calculate and set price_per_loop and loop_count from stored download_price_stx for loop packs
+                if (track.content_type === 'loop_pack' && children.length > 0) {
+                  handleInputChange('loop_count', children.length);
+                  if ((track as any).download_price_stx) {
+                    const pricePerLoop = (track as any).download_price_stx / children.length;
+                    handleInputChange('price_per_loop', pricePerLoop);
+                    console.log(`💰 Loop pack price per loop calculated: ${pricePerLoop} STX (total: ${(track as any).download_price_stx} / ${children.length} loops)`);
+                  }
                 }
 
                 // Initialize trackMetadata from existing database records
@@ -2548,7 +2564,7 @@ export default function IPTrackModal({
             </span>
             <span className="text-white">
               {formData.content_type === 'loop_pack'
-                ? ((formData as any).pack_title || '-')
+                ? ((formData as any).pack_title || formData.title || '-')
                 : formData.content_type === 'ep'
                 ? ((formData as any).ep_title || formData.title || '-')
                 : (formData.title || '-')}
@@ -2577,7 +2593,7 @@ export default function IPTrackModal({
             <>
               <div className="flex justify-between">
                 <span className="text-gray-400">Loops in Pack:</span>
-                <span className="text-white">{(formData as any).loop_files?.length || 0} detected</span>
+                <span className="text-white">{(formData as any).loop_files?.length || (formData as any).loop_count || 0} detected</span>
               </div>
               {formData.allow_downloads && (
                 <div className="flex justify-between">
@@ -2632,7 +2648,7 @@ export default function IPTrackModal({
                   : formData.content_type === 'ep'
                     ? `${(((formData as any).price_per_song || 2.5) * ((formData as any).ep_files?.length || (formData as any).ep_song_count || 0)).toFixed(1)} STX`
                   : formData.content_type === 'loop_pack'
-                    ? `${(((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || 0)).toFixed(1)} STX (pack)`
+                    ? `${(((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || (formData as any).loop_count || 0)).toFixed(1)} STX (pack)`
                     : formData.allow_downloads
                       ? `${(formData as any).download_price_stx || 2.5} STX`
                       : '1 STX per mix'}
@@ -2652,7 +2668,7 @@ export default function IPTrackModal({
               {formData.content_type === 'video_clip'
                 ? ((formData as any).video_url ? '✓ Uploaded' : '✗ Missing')
                 : formData.content_type === 'loop_pack'
-                ? ((formData as any).loop_files && (formData as any).loop_files.length > 0 ? `✓ ${(formData as any).loop_files.length} Files` : '✗ Upload Your Loops')
+                ? (((formData as any).loop_files && (formData as any).loop_files.length > 0) || (formData as any).loop_count > 0 ? `✓ ${(formData as any).loop_files?.length || (formData as any).loop_count} Loops` : '✗ Upload Your Loops')
                 : formData.content_type === 'ep'
                 ? (((formData as any).ep_files && (formData as any).ep_files.length > 0) || (formData as any).ep_song_count > 0 ? `✓ ${(formData as any).ep_files?.length || (formData as any).ep_song_count} Songs` : '✗ Upload Your Songs')
                 : (formData.audio_url ? '✓ Uploaded' : '✗ Missing')}
@@ -2813,7 +2829,7 @@ export default function IPTrackModal({
           </div>
           <div className="text-sm">
             {formData.content_type === 'loop_pack'
-              ? `Your loop pack with ${(formData as any).loop_files?.length || 'multiple'} loops has been saved. Refresh the page to see it on the globe!`
+              ? `Your loop pack with ${(formData as any).loop_files?.length || (formData as any).loop_count || 'multiple'} loops has been saved. Refresh the page to see it on the globe!`
               : formData.content_type === 'ep'
               ? `Your EP with ${(formData as any).ep_files?.length || (formData as any).ep_song_count || 'multiple'} songs has been saved. Refresh the page to see it on the globe!`
               : 'Your track has been saved. Refresh the page to see it on the globe!'

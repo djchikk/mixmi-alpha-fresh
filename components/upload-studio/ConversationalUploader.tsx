@@ -74,6 +74,8 @@ interface ExtractedTrackData {
   ep_title?: string;
   loop_files?: string[];
   ep_files?: string[];
+  // Original filenames for track titles (parallel to loop_files/ep_files arrays)
+  original_filenames?: string[];
   // Multi-file BPM tracking
   detected_bpms?: number[];
 }
@@ -334,6 +336,7 @@ Just describe what you've got, or drop your files here and we'll figure it out t
           const existingAudioUrl = prev.audio_url;
           const existingLoopFiles = prev.loop_files || [];
           const existingEpFiles = prev.ep_files || [];
+          const existingFilenames = prev.original_filenames || [];
 
           // If there's already an audio file, we might be building a pack/EP
           // Store both in arrays for the chatbot to later determine the type
@@ -341,11 +344,17 @@ Just describe what you've got, or drop your files here and we'll figure it out t
             // Convert to multi-file mode - store all URLs in both arrays
             // The chatbot will decide which to use based on content_type
             const allAudioFiles = [...new Set([existingAudioUrl, ...existingLoopFiles, ...existingEpFiles, result.url])];
+            // Build parallel array of original filenames - maintain same order as URLs
+            const allFilenames = [...existingFilenames];
+            if (result.originalFilename && !allFilenames.includes(result.originalFilename)) {
+              allFilenames.push(result.originalFilename);
+            }
             return {
               ...prev,
               audio_url: result.url, // Keep most recent as primary
               loop_files: allAudioFiles,
               ep_files: allAudioFiles,
+              original_filenames: allFilenames,
               // Store detected BPMs for validation
               ...(result.bpm && {
                 bpm: result.bpm,
@@ -360,6 +369,8 @@ Just describe what you've got, or drop your files here and we'll figure it out t
           return {
             ...prev,
             audio_url: result.url,
+            // Store original filename for first file too
+            original_filenames: result.originalFilename ? [result.originalFilename] : [],
             // If BPM was detected, add it
             ...(result.bpm && {
               bpm: result.bpm,
