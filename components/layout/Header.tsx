@@ -17,6 +17,7 @@ import IPTrackModal from "../modals/IPTrackModal";
 import RadioStationModal from "../modals/RadioStationModal";
 import ContentTypeSelector from "../modals/ContentTypeSelector";
 import { generateAvatar } from "@/lib/avatarUtils";
+import { TourButton } from "../onboarding/TourButton";
 
 export default function Header() {
   const pathname = usePathname();
@@ -205,6 +206,7 @@ export default function Header() {
           sandbox
         </Link>
         <button
+          id="onborda-upload"
           onClick={() => {
             if (!isAuthenticated || !walletAddress) {
               setIsSignInModalOpen(true);
@@ -558,6 +560,7 @@ export default function Header() {
 
     {/* Large invisible drop zone for cart - extends left and down from cart position */}
     <div
+      id="onborda-cart"
       ref={cartDropRef}
       className="fixed top-20 right-4 z-[100] w-[200px] h-[200px] pointer-events-auto"
       style={{ pointerEvents: 'auto' }}

@@ -7,6 +7,7 @@ import { TrackNode } from './types';
 import { latLngToVector3 } from './Globe';
 import { ProfileNodeMesh } from './ProfileNodeMesh';
 import { RadioNodeMesh } from './RadioNodeMesh';
+import { ClusteredNodeMesh } from './ClusteredNodeMesh';
 
 // Node size categories based on zoom - reduced by ~25% for better appearance
 const ZOOM_LEVELS = {
@@ -351,6 +352,26 @@ export function GridNodeSystem({ nodes, onNodeClick, onNodeHover }: GridNodeSyst
                     node={node}
                     onClick={() => onNodeClick?.(node)}
                     onHover={(hovering) => onNodeHover?.(hovering ? node : null)}
+                  />
+                );
+              }
+
+              // Use ClusteredNodeMesh for cluster nodes (multi-colored particle visualization)
+              if (node.content_type === 'cluster') {
+                // Get the tracks from the cluster node
+                const clusterTracks = (node as any).tracks || [];
+                return (
+                  <ClusteredNodeMesh
+                    key={node.id}
+                    nodes={clusterTracks}
+                    position={finalPosition}
+                    onClick={(tracks) => {
+                      // When cluster is clicked, pass the original node with its tracks
+                      onNodeClick?.(node);
+                    }}
+                    onHover={(hovering, tracks) => {
+                      onNodeHover?.(hovering ? node : null);
+                    }}
                   />
                 );
               }

@@ -5,6 +5,7 @@ module.exports = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}", // Onborda tour styles
   ],
   theme: {
   	extend: {

@@ -3,26 +3,29 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { Text } from '@react-three/drei';
+// import { Text } from '@react-three/drei'; // Uncomment if re-enabling count badge
 import { TrackNode } from './types';
-import { latLngToVector3 } from './Globe';
 
-// Subtle color palette for default state
-const SUBTLE_COLORS = [
-  '#ff99cc', // Soft pink
-  '#99ffcc', // Soft mint
-  '#cc99ff', // Soft lavender
-  '#ffcc99', // Soft peach
-  '#99ccff', // Soft sky
-];
+// Content type colors matching the rest of the app
+const CONTENT_TYPE_COLORS = {
+  loop: '#9772F4',        // Purple
+  loop_pack: '#9772F4',   // Purple
+  full_song: '#FFE4B5',   // Wheat/Gold
+  ep: '#FFE4B5',          // Wheat/Gold
+  video_clip: '#2792F5',  // Blue
+  radio_station: '#FB923C', // Orange
+  station_pack: '#FB923C',  // Orange
+};
 
-// Vibrant colors for hover state
-const VIBRANT_COLORS = [
-  '#ff0066', // Hot pink
-  '#00ff88', // Electric green
-  '#00bbff', // Bright cyan
-  '#ffaa00', // Vibrant orange
-  '#ff00ff', // Magenta
+// Fixed particle configuration - 6 particles in a scattered arrangement
+// Pre-calculated random positions for consistent look (reduced by 75% from original)
+const PARTICLE_CONFIG = [
+  { offsetX: -0.0045, offsetY: 0.003, offsetZ: 0.002, size: 0.003, color: 'loop' },
+  { offsetX: 0.00375, offsetY: -0.002, offsetZ: 0.003, size: 0.0025, color: 'loop' },
+  { offsetX: 0.002, offsetY: 0.0045, offsetZ: -0.0015, size: 0.00275, color: 'full_song' },
+  { offsetX: -0.0025, offsetY: -0.00375, offsetZ: -0.0025, size: 0.00325, color: 'full_song' },
+  { offsetX: 0.005, offsetY: 0.00125, offsetZ: -0.002, size: 0.00225, color: 'radio_station' },
+  { offsetX: -0.00125, offsetY: -0.0005, offsetZ: 0.0045, size: 0.00275, color: 'video_clip' },
 ];
 
 interface ClusteredNodeMeshProps {
@@ -32,59 +35,112 @@ interface ClusteredNodeMeshProps {
   onHover: (hovering: boolean, nodes: TrackNode[]) => void;
 }
 
-export function ClusteredNodeMesh({ nodes, position, onClick, onHover }: ClusteredNodeMeshProps) {
+// Individual particle component with its own jiggle animation
+function Particle({
+  offset,
+  size,
+  color,
+  index,
+  hovered
+}: {
+  offset: THREE.Vector3;
+  size: number;
+  color: string;
+  index: number;
+  hovered: boolean;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
+
+  // Each particle has its own animation timing offset
+  const animationOffset = useMemo(() => index * 0.7, [index]);
+
+  useFrame((state) => {
+    if (meshRef.current && glowRef.current) {
+      const time = state.clock.elapsedTime + animationOffset;
+
+      // Gentle jiggle animation - small random movement (reduced by 75% from original)
+      const jiggleX = Math.sin(time * 1.5) * 0.00075 + Math.sin(time * 2.3) * 0.0005;
+      const jiggleY = Math.cos(time * 1.8) * 0.00075 + Math.cos(time * 2.1) * 0.0005;
+      const jiggleZ = Math.sin(time * 2.0) * 0.0005 + Math.cos(time * 1.6) * 0.0005;
+
+      meshRef.current.position.set(
+        offset.x + jiggleX,
+        offset.y + jiggleY,
+        offset.z + jiggleZ
+      );
+      glowRef.current.position.copy(meshRef.current.position);
+
+      // Subtle scale pulsing
+      const pulse = 1 + Math.sin(time * 3) * 0.1;
+      const hoverScale = hovered ? 1.3 : 1;
+      meshRef.current.scale.setScalar(pulse * hoverScale);
+      glowRef.current.scale.setScalar(pulse * hoverScale * 1.5);
+    }
+  });
+
+  return (
+    <>
+      {/* Glow effect for each particle */}
+      <mesh ref={glowRef} position={[offset.x, offset.y, offset.z]}>
+        <sphereGeometry args={[size * 1.5, 8, 8]} />
+        <meshBasicMaterial
+          color={color}
+          opacity={hovered ? 0.5 : 0.25}
+          transparent
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* Core particle */}
+      <mesh ref={meshRef} position={[offset.x, offset.y, offset.z]}>
+        <sphereGeometry args={[size, 8, 8]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={hovered ? 0.8 : 0.4}
+          metalness={0.3}
+          roughness={0.4}
+        />
+      </mesh>
+    </>
+  );
+}
+
+export function ClusteredNodeMesh({ nodes, position, onClick, onHover }: ClusteredNodeMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const textRef = useRef<any>(null);
+  const hitAreaRef = useRef<THREE.Mesh>(null);
+  // const textRef = useRef<any>(null); // Uncomment if re-enabling count badge
   const [hovered, setHovered] = useState(false);
   const { camera } = useThree();
-  
-  // Calculate color based on first node
-  const colorIndex = useMemo(() => {
-    const hash = nodes[0].id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return hash % SUBTLE_COLORS.length;
-  }, [nodes]);
-  
-  const subtleColor = SUBTLE_COLORS[colorIndex];
-  const vibrantColor = VIBRANT_COLORS[colorIndex];
-  const nodeCount = nodes.length;
-  
-  // Scale and update position based on camera
-  useFrame((state) => {
-    if (groupRef.current && meshRef.current && glowRef.current && ringRef.current) {
-      // Calculate camera distance
+
+  // const nodeCount = nodes.length; // Uncomment if re-enabling count badge
+
+  // Create particles with colors based on content type distribution
+  const particles = useMemo(() => {
+    return PARTICLE_CONFIG.map((config, index) => {
+      const colorKey = config.color as keyof typeof CONTENT_TYPE_COLORS;
+      const color = CONTENT_TYPE_COLORS[colorKey] || '#2792F5';
+
+      return {
+        offset: new THREE.Vector3(config.offsetX, config.offsetY, config.offsetZ),
+        size: config.size,
+        color,
+        index,
+      };
+    });
+  }, []);
+
+  // Scale based on camera distance
+  useFrame(() => {
+    if (groupRef.current) {
       const cameraDistance = camera.position.length();
-      
-      // Scale nodes to maintain constant visual size
       const baseScale = 1;
       const scaleCompensation = cameraDistance / 2.5;
-      groupRef.current.scale.setScalar(baseScale * scaleCompensation);
-      
-      // Make clustered nodes slightly larger based on count
-      const clusterScale = 1 + Math.log(nodeCount) * 0.1;
-      
-      // Pulsing animation
-      const time = state.clock.elapsedTime;
-      const basePulse = Math.sin(time * 2) * 0.1;
-      
-      // Scale animation with hover effect
-      const hoverScale = hovered ? 1.5 : 1;
-      const scale = hoverScale * clusterScale + basePulse;
-      meshRef.current.scale.setScalar(scale);
-      
-      // Glow expands more on hover
-      const glowScale = hovered ? 1.3 : 1;
-      glowRef.current.scale.setScalar(glowScale * clusterScale + basePulse * 0.5);
-      
-      // Ring also pulses
-      ringRef.current.scale.setScalar(clusterScale + basePulse * 0.3);
-      
-      // Orient text to face camera
-      if (textRef.current && nodeCount > 1) {
-        textRef.current.lookAt(camera.position);
-      }
+
+      // Clusters are slightly larger than single nodes
+      const clusterScale = 1.2;
+      groupRef.current.scale.setScalar(baseScale * scaleCompensation * clusterScale);
     }
   });
 
@@ -106,71 +162,46 @@ export function ClusteredNodeMesh({ nodes, position, onClick, onHover }: Cluster
 
   return (
     <group ref={groupRef} position={position}>
-      {/* Outer glow effect */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[0.035, 16, 16]} />
-        <meshBasicMaterial
-          color={hovered ? vibrantColor : "#ffffff"}
-          opacity={hovered ? 0.5 : 0.2}
-          transparent
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-      
-      {/* Middle layer */}
-      <mesh>
-        <sphereGeometry args={[0.025, 16, 16]} />
-        <meshBasicMaterial
-          color="#ffffff"
-          opacity={0.6}
-          transparent
-        />
-      </mesh>
-      
-      {/* Core node */}
+      {/* Invisible hit area for click/hover detection (reduced by 75% from original) */}
       <mesh
-        ref={meshRef}
+        ref={hitAreaRef}
         onClick={handleClick}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
       >
-        <sphereGeometry args={[0.018, 16, 16]} />
-        <meshStandardMaterial
-          color={hovered ? vibrantColor : "#ffffff"}
-          emissive={hovered ? vibrantColor : subtleColor}
-          emissiveIntensity={hovered ? 0.8 : 0.3}
-          metalness={0.3}
-          roughness={0.4}
-        />
+        <sphereGeometry args={[0.01, 16, 16]} />
+        <meshBasicMaterial transparent opacity={0} />
       </mesh>
-      
-      {/* Outer ring */}
-      <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.022, 0.028, 16]} />
-        <meshBasicMaterial
-          color={hovered ? vibrantColor : "#81E4F2"}
-          opacity={hovered ? 1 : 0.6}
-          transparent
-          side={THREE.DoubleSide}
-          blending={THREE.AdditiveBlending}
+
+      {/* Render each particle */}
+      {particles.map((particle) => (
+        <Particle
+          key={particle.index}
+          offset={particle.offset}
+          size={particle.size}
+          color={particle.color}
+          index={particle.index}
+          hovered={hovered}
         />
-      </mesh>
-      
-      {/* Count badge for clusters */}
+      ))}
+
+      {/* Count badge for clusters - commented out for now, can be re-enabled later
       {nodeCount > 1 && (
         <Text
           ref={textRef}
-          position={[0.025, 0.025, 0]}
-          fontSize={0.02}
-          color={hovered ? vibrantColor : "#ffffff"}
+          position={[0.015, 0.015, 0]}
+          fontSize={0.009}
+          color={hovered ? "#ffffff" : "#cccccc"}
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.002}
+          outlineWidth={0.001}
           outlineColor="#000000"
+          fontWeight="bold"
         >
           {nodeCount}
         </Text>
       )}
+      */}
     </group>
   );
 }

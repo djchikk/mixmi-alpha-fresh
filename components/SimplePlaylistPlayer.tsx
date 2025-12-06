@@ -308,7 +308,7 @@ export default function SimplePlaylistPlayer() {
   const currentTrack = playlist[currentIndex];
 
   return (
-    <div className="fixed bottom-[100px] left-6 z-[999]">
+    <div id="onborda-playlist" className="fixed bottom-[100px] left-6 z-[999]">
       {/* Playlist Icon Button - Always Visible */}
       {!isExpanded && (
         <button

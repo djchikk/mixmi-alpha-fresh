@@ -208,7 +208,7 @@ export default function SimpleRadioPlayer() {
   }));
 
   return (
-    <div className="fixed bottom-[100px] right-6 z-[999]">
+    <div id="onborda-radio" className="fixed bottom-[100px] right-6 z-[999]">
       {/* Radio Icon Button - Always Visible like cart/search icons */}
       {!isExpanded && (
         <button
