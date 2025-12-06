@@ -1,7 +1,22 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { HelpCircle, X, Play, Pause, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { HelpCircle, X, Play, Pause, ChevronLeft, ChevronRight, Maximize2, Minimize2, ChevronDown } from 'lucide-react';
+
+type Language = 'en' | 'sw' | 'es' | 'fr';
+
+interface LanguageOption {
+  code: Language;
+  flag: string;
+  label: string;
+}
+
+const languages: LanguageOption[] = [
+  { code: 'en', flag: '🇺🇸', label: 'English' },
+  { code: 'sw', flag: '🇰🇪', label: 'Kiswahili' },
+  { code: 'es', flag: '🇪🇸', label: 'Español' },
+  { code: 'fr', flag: '🇫🇷', label: 'Français' },
+];
 
 interface HelpVideo {
   id: string;
@@ -41,7 +56,12 @@ export default function HelpWidget() {
   const [isLargeMode, setIsLargeMode] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('en');
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const currentLanguage = languages.find(l => l.code === selectedLanguage) || languages[0];
 
   const currentVideo = helpVideos[currentVideoIndex];
   const hasVideos = helpVideos.some(v => v.videoUrl);
@@ -80,6 +100,13 @@ export default function HelpWidget() {
     setIsExpanded(false);
     setIsLargeMode(false);
     setIsPlaying(false);
+    setIsLanguageDropdownOpen(false);
+  };
+
+  const handleLanguageSelect = (lang: Language) => {
+    setSelectedLanguage(lang);
+    setIsLanguageDropdownOpen(false);
+    // TODO: When videos are added, this will switch to the selected language version
   };
 
   // Large mode - centered modal
@@ -104,7 +131,37 @@ export default function HelpWidget() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                {/* Language Dropdown */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg transition-colors border border-gray-700"
+                  >
+                    <span className="text-base">{currentLanguage.flag}</span>
+                    <span className="text-xs text-gray-300">{currentLanguage.label}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {isLanguageDropdownOpen && (
+                    <div className="absolute top-full right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-20">
+                      {languages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => handleLanguageSelect(lang.code)}
+                          className={`flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-gray-700 transition-colors ${
+                            selectedLanguage === lang.code ? 'bg-gray-700/50' : ''
+                          }`}
+                        >
+                          <span className="text-base">{lang.flag}</span>
+                          <span className="text-sm text-gray-200">{lang.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Minimize Button */}
                 <button
                   onClick={() => setIsLargeMode(false)}
@@ -256,11 +313,41 @@ export default function HelpWidget() {
             <div className="flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-gray-300" />
               <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Help & Tutorials
+                Help
               </span>
             </div>
 
             <div className="flex items-center gap-1">
+              {/* Language Dropdown (Compact) */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+                  className="flex items-center gap-1 px-1.5 py-1 hover:bg-gray-800 rounded transition-colors"
+                  title="Change language"
+                >
+                  <span className="text-sm">{currentLanguage.flag}</span>
+                  <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isLanguageDropdownOpen && (
+                  <div className="absolute top-full right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-20 min-w-[120px]">
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => handleLanguageSelect(lang.code)}
+                        className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-left hover:bg-gray-700 transition-colors ${
+                          selectedLanguage === lang.code ? 'bg-gray-700/50' : ''
+                        }`}
+                      >
+                        <span className="text-sm">{lang.flag}</span>
+                        <span className="text-xs text-gray-200">{lang.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Expand Button */}
               <button
                 onClick={() => setIsLargeMode(true)}
