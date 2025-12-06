@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Crate from '@/components/shared/Crate';
@@ -22,6 +22,7 @@ interface ContentFilter {
 
 export default function CreatorStorePage() {
   const params = useParams();
+  const router = useRouter();
   const { showToast } = useToast();
   const { isAuthenticated, walletAddress } = useAuth();
   const walletOrUsername = params.walletAddress as string; // This will be either wallet address or username
@@ -992,6 +993,10 @@ export default function CreatorStorePage() {
           onSelectVideo={() => {
             setIsContentTypeSelectorOpen(false);
             setIsVideoModalOpen(true);
+          }}
+          onSelectChat={() => {
+            setIsContentTypeSelectorOpen(false);
+            router.push('/upload-studio');
           }}
         />
       )}

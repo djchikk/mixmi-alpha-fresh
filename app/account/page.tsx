@@ -488,6 +488,10 @@ export default function AccountPage() {
           setIsContentTypeSelectorOpen(false);
           setIsVideoUploadModalOpen(true);
         }}
+        onSelectChat={() => {
+          setIsContentTypeSelectorOpen(false);
+          router.push('/upload-studio');
+        }}
       />
 
       {/* Music Upload Modal */}
