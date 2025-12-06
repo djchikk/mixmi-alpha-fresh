@@ -60,6 +60,11 @@ const SimplePlaylistPlayer = dynamic(() => import('@/components/SimplePlaylistPl
   ssr: false
 });
 
+// Dynamically import HelpWidget - help videos and tutorials
+const HelpWidget = dynamic(() => import('@/components/HelpWidget'), {
+  ssr: false
+});
+
 // Dynamically import VideoDisplayArea - video mixer display
 const VideoDisplayArea = dynamic(() => import('@/components/mixer/compact/VideoDisplayArea'), {
   ssr: false
@@ -1818,6 +1823,9 @@ export default function HomePage() {
 
       {/* Simple Playlist Player - Always available, bottom-left corner */}
       <SimplePlaylistPlayer />
+
+      {/* Help Widget - Fixed position, right side */}
+      <HelpWidget />
     </>
   );
 }
