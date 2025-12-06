@@ -740,25 +740,13 @@ Would you like to upload another track, or shall I show you where to find your n
 
             {/* Main headline */}
             <h2 className="text-3xl font-bold text-white mb-4">
-              Register Your Work
+              Add Your Work
             </h2>
 
             {/* Subheadline */}
             <p className="text-lg text-gray-300 mb-8 max-w-lg">
-              Drop your files and I'll guide you through timestamping your work on the blockchain and pinning it to the globe
+              I'll help you get credited and placed on the globe
             </p>
-
-            {/* Action prompts */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <div className="flex items-center gap-3 px-5 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl">
-                <Upload size={20} className="text-[#81E4F2]" />
-                <span className="text-gray-300">Drop audio, video, or images</span>
-              </div>
-              <div className="flex items-center gap-3 px-5 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl">
-                <Send size={20} className="text-[#9772F4]" />
-                <span className="text-gray-300">Or just start typing</span>
-              </div>
-            </div>
 
             {/* What you can upload */}
             <div className="text-sm text-gray-500 space-y-1">
@@ -938,7 +926,7 @@ Would you like to upload another track, or shall I show you where to find your n
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe your track, ask questions, or drop files..."
+              placeholder="Drop files here or just start typing..."
               rows={1}
               className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
               style={{ minHeight: '48px', maxHeight: '120px' }}
