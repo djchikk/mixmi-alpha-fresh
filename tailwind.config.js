@@ -17,7 +17,8 @@ module.exports = {
   			'slow-spin': 'spin 20s linear infinite',
   			'spin-slow': 'spin 20s linear infinite',
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'wiggle': 'wiggle 0.3s ease-in-out infinite'
   		},
   		colors: {
   			background: '#101726',
@@ -72,6 +73,14 @@ module.exports = {
   				},
   				to: {
   					height: '0'
+  				}
+  			},
+  			'wiggle': {
+  				'0%, 100%': {
+  					transform: 'rotate(-8deg)'
+  				},
+  				'50%': {
+  					transform: 'rotate(8deg)'
   				}
   			}
   		}

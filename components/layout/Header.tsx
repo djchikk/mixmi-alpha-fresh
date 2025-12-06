@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useDrop } from 'react-dnd';
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 // Removed profile dependency for alpha version
@@ -42,10 +43,25 @@ export default function Header() {
   const avatarDropdownRef = useRef<HTMLDivElement>(null);
 
   // Cart state
-  const { cart, removeFromCart, clearCart, purchaseAll, cartTotal, purchaseStatus, purchaseError, showPurchaseModal, setShowPurchaseModal } = useCart();
+  const { cart, addToCart, removeFromCart, clearCart, purchaseAll, cartTotal, purchaseStatus, purchaseError, showPurchaseModal, setShowPurchaseModal } = useCart();
   const [showCartPopover, setShowCartPopover] = useState(false);
   const [cartPinned, setCartPinned] = useState(false);
   const cartPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Cart drop zone - accepts all track types
+  const [{ isOverCart }, cartDropRef] = useDrop({
+    accept: ['TRACK_CARD', 'COLLECTION_TRACK', 'TRACK', 'GLOBE_CARD', 'CRATE_TRACK', 'RADIO_TRACK'],
+    drop: (item: any) => {
+      console.log('🛒 Cart drop received:', item);
+      // Handle different drag item structures
+      const track = item.track || item;
+      addToCart(track);
+      setShowCartPopover(true); // Auto-expand cart on drop
+    },
+    collect: (monitor) => ({
+      isOverCart: monitor.isOver(),
+    }),
+  });
 
   // Fetch username and avatar when wallet connects
   useEffect(() => {
@@ -540,20 +556,30 @@ export default function Header() {
       />
     </header>
 
-    {/* Shopping Cart - Fixed top-right, below header, mirroring search position */}
-    <div className="fixed top-20 right-4 z-30">
-      <div style={{ position: 'relative' }}>
-        <button
-          onClick={() => setShowCartPopover(!showCartPopover)}
-          className="p-1.5 hover:bg-[#1E293B] rounded transition-colors"
-        >
-          <ShoppingCart className="w-6 h-6 text-gray-200" strokeWidth={2.5} />
-          {cart.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-[#81E4F2] text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-              {cart.length}
-            </span>
-          )}
-        </button>
+    {/* Large invisible drop zone for cart - extends left and down from cart position */}
+    <div
+      ref={cartDropRef}
+      className="fixed top-20 right-4 z-[100] w-[200px] h-[200px] pointer-events-auto"
+      style={{ pointerEvents: 'auto' }}
+    >
+      {/* Cart icon pinned to top-right corner of drop zone */}
+      <div className="absolute top-0 right-0">
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowCartPopover(!showCartPopover)}
+            className={`p-1.5 hover:bg-[#1E293B] rounded transition-all ${isOverCart ? 'animate-wiggle' : ''}`}
+            style={isOverCart ? {
+              filter: 'drop-shadow(0 0 8px #81E4F2) drop-shadow(0 0 16px #81E4F2)',
+            } : {}}
+          >
+            <ShoppingCart className={`w-6 h-6 transition-colors ${isOverCart ? 'text-[#81E4F2]' : 'text-gray-200'}`} strokeWidth={2.5} />
+            {cart.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#81E4F2] text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {cart.length}
+              </span>
+            )}
+          </button>
+        </div>
 
         {/* Cart Popover */}
         {showCartPopover && (
