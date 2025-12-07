@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { UserProfileService } from '@/lib/userProfileService';
+import { Check } from 'lucide-react';
 
 interface SectionManagerProps {
   sections: Array<{
@@ -16,43 +17,6 @@ interface SectionManagerProps {
 }
 
 export default function SectionManager({ sections, targetWallet, stickerVisible = true, onUpdate }: SectionManagerProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  // State to store the exact width of the button
-  const [buttonWidth, setButtonWidth] = useState(0);
-
-  // Update button width when it changes
-  useEffect(() => {
-    if (buttonRef.current) {
-      const updateWidth = () => {
-        const width = buttonRef.current?.offsetWidth || 0;
-        setButtonWidth(width);
-      };
-
-      // Initial measurement
-      updateWidth();
-
-      // Update on window resize
-      window.addEventListener('resize', updateWidth);
-      return () => window.removeEventListener('resize', updateWidth);
-    }
-  }, []);
-
-  // Handle clicks outside the dropdown to close it
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const toggleSection = async (sectionType: string) => {
     // Handle sticker visibility separately
@@ -97,7 +61,7 @@ export default function SectionManager({ sections, targetWallet, stickerVisible 
   const getSectionName = (type: string) => {
     switch(type) {
       case 'spotlight': return 'Spotlight';
-      case 'media': return 'Media';
+      case 'media': return 'Streams';
       case 'shop': return 'Shop';
       case 'gallery': return 'Gallery';
       case 'sticker': return 'Sticker';
@@ -105,98 +69,36 @@ export default function SectionManager({ sections, targetWallet, stickerVisible 
     }
   };
 
+  const isVisible = (sectionType: string) => {
+    if (sectionType === 'sticker') return stickerVisible;
+    const section = sections.find(s => s.section_type === sectionType);
+    return section?.is_visible ?? false;
+  };
+
+  const allSections = ['spotlight', 'media', 'shop', 'gallery', 'sticker'];
+
   return (
-    <div className="mb-8 flex justify-center relative" ref={dropdownRef}>
-      <button
-        ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-slate-800/50 hover:bg-slate-700/50 text-white px-6 py-3 rounded-lg flex items-center space-x-3 transition-all duration-200 border border-gray-700"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="9" y1="3" x2="9" y2="21"></line>
-          <line x1="3" y1="9" x2="21" y2="9"></line>
-        </svg>
-        <span className="font-medium">Manage Profile Sections</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div
-          className="absolute top-full mt-2 bg-[#0f172a] border border-gray-700 rounded-lg shadow-2xl overflow-hidden z-50"
-          style={{ width: `${buttonWidth}px` }}
-        >
-          <div className="p-1">
-            {/* Regular sections */}
-            {sections.map((section) => (
-              <button
-                key={section.section_type}
-                onClick={() => toggleSection(section.section_type)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-800/50 rounded transition-colors"
-              >
-                <span className="text-white font-medium">
-                  {getSectionName(section.section_type)}
-                </span>
-                <div
-                  className={`w-12 h-6 rounded-full transition-all duration-200 relative ${
-                    section.is_visible ? 'bg-[#81E4F2]' : 'bg-gray-600'
-                  }`}
-                >
-                  <div
-                    className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
-                      section.is_visible ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </div>
-              </button>
-            ))}
-
-            {/* Sticker toggle */}
+    <div className="mb-8 flex justify-center">
+      <div className="inline-flex items-center gap-1 px-2 py-1.5 bg-slate-800/30 rounded-lg border border-gray-700/50">
+        <span className="text-gray-200 text-xs font-semibold px-2">Show:</span>
+        {allSections.map((sectionType) => {
+          const visible = isVisible(sectionType);
+          return (
             <button
-              onClick={() => toggleSection('sticker')}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-800/50 rounded transition-colors"
+              key={sectionType}
+              onClick={() => toggleSection(sectionType)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                visible
+                  ? 'bg-[#81E4F2]/20 text-gray-100 border border-[#81E4F2]/40'
+                  : 'bg-transparent text-gray-500 hover:text-gray-400 hover:bg-slate-700/50'
+              }`}
             >
-              <span className="text-white font-medium">
-                {getSectionName('sticker')}
-              </span>
-              <div
-                className={`w-12 h-6 rounded-full transition-all duration-200 relative ${
-                  stickerVisible ? 'bg-[#81E4F2]' : 'bg-gray-600'
-                }`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
-                    stickerVisible ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </div>
+              {visible && <Check size={12} className="text-[#81E4F2]" />}
+              {getSectionName(sectionType)}
             </button>
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
