@@ -251,3 +251,24 @@ useEffect(() => {
   };
 }, []);
 ```
+
+### User Search API
+Search for mixmi users by username or display name. Useful for collaborator lookups, IP splits, spotlight linking.
+
+```typescript
+// GET /api/profile/search-users?q=searchterm
+const response = await fetch(`/api/profile/search-users?q=${encodeURIComponent(query)}`);
+const { users } = await response.json();
+// Returns: { users: [{ walletAddress, username, displayName, avatarUrl }] }
+```
+
+**Features:**
+- Searches both `username` and `display_name` fields (case insensitive)
+- Excludes users with default "New User" display name
+- Returns up to 8 results
+- Debounce recommended (300ms) for live search
+
+**Use cases:**
+- Spotlight section: Link to other mixmi users' profiles/stores
+- IP splits: Search for collaborators by name instead of wallet address
+- Any user picker UI
