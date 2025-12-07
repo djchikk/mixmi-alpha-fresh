@@ -396,8 +396,8 @@ export default function RadioStationModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 sticky top-0 bg-gradient-to-br from-[#1a2332] to-[#0f1419] z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#FB923C]/20 flex items-center justify-center">
-              <Radio className="w-5 h-5 text-[#FB923C]" />
+            <div className="w-10 h-10 rounded-full bg-[#FF6B4A]/20 flex items-center justify-center">
+              <Radio className="w-5 h-5 text-[#FF6B4A]" />
             </div>
             <h2 className="text-2xl font-bold text-white">
               {isEditMode
@@ -431,8 +431,8 @@ export default function RadioStationModal({
                   padding: '14px',
                   minHeight: '54px',
                   background: contentType === 'radio_station' ? 'rgba(251, 146, 60, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                  borderColor: contentType === 'radio_station' ? '#FB923C' : 'rgba(255, 255, 255, 0.08)',
-                  color: contentType === 'radio_station' ? '#FB923C' : '#8b92a6',
+                  borderColor: contentType === 'radio_station' ? '#FF6B4A' : 'rgba(255, 255, 255, 0.08)',
+                  color: contentType === 'radio_station' ? '#FF6B4A' : '#8b92a6',
                   borderRadius: '12px'
                 }}
                 disabled={isUploading}
@@ -449,8 +449,8 @@ export default function RadioStationModal({
                   padding: '14px',
                   minHeight: '54px',
                   background: contentType === 'station_pack' ? 'rgba(251, 146, 60, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                  borderColor: contentType === 'station_pack' ? '#FB923C' : 'rgba(255, 255, 255, 0.08)',
-                  color: contentType === 'station_pack' ? '#FB923C' : '#8b92a6',
+                  borderColor: contentType === 'station_pack' ? '#FF6B4A' : 'rgba(255, 255, 255, 0.08)',
+                  color: contentType === 'station_pack' ? '#FF6B4A' : '#8b92a6',
                   borderRadius: '12px'
                 }}
                 disabled={isUploading}
@@ -472,7 +472,7 @@ export default function RadioStationModal({
               onChange={(e) => setTitle(e.target.value)}
               className={`w-full px-4 py-3 bg-[#0f172a] border ${
                 errors.title ? 'border-red-500' : 'border-white/10'
-              } rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C]`}
+              } rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A]`}
               placeholder={contentType === 'station_pack' ? 'e.g., NYC Electronic Collection' : 'e.g., Radio Paradise'}
               disabled={isUploading}
             />
@@ -490,7 +490,7 @@ export default function RadioStationModal({
               rows={4}
               className={`w-full px-4 py-3 bg-[#0f172a] border ${
                 errors.description ? 'border-red-500' : 'border-white/10'
-              } rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C] resize-none`}
+              } rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A] resize-none`}
               placeholder={contentType === 'station_pack' ? 'Describe your curated collection...' : 'Tell listeners about your station...'}
               disabled={isUploading}
             />
@@ -506,7 +506,7 @@ export default function RadioStationModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C] resize-none"
+              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A] resize-none"
               placeholder="Add additional context about your station(s)... genres, languages, history, special programming, etc. This helps users discover your content through semantic search."
               disabled={isUploading}
             />
@@ -527,7 +527,7 @@ export default function RadioStationModal({
               onChange={(e) => setStreamUrl(e.target.value)}
               className={`w-full px-4 py-3 bg-[#0f172a] border ${
                 errors.streamUrl ? 'border-red-500' : 'border-white/10'
-              } rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C]`}
+              } rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A]`}
               placeholder="https://stream.example.com/radio.mp3"
               disabled={isUploading}
             />
@@ -546,7 +546,7 @@ export default function RadioStationModal({
               {packStations.map((station, index) => (
                 <div key={index} className="bg-[#0f172a] border border-white/10 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#FB923C]/20 flex items-center justify-center text-[#FB923C] font-medium text-sm mt-2">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#FF6B4A]/20 flex items-center justify-center text-[#FF6B4A] font-medium text-sm mt-2">
                       {index + 1}
                     </div>
                     <div className="flex-1 space-y-3">
@@ -555,7 +555,7 @@ export default function RadioStationModal({
                           type="text"
                           value={station.name}
                           onChange={(e) => updateStation(index, 'name', e.target.value)}
-                          className="w-full px-3 py-2 bg-[#1a2332] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C] text-sm"
+                          className="w-full px-3 py-2 bg-[#1a2332] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A] text-sm"
                           placeholder="Station name (optional)"
                           disabled={isUploading}
                         />
@@ -567,7 +567,7 @@ export default function RadioStationModal({
                           onChange={(e) => updateStation(index, 'streamUrl', e.target.value)}
                           className={`w-full px-3 py-2 bg-[#1a2332] border ${
                             errors[`station_${index}_url`] ? 'border-red-500' : 'border-white/10'
-                          } rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C] text-sm`}
+                          } rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A] text-sm`}
                           placeholder="https://stream.example.com/station.mp3"
                           disabled={isUploading}
                         />
@@ -594,7 +594,7 @@ export default function RadioStationModal({
             <button
               type="button"
               onClick={addStation}
-              className="mt-3 w-full px-4 py-2 bg-[#FB923C]/10 hover:bg-[#FB923C]/20 border border-[#FB923C]/30 text-[#FB923C] rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-3 w-full px-4 py-2 bg-[#FF6B4A]/10 hover:bg-[#FF6B4A]/20 border border-[#FF6B4A]/30 text-[#FF6B4A] rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isUploading || packStations.length >= MAX_STATIONS_PER_PACK}
             >
               <Plus size={18} />
@@ -646,7 +646,7 @@ export default function RadioStationModal({
                 // Delay to allow clicking on suggestions
                 setTimeout(() => setShowLocationDropdown(false), 200);
               }}
-              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C]"
+              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A]"
               placeholder="Start typing: San Francisco, London, Tokyo..."
               disabled={isUploading}
             />
@@ -654,7 +654,7 @@ export default function RadioStationModal({
             {/* Loading indicator */}
             {isLoadingLocations && (
               <div className="absolute right-3 top-11 transform">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#FB923C]"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#FF6B4A]"></div>
               </div>
             )}
 
@@ -673,7 +673,7 @@ export default function RadioStationModal({
                   <button
                     key={suggestion.id}
                     type="button"
-                    className="w-full px-4 py-3 text-left hover:bg-[#FB923C]/20 transition-colors border-b border-slate-700 last:border-b-0 text-white"
+                    className="w-full px-4 py-3 text-left hover:bg-[#FF6B4A]/20 transition-colors border-b border-slate-700 last:border-b-0 text-white"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -713,7 +713,7 @@ export default function RadioStationModal({
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
-              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C]"
+              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A]"
               placeholder="Type a tag and press Enter"
               disabled={isUploading}
             />
@@ -722,7 +722,7 @@ export default function RadioStationModal({
                 {tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="bg-[#FB923C]/20 text-[#FB923C] px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                    className="bg-[#FF6B4A]/20 text-[#FF6B4A] px-3 py-1 rounded-full text-sm flex items-center gap-2"
                   >
                     {tag}
                     <button
@@ -748,7 +748,7 @@ export default function RadioStationModal({
               type="url"
               value={metadataApiUrl}
               onChange={(e) => setMetadataApiUrl(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FB923C]"
+              className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6B4A]"
               placeholder="https://api.example.com/nowplaying"
               disabled={isUploading}
             />
@@ -764,7 +764,7 @@ export default function RadioStationModal({
                 type="checkbox"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="w-5 h-5 mt-0.5 bg-slate-800 border-slate-600 rounded text-[#FB923C] focus:ring-[#FB923C]"
+                className="w-5 h-5 mt-0.5 bg-slate-800 border-slate-600 rounded text-[#FF6B4A] focus:ring-[#FF6B4A]"
               />
               <div className="flex-1">
                 <span className="text-gray-300">
@@ -774,7 +774,7 @@ export default function RadioStationModal({
                   href="/terms"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-[#FB923C] hover:text-[#FB923C]/80 text-sm mt-1"
+                  className="block text-[#FF6B4A] hover:text-[#FF6B4A]/80 text-sm mt-1"
                 >
                   View Terms →
                 </a>
@@ -798,7 +798,7 @@ export default function RadioStationModal({
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-[#FB923C] hover:bg-[#FB923C]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-[#FF6B4A] hover:bg-[#FF6B4A]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               disabled={isUploading || !termsAccepted}
               title={!termsAccepted ? 'Please accept the terms of service' : ''}
             >

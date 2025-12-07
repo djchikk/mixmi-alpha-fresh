@@ -10,7 +10,6 @@ import { NodeMesh } from './NodeMesh';
 import { GridNodeSystem } from './GridNodeSystem';
 import { Starfield } from './Starfield';
 import { ConnectionArcs } from './ConnectionArcs';
-import { CityMarkers } from './CityMarkers';
 import { NullIsland } from './NullIsland';
 
 // Convert lat/lng to 3D position on sphere
@@ -67,9 +66,6 @@ export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNo
         
         {/* Globe mesh with nodes as children */}
         <GlobeMesh ref={globeRef}>
-          {/* Subtle city markers - appear when zoomed in */}
-          <CityMarkers />
-          
           {/* Null Island - Home of (0,0) coordinates! 🏝️ */}
           <NullIsland />
           

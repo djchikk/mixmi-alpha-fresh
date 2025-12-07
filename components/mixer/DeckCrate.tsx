@@ -80,7 +80,7 @@ function DraggableTrack({
           <div
             className="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded text-[9px] font-bold flex items-center justify-center pointer-events-none z-10"
             style={{
-              backgroundColor: track.content_type === 'radio_station' ? '#FB923C' : '#9772F4',
+              backgroundColor: track.content_type === 'radio_station' ? '#FF6B4A' : '#9772F4',
               color: '#FFFFFF'
             }}
           >

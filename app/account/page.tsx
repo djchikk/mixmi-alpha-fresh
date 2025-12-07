@@ -663,8 +663,8 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
     if (track.content_type === 'ep') return 'border-[#D4AF37]';
     if (track.content_type === 'loop') return 'border-[#9772F4]';
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
-    if (track.content_type === 'radio_station') return 'border-[#FB923C]';
-    if (track.content_type === 'station_pack') return 'border-[#FB923C]';
+    if (track.content_type === 'radio_station') return 'border-[#FF6B4A]';
+    if (track.content_type === 'station_pack') return 'border-[#FF6B4A]';
     if (track.content_type === 'video_clip') return 'border-[#2792F5]'; // Video clips - cyan blue
     return 'border-[#9772F4]';
   };

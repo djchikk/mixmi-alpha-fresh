@@ -2029,8 +2029,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
                     }`}
                     style={{
-                      borderColor: mixerState.deckA.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FB923C' : mixerState.deckA.playing ? '#94a3b8' : '#81E4F240',
-                      color: deckARadioPlayTime >= 10 && mixerState.deckA.contentType !== 'grabbed_radio' ? '#FB923C' : undefined
+                      borderColor: mixerState.deckA.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FF6B4A' : mixerState.deckA.playing ? '#94a3b8' : '#81E4F240',
+                      color: deckARadioPlayTime >= 10 && mixerState.deckA.contentType !== 'grabbed_radio' ? '#FF6B4A' : undefined
                     }}
                     title={
                       mixerState.deckA.contentType === 'grabbed_radio'
@@ -2220,8 +2220,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
                     }`}
                     style={{
-                      borderColor: mixerState.deckB.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FB923C' : mixerState.deckB.playing ? '#94a3b8' : '#81E4F240',
-                      color: deckBRadioPlayTime >= 10 && mixerState.deckB.contentType !== 'grabbed_radio' ? '#FB923C' : undefined
+                      borderColor: mixerState.deckB.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FF6B4A' : mixerState.deckB.playing ? '#94a3b8' : '#81E4F240',
+                      color: deckBRadioPlayTime >= 10 && mixerState.deckB.contentType !== 'grabbed_radio' ? '#FF6B4A' : undefined
                     }}
                     title={
                       mixerState.deckB.contentType === 'grabbed_radio'

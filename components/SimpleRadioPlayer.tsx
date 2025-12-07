@@ -274,7 +274,7 @@ export default function SimpleRadioPlayer() {
             <div
               className="absolute top-1 left-1 w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center pointer-events-none z-10"
               style={{
-                backgroundColor: '#FB923C',
+                backgroundColor: '#FF6B4A',
                 color: '#FFFFFF'
               }}
             >
@@ -387,7 +387,7 @@ export default function SimpleRadioPlayer() {
             border-color: #64748B;
           }
           50% {
-            border-color: #FB923C;
+            border-color: #FF6B4A;
           }
         }
 
@@ -395,7 +395,7 @@ export default function SimpleRadioPlayer() {
         .loaded-radio-artwork {
           width: 60px;
           height: 60px;
-          border: 2px solid #FB923C;
+          border: 2px solid #FF6B4A;
         }
       `}</style>
     </div>

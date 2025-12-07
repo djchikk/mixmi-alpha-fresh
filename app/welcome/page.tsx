@@ -119,7 +119,7 @@ export default function Welcome() {
                   <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Loops</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FB923C' }}></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FF6B4A' }}></div>
                   <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Radio Stations</span>
                 </div>
                 <div className="flex items-center gap-2">

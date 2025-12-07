@@ -116,7 +116,7 @@ function ExpandedPackTrack({
     }),
   }), [packTrack]);
 
-  const badgeColor = parentTrack.content_type === 'ep' ? '#D4AF37' : parentTrack.content_type === 'station_pack' ? '#FB923C' : '#9772F4';
+  const badgeColor = parentTrack.content_type === 'ep' ? '#D4AF37' : parentTrack.content_type === 'station_pack' ? '#FF6B4A' : '#9772F4';
   const textColor = parentTrack.content_type === 'ep' ? '#000000' : '#FFFFFF';
 
   return (
@@ -511,9 +511,9 @@ export default function Crate({ className = '' }: CrateProps) {
       case 'loop_pack':
         return 'border-[#9772F4] shadow-[#9772F4]/50';
       case 'radio_station':
-        return 'border-[#FB923C] shadow-[#FB923C]/50';
+        return 'border-[#FF6B4A] shadow-[#FF6B4A]/50';
       case 'station_pack':
-        return 'border-[#FB923C] shadow-[#FB923C]/50';
+        return 'border-[#FF6B4A] shadow-[#FF6B4A]/50';
       case 'video_clip':
         return 'border-[#2792F5] shadow-[#2792F5]/50';
       default:
@@ -894,13 +894,13 @@ export default function Crate({ className = '' }: CrateProps) {
                   {expandedPackId === track.id ? (
                     <ChevronLeft
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FF6B4A' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   ) : (
                     <ChevronRight
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FF6B4A' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   )}

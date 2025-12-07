@@ -619,7 +619,7 @@ export default function CreatorStorePage() {
                   onClick={() => { setActiveFilter({ type: 'radio_station' }); setShowFilters(false); }}
                   className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                     activeFilter.type === 'radio_station'
-                      ? 'bg-[#FB923C] text-slate-900 font-medium'
+                      ? 'bg-[#FF6B4A] text-slate-900 font-medium'
                       : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                   }`}
                 >
@@ -630,7 +630,7 @@ export default function CreatorStorePage() {
                   onClick={() => { setActiveFilter({ type: 'station_pack' }); setShowFilters(false); }}
                   className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                     activeFilter.type === 'station_pack'
-                      ? 'bg-[#FB923C] text-slate-900 font-medium'
+                      ? 'bg-[#FF6B4A] text-slate-900 font-medium'
                       : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                   }`}
                 >
@@ -855,8 +855,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'radio_station').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#FB923C] tracking-wide">radio stations</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#FB923C]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#FF6B4A] tracking-wide">radio stations</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FF6B4A]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
@@ -882,8 +882,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'station_pack').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#FB923C] tracking-wide">radio packs</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#FB923C]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#FF6B4A] tracking-wide">radio packs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FF6B4A]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks

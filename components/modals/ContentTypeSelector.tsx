@@ -86,11 +86,11 @@ export default function ContentTypeSelector({
             {/* Radio Option */}
             <button
               onClick={onSelectRadio}
-              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#FB923C]/50 rounded-xl p-5 transition-all duration-200"
+              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#FF6B4A]/50 rounded-xl p-5 transition-all duration-200"
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                  <Radio className="w-6 h-6 text-[#FB923C]" />
+                  <Radio className="w-6 h-6 text-[#FF6B4A]" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-base font-semibold text-white mb-1">Radio</h3>

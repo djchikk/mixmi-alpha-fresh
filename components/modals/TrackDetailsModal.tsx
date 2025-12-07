@@ -883,7 +883,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         className="group flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors cursor-grab"
                       >
                       {/* Station Number */}
-                      <div className="flex-shrink-0 w-6 h-6 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#FB923C'}}>
+                      <div className="flex-shrink-0 w-6 h-6 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#FF6B4A'}}>
                         {index + 1}
                       </div>
 
@@ -913,7 +913,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         disabled={!station.stream_url}
                         className="flex-shrink-0 w-8 h-8 rounded flex items-center justify-center transition-colors disabled:bg-gray-700"
                         style={{
-                          backgroundColor: station.stream_url ? '#FB923C' : '#374151',
+                          backgroundColor: station.stream_url ? '#FF6B4A' : '#374151',
                           opacity: playingLoopId === station.id ? 0.8 : 1
                         }}
                         onMouseEnter={(e) => {
@@ -1068,7 +1068,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 <>
                   <div className="flex">
                     <span className="text-gray-500 w-24">Status:</span>
-                    <span className="text-[#FB923C] font-bold">🔴 LIVE</span>
+                    <span className="text-[#FF6B4A] font-bold">🔴 LIVE</span>
                   </div>
                   {track.genre && (
                     <div className="flex">

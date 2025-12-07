@@ -549,7 +549,7 @@ export default function RadioWidget() {
                       <div
                         className="absolute top-1 left-1 w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center pointer-events-none z-10"
                         style={{
-                          backgroundColor: '#FB923C',
+                          backgroundColor: '#FF6B4A',
                           color: '#FFFFFF'
                         }}
                       >
@@ -605,7 +605,7 @@ export default function RadioWidget() {
                         {currentTrack.content_type === 'radio_station' ? '📻 RADIO' : currentTrack.content_type === 'full_song' ? 'SONG' : 'LOOP'}
                       </span>
                       {currentTrack.content_type === 'radio_station' && (
-                        <span className="text-xs text-[#FB923C] font-bold">🔴 LIVE</span>
+                        <span className="text-xs text-[#FF6B4A] font-bold">🔴 LIVE</span>
                       )}
                       {currentTrack.bpm && currentTrack.content_type !== 'radio_station' && (
                         <span className="text-xs text-white/40 font-mono">{currentTrack.bpm} BPM</span>

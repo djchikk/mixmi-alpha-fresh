@@ -13,8 +13,8 @@ const CONTENT_TYPE_COLORS = {
   full_song: '#D4AF37',   // Gold
   ep: '#D4AF37',          // Gold
   video_clip: '#2792F5',  // Blue
-  radio_station: '#FB923C', // Orange
-  station_pack: '#FB923C',  // Orange
+  radio_station: '#FF6B4A', // Orange
+  station_pack: '#FF6B4A',  // Orange
 };
 
 // Fixed particle configuration - 6 particles in a scattered arrangement

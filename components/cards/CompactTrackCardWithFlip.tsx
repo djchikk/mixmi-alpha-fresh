@@ -56,7 +56,7 @@ function DraggableDrawerTrack({ track, index, contentType, onPlay, playingLoopId
     }),
   }), [track]);
 
-  const badgeColor = contentType === 'ep' ? '#D4AF37' : contentType === 'station_pack' ? '#FB923C' : '#9772F4';
+  const badgeColor = contentType === 'ep' ? '#D4AF37' : contentType === 'station_pack' ? '#FF6B4A' : '#9772F4';
   const textColor = contentType === 'ep' ? '#000000' : '#FFFFFF';
 
   return (
@@ -335,8 +335,8 @@ export default function CompactTrackCardWithFlip({
     if (track.content_type === 'ep') return 'border-[#D4AF37]';
     if (track.content_type === 'loop') return 'border-[#9772F4]';
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
-    if (track.content_type === 'radio_station') return 'border-[#FB923C]';
-    if (track.content_type === 'station_pack') return 'border-[#FB923C]';
+    if (track.content_type === 'radio_station') return 'border-[#FF6B4A]';
+    if (track.content_type === 'station_pack') return 'border-[#FF6B4A]';
     if (track.content_type === 'video_clip') return 'border-[#2792F5]';
     // Fallback for legacy data
     return track.sample_type === 'vocals' ? 'border-[#9772F4]' : 'border-[#D4AF37]';
@@ -587,9 +587,9 @@ export default function CompactTrackCardWithFlip({
                         title={isPackExpanded ? (track.content_type === 'ep' ? "Collapse tracks" : track.content_type === 'station_pack' ? "Collapse stations" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : track.content_type === 'station_pack' ? "Expand stations" : "Expand loops")}
                       >
                         {isPackExpanded ? (
-                          <ChevronUp className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }} strokeWidth={3} />
+                          <ChevronUp className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FF6B4A' : '#C4AEF8' }} strokeWidth={3} />
                         ) : (
-                          <ChevronDown className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }} strokeWidth={3} />
+                          <ChevronDown className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FF6B4A' : '#C4AEF8' }} strokeWidth={3} />
                         )}
                       </button>
                     )}
@@ -884,7 +884,7 @@ export default function CompactTrackCardWithFlip({
                       <div className="pr-2">
                       {(track.content_type === 'radio_station' || track.content_type === 'station_pack') ? (
                         <span
-                          className="text-[#FB923C] font-bold text-xs"
+                          className="text-[#FF6B4A] font-bold text-xs"
                           title="Live radio stream"
                         >
                           LIVE
@@ -912,7 +912,7 @@ export default function CompactTrackCardWithFlip({
           <div
             className="w-[160px] bg-slate-900 border-2 border-t-0 rounded-b-lg overflow-hidden"
             style={{
-              borderColor: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#9772F4',
+              borderColor: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FF6B4A' : '#9772F4',
               animation: 'slideDown 0.2s ease-out'
             }}
           >

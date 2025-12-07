@@ -45,9 +45,9 @@ export default function SimplifiedDeckCompact({
       case 'loop':
         return '#9772F4'; // Purple - loops
       case 'radio_station':
-        return '#FB923C'; // Orange - live radio (official radio orange)
+        return '#FF6B4A'; // Orange - live radio (official radio orange)
       case 'grabbed_radio':
-        return '#FB923C'; // Orange - grabbed moments (official radio orange)
+        return '#FF6B4A'; // Orange - grabbed moments (official radio orange)
       case 'full_song':
         return '#D4AF37'; // Gold - songs
       case 'video_clip':
@@ -264,7 +264,7 @@ export default function SimplifiedDeckCompact({
                 <div
                   className="absolute top-1 left-1 w-5 h-5 rounded text-xs font-bold flex items-center justify-center pointer-events-none z-10"
                   style={{
-                    backgroundColor: contentType === 'radio_station' ? '#FB923C' : '#9772F4',
+                    backgroundColor: contentType === 'radio_station' ? '#FF6B4A' : '#9772F4',
                     color: '#FFFFFF'
                   }}
                 >

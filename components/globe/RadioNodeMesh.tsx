@@ -7,7 +7,7 @@ import { Text } from '@react-three/drei';
 import { NodeMeshProps } from './types';
 import { latLngToVector3 } from './Globe';
 
-const RADIO_ORANGE = '#FB923C';
+const RADIO_ORANGE = '#FF6B4A';
 
 export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
@@ -111,9 +111,9 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
       >
         <sphereGeometry args={[0.0099, 16, 16]} />
         <meshStandardMaterial
-          color={hovered ? '#ffffff' : RADIO_ORANGE}
+          color={hovered ? '#FF8A7A' : RADIO_ORANGE}
           emissive={RADIO_ORANGE}
-          emissiveIntensity={hovered ? 1.0 : 0.7}
+          emissiveIntensity={hovered ? 0.9 : 0.5}
           metalness={0.3}
           roughness={0.4}
         />

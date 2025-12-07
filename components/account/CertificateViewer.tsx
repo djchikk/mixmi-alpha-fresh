@@ -48,7 +48,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   // Get color based on content type
   const getBorderColor = () => {
     if (isRadio) {
-      return '#FB923C'; // Orange for radio stations
+      return '#FF6B4A'; // Orange for radio stations
     }
     if (track.content_type === 'video_clip') {
       return '#2792F5'; // Blue for video clips
