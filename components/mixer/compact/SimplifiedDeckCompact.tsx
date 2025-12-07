@@ -83,7 +83,7 @@ export default function SimplifiedDeckCompact({
 
   // Drop functionality for collection tracks
   const [{ isOver, canDrop, isGlobeDrag }, drop] = useDrop(() => ({
-    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD'],
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD', 'RADIO_TRACK'],
     drop: (item: { track: any; sourceDeck?: string; sourceIndex: number }) => {
       console.log(`🎯 Deck ${deck} received drop:`, item);
       
@@ -198,39 +198,15 @@ export default function SimplifiedDeckCompact({
     <div className={`relative ${className}`} style={{ overflow: 'visible' }}>
       <div
         ref={drop as any}
-        className="relative p-12 pointer-events-none"
-        style={{ margin: '-48px', overflow: 'visible' }}
+        className="relative p-16"
+        style={{ margin: '-64px', overflow: 'visible' }}
       >
-        {/* Large ghost outline for globe drags */}
-        {isGlobeDrag && canDrop && !isDragging && (
-          <div
-            className="absolute left-1/2 top-1/2 pointer-events-none"
-            style={{
-              width: '160px',
-              height: '160px',
-              transform: 'translate(-50%, -50%)',
-              border: `3px dashed ${borderColor}`,
-              borderRadius: '8px',
-              backgroundColor: isOver ? `${borderColor}15` : 'transparent',
-              boxShadow: isOver ? `0 0 40px ${borderColor}60` : `0 0 20px ${borderColor}30`,
-              transition: 'all 0.2s ease',
-              zIndex: 1,
-              animation: 'pulse 2s ease-in-out infinite'
-            }}
-          >
-            <div className="absolute inset-0 flex items-center justify-center text-white text-sm font-bold opacity-60">
-              Drop Here
-            </div>
-          </div>
-        )}
 
         <div
           key={currentTrack?.id || 'empty'}
           className={`carousel-track current pointer-events-auto ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target-active' : ''}`}
           style={{
             '--border-color': borderColor,
-            boxShadow: isOver && canDrop && !isDragging ? `0 0 30px ${borderColor}80, 0 0 60px ${borderColor}40` : undefined,
-            transition: 'box-shadow 0.3s ease-in-out',
             zIndex: 2,
             position: 'relative'
           } as React.CSSProperties & { '--border-color': string }}
@@ -338,12 +314,12 @@ export default function SimplifiedDeckCompact({
             </div>
           )}
 
+          {/* Subtle content-type colored fill overlay when dragging over */}
           {isOver && canDrop && !isDragging && (
-            <div className="absolute inset-0 bg-cyan-400 opacity-20 rounded-lg flex items-center justify-center pointer-events-none">
-              <div className="text-white font-bold text-xs bg-black bg-opacity-70 px-2 py-1 rounded">
-                {currentTrack ? 'Replace' : 'Drop to Load'}
-              </div>
-            </div>
+            <div
+              className="absolute inset-0 rounded-lg pointer-events-none"
+              style={{ backgroundColor: `${borderColor}30` }}
+            />
           )}
         </div>
       </div>
