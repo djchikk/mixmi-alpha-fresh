@@ -1,10 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Modal from "../ui/Modal";
 import ImageUploader from "../shared/ImageUploader";
 import { SpotlightItem } from "@/types";
 import { v4 as uuidv4 } from "uuid";
+import { Users, X } from "lucide-react";
+
+interface MixmiUser {
+  walletAddress: string;
+  username: string | null;
+  displayName: string;
+  avatarUrl: string | null;
+}
 
 interface SpotlightItemModalProps {
   isOpen: boolean;
@@ -29,6 +37,14 @@ export default function SpotlightItemModal({
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
 
+  // User linking state
+  const [isUserLinkMode, setIsUserLinkMode] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userSearchResults, setUserSearchResults] = useState<MixmiUser[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<MixmiUser | null>(null);
+  const [linkDestination, setLinkDestination] = useState<'profile' | 'store'>('profile');
+
   // Reset form data when modal opens or item changes
   useEffect(() => {
     if (isOpen) {
@@ -51,15 +67,87 @@ export default function SpotlightItemModal({
         }
         setIsSaving(false);
         setSaveStatus('idle');
+        // Reset user linking state
+        setIsUserLinkMode(false);
+        setUserSearchQuery("");
+        setUserSearchResults([]);
+        setSelectedUser(null);
+        setLinkDestination('profile');
       } catch (error) {
         console.error("Error resetting form data:", error);
       }
     }
   }, [isOpen, item]);
 
+  // Debounced user search
+  useEffect(() => {
+    if (!userSearchQuery || userSearchQuery.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+
+    const debounceTimer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await fetch(`/api/profile/search-users?q=${encodeURIComponent(userSearchQuery)}`);
+        const data = await response.json();
+        setUserSearchResults(data.users || []);
+      } catch (error) {
+        console.error("Error searching users:", error);
+        setUserSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [userSearchQuery]);
+
+  // Handle selecting a user from search results
+  const handleSelectUser = (user: MixmiUser) => {
+    setSelectedUser(user);
+    setUserSearchQuery("");
+    setUserSearchResults([]);
+
+    // Auto-fill the form
+    const identifier = user.username || user.walletAddress;
+    const linkUrl = linkDestination === 'profile'
+      ? `/profile/${identifier}`
+      : `/store/${identifier}`;
+
+    setFormData(prev => ({
+      ...prev,
+      title: user.displayName,
+      link: linkUrl,
+      // Only set image if user has an avatar and current image is empty
+      image: prev.image || user.avatarUrl || "",
+    }));
+  };
+
+  // Update link when destination changes
+  const handleDestinationChange = (destination: 'profile' | 'store') => {
+    setLinkDestination(destination);
+    if (selectedUser) {
+      const identifier = selectedUser.username || selectedUser.walletAddress;
+      const linkUrl = destination === 'profile'
+        ? `/profile/${identifier}`
+        : `/store/${identifier}`;
+      setFormData(prev => ({
+        ...prev,
+        link: linkUrl,
+      }));
+    }
+  };
+
+  // Clear selected user and reset to manual mode
+  const handleClearSelectedUser = () => {
+    setSelectedUser(null);
+    setIsUserLinkMode(false);
+  };
+
   // Function to handle modal close with clean state
   const handleModalClose = () => {
-    // Clean up by explicitly clearing form data 
+    // Clean up by explicitly clearing form data
     // to avoid stale state on next open
     setFormData({
       id: uuidv4(),
@@ -70,6 +158,12 @@ export default function SpotlightItemModal({
     });
     setIsSaving(false);
     setSaveStatus('idle');
+    // Reset user linking state
+    setIsUserLinkMode(false);
+    setUserSearchQuery("");
+    setUserSearchResults([]);
+    setSelectedUser(null);
+    setLinkDestination('profile');
     onClose();
   };
 
@@ -210,20 +304,157 @@ export default function SpotlightItemModal({
           />
         </div>
 
+        {/* Link Section - with user linking option */}
         <div>
-          <label
-            htmlFor="link"
-            className="block text-sm font-medium text-gray-300 mb-1"
-          >
-            Link URL (optional)
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label
+              htmlFor="link"
+              className="block text-sm font-medium text-gray-300"
+            >
+              Link (optional)
+            </label>
+            {!selectedUser && (
+              <button
+                type="button"
+                onClick={() => setIsUserLinkMode(!isUserLinkMode)}
+                className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${
+                  isUserLinkMode
+                    ? 'bg-[#81E4F2]/20 text-[#81E4F2] border border-[#81E4F2]/50'
+                    : 'bg-slate-700 text-gray-400 hover:text-white hover:bg-slate-600'
+                }`}
+              >
+                <Users size={12} />
+                <span>Link to mixmi user</span>
+              </button>
+            )}
+          </div>
+
+          {/* Selected User Display */}
+          {selectedUser && (
+            <div className="mb-2 p-3 bg-slate-800 rounded-lg border border-[#81E4F2]/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {selectedUser.avatarUrl ? (
+                    <img
+                      src={selectedUser.avatarUrl}
+                      alt={selectedUser.displayName}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
+                      <Users size={16} className="text-gray-400" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-white font-medium">{selectedUser.displayName}</div>
+                    {selectedUser.username && (
+                      <div className="text-gray-400 text-xs">@{selectedUser.username}</div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearSelectedUser}
+                  className="p-1 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Profile/Store Toggle */}
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDestinationChange('profile')}
+                  className={`flex-1 py-1.5 px-3 text-xs rounded-md transition-colors ${
+                    linkDestination === 'profile'
+                      ? 'bg-[#81E4F2] text-slate-900 font-semibold'
+                      : 'bg-slate-700 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDestinationChange('store')}
+                  className={`flex-1 py-1.5 px-3 text-xs rounded-md transition-colors ${
+                    linkDestination === 'store'
+                      ? 'bg-[#81E4F2] text-slate-900 font-semibold'
+                      : 'bg-slate-700 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Creator Store
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* User Search Mode */}
+          {isUserLinkMode && !selectedUser && (
+            <div className="mb-2 relative">
+              <input
+                type="text"
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                placeholder="Search by name or username..."
+                className="input-field"
+                autoFocus
+              />
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="w-4 h-4 border-2 border-[#81E4F2] border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+
+              {/* Search Results Dropdown */}
+              {userSearchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {userSearchResults.map((user) => (
+                    <button
+                      key={user.walletAddress}
+                      type="button"
+                      onClick={() => handleSelectUser(user)}
+                      className="w-full px-3 py-2 flex items-center gap-3 hover:bg-slate-700 transition-colors text-left"
+                    >
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.displayName}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center">
+                          <Users size={14} className="text-gray-400" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-white text-sm">{user.displayName}</div>
+                        {user.username && (
+                          <div className="text-gray-400 text-xs">@{user.username}</div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* No Results */}
+              {userSearchQuery.length >= 2 && !isSearching && userSearchResults.length === 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg p-3 text-center text-gray-400 text-sm">
+                  No users found
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Manual URL Input (when not in user link mode or after selection for override) */}
           <input
             type="text"
             id="link"
             name="link"
             value={formData.link}
             onChange={handleChange}
-            placeholder="https://example.com"
+            placeholder={isUserLinkMode ? "Or enter URL manually..." : "https://example.com"}
             className="input-field"
           />
         </div>
