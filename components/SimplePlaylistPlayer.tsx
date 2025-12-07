@@ -86,66 +86,86 @@ export default function SimplePlaylistPlayer() {
     return (data as IPTrack[]) || [];
   };
 
-  // Drop functionality for tracks
-  const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD'],
+  // Large invisible drop zone for playlist - similar to cart/radio drop zone pattern
+  const [{ isOverPlaylist, canDropPlaylist }, playlistDropRef] = useDrop(() => ({
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD', 'RADIO_TRACK'],
     drop: async (item: { track: any }) => {
-      console.log('📃 Playlist received drop:', item);
+      console.log('📃 Playlist drop zone received:', item);
+      handlePlaylistDrop(item.track);
+    },
+    collect: (monitor) => ({
+      isOverPlaylist: monitor.isOver(),
+      canDropPlaylist: monitor.canDrop(),
+    }),
+  }), []);
 
-      const track = item.track;
-      const contentType = track.content_type;
+  // Helper function to handle playlist drops (extracted for reuse)
+  const handlePlaylistDrop = async (track: any) => {
+    const contentType = track.content_type;
 
-      // Handle packs - unpack them
-      if (contentType === 'loop_pack' || contentType === 'ep') {
-        console.log('📦 Unpacking', contentType, 'into playlist');
-        const packTracks = await fetchPackTracks(track);
+    // Handle packs - unpack them
+    if (contentType === 'loop_pack' || contentType === 'ep') {
+      console.log('📦 Unpacking', contentType, 'into playlist');
+      const packTracks = await fetchPackTracks(track);
 
-        if (packTracks.length > 0) {
-          const newTracks: PlaylistTrack[] = packTracks.map(t => ({
-            id: t.id,
-            title: t.title,
-            artist: t.artist || t.artist_name || 'Unknown',
-            imageUrl: t.cover_image_url || '',
-            audioUrl: t.audio_url || t.stream_url,
-            content_type: t.content_type,
-            bpm: t.bpm,
-            stream_url: t.stream_url
-          }));
-
-          setPlaylist(prev => {
-            const existingIds = new Set(prev.map(t => t.id));
-            const uniqueNewTracks = newTracks.filter(t => !existingIds.has(t.id));
-            return [...uniqueNewTracks, ...prev];
-          });
-
-          setIsExpanded(true);
-        }
-      } else {
-        // Single track
-        const newTrack: PlaylistTrack = {
-          id: track.id,
-          title: track.title,
-          artist: track.artist || track.artist_name || 'Unknown',
-          imageUrl: track.cover_image_url || track.imageUrl || '',
-          audioUrl: track.audio_url || track.audioUrl || track.stream_url,
-          content_type: track.content_type,
-          bpm: track.bpm,
-          stream_url: track.stream_url
-        };
+      if (packTracks.length > 0) {
+        const newTracks: PlaylistTrack[] = packTracks.map(t => ({
+          id: t.id,
+          title: t.title,
+          artist: t.artist || t.artist_name || 'Unknown',
+          imageUrl: t.cover_image_url || '',
+          audioUrl: t.audio_url || t.stream_url,
+          content_type: t.content_type,
+          bpm: t.bpm,
+          stream_url: t.stream_url
+        }));
 
         setPlaylist(prev => {
-          if (prev.some(t => t.id === newTrack.id)) return prev;
-          return [newTrack, ...prev];
+          const existingIds = new Set(prev.map(t => t.id));
+          const uniqueNewTracks = newTracks.filter(t => !existingIds.has(t.id));
+          return [...uniqueNewTracks, ...prev];
         });
 
         setIsExpanded(true);
       }
+    } else {
+      // Single track (including radio stations)
+      const newTrack: PlaylistTrack = {
+        id: track.id,
+        title: track.title,
+        artist: track.artist || track.artist_name || 'Unknown',
+        imageUrl: track.cover_image_url || track.imageUrl || '',
+        audioUrl: track.audio_url || track.audioUrl || track.stream_url,
+        content_type: track.content_type,
+        bpm: track.bpm,
+        stream_url: track.stream_url
+      };
+
+      setPlaylist(prev => {
+        if (prev.some(t => t.id === newTrack.id)) return prev;
+        return [newTrack, ...prev];
+      });
+
+      setIsExpanded(true);
+    }
+  };
+
+  // Drop functionality for tracks (on expanded player)
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD', 'RADIO_TRACK'],
+    drop: async (item: { track: any }) => {
+      console.log('📃 Playlist expanded player received drop:', item);
+      handlePlaylistDrop(item.track);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
   }));
+
+  // Combine isOver states for visual feedback
+  const isOverAny = isOverPlaylist || isOver;
+  const canDropAny = canDropPlaylist || canDrop;
 
   // Handle playback
   useEffect(() => {
@@ -308,23 +328,44 @@ export default function SimplePlaylistPlayer() {
   const currentTrack = playlist[currentIndex];
 
   return (
-    <div id="onborda-playlist" className="fixed bottom-[100px] left-6 z-[999]">
-      {/* Playlist Icon Button - Always Visible */}
-      {!isExpanded && (
-        <button
-          onClick={() => setIsExpanded(true)}
-          className="p-1.5 hover:bg-[#1E293B] rounded transition-colors"
-          title="Open Playlist"
-        >
-          <ListMusic className="w-6 h-6 text-gray-200" strokeWidth={2.5} />
-        </button>
-      )}
+    <>
+      {/* Large invisible drop zone for playlist - extends right and up from playlist position */}
+      <div
+        ref={playlistDropRef}
+        className="fixed bottom-[100px] left-4 z-[998] w-[200px] h-[200px] pointer-events-auto"
+        style={{ pointerEvents: 'auto' }}
+      >
+        {/* Playlist icon/widget pinned to bottom-left corner of drop zone */}
+        <div className="absolute bottom-0 left-2">
+          <div id="onborda-playlist">
+            {/* Playlist Icon Button - Always Visible like cart/radio icons */}
+            {!isExpanded && (
+              <button
+                onClick={() => setIsExpanded(true)}
+                className={`p-1.5 hover:bg-[#1E293B] rounded transition-all ${isOverAny && canDropAny ? 'animate-wiggle' : ''} ${isPlaying && playlist.length > 0 ? 'playlist-playing-pulse' : ''}`}
+                style={isOverAny && canDropAny ? {
+                  filter: 'drop-shadow(0 0 8px #D4AF37) drop-shadow(0 0 16px #9772F4)',
+                } : {}}
+                title={playlist.length > 0 ? (isPlaying ? `Playing: ${currentTrack?.title || 'Track'}` : `Playlist (${playlist.length} tracks)`) : "Open Playlist"}
+              >
+                <ListMusic
+                  className={`w-6 h-6 transition-colors ${
+                    isOverAny && canDropAny
+                      ? 'text-[#D4AF37]'
+                      : isPlaying && playlist.length > 0
+                        ? 'text-[#D4AF37]'
+                        : 'text-gray-200'
+                  }`}
+                  strokeWidth={2.5}
+                />
+              </button>
+            )}
 
       {/* Expanded Playlist Player */}
       {isExpanded && (
         <div
           ref={drop as any}
-          className={`relative playlist-player-container ${isOver && canDrop ? 'drop-active' : ''}`}
+          className={`relative playlist-player-container ${isOverAny && canDropAny ? 'drop-active animate-wiggle' : ''}`}
         >
           {/* Close Button */}
           <button
@@ -466,7 +507,7 @@ export default function SimplePlaylistPlayer() {
           {/* Now playing indicator */}
           {isPlaying && (
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-800">
-              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
               <span className="text-xs text-gray-400 uppercase tracking-wider">
                 Playing
               </span>
@@ -474,6 +515,9 @@ export default function SimplePlaylistPlayer() {
           )}
         </div>
       )}
+          </div>
+        </div>
+      </div>
 
       {/* Playlist Player Styles */}
       <style jsx>{`
@@ -491,13 +535,13 @@ export default function SimplePlaylistPlayer() {
           flex-direction: column;
         }
 
-        /* Drop active state - cyan highlight */}
+        /* Drop active state - gold/purple highlight for playlist */
         .playlist-player-container.drop-active {
-          border-color: rgba(129, 228, 242, 0.6);
-          box-shadow: 0 0 20px rgba(129, 228, 242, 0.3);
+          border-color: rgba(212, 175, 55, 0.6);
+          box-shadow: 0 0 20px rgba(212, 175, 55, 0.3), 0 0 30px rgba(151, 114, 244, 0.2);
         }
 
-        /* Scrollable tracks area */}
+        /* Scrollable tracks area */
         .playlist-tracks {
           overflow-y: auto;
           max-height: 240px;
@@ -522,8 +566,22 @@ export default function SimplePlaylistPlayer() {
         .playlist-tracks::-webkit-scrollbar-thumb:hover {
           background: rgba(100, 116, 139, 0.7);
         }
+
+        /* Subtle pulse animation for playlist icon when playing */
+        .playlist-playing-pulse {
+          animation: playlist-glow-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes playlist-glow-pulse {
+          0%, 100% {
+            filter: drop-shadow(0 0 2px rgba(212, 175, 55, 0.3));
+          }
+          50% {
+            filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6)) drop-shadow(0 0 10px rgba(151, 114, 244, 0.3));
+          }
+        }
       `}</style>
-    </div>
+    </>
   );
 }
 
