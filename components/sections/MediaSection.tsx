@@ -123,47 +123,52 @@ export default function MediaSection({
     <section className="mb-16">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">Streams</h2>
-        {isOwnProfile && (
-          <button
-            onClick={handleAddItem}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
-          >
-            <Plus size={18} />
-            <span>Add Stream</span>
-          </button>
-        )}
       </div>
 
-      {items.length === 0 ? (
-        <div
-          className="relative w-72 aspect-square rounded-lg overflow-hidden border-[3px] border-dashed border-gray-600 hover:border-gray-500 transition-all group cursor-pointer bg-[#81E4F2]/5"
-          onClick={isOwnProfile ? handleAddItem : undefined}
-        >
-          {/* Empty state - minimal with subtle cyan wash */}
-          <div className="w-full h-full flex items-center justify-center" />
+      <div className="flex flex-wrap gap-4 justify-center">
+        {items.map(item => (
+          <MediaCard
+            key={item.id}
+            item={item}
+            onEdit={isOwnProfile ? () => handleEditItem(item) : undefined}
+            onDelete={isOwnProfile ? () => handleDeleteItem(item.id) : undefined}
+          />
+        ))}
 
-          {/* Bottom text overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900/80 to-transparent">
-            <div className="flex items-start">
-              <div className="border-l-2 border-gray-500 pl-2">
-                <h3 className="text-gray-300 font-medium text-sm">Embed your content from these platforms...</h3>
-                <p className="text-gray-400 text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity">YouTube, Spotify, Apple Music, SoundCloud, Mixcloud</p>
+        {/* Add card placeholder - shown when under limit and is own profile */}
+        {isOwnProfile && items.length < 3 && (
+          items.length === 0 ? (
+            // Empty state - dashed border with text
+            <div
+              className="relative w-72 aspect-square rounded-lg overflow-hidden border-[3px] border-dashed border-gray-600 hover:border-gray-500 transition-all group cursor-pointer bg-[#81E4F2]/5"
+              onClick={handleAddItem}
+            >
+              {/* Plus icon - shifted up to make room for text */}
+              <div className="absolute inset-0 flex items-center justify-center pb-16">
+                <Plus size={48} className="text-gray-500 group-hover:text-gray-400 transition-colors" />
+              </div>
+
+              {/* Bottom text overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900/80 to-transparent">
+                <div className="flex items-start">
+                  <div className="border-l-2 border-gray-500 pl-2">
+                    <h3 className="text-gray-300 font-medium text-sm">Embed your content from these platforms...</h3>
+                    <p className="text-gray-400 text-xs mt-1">YouTube, Spotify, Apple Music, SoundCloud, Mixcloud</p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-4 justify-center">
-          {items.map(item => (
-            <MediaCard
-              key={item.id}
-              item={item}
-              onEdit={isOwnProfile ? () => handleEditItem(item) : undefined}
-              onDelete={isOwnProfile ? () => handleDeleteItem(item.id) : undefined}
-            />
-          ))}
-        </div>
-      )}
+          ) : (
+            // Add another - minimal, just centered plus
+            <div
+              className="relative w-72 aspect-square rounded-lg flex items-center justify-center cursor-pointer group"
+              onClick={handleAddItem}
+            >
+              <Plus size={48} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
+            </div>
+          )
+        )}
+      </div>
 
       {/* Edit/Add Modal */}
       <MediaItemModal
