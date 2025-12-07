@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import dynamic from 'next/dynamic';
+import { useDrop } from 'react-dnd';
 // Alpha app - no complex auth needed for globe viewing
 import Header from "@/components/layout/Header";
 import { TrackNode } from "@/components/globe/types";
@@ -144,6 +145,51 @@ export default function HomePage() {
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+
+  // Full-screen drop zone for pinning cards from search results
+  const [{ isOverScreen }, screenDropRef] = useDrop(() => ({
+    accept: 'TRACK_CARD',
+    drop: (item: { track: any }, monitor) => {
+      // Get the drop coordinates
+      const offset = monitor.getClientOffset();
+      if (!offset) return;
+
+      // Convert the dropped track to TrackNode format
+      const track = item.track;
+      const node: TrackNode = {
+        id: track.id,
+        title: track.title,
+        artist: track.artist || track.artistName || 'Unknown Artist',
+        imageUrl: track.imageUrl || track.cover_image_url,
+        audioUrl: track.audioUrl || track.audio_url,
+        stream_url: track.stream_url,
+        lat: track.lat || 0,
+        lng: track.lng || 0,
+        bpm: track.bpm,
+        content_type: track.content_type,
+        tags: track.tags,
+        description: track.description,
+        license: track.license,
+        price_stx: track.price_stx,
+        pack_position: track.pack_position,
+      };
+
+      // Create pinned card at drop location
+      const newPinnedCard = {
+        node,
+        position: { x: offset.x - 120, y: offset.y - 100 }, // Offset so card appears centered on drop
+        id: `pinned-${node.id}-${Date.now()}`,
+        isExpanded: false,
+        hasDragged: false
+      };
+
+      setPinnedCards(prev => [...prev, newPinnedCard]);
+      console.log('📌 Pinned card from search:', node.title);
+    },
+    collect: (monitor) => ({
+      isOverScreen: monitor.isOver(),
+    }),
+  }), []);
 
   // Track card position to prevent jumping when hovering over other nodes
   const [cardPosition, setCardPosition] = useState<{ x: number; y: number } | null>(null);
@@ -941,8 +987,11 @@ export default function HomePage() {
       {/* Custom header for globe page */}
       <Header />
       
-      {/* Full viewport container with starry background */}
-      <div className="fixed inset-0 top-[64px] bottom-0 bg-gradient-to-br from-[#151C2A] to-[#101726]">
+      {/* Full viewport container with starry background - also serves as drop zone for pinning cards from search */}
+      <div
+        ref={screenDropRef as any}
+        className="fixed inset-0 top-[64px] bottom-0 bg-gradient-to-br from-[#151C2A] to-[#101726]"
+      >
         {/* Search component - upper left */}
         <GlobeSearch
           nodes={globeNodes}
