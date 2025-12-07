@@ -56,6 +56,13 @@ export default function CreatorStorePage() {
   // Check if viewing own store
   const isOwnStore = isAuthenticated && walletAddress === actualWalletAddress;
 
+  // Helper: Check if a track is a child item inside a pack/EP (should be hidden)
+  // Child items have pack_id AND pack_position >= 1
+  // Container items (packs/EPs) have pack_position = 0 or null
+  const isChildItem = (track: IPTrack) => {
+    return track.pack_id && track.pack_position !== undefined && track.pack_position >= 1;
+  };
+
   // First, resolve username to wallet address if needed
   useEffect(() => {
     const resolveWalletAddress = async () => {
@@ -207,7 +214,8 @@ export default function CreatorStorePage() {
   }, [actualWalletAddress]);
 
   useEffect(() => {
-    const loopTracks = tracks.filter(track => track.content_type === 'loop');
+    // Only consider standalone loops (not loops inside packs) for categories
+    const loopTracks = tracks.filter(track => track.content_type === 'loop' && !isChildItem(track));
     const categories = [...new Set(loopTracks.map(track => track.loop_category).filter(Boolean))];
     setAvailableCategories(categories.sort());
   }, [tracks]);
@@ -215,12 +223,15 @@ export default function CreatorStorePage() {
   useEffect(() => {
     let filtered = tracks;
 
+    // IMPORTANT: Always hide child items (loops/songs inside packs/EPs) - only show containers
     switch (activeFilter.type) {
       case 'full_song':
-        filtered = tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted);
+        // Show standalone songs only, not songs inside EPs
+        filtered = tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted && !isChildItem(track));
         break;
       case 'loop':
-        filtered = tracks.filter(track => track.content_type === 'loop' && !track.is_deleted);
+        // Show standalone loops only, not loops inside loop packs
+        filtered = tracks.filter(track => track.content_type === 'loop' && !track.is_deleted && !isChildItem(track));
         if (activeFilter.category) {
           filtered = filtered.filter(track => track.loop_category === activeFilter.category);
         }
@@ -232,7 +243,8 @@ export default function CreatorStorePage() {
         filtered = tracks.filter(track => track.content_type === 'ep' && !track.is_deleted);
         break;
       case 'radio_station':
-        filtered = tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted);
+        // Show standalone radio stations only, not stations inside station packs
+        filtered = tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted && !isChildItem(track));
         break;
       case 'station_pack':
         filtered = tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted);
@@ -241,11 +253,13 @@ export default function CreatorStorePage() {
         filtered = tracks.filter(track => track.content_type === 'video_clip' && !track.is_deleted);
         break;
       case 'hidden':
+        // For hidden, show all deleted items including child items
         filtered = tracks.filter(track => track.is_deleted === true);
         break;
       case 'all':
       default:
-        filtered = tracks.filter(track => !track.is_deleted);
+        // Show all non-deleted items EXCEPT child items
+        filtered = tracks.filter(track => !track.is_deleted && !isChildItem(track));
         break;
     }
 
@@ -291,25 +305,26 @@ export default function CreatorStorePage() {
     };
   }, [currentAudio, previewTimeout]);
 
+  // Get count for each filter (excluding child items except for hidden)
   const getFilterCount = (filter: ContentFilter) => {
     switch (filter.type) {
       case 'all':
-        return tracks.filter(track => !track.is_deleted).length;
+        return tracks.filter(track => !track.is_deleted && !isChildItem(track)).length;
       case 'full_song':
-        return tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted).length;
+        return tracks.filter(track => track.content_type === 'full_song' && !track.is_deleted && !isChildItem(track)).length;
       case 'loop':
         if (filter.category) {
           return tracks.filter(track =>
-            track.content_type === 'loop' && track.loop_category === filter.category && !track.is_deleted
+            track.content_type === 'loop' && track.loop_category === filter.category && !track.is_deleted && !isChildItem(track)
           ).length;
         }
-        return tracks.filter(track => track.content_type === 'loop' && !track.is_deleted).length;
+        return tracks.filter(track => track.content_type === 'loop' && !track.is_deleted && !isChildItem(track)).length;
       case 'loop_pack':
         return tracks.filter(track => track.content_type === 'loop_pack' && !track.is_deleted).length;
       case 'ep':
         return tracks.filter(track => track.content_type === 'ep' && !track.is_deleted).length;
       case 'radio_station':
-        return tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted).length;
+        return tracks.filter(track => track.content_type === 'radio_station' && !track.is_deleted && !isChildItem(track)).length;
       case 'station_pack':
         return tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted).length;
       case 'video_clip':
@@ -743,8 +758,8 @@ export default function CreatorStorePage() {
             {/* Group tracks by content type when showing "All" */}
             {activeFilter.type === 'all' ? (
               <>
-                {/* Loops Section */}
-                {filteredTracks.filter(t => t.content_type === 'loop').length > 0 && (
+                {/* Loops Section - standalone loops only */}
+                {filteredTracks.filter(t => t.content_type === 'loop' && !isChildItem(t)).length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
                       <h2 className="font-mono text-2xl font-bold text-[#9772F4] tracking-wide">loops</h2>
@@ -752,7 +767,7 @@ export default function CreatorStorePage() {
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
-                        .filter(t => t.content_type === 'loop')
+                        .filter(t => t.content_type === 'loop' && !isChildItem(t))
                         .slice(0, visibleCards)
                         .map((track, index) => (
                           <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
@@ -797,8 +812,8 @@ export default function CreatorStorePage() {
                   </div>
                 )}
 
-                {/* Songs Section */}
-                {filteredTracks.filter(t => t.content_type === 'full_song').length > 0 && (
+                {/* Songs Section - standalone songs only */}
+                {filteredTracks.filter(t => t.content_type === 'full_song' && !isChildItem(t)).length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
                       <h2 className="font-mono text-2xl font-bold text-[#D4AF37] tracking-wide">songs</h2>
@@ -806,7 +821,7 @@ export default function CreatorStorePage() {
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
-                        .filter(t => t.content_type === 'full_song')
+                        .filter(t => t.content_type === 'full_song' && !isChildItem(t))
                         .slice(0, visibleCards)
                         .map((track, index) => (
                           <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
@@ -851,8 +866,8 @@ export default function CreatorStorePage() {
                   </div>
                 )}
 
-                {/* Radio Stations Section */}
-                {filteredTracks.filter(t => t.content_type === 'radio_station').length > 0 && (
+                {/* Radio Stations Section - standalone stations only */}
+                {filteredTracks.filter(t => t.content_type === 'radio_station' && !isChildItem(t)).length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
                       <h2 className="font-mono text-2xl font-bold text-[#FF6B4A] tracking-wide">radio stations</h2>
@@ -860,7 +875,7 @@ export default function CreatorStorePage() {
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
-                        .filter(t => t.content_type === 'radio_station')
+                        .filter(t => t.content_type === 'radio_station' && !isChildItem(t))
                         .slice(0, visibleCards)
                         .map((track, index) => (
                           <div key={track.id} className="wave-card" style={{ animationDelay: `${index * 75}ms`, animationDuration: '0.5s' }}>
