@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter as Geist, Roboto_Mono as Geist_Mono } from "next/font/google";
+import { Inter as Geist, Roboto_Mono as Geist_Mono, Sora, Unbounded } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import { Toaster } from "sonner";
@@ -14,6 +14,20 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: 'swap',
+  preload: true,
+});
+
+const sora = Sora({
+  variable: "--font-sora",
+  subsets: ["latin"],
+  display: 'swap',
+  preload: true,
+});
+
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
   subsets: ["latin"],
   display: 'swap',
   preload: true,
@@ -55,7 +69,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} ${unbounded.variable} antialiased`}
       >
         <Providers>
           {children}

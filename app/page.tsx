@@ -71,6 +71,11 @@ const CartWidget = dynamic(() => import('@/components/CartWidget'), {
   ssr: false
 });
 
+// Dynamically import LandingTagline - first-visit animated tagline
+const LandingTagline = dynamic(() => import('@/components/LandingTagline'), {
+  ssr: false
+});
+
 // Dynamically import VideoDisplayArea - video mixer display
 const VideoDisplayArea = dynamic(() => import('@/components/mixer/compact/VideoDisplayArea'), {
   ssr: false
@@ -1883,6 +1888,9 @@ export default function HomePage() {
 
       {/* Cart Widget - Fixed position, top-right corner */}
       <CartWidget />
+
+      {/* Landing Tagline - First visit only, animated */}
+      <LandingTagline />
     </>
   );
 }
