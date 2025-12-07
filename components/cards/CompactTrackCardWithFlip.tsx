@@ -579,6 +579,9 @@ export default function CompactTrackCardWithFlip({
                             }
                           }}
                           className="transition-all hover:scale-110"
+                          title={(track.content_type === 'radio_station' || track.content_type === 'station_pack')
+                            ? "Preview • Click radio icon for continuous play"
+                            : undefined}
                         >
                           {(isPlaying || isVideoPlaying) ? (
                             <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
