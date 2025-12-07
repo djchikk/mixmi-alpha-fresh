@@ -66,6 +66,11 @@ const HelpWidget = dynamic(() => import('@/components/HelpWidget'), {
   ssr: false
 });
 
+// Dynamically import CartWidget - shopping cart UI
+const CartWidget = dynamic(() => import('@/components/CartWidget'), {
+  ssr: false
+});
+
 // Dynamically import VideoDisplayArea - video mixer display
 const VideoDisplayArea = dynamic(() => import('@/components/mixer/compact/VideoDisplayArea'), {
   ssr: false
@@ -1875,6 +1880,9 @@ export default function HomePage() {
 
       {/* Help Widget - Fixed position, right side */}
       <HelpWidget />
+
+      {/* Cart Widget - Fixed position, top-right corner */}
+      <CartWidget />
     </>
   );
 }
