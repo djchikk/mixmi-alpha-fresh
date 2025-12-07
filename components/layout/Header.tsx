@@ -653,12 +653,18 @@ export default function Header() {
                       Clear
                     </button>
                     <button
-                      onClick={purchaseAll}
-                      className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
-                      title="Purchase all items in cart"
+                      disabled
+                      className="flex-1 px-3 py-2 bg-gray-600 text-gray-400 rounded text-xs cursor-not-allowed"
+                      title="Purchasing coming soon"
                     >
-                      Purchase All ({cartTotal.toFixed(2)} STX)
+                      Coming Soon
                     </button>
+                  </div>
+                  {/* Coming Soon Notice */}
+                  <div className="mt-2 p-2 bg-amber-900/30 border border-amber-700/50 rounded text-center">
+                    <p className="text-amber-300 text-xs">
+                      💫 Purchases launching soon on SUI
+                    </p>
                   </div>
                 </div>
               </>
