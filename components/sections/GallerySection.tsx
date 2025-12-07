@@ -119,78 +119,52 @@ export default function GallerySection({
     <section className="mb-16">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">Gallery</h2>
-        {isOwnProfile && (
-          <button
-            onClick={handleAddItem}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
-          >
-            <Plus size={18} />
-            <span>Add Image</span>
-          </button>
-        )}
       </div>
 
-      {items.length === 0 ? (
-        <div
-          className="relative w-72 aspect-square rounded-lg overflow-hidden border-2 border-gray-700 bg-slate-800 cursor-pointer hover:border-accent hover:border-[3px] transition-all group"
-          onClick={isOwnProfile ? handleAddItem : undefined}
-        >
-          <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto bg-accent/10 rounded-full flex items-center justify-center mb-4 border border-accent/20">
-                <svg className="w-10 h-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-white font-medium text-sm mb-1">Gallery</h3>
-              {isOwnProfile && (
-                <p className="text-gray-400 text-xs px-4">Share images and GIFs</p>
-              )}
-            </div>
-          </div>
+      <div className="flex flex-wrap gap-4 justify-center">
+        {items.map(item => (
+          <GalleryCard
+            key={item.id}
+            item={item}
+            onEdit={isOwnProfile ? () => handleEditItem(item) : undefined}
+            onDelete={isOwnProfile ? () => handleDeleteItem(item.id) : undefined}
+          />
+        ))}
 
-          {/* Edit button */}
-          {isOwnProfile && (
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddItem();
-                }}
-                className="bg-slate-800/70 p-1 rounded-full hover:bg-slate-700/80"
-                aria-label="Add Image"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-accent"
-                >
-                  <path d="M12 20h9"></path>
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                </svg>
-              </button>
+        {/* Add card placeholder - shown when under limit and is own profile */}
+        {isOwnProfile && items.length < 3 && (
+          items.length === 0 ? (
+            // Empty state - dashed border with text
+            <div
+              className="relative w-72 aspect-square rounded-lg overflow-hidden border-[3px] border-dashed border-gray-600 hover:border-gray-500 transition-all group cursor-pointer bg-[#81E4F2]/5"
+              onClick={handleAddItem}
+            >
+              {/* Plus icon - shifted up to make room for text */}
+              <div className="absolute inset-0 flex items-center justify-center pb-16">
+                <Plus size={48} className="text-gray-500 group-hover:text-gray-400 transition-colors" />
+              </div>
+
+              {/* Bottom text overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900/80 to-transparent">
+                <div className="flex items-start">
+                  <div className="border-l-2 border-gray-500 pl-2">
+                    <h3 className="text-gray-300 font-medium text-sm">Share images, GIFs, and short videos</h3>
+                    <p className="text-gray-400 text-xs mt-1">Up to 3 gallery items</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-4 justify-center">
-          {items.map(item => (
-            <GalleryCard
-              key={item.id}
-              item={item}
-              onEdit={isOwnProfile ? () => handleEditItem(item) : undefined}
-              onDelete={isOwnProfile ? () => handleDeleteItem(item.id) : undefined}
-            />
-          ))}
-        </div>
-      )}
+          ) : (
+            // Add another - minimal, just centered plus
+            <div
+              className="relative w-72 aspect-square rounded-lg flex items-center justify-center cursor-pointer group"
+              onClick={handleAddItem}
+            >
+              <Plus size={48} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
+            </div>
+          )
+        )}
+      </div>
 
       {/* Edit/Add Modal */}
       <GalleryItemModal
