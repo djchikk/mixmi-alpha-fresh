@@ -317,10 +317,10 @@ export default function SpotlightItemModal({
               <button
                 type="button"
                 onClick={() => setIsUserLinkMode(!isUserLinkMode)}
-                className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all ${
                   isUserLinkMode
-                    ? 'bg-[#81E4F2]/20 text-[#81E4F2] border border-[#81E4F2]/50'
-                    : 'bg-slate-700 text-gray-400 hover:text-white hover:bg-slate-600'
+                    ? 'bg-[#81E4F2]/20 text-[#81E4F2] border border-[#81E4F2] shadow-[0_0_8px_rgba(129,228,242,0.3)]'
+                    : 'bg-slate-700/80 text-[#81E4F2] border border-[#81E4F2]/40 hover:border-[#81E4F2]/70 hover:shadow-[0_0_8px_rgba(129,228,242,0.2)]'
                 }`}
               >
                 <Users size={12} />
