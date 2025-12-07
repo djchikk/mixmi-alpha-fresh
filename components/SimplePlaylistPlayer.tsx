@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ListMusic, Play, Pause, Volume2, VolumeX, X, GripVertical, Trash2 } from 'lucide-react';
+import { ListMusic, Play, Pause, Volume2, VolumeX, X, GripVertical } from 'lucide-react';
 import { useDrag, useDrop } from 'react-dnd';
 import type { Identifier } from 'dnd-core';
 import { IPTrack } from '@/types';
@@ -377,22 +377,11 @@ export default function SimplePlaylistPlayer() {
           </button>
 
           {/* Header */}
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <ListMusic className="w-4 h-4 text-gray-300" />
-              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Playlist
-              </span>
-            </div>
-            {playlist.length > 0 && (
-              <button
-                onClick={clearPlaylist}
-                className="p-1 hover:bg-gray-800 rounded transition-colors"
-                title="Clear Playlist"
-              >
-                <Trash2 className="w-3 h-3 text-gray-500 hover:text-red-400" />
-              </button>
-            )}
+          <div className="flex items-center gap-2 mb-3">
+            <ListMusic className="w-4 h-4 text-gray-300" />
+            <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              Playlist
+            </span>
           </div>
 
           {/* Playlist Items - Scrollable */}
@@ -507,7 +496,7 @@ export default function SimplePlaylistPlayer() {
           {/* Now playing indicator */}
           {isPlaying && (
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-800">
-              <div className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-[#81E4F2] animate-pulse" />
               <span className="text-xs text-gray-400 uppercase tracking-wider">
                 Playing
               </span>
@@ -660,9 +649,13 @@ const PlaylistTrackItem: React.FC<PlaylistTrackItemProps> = ({
     <div
       ref={ref}
       data-handler-id={handlerId}
-      className={`flex items-center gap-2 p-1.5 rounded mb-1 bg-slate-800/30 hover:bg-slate-800/50 transition-colors cursor-move ${
+      className={`flex items-center gap-2 p-1.5 rounded mb-1 hover:bg-slate-800/50 transition-colors cursor-move ${
         isDragging ? 'opacity-50' : ''
-      } ${isPlaying ? 'ring-1 ring-cyan-400' : ''}`}
+      }`}
+      style={{
+        backgroundColor: isPlaying ? 'rgba(129, 228, 242, 0.1)' : 'rgba(30, 41, 59, 0.3)',
+        border: isPlaying ? '1px solid #81E4F2' : '1px solid transparent'
+      }}
     >
       {/* Reorder handle */}
       <div className="cursor-move">

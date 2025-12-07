@@ -259,12 +259,12 @@ export default function SimplifiedDeckCompact({
                 <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
               )}
 
-              {/* Pack position badge - top left */}
+              {/* Pack position badge - top left - uses content type color */}
               {currentTrack.pack_position && (
                 <div
                   className="absolute top-1 left-1 w-5 h-5 rounded text-xs font-bold flex items-center justify-center pointer-events-none z-10"
                   style={{
-                    backgroundColor: contentType === 'radio_station' ? '#FF6B4A' : '#9772F4',
+                    backgroundColor: borderColor,
                     color: '#FFFFFF'
                   }}
                 >
