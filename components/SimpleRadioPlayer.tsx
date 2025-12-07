@@ -172,59 +172,104 @@ export default function SimpleRadioPlayer() {
     }
   }, [volume, isMuted]);
 
-  // Drop functionality for radio stations
-  const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD'],
+  // Large invisible drop zone for radio - similar to cart drop zone pattern
+  const [{ isOverRadio, canDropRadio }, radioDropRef] = useDrop(() => ({
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD', 'RADIO_TRACK'],
     drop: (item: { track: any }) => {
-      console.log('📻 Radio Player received drop:', item);
-
-      // Check if it's a station pack - unpack it to crate first
-      if (item.track.content_type === 'station_pack') {
-        console.log('📦 Station pack detected, unpacking to crate:', item.track);
-
-        // Add pack to crate (which will unpack it)
-        if ((window as any).addPackToCrate) {
-          (window as any).addPackToCrate(item.track);
-        }
-
-        // Then load the first track from the pack to play
-        if ((window as any).loadRadioTrack) {
-          (window as any).loadRadioTrack(item.track);
-        }
-      } else if (item.track.content_type === 'radio_station') {
-        // Single radio station - just load it
-        if ((window as any).loadRadioTrack) {
-          (window as any).loadRadioTrack(item.track);
-        }
-      }
+      console.log('📻 Radio drop zone received:', item);
+      handleRadioDrop(item.track);
     },
     canDrop: (item) => {
-      return item.track.content_type === 'radio_station' || item.track.content_type === 'station_pack';
+      return item.track?.content_type === 'radio_station' || item.track?.content_type === 'station_pack';
+    },
+    collect: (monitor) => ({
+      isOverRadio: monitor.isOver(),
+      canDropRadio: monitor.canDrop(),
+    }),
+  }), []);
+
+  // Helper function to handle radio drops
+  const handleRadioDrop = (track: any) => {
+    // Check if it's a station pack - unpack it to crate first
+    if (track.content_type === 'station_pack') {
+      console.log('📦 Station pack detected, unpacking to crate:', track);
+
+      // Add pack to crate (which will unpack it)
+      if ((window as any).addPackToCrate) {
+        (window as any).addPackToCrate(track);
+      }
+
+      // Then load the first track from the pack to play
+      if ((window as any).loadRadioTrack) {
+        (window as any).loadRadioTrack(track);
+      }
+    } else if (track.content_type === 'radio_station') {
+      // Single radio station - just load it
+      if ((window as any).loadRadioTrack) {
+        (window as any).loadRadioTrack(track);
+      }
+    }
+  };
+
+  // Drop functionality for radio stations (on expanded player)
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD', 'RADIO_TRACK'],
+    drop: (item: { track: any }) => {
+      console.log('📻 Radio Player received drop:', item);
+      handleRadioDrop(item.track);
+    },
+    canDrop: (item) => {
+      return item.track?.content_type === 'radio_station' || item.track?.content_type === 'station_pack';
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
-  }));
+  }), []);
+
+  // Combine isOver states for visual feedback
+  const isOverAny = isOverRadio || isOver;
+  const canDropAny = canDropRadio || canDrop;
 
   return (
-    <div id="onborda-radio" className="fixed bottom-[100px] right-6 z-[999]">
-      {/* Radio Icon Button - Always Visible like cart/search icons */}
-      {!isExpanded && (
-        <button
-          onClick={() => setIsExpanded(true)}
-          className="p-1.5 hover:bg-[#1E293B] rounded transition-colors"
-          title="Open Radio Player"
-        >
-          <Radio className="w-6 h-6 text-gray-200" strokeWidth={2.5} />
-        </button>
-      )}
+    <>
+      {/* Large invisible drop zone for radio - extends left and up from radio position */}
+      <div
+        ref={radioDropRef}
+        className="fixed bottom-[100px] right-4 z-[998] w-[200px] h-[200px] pointer-events-auto"
+        style={{ pointerEvents: 'auto' }}
+      >
+        {/* Radio icon/widget pinned to bottom-right corner of drop zone */}
+        <div className="absolute bottom-0 right-2">
+          <div id="onborda-radio">
+            {/* Radio Icon Button - Always Visible like cart/search icons */}
+            {!isExpanded && (
+              <button
+                onClick={() => setIsExpanded(true)}
+                className={`p-1.5 hover:bg-[#1E293B] rounded transition-all ${isOverAny && canDropAny ? 'animate-wiggle' : ''} ${isPlaying && currentStation ? 'radio-playing-pulse' : ''}`}
+                style={isOverAny && canDropAny ? {
+                  filter: 'drop-shadow(0 0 8px #FF6B4A) drop-shadow(0 0 16px #FF6B4A)',
+                } : {}}
+                title={currentStation ? (isPlaying ? `Playing: ${currentStation.title}` : `Paused: ${currentStation.title}`) : "Open Radio Player"}
+              >
+                <Radio
+                  className={`w-6 h-6 transition-colors ${
+                    isOverAny && canDropAny
+                      ? 'text-[#FF6B4A]'
+                      : isPlaying && currentStation
+                        ? 'text-[#FF6B4A]'
+                        : 'text-gray-200'
+                  }`}
+                  strokeWidth={2.5}
+                />
+              </button>
+            )}
 
       {/* Expanded Radio Player */}
       {isExpanded && (
         <div
           ref={drop as any}
-          className={`relative radio-player-container ${isOver && canDrop ? 'drop-active' : ''}`}
+          className={`relative radio-player-container ${isOverAny && canDropAny ? 'drop-active animate-wiggle' : ''}`}
         >
           {/* Close Button */}
           <button
@@ -352,6 +397,9 @@ export default function SimpleRadioPlayer() {
       )}
         </div>
       )}
+          </div>
+        </div>
+      </div>
 
       {/* Radio Player Styles */}
       <style jsx>{`
@@ -366,13 +414,13 @@ export default function SimpleRadioPlayer() {
           border: 1px solid rgba(51, 65, 85, 0.5);
         }
 
-        /* Drop active state - subtle orange highlight */
+        /* Drop active state - coral-red highlight for radio */
         .radio-player-container.drop-active {
-          border-color: rgba(251, 146, 60, 0.6);
-          box-shadow: 0 0 20px rgba(251, 146, 60, 0.3);
+          border-color: rgba(255, 107, 74, 0.6);
+          box-shadow: 0 0 20px rgba(255, 107, 74, 0.3);
         }
 
-        /* Empty artwork placeholder with orange pulse */
+        /* Empty artwork placeholder with coral-red pulse */
         .empty-radio-artwork {
           width: 60px;
           height: 60px;
@@ -381,7 +429,7 @@ export default function SimpleRadioPlayer() {
           animation: artwork-pulse 3s ease-in-out infinite;
         }
 
-        /* Pulse animation for empty artwork - from grayscale to orange */
+        /* Pulse animation for empty artwork - from grayscale to coral-red */
         @keyframes artwork-pulse {
           0%, 100% {
             border-color: #64748B;
@@ -391,13 +439,27 @@ export default function SimpleRadioPlayer() {
           }
         }
 
-        /* Loaded artwork - solid orange border */
+        /* Loaded artwork - solid coral-red border */
         .loaded-radio-artwork {
           width: 60px;
           height: 60px;
           border: 2px solid #FF6B4A;
         }
+
+        /* Subtle pulse animation for radio icon when playing */
+        .radio-playing-pulse {
+          animation: radio-glow-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes radio-glow-pulse {
+          0%, 100% {
+            filter: drop-shadow(0 0 2px rgba(255, 107, 74, 0.3));
+          }
+          50% {
+            filter: drop-shadow(0 0 6px rgba(255, 107, 74, 0.6)) drop-shadow(0 0 10px rgba(255, 107, 74, 0.3));
+          }
+        }
       `}</style>
-    </div>
+    </>
   );
 }

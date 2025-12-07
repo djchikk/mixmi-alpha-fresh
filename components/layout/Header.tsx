@@ -9,7 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "../ui/Button";
 // SyncStatus not needed for alpha version
-import { Menu, X, ShoppingCart } from "lucide-react";
+import { Menu, X, ShoppingCart, Radio } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SignInModal from "../modals/SignInModal";
