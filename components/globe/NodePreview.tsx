@@ -27,7 +27,7 @@ export default function NodePreview({ node, cursorX, cursorY, visible }: NodePre
   // Get border color based on content type
   const getBorderColor = () => {
     if (isCluster) return '#81E4F2'; // Cyan for clusters
-    if (node.content_type === 'full_song') return '#FFE4B5'; // Gold
+    if (node.content_type === 'full_song') return '#D4AF37'; // Gold
     if (node.content_type === 'loop') return '#9772F4'; // Purple
     if (node.content_type === 'video_clip') return '#2792F5'; // Blue
     if (node.content_type === 'radio_station') return '#FB923C'; // Orange

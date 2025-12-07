@@ -41,7 +41,7 @@ const SectionNavigator = memo(function SectionNavigator({
     }
   };
 
-  const color = '#FFE4B5'; // Song color (moccasin/wheat)
+  const color = '#D4AF37'; // Song color (gold)
 
   return (
     <div className={`flex items-center gap-0.5 w-[72px] h-[20px] ${className}`}>

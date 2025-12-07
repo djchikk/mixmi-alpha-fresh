@@ -10,8 +10,8 @@ import { TrackNode } from './types';
 const CONTENT_TYPE_COLORS = {
   loop: '#9772F4',        // Purple
   loop_pack: '#9772F4',   // Purple
-  full_song: '#FFE4B5',   // Wheat/Gold
-  ep: '#FFE4B5',          // Wheat/Gold
+  full_song: '#D4AF37',   // Gold
+  ep: '#D4AF37',          // Gold
   video_clip: '#2792F5',  // Blue
   radio_station: '#FB923C', // Orange
   station_pack: '#FB923C',  // Orange

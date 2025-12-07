@@ -56,7 +56,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     if (track.content_type === 'loop' || track.content_type === 'loop_pack') {
       return '#9772F4'; // Purple for remixable
     }
-    return '#FFE4B5'; // Gold for downloadable
+    return '#D4AF37'; // Gold for downloadable
   };
 
   const borderColor = getBorderColor();
@@ -265,7 +265,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       display: inline-block;
       padding: 4px 12px;
       background: ${borderColor};
-      color: ${borderColor === '#FFE4B5' ? '#1e293b' : 'white'};
+      color: ${borderColor === '#D4AF37' ? '#1e293b' : 'white'};
       border-radius: 4px;
       font-size: 12px;
       text-transform: uppercase;
@@ -636,7 +636,7 @@ mixmi.app • Discover • Mix • Create
                   className="inline-block px-3 py-1 text-xs rounded uppercase tracking-wide font-semibold"
                   style={{
                     backgroundColor: borderColor,
-                    color: borderColor === '#FFE4B5' ? '#1e293b' : 'white'
+                    color: borderColor === '#D4AF37' ? '#1e293b' : 'white'
                   }}
                 >
                   {isRadio

@@ -49,7 +49,7 @@ export default function SimplifiedDeckCompact({
       case 'grabbed_radio':
         return '#FB923C'; // Orange - grabbed moments (official radio orange)
       case 'full_song':
-        return '#FFE4B5'; // Gold - songs
+        return '#D4AF37'; // Gold - songs
       case 'video_clip':
         return '#2792F5'; // Sky blue - video clips
       default:

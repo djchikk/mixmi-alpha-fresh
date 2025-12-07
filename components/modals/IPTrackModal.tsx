@@ -1913,7 +1913,7 @@ export default function IPTrackModal({
               <div className="grid grid-cols-1 gap-1">
                 {(formData as any).ep_files.map((file: File, index: number) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
-                    <div className="w-5 h-5 bg-[#FFE4B5] text-slate-900 rounded-full flex items-center justify-center text-xs font-bold">
+                    <div className="w-5 h-5 bg-[#D4AF37] text-slate-900 rounded-full flex items-center justify-center text-xs font-bold">
                       {index + 1}
                     </div>
                     <span className="text-gray-300">{file.name}</span>

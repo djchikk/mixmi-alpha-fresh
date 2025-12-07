@@ -116,7 +116,7 @@ function ExpandedPackTrack({
     }),
   }), [packTrack]);
 
-  const badgeColor = parentTrack.content_type === 'ep' ? '#FFE4B5' : parentTrack.content_type === 'station_pack' ? '#FB923C' : '#9772F4';
+  const badgeColor = parentTrack.content_type === 'ep' ? '#D4AF37' : parentTrack.content_type === 'station_pack' ? '#FB923C' : '#9772F4';
   const textColor = parentTrack.content_type === 'ep' ? '#000000' : '#FFFFFF';
 
   return (
@@ -503,9 +503,9 @@ export default function Crate({ className = '' }: CrateProps) {
   const getBorderColor = (track: any) => {
     switch (track.content_type) {
       case 'full_song':
-        return 'border-[#FFE4B5] shadow-[#FFE4B5]/50';
+        return 'border-[#D4AF37] shadow-[#D4AF37]/50';
       case 'ep':
-        return 'border-[#FFE4B5] shadow-[#FFE4B5]/50';
+        return 'border-[#D4AF37] shadow-[#D4AF37]/50';
       case 'loop':
         return 'border-[#9772F4] shadow-[#9772F4]/50';
       case 'loop_pack':
@@ -894,13 +894,13 @@ export default function Crate({ className = '' }: CrateProps) {
                   {expandedPackId === track.id ? (
                     <ChevronLeft
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   ) : (
                     <ChevronRight
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   )}

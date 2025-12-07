@@ -498,7 +498,7 @@ export default function CreatorStorePage() {
 
             <div>
               <h1 className="text-4xl font-bold">
-                <span className="bg-gradient-to-r from-[#9772F4] to-[#FFE4B5] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#9772F4] to-[#D4AF37] bg-clip-text text-transparent">
                   {creatorName ? (
                     <>
                       <Link
@@ -801,8 +801,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'full_song').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#FFE4B5] tracking-wide">songs</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#FFE4B5]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#D4AF37] tracking-wide">songs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#D4AF37]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
@@ -828,8 +828,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'ep').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#FFE4B5] tracking-wide">eps</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#FFE4B5]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#D4AF37] tracking-wide">eps</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#D4AF37]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks

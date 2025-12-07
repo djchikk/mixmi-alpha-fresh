@@ -23,7 +23,7 @@ const designVars = {
   textSecondary: '#a8b2c3',
   textMuted: '#6b7489',
   accentCyan: '#81E4F2',
-  accentGold: '#FFE4B5',
+  accentGold: '#D4AF37',
   accentPurple: '#9772F4',
 };
 
@@ -123,7 +123,7 @@ export default function Welcome() {
                   <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Radio Stations</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FFE4B5' }}></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#D4AF37' }}></div>
                   <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Songs</span>
                 </div>
                 <div className="flex items-center gap-2">

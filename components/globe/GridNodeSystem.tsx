@@ -20,8 +20,8 @@ const ZOOM_LEVELS = {
 const CONTENT_TYPE_COLORS = {
   loop: '#9772F4',        // Purple for loops
   loop_pack: '#9772F4',   // Purple for loop packs
-  full_song: '#FFE4B5',   // Gold for songs
-  ep: '#FFE4B5',          // Gold for EPs
+  full_song: '#D4AF37',   // Gold for songs
+  ep: '#D4AF37',          // Gold for EPs
   video_clip: '#2792F5',  // Deeper blue for video clips
   cluster: '#81E4F2',     // Accent cyan for clustered content (carousels)
   default: '#2792F5'      // Deeper blue fallback for unknown types

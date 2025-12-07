@@ -4,7 +4,7 @@ import { ContentType } from '@/types';
 // Beautiful color sets for rotating celebrations
 const colorSets = [
   // Golden vibes (perfect for EPs!)
-  ['#FFE4B5', '#FFF8DC', '#F0E68C', '#DAA520', '#B8860B'],
+  ['#D4AF37', '#FFF8DC', '#F0E68C', '#DAA520', '#B8860B'],
   
   // Purple dreams (perfect for loop packs!)
   ['#9772F4', '#B19CD9', '#DDA0DD', '#9370DB', '#8A2BE2'],
@@ -19,7 +19,7 @@ const colorSets = [
   ['#4ECDC4', '#45B7AA', '#96D1CC', '#20B2AA', '#48D1CC'],
   
   // Rainbow chaos (pure joy!)
-  ['#FFE4B5', '#9772F4', '#81E4F2', '#FF6B6B', '#4ECDC4', '#FFA500']
+  ['#D4AF37', '#9772F4', '#81E4F2', '#FF6B6B', '#4ECDC4', '#FFA500']
 ];
 
 // Keep track of which color set to use next
@@ -40,7 +40,7 @@ function getNextColorSet(): string[] {
 function getContentColors(contentType: ContentType): string[] {
   switch (contentType) {
     case 'ep':
-      return ['#FFE4B5', '#FFF8DC', '#F0E68C', '#DAA520']; // Gold family
+      return ['#D4AF37', '#FFF8DC', '#F0E68C', '#DAA520']; // Gold family
     case 'loop_pack':
       return ['#9772F4', '#B19CD9', '#DDA0DD', '#9370DB']; // Purple family
     case 'full_song':
@@ -164,7 +164,7 @@ export function celebrateContentUpload(contentType: ContentType, songCount?: num
  * Rainbow chaos celebration - pure joy!
  */
 export function rainbowCelebration() {
-  const rainbowColors = ['#FFE4B5', '#9772F4', '#81E4F2', '#FF6B6B', '#4ECDC4', '#FFA500', '#FF69B4', '#32CD32'];
+  const rainbowColors = ['#D4AF37', '#9772F4', '#81E4F2', '#FF6B6B', '#4ECDC4', '#FFA500', '#FF69B4', '#32CD32'];
   
   // Scatter confetti from multiple points
   for (let i = 0; i < 5; i++) {

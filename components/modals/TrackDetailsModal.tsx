@@ -795,7 +795,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         className="group flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors cursor-grab"
                       >
                       {/* Song Number */}
-                      <div className="flex-shrink-0 w-6 h-6 bg-[#FFE4B5] text-slate-900 rounded text-xs font-bold flex items-center justify-center">
+                      <div className="flex-shrink-0 w-6 h-6 bg-[#D4AF37] text-slate-900 rounded text-xs font-bold flex items-center justify-center">
                         {index + 1}
                       </div>
                       
@@ -823,8 +823,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         disabled={!song.audio_url}
                         className={`flex-shrink-0 w-8 h-8 rounded flex items-center justify-center transition-colors ${
                           playingLoopId === song.id
-                            ? 'bg-[#FFE4B5] hover:bg-[#FFE4B5]/80 text-slate-900' 
-                            : 'bg-[#FFE4B5] hover:bg-[#FFE4B5]/80 text-slate-900'
+                            ? 'bg-[#D4AF37] hover:bg-[#D4AF37]/80 text-slate-900'
+                            : 'bg-[#D4AF37] hover:bg-[#D4AF37]/80 text-slate-900'
                         } disabled:bg-gray-700`}
                         title={
                           !song.audio_url 

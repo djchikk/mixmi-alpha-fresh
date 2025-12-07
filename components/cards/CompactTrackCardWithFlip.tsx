@@ -56,7 +56,7 @@ function DraggableDrawerTrack({ track, index, contentType, onPlay, playingLoopId
     }),
   }), [track]);
 
-  const badgeColor = contentType === 'ep' ? '#FFE4B5' : contentType === 'station_pack' ? '#FB923C' : '#9772F4';
+  const badgeColor = contentType === 'ep' ? '#D4AF37' : contentType === 'station_pack' ? '#FB923C' : '#9772F4';
   const textColor = contentType === 'ep' ? '#000000' : '#FFFFFF';
 
   return (
@@ -331,15 +331,15 @@ export default function CompactTrackCardWithFlip({
 
   // Get border color based on content type
   const getBorderColor = () => {
-    if (track.content_type === 'full_song') return 'border-[#FFE4B5]';
-    if (track.content_type === 'ep') return 'border-[#FFE4B5]';
+    if (track.content_type === 'full_song') return 'border-[#D4AF37]';
+    if (track.content_type === 'ep') return 'border-[#D4AF37]';
     if (track.content_type === 'loop') return 'border-[#9772F4]';
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
     if (track.content_type === 'radio_station') return 'border-[#FB923C]';
     if (track.content_type === 'station_pack') return 'border-[#FB923C]';
     if (track.content_type === 'video_clip') return 'border-[#2792F5]';
     // Fallback for legacy data
-    return track.sample_type === 'vocals' ? 'border-[#9772F4]' : 'border-[#FFE4B5]';
+    return track.sample_type === 'vocals' ? 'border-[#9772F4]' : 'border-[#D4AF37]';
   };
 
   // Get border thickness - thicker for multi-content (loop packs, EPs, and station packs)
@@ -471,7 +471,7 @@ export default function CompactTrackCardWithFlip({
                   <div
                     className="absolute top-1 left-1 w-6 h-6 rounded text-sm font-bold flex items-center justify-center z-10"
                     style={{
-                      backgroundColor: track.content_type === 'full_song' ? '#FFE4B5' : '#C4AEF8',
+                      backgroundColor: track.content_type === 'full_song' ? '#D4AF37' : '#C4AEF8',
                       color: track.content_type === 'full_song' ? '#000000' : '#FFFFFF'
                     }}
                   >
@@ -587,9 +587,9 @@ export default function CompactTrackCardWithFlip({
                         title={isPackExpanded ? (track.content_type === 'ep' ? "Collapse tracks" : track.content_type === 'station_pack' ? "Collapse stations" : "Collapse loops") : (track.content_type === 'ep' ? "Expand tracks" : track.content_type === 'station_pack' ? "Expand stations" : "Expand loops")}
                       >
                         {isPackExpanded ? (
-                          <ChevronUp className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }} strokeWidth={3} />
+                          <ChevronUp className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }} strokeWidth={3} />
                         ) : (
-                          <ChevronDown className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }} strokeWidth={3} />
+                          <ChevronDown className="w-5 h-5" style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#C4AEF8' }} strokeWidth={3} />
                         )}
                       </button>
                     )}
@@ -912,7 +912,7 @@ export default function CompactTrackCardWithFlip({
           <div
             className="w-[160px] bg-slate-900 border-2 border-t-0 rounded-b-lg overflow-hidden"
             style={{
-              borderColor: track.content_type === 'ep' ? '#FFE4B5' : track.content_type === 'station_pack' ? '#FB923C' : '#9772F4',
+              borderColor: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FB923C' : '#9772F4',
               animation: 'slideDown 0.2s ease-out'
             }}
           >

@@ -659,8 +659,8 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
 
   // Get border color based on content type
   const getBorderColor = (track: Track) => {
-    if (track.content_type === 'full_song') return 'border-[#FFE4B5]';
-    if (track.content_type === 'ep') return 'border-[#FFE4B5]';
+    if (track.content_type === 'full_song') return 'border-[#D4AF37]';
+    if (track.content_type === 'ep') return 'border-[#D4AF37]';
     if (track.content_type === 'loop') return 'border-[#9772F4]';
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
     if (track.content_type === 'radio_station') return 'border-[#FB923C]';

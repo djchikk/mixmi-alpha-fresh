@@ -85,7 +85,7 @@ export default function TrackCard({
       case 'loop':
         return 'border-[#9772F4]'; // Vibrant purple for loops
       case 'full_song':
-        return 'border-[#FFE4B5]'; // Peach-gold for full songs
+        return 'border-[#D4AF37]'; // Gold for full songs
       default:
         return 'border-blue-400'; // Fallback for collaborations
     }
