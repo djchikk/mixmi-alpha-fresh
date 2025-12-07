@@ -286,30 +286,36 @@ export default function Header() {
                   </div>
 
                   {/* Menu Items */}
-                  <div className="py-2">
+                  <div className="py-1">
                     <Link
                       href={username ? `/profile/${username}` : `/profile/${walletAddress}`}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
+                      className="block w-full px-4 py-3 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
                       onClick={() => setShowAvatarDropdown(false)}
                     >
-                      <span className="text-lg">👤</span>
-                      <span>My Profile</span>
+                      <span className="flex items-center gap-3">
+                        <span className="text-lg">👤</span>
+                        <span>My Profile</span>
+                      </span>
                     </Link>
                     <Link
                       href={username ? `/store/${username}` : `/store/${walletAddress}`}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
+                      className="block w-full px-4 py-3 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
                       onClick={() => setShowAvatarDropdown(false)}
                     >
-                      <span className="text-lg">🏪</span>
-                      <span>My Store</span>
+                      <span className="flex items-center gap-3">
+                        <span className="text-lg">🏪</span>
+                        <span>My Store</span>
+                      </span>
                     </Link>
                     <Link
                       href="/account"
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
+                      className="block w-full px-4 py-3 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
                       onClick={() => setShowAvatarDropdown(false)}
                     >
-                      <span className="text-lg">📊</span>
-                      <span>Dashboard</span>
+                      <span className="flex items-center gap-3">
+                        <span className="text-lg">📊</span>
+                        <span>Dashboard</span>
+                      </span>
                     </Link>
                   </div>
 
