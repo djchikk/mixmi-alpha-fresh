@@ -61,6 +61,16 @@ export default function HelpWidget() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
+  // Expose openHelpWidget to window for navbar access
+  React.useEffect(() => {
+    (window as any).openHelpWidget = () => {
+      setIsExpanded(true);
+    };
+    return () => {
+      delete (window as any).openHelpWidget;
+    };
+  }, []);
+
   const currentLanguage = languages.find(l => l.code === selectedLanguage) || languages[0];
 
   const currentVideo = helpVideos[currentVideoIndex];

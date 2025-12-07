@@ -179,6 +179,16 @@ export default function Header() {
         >
           upload
         </button>
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined' && (window as any).openHelpWidget) {
+              (window as any).openHelpWidget();
+            }
+          }}
+          className="text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95 transition-all duration-300 tracking-wide"
+        >
+          help
+        </button>
       </nav>
 
       {/* Right: Wallet Authentication */}
@@ -364,6 +374,18 @@ export default function Header() {
               className="text-gray-300 hover:text-white font-medium active:scale-95 transition-all duration-300 text-left"
             >
               Upload
+            </button>
+
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined' && (window as any).openHelpWidget) {
+                  (window as any).openHelpWidget();
+                }
+                setIsMobileMenuOpen(false);
+              }}
+              className="text-gray-300 hover:text-white font-medium active:scale-95 transition-all duration-300 text-left"
+            >
+              Help
             </button>
 
             {/* Mobile Wallet Authentication */}
