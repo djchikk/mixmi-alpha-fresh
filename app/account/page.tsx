@@ -12,9 +12,10 @@ import TrackDetailsModal from "@/components/modals/TrackDetailsModal";
 import EditOptionsModal from "@/components/modals/EditOptionsModal";
 import ContentTypeSelector from "@/components/modals/ContentTypeSelector";
 import InfoIcon from "@/components/shared/InfoIcon";
+import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFlip";
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
-type Tab = "uploads" | "history" | "settings";
+type Tab = "uploads" | "library" | "history" | "settings";
 
 interface Track {
   id: string;
@@ -260,7 +261,7 @@ export default function AccountPage() {
               className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
             >
               <Plus size={18} />
-              <span>Upload Content</span>
+              <span>Add</span>
             </button>
           </div>
 
@@ -269,10 +270,10 @@ export default function AccountPage() {
             {/* Filter Toggle Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border ${
                 activeFilter.type !== 'all'
-                  ? 'bg-[#81E4F2] text-slate-900 font-medium'
-                  : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                  ? 'bg-slate-700 text-white font-medium border-slate-500'
+                  : 'bg-slate-800 text-gray-200 hover:bg-slate-700 hover:text-white border-slate-600'
               }`}
             >
               <span>
@@ -409,8 +410,21 @@ export default function AccountPage() {
                     : "text-gray-400 hover:text-gray-300"
                 }`}
               >
-                My Uploads
+                My Work
                 {activeTab === "uploads" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("library")}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === "library"
+                    ? "text-[#81E4F2]"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
+              >
+                Library
+                {activeTab === "library" && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
                 )}
               </button>
@@ -452,6 +466,9 @@ export default function AccountPage() {
             <>
               {activeTab === "uploads" && (
                 <MyUploadsTab tracks={filteredTracks} onRefresh={fetchTracks} />
+              )}
+              {activeTab === "library" && (
+                <LibraryTab walletAddress={walletAddress} />
               )}
               {activeTab === "history" && (
                 <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
@@ -665,7 +682,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
     if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
     if (track.content_type === 'radio_station') return 'border-[#FF6B4A]';
     if (track.content_type === 'station_pack') return 'border-[#FF6B4A]';
-    if (track.content_type === 'video_clip') return 'border-[#2792F5]'; // Video clips - cyan blue
+    if (track.content_type === 'video_clip') return 'border-[#2792F5]';
     return 'border-[#9772F4]';
   };
 
@@ -673,6 +690,22 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
   const getBorderThickness = (track: Track) => {
     return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
+
+// Helper functions for Library tab (same as above, extracted for reuse)
+const getLibraryBorderColor = (track: Track) => {
+  if (track.content_type === 'full_song') return 'border-[#D4AF37]';
+  if (track.content_type === 'ep') return 'border-[#D4AF37]';
+  if (track.content_type === 'loop') return 'border-[#9772F4]';
+  if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
+  if (track.content_type === 'radio_station') return 'border-[#FF6B4A]';
+  if (track.content_type === 'station_pack') return 'border-[#FF6B4A]';
+  if (track.content_type === 'video_clip') return 'border-[#2792F5]';
+  return 'border-[#9772F4]';
+};
+
+const getLibraryBorderThickness = (track: Track) => {
+  return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
+};
 
   return (
     <>
@@ -693,184 +726,24 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {tracks.map((track) => (
-              <div
+              <CompactTrackCardWithFlip
                 key={track.id}
-                className="group cursor-pointer"
-              >
-                <div className={`relative aspect-square rounded-lg overflow-hidden ${getBorderColor(track)} ${getBorderThickness(track)} mb-2`}>
-                  <img
-                    src={track.cover_image_url}
-                    alt={track.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  />
-
-                  {/* Video Player Overlay - only for video_clip content */}
-                  {track.content_type === 'video_clip' && track.video_url && isVideoPlaying && playingTrackId === track.id && (
-                    <video
-                      ref={(el) => {
-                        setVideoElement(el);
-                        if (el && isVideoPlaying) {
-                          el.play().catch(err => console.error('Video play error:', err));
-                        }
-                      }}
-                      src={track.video_url}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      playsInline
-                      onEnded={() => {
-                        setIsVideoPlaying(false);
-                        setPlayingTrackId(null);
-                      }}
-                    />
-                  )}
-
-                  {/* Hover Overlay - Exact same pattern as store cards */}
-                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2 animate-fadeIn opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* Top Section: Title, Artist (full width) */}
-                    <div className="absolute top-1 left-2 right-2">
-                      <div className="flex flex-col">
-                        <h3 className="font-medium text-white text-sm leading-tight truncate">
-                          {track.title}
-                        </h3>
-                        <p className="text-white/80 text-xs truncate">
-                          {track.artist}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Info Icon - Left side, vertically centered */}
-                    <div className="absolute left-1 top-1/2 transform -translate-y-1/2 z-10">
-                      <InfoIcon
-                        size="lg"
-                        onClick={(e) => handleInfoClick(track, e)}
-                        title="View details"
-                        className="text-white hover:text-white"
-                      />
-                    </div>
-
-                    {/* Edit Button - Top Right Corner (same position as trash can in store) */}
-                    <button
-                      onClick={(e) => handleEditClick(track, e)}
-                      title="Edit track"
-                      className="absolute top-1 right-1 w-9 h-9 bg-black/90 hover:bg-[#81E4F2]/30 rounded flex items-center justify-center transition-all border border-[#81E4F2]/60 hover:border-[#81E4F2] group z-20"
-                    >
-                      <svg className="w-5 h-5 text-[#81E4F2] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-
-                    {/* Center: Play Button - Absolutely centered */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                      {(track.audio_url || track.stream_url || (track.content_type === 'video_clip' && track.video_url)) && (
-                        <button
-                          onClick={(e) => handlePlayClick(track, e)}
-                          className="transition-all hover:scale-110"
-                        >
-                          {playingTrackId === track.id && (isVideoPlaying || !track.video_url) ? (
-                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                            </svg>
-                          ) : (
-                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
-                            </svg>
-                          )}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Bottom Section: M Badge/Price, Content Type, BPM */}
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
-                      {/* M Badge or Price (left) */}
-                      {(() => {
-                        // For loops: show M if remix-only, otherwise show download price
-                        if (track.content_type === 'loop' || track.content_type === 'loop_pack') {
-                          if (track.allow_downloads === false) {
-                            // Remix-only
-                            return (
-                              <div
-                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                                title="Platform remix only - 1 STX per recorded remix"
-                              >
-                                M
-                              </div>
-                            );
-                          } else if (track.download_price_stx) {
-                            // Has download price
-                            return (
-                              <div className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs">
-                                {track.download_price_stx}
-                              </div>
-                            );
-                          } else if (track.price_stx) {
-                            // Legacy price field
-                            return (
-                              <div className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs">
-                                {track.price_stx}
-                              </div>
-                            );
-                          }
-                        }
-                        // For songs/EPs: show download price if available
-                        else if (track.content_type === 'full_song' || track.content_type === 'ep') {
-                          if (track.download_price_stx) {
-                            return (
-                              <div className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs">
-                                {track.download_price_stx}
-                              </div>
-                            );
-                          } else if (track.price_stx) {
-                            return (
-                              <div className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs">
-                                {track.price_stx}
-                              </div>
-                            );
-                          }
-                        }
-                        // Return spacer for proper centering when no badge
-                        return <div className="w-12"></div>;
-                      })()}
-
-                      {/* Content Type Badge (center) with generation indicators */}
-                      <span className="text-xs font-mono font-medium text-white">
-                        {track.content_type === 'ep' && 'EP'}
-                        {track.content_type === 'loop_pack' && 'PACK'}
-                        {track.content_type === 'loop' && (
-                          <>
-                            {track.generation === 0 || track.remix_depth === 0 ? (
-                              '🌱 LOOP'
-                            ) : track.generation === 1 || track.remix_depth === 1 ? (
-                              '🌿 LOOP'
-                            ) : track.generation === 2 || track.remix_depth === 2 ? (
-                              '🌳 LOOP'
-                            ) : (
-                              'LOOP'
-                            )}
-                          </>
-                        )}
-                        {track.content_type === 'full_song' && 'SONG'}
-                        {track.content_type === 'radio_station' && 'RADIO'}
-                        {track.content_type === 'station_pack' && 'PACK'}
-                        {track.content_type === 'video_clip' && 'VIDEO'}
-                        {!track.content_type && 'TRACK'}
-                      </span>
-
-                      {/* BPM Badge (right) */}
-                      {track.bpm && track.content_type !== 'ep' && track.content_type !== 'video_clip' ? (
-                        <span
-                          className="text-sm font-mono font-bold text-white"
-                          title="BPM"
-                        >
-                          {track.bpm}
-                        </span>
-                      ) : (
-                        <div className="w-12"></div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-sm text-white truncate">{track.title}</div>
-                <div className="text-xs text-gray-400 truncate">{track.artist}</div>
-              </div>
+                track={track as any}
+                isPlaying={playingTrackId === track.id}
+                onPlayPreview={(t) => handlePlayClick(t as any, { stopPropagation: () => {} } as any)}
+                onStopPreview={() => {
+                  if (audioElement) {
+                    audioElement.pause();
+                    audioElement.currentTime = 0;
+                  }
+                  setPlayingTrackId(null);
+                }}
+                showEditControls={true}
+                onEditTrack={(t) => {
+                  setEditingTrack(t as any);
+                  setIsOptionsModalOpen(true);
+                }}
+              />
             ))}
           </div>
         )}
@@ -893,6 +766,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
           {/* Show RadioStationModal for radio content types */}
           {(editingTrack.content_type === 'radio_station' || editingTrack.content_type === 'station_pack') ? (
             <RadioStationModal
+              key={editingTrack.id}
               isOpen={isEditModalOpen}
               onClose={() => {
                 setIsEditModalOpen(false);
@@ -904,6 +778,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
           ) : (
             /* Show IPTrackModal for music and video content types */
             <IPTrackModal
+              key={editingTrack.id}
               isOpen={isEditModalOpen}
               onClose={() => {
                 setIsEditModalOpen(false);
@@ -1035,6 +910,210 @@ function UploadHistoryTab({ tracks, onViewCertificate }: { tracks: Track[]; onVi
               </button>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface Purchase {
+  id: string;
+  track_id: string;
+  buyer_wallet: string;
+  seller_wallet: string;
+  purchase_price: number;
+  purchase_date: string;
+  track?: Track;
+}
+
+function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const fetchPurchases = async () => {
+      if (!walletAddress) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Fetch purchases with track details
+        const { data, error } = await supabase
+          .from('purchases')
+          .select(`
+            *,
+            track:ip_tracks(*)
+          `)
+          .eq('buyer_wallet', walletAddress)
+          .order('purchase_date', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching purchases:', error);
+          // Table might not exist yet - that's okay
+          setPurchases([]);
+        } else if (data) {
+          setPurchases(data);
+        }
+      } catch (error) {
+        console.error('Error fetching library:', error);
+        setPurchases([]);
+      }
+      setLoading(false);
+    };
+
+    fetchPurchases();
+  }, [walletAddress]);
+
+  const handlePlayPause = (track: Track) => {
+    if (playingTrackId === track.id) {
+      audioElement?.pause();
+      setPlayingTrackId(null);
+    } else {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+      }
+
+      const audioSource = track.audio_url || track.stream_url;
+      if (!audioSource) return;
+
+      const audio = new Audio(audioSource);
+      audio.play();
+      setAudioElement(audio);
+      setPlayingTrackId(track.id);
+
+      // 20-second preview
+      setTimeout(() => {
+        audio.pause();
+        setPlayingTrackId(null);
+      }, 20000);
+
+      audio.onended = () => setPlayingTrackId(null);
+    }
+  };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+      }
+    };
+  }, [audioElement]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#81E4F2]"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <div className="text-sm text-gray-400">
+          Content you've purchased from other creators
+        </div>
+      </div>
+
+      {purchases.length === 0 ? (
+        <div className="text-center py-20">
+          <div className="text-gray-500 mb-4">No purchases yet</div>
+          <p className="text-gray-600 text-sm">
+            Content you purchase from other creators will appear here
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {purchases.map((purchase) => {
+            const track = purchase.track as Track | undefined;
+            if (!track) return null;
+
+            return (
+              <div key={purchase.id} className="group cursor-pointer">
+                <div className={`relative aspect-square rounded-lg overflow-hidden ${getLibraryBorderColor(track)} ${getLibraryBorderThickness(track)} mb-2`}>
+                  <img
+                    src={track.cover_image_url}
+                    alt={track.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+
+                  {/* Hover Overlay - Same pattern as My Work cards */}
+                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2 animate-fadeIn opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Top Section: Title, Artist */}
+                    <div className="absolute top-1 left-2 right-2">
+                      <div className="flex flex-col">
+                        <h3 className="font-medium text-white text-sm leading-tight truncate">
+                          {track.title}
+                        </h3>
+                        <p className="text-white/80 text-xs truncate">
+                          {track.artist}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Purchased Badge - Top Right Corner */}
+                    <div className="absolute top-1 right-1 px-2 py-0.5 bg-green-600/80 rounded text-xs text-white font-medium">
+                      Owned
+                    </div>
+
+                    {/* Center: Play Button */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                      {(track.audio_url || track.stream_url) && (
+                        <button
+                          onClick={() => handlePlayPause(track)}
+                          className="transition-all hover:scale-110"
+                        >
+                          {playingTrackId === track.id ? (
+                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                            </svg>
+                          ) : (
+                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Bottom Section: Content Type, BPM */}
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
+                      {/* Spacer for alignment */}
+                      <div className="w-12"></div>
+
+                      {/* Content Type Badge */}
+                      <span className="text-xs font-mono font-medium text-white">
+                        {track.content_type === 'ep' && 'EP'}
+                        {track.content_type === 'loop_pack' && 'PACK'}
+                        {track.content_type === 'loop' && 'LOOP'}
+                        {track.content_type === 'full_song' && 'SONG'}
+                        {track.content_type === 'radio_station' && 'RADIO'}
+                        {track.content_type === 'station_pack' && 'PACK'}
+                        {track.content_type === 'video_clip' && 'VIDEO'}
+                        {!track.content_type && 'TRACK'}
+                      </span>
+
+                      {/* BPM Badge */}
+                      {track.bpm && track.content_type !== 'ep' && track.content_type !== 'video_clip' ? (
+                        <span className="text-sm font-mono font-bold text-white" title="BPM">
+                          {track.bpm}
+                        </span>
+                      ) : (
+                        <div className="w-12"></div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-white truncate">{track.title}</div>
+                <div className="text-xs text-gray-400 truncate">{track.artist}</div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

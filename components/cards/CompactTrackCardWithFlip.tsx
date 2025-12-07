@@ -467,7 +467,8 @@ export default function CompactTrackCardWithFlip({
                 )}
 
                 {/* Track number badge - for individual tracks that are part of a pack/EP */}
-                {track.pack_id && typeof track.pack_position === 'number' && (
+                {/* Only show for child items (pack_position >= 1), not for pack containers (pack_position = 0) */}
+                {track.pack_id && typeof track.pack_position === 'number' && track.pack_position >= 1 && (
                   <div
                     className="absolute top-1 left-1 w-6 h-6 rounded text-sm font-bold flex items-center justify-center z-10"
                     style={{
@@ -534,8 +535,24 @@ export default function CompactTrackCardWithFlip({
                       </div>
                     </div>
 
-                    {/* Hide Button - positioned in upper-right corner */}
-                    {showEditControls && (
+                    {/* Edit Button - positioned in upper-right corner (shown when onEditTrack is provided) */}
+                    {showEditControls && onEditTrack && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditTrack(track);
+                        }}
+                        title="Edit track"
+                        className="absolute top-1 right-1 w-9 h-9 bg-black/90 hover:bg-[#81E4F2]/30 rounded flex items-center justify-center transition-all border border-[#81E4F2]/60 hover:border-[#81E4F2] group z-20"
+                      >
+                        <svg className="w-5 h-5 text-[#81E4F2] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {/* Hide Button - positioned in upper-right corner (shown when onDeleteTrack is provided but not onEditTrack) */}
+                    {showEditControls && onDeleteTrack && !onEditTrack && (
                       <button
                         onClick={handleDeleteClick}
                         title="Hide from store"

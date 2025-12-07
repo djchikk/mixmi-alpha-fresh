@@ -215,6 +215,14 @@ export default function IPTrackModal({
           console.log(`📝 Setting pack title from track: "${track.title}"`);
         }
 
+        // Editing existing track - populate tags input value
+        if (track.tags && Array.isArray(track.tags)) {
+          // Filter out location tags (🌍) since they're displayed separately
+          const nonLocationTags = track.tags.filter(tag => !tag.startsWith('🌍'));
+          setTagInputValue(nonLocationTags.join(', '));
+          console.log(`🏷️ Setting tags from track:`, nonLocationTags);
+        }
+
         // Editing existing track - populate location if it exists
         // Use primary_location as the canonical source (tags are just visual duplicates)
         if (track.primary_location) {
@@ -2650,7 +2658,7 @@ export default function IPTrackModal({
                   : formData.content_type === 'loop_pack'
                     ? `${(((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || (formData as any).loop_count || 0)).toFixed(1)} STX (pack)`
                     : formData.allow_downloads
-                      ? `${(formData as any).download_price_stx || 2.5} STX`
+                      ? `${(formData as any).download_price_stx || (formData as any).download_price || 2.5} STX`
                       : '1 STX per mix'}
               </span>
             </div>

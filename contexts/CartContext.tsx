@@ -5,6 +5,7 @@ import { openContractCall } from '@stacks/connect';
 import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from '@stacks/transactions';
 import { aggregateCartPayments } from '@/lib/batch-payment-aggregator';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 // Cart item interface
 export interface CartItem {
@@ -191,9 +192,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           productionCV
         ],
         postConditionMode: PostConditionMode.Allow,
-        onFinish: (data) => {
+        onFinish: async (data) => {
           console.log('✅ Payment split transaction submitted:', data);
           setPurchaseStatus('success');
+
+          // Record purchases in Supabase
+          try {
+            const purchasePromises = cart.map(item =>
+              supabase.from('purchases').insert({
+                buyer_wallet: walletAddress,
+                track_id: item.id,
+                price_stx: parseFloat(item.price_stx),
+                tx_id: data.txId || null
+              })
+            );
+
+            const results = await Promise.all(purchasePromises);
+            const errors = results.filter(r => r.error);
+
+            if (errors.length > 0) {
+              console.error('⚠️ Some purchases failed to record:', errors);
+            } else {
+              console.log('✅ All purchases recorded successfully');
+            }
+          } catch (error) {
+            console.error('⚠️ Failed to record purchases:', error);
+            // Don't fail the overall purchase - blockchain transaction succeeded
+          }
+
           // Clear cart after successful transaction
           setTimeout(() => {
             clearCart();

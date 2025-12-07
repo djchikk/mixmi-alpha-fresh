@@ -466,22 +466,23 @@ export function useIPTrackSubmit({
         content_type: formData.content_type === 'loop_pack' ? 'loop' : formData.content_type, // Save loop packs as loops for now
         loop_category: formData.content_type === 'loop' ? formData.loop_category : null,
         sample_type: formData.content_type === 'loop' ? 'instrumentals' : 'FULL SONGS',
-        // BPM handling: completely optional for songs, user-provided integers only for loops/packs
+        // BPM handling: optional for songs, user-provided integers only for loops/packs
         bpm: (() => {
-          console.log('🎵 BPM DEBUG:', { 
-            content_type: formData.content_type, 
-            original_bpm: formData.bpm, 
-            bpm_type: typeof formData.bpm 
+          console.log('🎵 BPM DEBUG:', {
+            content_type: formData.content_type,
+            original_bpm: formData.bpm,
+            bpm_type: typeof formData.bpm
           });
-          
+
+          const bpmValue = Number(formData.bpm);
+
           if (formData.content_type === 'full_song' || formData.content_type === 'song') {
-            // Songs: BPM is completely optional, always null
-            console.log('🎵 Song detected - setting BPM to null');
-            return null;
+            // Songs: BPM is optional - save if user entered a value, otherwise null
+            const result = (bpmValue && bpmValue > 0) ? Math.round(bpmValue) : null;
+            console.log('🎵 Song BPM result:', result);
+            return result;
           } else {
-            // Loops/packs: ONLY accept user-provided integer values, NO ROUNDING
-            // If user enters decimal, validation should catch it and show error
-            const bpmValue = Number(formData.bpm);
+            // Loops/packs: ONLY accept user-provided integer values
             const result = (bpmValue && Number.isInteger(bpmValue)) ? bpmValue : null;
             console.log('🎵 Loop/pack BPM result:', result);
             return result;

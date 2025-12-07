@@ -540,7 +540,7 @@ export default function CreatorStorePage() {
                 className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-[#81E4F2] rounded-lg transition-colors border border-slate-600"
               >
                 <Plus size={18} />
-                <span>Upload Content</span>
+                <span>Add</span>
               </button>
             </div>
           )}
@@ -549,10 +549,10 @@ export default function CreatorStorePage() {
             {/* Filter Toggle Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border ${
                 activeFilter.type !== 'all'
-                  ? 'bg-[#81E4F2] text-slate-900 font-medium'
-                  : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                  ? 'bg-slate-700 text-white font-medium border-slate-500'
+                  : 'bg-slate-800 text-gray-200 hover:bg-slate-700 hover:text-white border-slate-600'
               }`}
             >
               <span>
