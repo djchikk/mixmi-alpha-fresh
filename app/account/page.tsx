@@ -932,6 +932,29 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
+  // Helper functions for content-type colored borders
+  const getLibraryBorderColor = (track: Track) => {
+    switch (track.content_type) {
+      case 'loop':
+      case 'loop_pack':
+        return 'border-[#9772F4]'; // Purple for loops
+      case 'full_song':
+      case 'ep':
+        return 'border-[#FFE4B5]'; // Wheat for songs
+      case 'video_clip':
+        return 'border-[#2792F5]'; // Blue for video
+      case 'radio_station':
+      case 'station_pack':
+        return 'border-[#FB923C]'; // Orange for radio
+      default:
+        return 'border-slate-600';
+    }
+  };
+
+  const getLibraryBorderThickness = (track: Track) => {
+    return 'border-2';
+  };
+
   useEffect(() => {
     const fetchPurchases = async () => {
       if (!walletAddress) {
