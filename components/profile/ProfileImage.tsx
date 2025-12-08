@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import SafeImage from "../shared/SafeImage";
 import ProfileImageModal from "./ProfileImageModal";
-import EditButton from "../ui/EditButton";
 
 interface ProfileImageProps {
   profile: {
@@ -86,16 +85,6 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, onUp
             )}
           </div>
         </div>
-        
-        {isOwnProfile && (
-          <div className="absolute bottom-4 right-4">
-            <EditButton
-              size="md"
-              label="Edit Profile Image"
-              onClick={handleEditClick}
-            />
-          </div>
-        )}
       </div>
 
       <ProfileImageModal
