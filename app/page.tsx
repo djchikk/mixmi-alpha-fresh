@@ -16,6 +16,7 @@ import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } fro
 import Crate from "@/components/shared/Crate";
 import WidgetLauncher from "@/components/WidgetLauncher";
 import ResetConfirmModal from "@/components/modals/ResetConfirmModal";
+import { NullIslandModal } from "@/components/globe/NullIslandModal";
 
 
 // Dynamically import GlobeTrackCard to avoid SSR issues
@@ -1772,51 +1773,26 @@ export default function HomePage() {
         onConfirm={handleResetWidgets}
       />
 
-      {/* Null Island Popup */}
-      {showNullIslandPopup && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={() => setShowNullIslandPopup(false)}
-        >
-          <div
-            className="relative max-w-sm mx-4 p-6 bg-gradient-to-br from-[#1a2744] to-[#0f1829] border border-[#81E4F2]/40 rounded-xl shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close button */}
-            <button
-              onClick={() => setShowNullIslandPopup(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Island emoji header */}
-            <div className="text-center mb-4">
-              <span className="text-5xl">🏝️</span>
-            </div>
-
-            {/* Title */}
-            <h3 className="text-xl font-bold text-center text-[#81E4F2] mb-3">
-              Welcome to Null Island!
-            </h3>
-
-            {/* Description */}
-            <p className="text-sm text-gray-300 leading-relaxed text-center mb-4">
-              You found the legendary home of coordinates <span className="font-mono text-[#81E4F2]">(0°, 0°)</span>!
-            </p>
-            <p className="text-sm text-gray-400 leading-relaxed text-center mb-4">
-              Music that was uploaded without a location tag drifts here. Some artists choose Null Island as a badge of freedom from spatial coordinates, while others simply haven&apos;t tagged their location yet.
-            </p>
-
-            {/* Fun fact */}
-            <div className="bg-[#81E4F2]/10 border border-[#81E4F2]/30 rounded-lg p-3 text-center">
-              <p className="text-xs text-[#81E4F2]">
-                <span className="font-semibold">Fun fact:</span> In the real world, Null Island is a weather buoy in the Gulf of Guinea, off the coast of West Africa!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Null Island Modal - shows content at (0,0) with explainer header */}
+      {/* Null Island nodes are scattered within ~2.5 degrees radius, so we check within 3 degrees */}
+      <NullIslandModal
+        isOpen={showNullIslandPopup}
+        onClose={() => setShowNullIslandPopup(false)}
+        nodes={globeNodes.filter(node =>
+          Math.abs(node.coordinates.lat) < 3 && Math.abs(node.coordinates.lng) < 3
+        )}
+        onSelectNode={(node) => {
+          // Open the node's card when selected from the modal
+          const newPinnedCard = {
+            node,
+            position: { x: window.innerWidth / 2, y: window.innerHeight / 2 - 100 },
+            id: `pinned-${node.id}-${Date.now()}`,
+            isExpanded: false,
+            hasDragged: false
+          };
+          setPinnedCards(prev => [...prev, newPinnedCard]);
+        }}
+      />
 
       {/* Playlist Widget - Fixed left position (24px left of mixer edge) */}
       {isPlaylistVisible && (
