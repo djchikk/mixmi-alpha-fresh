@@ -130,18 +130,21 @@ export default function CompactTrackCardWithFlip({
   // Ref for audio auto-stop timeout (so we can clear it)
   const audioTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch username for the track's primary uploader wallet
+  // Fetch username and display_name for the track's primary uploader wallet
+  const [uploaderDisplayName, setUploaderDisplayName] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchUsername = async () => {
       if (!track.primary_uploader_wallet) return;
 
       const { data } = await supabase
         .from('user_profiles')
-        .select('username')
+        .select('username, display_name')
         .eq('wallet_address', track.primary_uploader_wallet)
         .single();
 
       setUsername(data?.username || null);
+      setUploaderDisplayName(data?.display_name || null);
     };
 
     fetchUsername();
@@ -527,7 +530,10 @@ export default function CompactTrackCardWithFlip({
                             className="text-white/80 text-xs truncate hover:text-[#81E4F2] transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {track.artist}
+                            {/* For radio stations, show uploader's display name instead of station name */}
+                            {(track.content_type === 'radio_station' || track.content_type === 'station_pack')
+                              ? (uploaderDisplayName || username || track.artist)
+                              : track.artist}
                           </Link>
                         ) : (
                           <p className="text-white/80 text-xs truncate">{track.artist}</p>
