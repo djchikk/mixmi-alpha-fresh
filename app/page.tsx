@@ -121,6 +121,9 @@ export default function HomePage() {
   const [isFilled, setIsFilled] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
 
+  // Null Island popup state
+  const [showNullIslandPopup, setShowNullIslandPopup] = useState(false);
+
   // Mixer state for VideoDisplayArea
   const [mixerState, setMixerState] = useState<any>(null);
 
@@ -1017,6 +1020,7 @@ export default function HomePage() {
             onNodeHover={handleNodeHover}
             selectedNode={selectedNode}
             hoveredNode={hoveredNode}
+            onNullIslandClick={() => setShowNullIslandPopup(true)}
           />
 
           {/* Tagline overlay - sequential fade animation */}
@@ -1535,16 +1539,6 @@ export default function HomePage() {
                   <p className="text-gray-400 text-xs mt-1">
                     {selectedNode.trackCount || selectedNode.tracks?.length} tracks from {selectedNode.artist}
                   </p>
-                  {/* Null Island special message */}
-                  {(selectedNode.location?.includes('Null Island') || selectedNode.tracks?.[0]?.location?.includes('Null Island')) && (
-                    <div className="mt-3 mx-auto max-w-md px-4 py-3 bg-gradient-to-r from-[#81E4F2]/10 to-pink-900/40 border border-[#81E4F2]/30 rounded-lg">
-                      <p className="text-xs text-[#81E4F2] leading-relaxed">
-                        <span className="font-semibold">🏝️ Welcome to Null Island!</span> These tracks sailed here because they were uploaded without location tags.
-                        Some artists choose this as a badge of freedom from spatial coordinates, while others might want to
-                        <span className="text-pink-300"> add a location tag</span> to plant their flag somewhere specific on the globe.
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 {!isSelectedClusterExpanded ? (
@@ -1777,6 +1771,52 @@ export default function HomePage() {
         onClose={() => setShowResetModal(false)}
         onConfirm={handleResetWidgets}
       />
+
+      {/* Null Island Popup */}
+      {showNullIslandPopup && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowNullIslandPopup(false)}
+        >
+          <div
+            className="relative max-w-sm mx-4 p-6 bg-gradient-to-br from-[#1a2744] to-[#0f1829] border border-[#81E4F2]/40 rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowNullIslandPopup(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Island emoji header */}
+            <div className="text-center mb-4">
+              <span className="text-5xl">🏝️</span>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl font-bold text-center text-[#81E4F2] mb-3">
+              Welcome to Null Island!
+            </h3>
+
+            {/* Description */}
+            <p className="text-sm text-gray-300 leading-relaxed text-center mb-4">
+              You found the legendary home of coordinates <span className="font-mono text-[#81E4F2]">(0°, 0°)</span>!
+            </p>
+            <p className="text-sm text-gray-400 leading-relaxed text-center mb-4">
+              Music that was uploaded without a location tag drifts here. Some artists choose Null Island as a badge of freedom from spatial coordinates, while others simply haven&apos;t tagged their location yet.
+            </p>
+
+            {/* Fun fact */}
+            <div className="bg-[#81E4F2]/10 border border-[#81E4F2]/30 rounded-lg p-3 text-center">
+              <p className="text-xs text-[#81E4F2]">
+                <span className="font-semibold">Fun fact:</span> In the real world, Null Island is a weather buoy in the Gulf of Guinea, off the coast of West Africa!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Playlist Widget - Fixed left position (24px left of mixer edge) */}
       {isPlaylistVisible && (

@@ -24,7 +24,7 @@ export function latLngToVector3(lat: number, lng: number, radius: number): THREE
   return new THREE.Vector3(x, y, z);
 }
 
-export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNode, hoveredNode, backgroundMode = false }: GlobeProps) {
+export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNode, hoveredNode, backgroundMode = false, onNullIslandClick }: GlobeProps & { onNullIslandClick?: () => void }) {
   const globeRef = useRef<THREE.Group>(null);
 
   return (
@@ -67,7 +67,7 @@ export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNo
         {/* Globe mesh with nodes as children */}
         <GlobeMesh ref={globeRef}>
           {/* Null Island - Home of (0,0) coordinates! 🏝️ */}
-          <NullIsland />
+          <NullIsland onClick={onNullIslandClick} />
           
           {/* Grid-based node system with zoom levels */}
           <GridNodeSystem

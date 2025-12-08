@@ -1,17 +1,22 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { latLngToVector3 } from './Globe';
+
+interface NullIslandProps {
+  onClick?: () => void;
+}
 
 /**
  * Null Island - The legendary home of coordinates (0, 0)
  * Where forgetful uploaders and borderless content creators unite! 🏝️
  */
-export function NullIsland() {
+export function NullIsland({ onClick }: NullIslandProps) {
   const islandRef = useRef<THREE.Group>(null);
   const palmRef = useRef<THREE.Group>(null);
+  const [isHovered, setIsHovered] = useState(false);
   
   // Gentle floating animation
   useFrame((state) => {
@@ -27,7 +32,29 @@ export function NullIsland() {
   const islandPosition = latLngToVector3(0, 0, 1.005); // Just above the globe surface
 
   return (
-    <group ref={islandRef} position={islandPosition}>
+    <group
+      ref={islandRef}
+      position={islandPosition}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setIsHovered(true);
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        setIsHovered(false);
+        document.body.style.cursor = 'auto';
+      }}
+    >
+      {/* Invisible click area - larger than island for easier clicking */}
+      <mesh visible={false}>
+        <sphereGeometry args={[0.06, 16, 16]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+
       {/* Main island base - bigger tropical shape */}
       <mesh>
         <cylinderGeometry args={[0.032, 0.024, 0.008, 8]} />
@@ -104,13 +131,13 @@ export function NullIsland() {
         />
       </mesh>
 
-      {/* Enhanced glow effect */}
+      {/* Enhanced glow effect - brighter on hover */}
       <mesh>
         <cylinderGeometry args={[0.048, 0.042, 0.001, 16]} />
         <meshBasicMaterial
           color="#81E4F2"
           transparent
-          opacity={0.15}
+          opacity={isHovered ? 0.4 : 0.15}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
