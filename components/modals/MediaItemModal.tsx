@@ -10,7 +10,7 @@ interface MediaItemModalProps {
   isOpen: boolean;
   onClose: () => void;
   item?: MediaItem;
-  onSave: (item: MediaItem) => void;
+  onSave: (item: MediaItem) => void | Promise<void>;
 }
 
 export default function MediaItemModal({
@@ -111,42 +111,48 @@ export default function MediaItemModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate required fields
     if (!formData.rawUrl.trim()) {
       setError("URL is required");
       return;
     }
-    
+
     try {
       setIsSaving(true);
       setSaveStatus('saving');
-      
-      // Always regenerate the embed URL before saving
+
+      // Get the data to save - regenerate embed URL if needed
+      let dataToSave = formData;
       if (!formData.embedUrl) {
-        generatePreview();
-        
-        // Need to delay to allow the state to update
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        if (!formData.embedUrl) {
-          throw new Error("Failed to generate embed URL");
+        const url = formData.rawUrl.trim();
+        const mediaInfo = parseMediaUrl(url);
+        if (!mediaInfo) {
+          throw new Error("Unable to parse media URL");
         }
+        dataToSave = {
+          ...formData,
+          type: mediaInfo.type,
+          embedUrl: mediaInfo.embedUrl,
+        };
+        // Also update the form state for consistency
+        setFormData(dataToSave);
+        setPreview(getMediaPreview(mediaInfo.type, mediaInfo.embedUrl));
       }
-      
-      // Call the save function (synchronous for media items)
-      onSave(formData);
-      
+
+      // Call the save function and await if it returns a promise
+      await Promise.resolve(onSave(dataToSave));
+
       // Show success state
       setSaveStatus('complete');
-      
+
       // Brief delay to show success message, then close
       setTimeout(() => {
         setIsSaving(false);
         setSaveStatus('idle');
         onClose();
       }, 1500);
-      
+
     } catch (error) {
       console.error('Save failed:', error);
       setIsSaving(false);

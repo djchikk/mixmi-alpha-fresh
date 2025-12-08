@@ -78,17 +78,16 @@ export default function MediaSection({
         setItems(updatedItems);
         await onUpdate();
         console.log('Media items saved successfully');
+        setIsModalOpen(false);
+        setEditingItem(undefined);
       } else {
         console.error('Failed to save media items - service returned false');
-        alert('Failed to save media items. Check console for details.');
+        throw new Error('Failed to save media items');
       }
     } catch (error) {
       console.error('Error saving media item:', error);
-      alert(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error; // Re-throw so modal can catch it
     }
-
-    setIsModalOpen(false);
-    setEditingItem(undefined);
   };
 
   const handleDeleteItem = async (itemId: string) => {
