@@ -123,6 +123,30 @@ export default function SimpleRadioPlayer() {
     };
   }, []);
 
+  // Check for pending radio track from localStorage (saved from other pages like store)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const pendingRadio = localStorage.getItem('mixmi-pending-radio');
+      if (pendingRadio) {
+        try {
+          const track = JSON.parse(pendingRadio);
+          console.log('📻 SimpleRadioPlayer: Found pending radio from localStorage:', track.title);
+          // Clear immediately so it doesn't reload on subsequent renders
+          localStorage.removeItem('mixmi-pending-radio');
+          // Load the track (use slight delay to ensure loadRadioTrack is set up)
+          setTimeout(() => {
+            if ((window as any).loadRadioTrack) {
+              (window as any).loadRadioTrack(track);
+            }
+          }, 100);
+        } catch (e) {
+          console.error('📻 SimpleRadioPlayer: Failed to parse pending radio:', e);
+          localStorage.removeItem('mixmi-pending-radio');
+        }
+      }
+    }
+  }, []);
+
   // Handle play/pause
   const togglePlayPause = () => {
     if (!audioRef.current || !currentStation) return;

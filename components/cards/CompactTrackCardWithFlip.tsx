@@ -842,7 +842,12 @@ export default function CompactTrackCardWithFlip({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if ((window as any).loadRadioTrack) {
+                                  // On home page - load directly
                                   (window as any).loadRadioTrack(track);
+                                } else {
+                                  // Not on home page - save to localStorage for when they navigate back
+                                  localStorage.setItem('mixmi-pending-radio', JSON.stringify(track));
+                                  showToast('Radio station saved! It will load when you return to the globe.', 'success');
                                 }
                               }}
                               className="text-white hover:text-[#81E4F2] transition-colors p-0 flex items-center"
