@@ -14,6 +14,9 @@ import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import IPTrackModal from '@/components/modals/IPTrackModal';
 import ContentTypeSelector from '@/components/modals/ContentTypeSelector';
 import RadioStationModal from '@/components/modals/RadioStationModal';
+import CartWidget from '@/components/CartWidget';
+import SimpleRadioPlayer from '@/components/SimpleRadioPlayer';
+import SimplePlaylistPlayer from '@/components/SimplePlaylistPlayer';
 
 interface ContentFilter {
   type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'video_clip' | 'hidden';
@@ -1044,6 +1047,11 @@ export default function CreatorStorePage() {
           contentCategory="visual"
         />
       )}
+
+      {/* Widgets */}
+      <CartWidget />
+      <SimpleRadioPlayer />
+      <SimplePlaylistPlayer />
 
       <style jsx>{`
         @keyframes waveCardFadeIn {
