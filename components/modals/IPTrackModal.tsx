@@ -546,7 +546,7 @@ export default function IPTrackModal({
         })));
 
         // Calculate and set total EP price
-        const pricePerSong = (formData as any).price_per_song || 2.5;
+        const pricePerSong = (formData as any).price_per_song || 2;
         const totalPrice = pricePerSong * files.length;
         handleInputChange('price_stx', totalPrice);
 
@@ -2606,7 +2606,7 @@ export default function IPTrackModal({
               {formData.allow_downloads && (
                 <div className="flex justify-between">
                   <span className="text-gray-400">Price per Loop:</span>
-                  <span className="text-white">{(formData as any).price_per_loop || 0.5} STX</span>
+                  <span className="text-white">{(formData as any).price_per_loop || 1} STX</span>
                 </div>
               )}
             </>
@@ -2654,9 +2654,9 @@ export default function IPTrackModal({
                       ? `${(formData as any).download_price_stx || (formData as any).download_price || 2} STX`
                       : '1 STX per recorded remix')
                   : formData.content_type === 'ep'
-                    ? `${(((formData as any).price_per_song || 2.5) * ((formData as any).ep_files?.length || (formData as any).ep_song_count || 0)).toFixed(1)} STX`
+                    ? `${(((formData as any).price_per_song || 2) * ((formData as any).ep_files?.length || (formData as any).ep_song_count || 0)).toFixed(1)} STX`
                   : formData.content_type === 'loop_pack'
-                    ? `${(((formData as any).price_per_loop || 0.5) * ((formData as any).loop_files?.length || (formData as any).loop_count || 0)).toFixed(1)} STX (pack)`
+                    ? `${(((formData as any).price_per_loop || 1) * ((formData as any).loop_files?.length || (formData as any).loop_count || 0)).toFixed(1)} STX (pack)`
                     : formData.allow_downloads
                       ? `${(formData as any).download_price_stx || (formData as any).download_price || 2.5} STX`
                       : '1 STX per mix'}

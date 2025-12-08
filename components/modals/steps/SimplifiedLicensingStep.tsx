@@ -237,7 +237,11 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 const checked = e.target.checked;
                 handleInputChange('allow_downloads', checked);
                 handleInputChange('license_type', checked ? 'streaming_download' : 'streaming_only');
-                if (!checked) {
+                if (checked && !formData.price_per_song) {
+                  // Set default price_per_song when enabling downloads
+                  handleInputChange('price_per_song', 2);
+                  handleInputChange('download_price_stx', 2 * songCount);
+                } else if (!checked) {
                   handleInputChange('download_price_stx', null);
                 }
               }}
@@ -421,7 +425,11 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 const checked = e.target.checked;
                 handleInputChange('allow_downloads', checked);
                 handleInputChange('license_type', checked ? 'remix_external' : 'remix_only');
-                if (!checked) {
+                if (checked && !formData.price_per_loop) {
+                  // Set default price_per_loop when enabling downloads
+                  handleInputChange('price_per_loop', 1);
+                  handleInputChange('download_price_stx', 1 * loopCount);
+                } else if (!checked) {
                   handleInputChange('download_price_stx', null);
                 }
                 handleInputChange('remix_price_stx', 1.0);
