@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TrackNode } from './types';
 import { X } from 'lucide-react';
 
@@ -10,6 +10,45 @@ interface NullIslandModalProps {
   nodes: TrackNode[];
   onSelectNode: (node: TrackNode) => void;
 }
+
+// Content type grouping configuration
+const CONTENT_TYPE_GROUPS = [
+  {
+    key: 'radio',
+    label: 'Radio Stations',
+    emoji: '📻',
+    types: ['radio_station', 'station_pack', 'grabbed_radio'],
+    color: '#FF6B4A' // Tomato Coral
+  },
+  {
+    key: 'loops',
+    label: 'Loops',
+    emoji: '🔁',
+    types: ['loop', 'loop_pack'],
+    color: '#9772F4' // Purple
+  },
+  {
+    key: 'songs',
+    label: 'Songs & EPs',
+    emoji: '🎵',
+    types: ['full_song', 'ep'],
+    color: '#D4AF37' // Champagne Gold
+  },
+  {
+    key: 'video',
+    label: 'Video Clips',
+    emoji: '🎬',
+    types: ['video_clip'],
+    color: '#2792F5' // Sky Blue
+  },
+  {
+    key: 'other',
+    label: 'Other',
+    emoji: '🎶',
+    types: [], // Catch-all for unknown types
+    color: '#81E4F2' // Cyan (Accent)
+  }
+];
 
 /**
  * Null Island Modal - Shows content at (0,0) with a fun explainer header
@@ -28,7 +67,36 @@ export function NullIslandModal({
     onClose();
   };
 
-  // Get content type color
+  // Group nodes by content type
+  const groupedNodes = useMemo(() => {
+    const groups: Record<string, TrackNode[]> = {};
+
+    // Initialize groups
+    CONTENT_TYPE_GROUPS.forEach(group => {
+      groups[group.key] = [];
+    });
+
+    // Sort nodes into groups
+    nodes.forEach(node => {
+      // Skip cluster nodes - we want individual tracks
+      if (node.content_type === 'cluster') return;
+
+      const group = CONTENT_TYPE_GROUPS.find(g =>
+        g.types.includes(node.content_type || '')
+      ) || CONTENT_TYPE_GROUPS.find(g => g.key === 'other')!;
+
+      groups[group.key].push(node);
+    });
+
+    return groups;
+  }, [nodes]);
+
+  // Count actual tracks (not clusters)
+  const totalTracks = useMemo(() => {
+    return Object.values(groupedNodes).reduce((sum, group) => sum + group.length, 0);
+  }, [groupedNodes]);
+
+  // Get content type color (matches CONTENT_TYPE_GROUPS)
   const getContentTypeColor = (contentType: string) => {
     switch (contentType) {
       case 'loop':
@@ -36,15 +104,15 @@ export function NullIslandModal({
         return '#9772F4'; // Purple
       case 'full_song':
       case 'ep':
-        return '#FFE4B5'; // Wheat
+        return '#D4AF37'; // Champagne Gold
       case 'radio_station':
       case 'station_pack':
       case 'grabbed_radio':
-        return '#FB923C'; // Orange
+        return '#FF6B4A'; // Tomato Coral
       case 'video_clip':
-        return '#2792F5'; // Blue
+        return '#2792F5'; // Sky Blue
       default:
-        return '#81E4F2'; // Cyan
+        return '#81E4F2'; // Cyan (Accent)
     }
   };
 
@@ -80,17 +148,17 @@ export function NullIslandModal({
           {/* Description */}
           <p className="text-xs text-gray-400 leading-relaxed text-center">
             The home of coordinates <span className="font-mono text-[#81E4F2]">(0°, 0°)</span> - where location-free music lives.
-            {nodes.length > 0 && (
+            {totalTracks > 0 && (
               <span className="block mt-1 text-gray-300">
-                {nodes.length} {nodes.length === 1 ? 'track' : 'tracks'} found here
+                {totalTracks} {totalTracks === 1 ? 'track' : 'tracks'} found here
               </span>
             )}
           </p>
         </div>
 
-        {/* Content List */}
+        {/* Content List - Grouped by Type */}
         <div className="overflow-y-auto flex-1 p-4">
-          {nodes.length === 0 ? (
+          {totalTracks === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-400 text-sm mb-3">No tracks at Null Island yet!</p>
               <p className="text-gray-500 text-xs">
@@ -98,51 +166,70 @@ export function NullIslandModal({
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {nodes.map((node) => (
-                <button
-                  key={node.id}
-                  onClick={() => handleSelectNode(node)}
-                  className="w-full text-left p-3 rounded-lg border border-gray-700/50 hover:border-[#81E4F2]/60 hover:bg-[#81E4F2]/5 transition-all duration-200 group"
-                >
-                  <div className="flex items-center space-x-3">
-                    {node.imageUrl && (
-                      <img
-                        src={node.imageUrl}
-                        alt={node.title}
-                        className="w-12 h-12 rounded-md object-cover flex-shrink-0"
-                      />
-                    )}
-                    {!node.imageUrl && (
-                      <div
-                        className="w-12 h-12 rounded-md flex-shrink-0 flex items-center justify-center"
-                        style={{ backgroundColor: `${getContentTypeColor(node.content_type || '')}20` }}
+            <div className="space-y-4">
+              {CONTENT_TYPE_GROUPS.map(group => {
+                const groupTracks = groupedNodes[group.key];
+                if (groupTracks.length === 0) return null;
+
+                return (
+                  <div key={group.key}>
+                    {/* Group Header */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">{group.emoji}</span>
+                      <h4
+                        className="text-sm font-semibold"
+                        style={{ color: group.color }}
                       >
-                        <span className="text-2xl">🎵</span>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-white truncate group-hover:text-[#81E4F2] transition-colors">
-                        {node.title}
+                        {group.label}
                       </h4>
-                      <p className="text-sm text-gray-400 truncate">
-                        {node.artist}
-                      </p>
-                      {node.content_type && (
-                        <span
-                          className="inline-block text-xs px-2 py-0.5 rounded-full mt-1"
-                          style={{
-                            backgroundColor: `${getContentTypeColor(node.content_type)}20`,
-                            color: getContentTypeColor(node.content_type)
-                          }}
+                      <span className="text-xs text-gray-500">
+                        ({groupTracks.length})
+                      </span>
+                      <div
+                        className="flex-1 h-px ml-2"
+                        style={{ backgroundColor: `${group.color}30` }}
+                      />
+                    </div>
+
+                    {/* Group Items */}
+                    <div className="space-y-1.5 ml-1">
+                      {groupTracks.map((node) => (
+                        <button
+                          key={node.id}
+                          onClick={() => handleSelectNode(node)}
+                          className="w-full text-left p-2.5 rounded-lg border border-gray-700/50 hover:border-[#81E4F2]/60 hover:bg-[#81E4F2]/5 transition-all duration-200 group"
                         >
-                          {node.content_type.replace(/_/g, ' ')}
-                        </span>
-                      )}
+                          <div className="flex items-center space-x-3">
+                            {node.imageUrl && (
+                              <img
+                                src={node.imageUrl}
+                                alt={node.title}
+                                className="w-10 h-10 rounded-md object-cover flex-shrink-0"
+                              />
+                            )}
+                            {!node.imageUrl && (
+                              <div
+                                className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center"
+                                style={{ backgroundColor: `${group.color}20` }}
+                              >
+                                <span className="text-lg">{group.emoji}</span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-white text-sm truncate group-hover:text-[#81E4F2] transition-colors">
+                                {node.title}
+                              </h4>
+                              <p className="text-xs text-gray-400 truncate">
+                                {node.artist}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

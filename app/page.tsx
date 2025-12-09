@@ -1775,12 +1775,20 @@ export default function HomePage() {
 
       {/* Null Island Modal - shows content at (0,0) with explainer header */}
       {/* Null Island nodes are scattered within ~2.5 degrees radius, so we check within 3 degrees */}
+      {/* We expand any clusters at Null Island to show all individual tracks */}
       <NullIslandModal
         isOpen={showNullIslandPopup}
         onClose={() => setShowNullIslandPopup(false)}
-        nodes={globeNodes.filter(node =>
-          Math.abs(node.coordinates.lat) < 3 && Math.abs(node.coordinates.lng) < 3
-        )}
+        nodes={globeNodes
+          .filter(node => Math.abs(node.coordinates.lat) < 3 && Math.abs(node.coordinates.lng) < 3)
+          .flatMap(node => {
+            // Expand clusters to get individual tracks
+            if (isClusterNode(node)) {
+              return node.tracks;
+            }
+            return [node];
+          })
+        }
         onSelectNode={(node) => {
           // Open the node's card when selected from the modal
           const newPinnedCard = {
