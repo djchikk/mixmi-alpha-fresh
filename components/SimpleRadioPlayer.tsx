@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Radio, Play, Pause, Volume2, VolumeX, X } from 'lucide-react';
-import { useDrop } from 'react-dnd';
+import { Radio, Play, Pause, Volume2, VolumeX, X, GripVertical } from 'lucide-react';
+import { useDrag, useDrop } from 'react-dnd';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,7 @@ export default function SimpleRadioPlayer() {
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [hasRestoredState, setHasRestoredState] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -123,29 +124,90 @@ export default function SimpleRadioPlayer() {
     };
   }, []);
 
-  // Check for pending radio track from localStorage (saved from other pages like store)
+  // Restore persisted radio state on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !hasRestoredState) {
+      // First check for pending radio (one-time transfer from other pages)
       const pendingRadio = localStorage.getItem('mixmi-pending-radio');
       if (pendingRadio) {
         try {
           const track = JSON.parse(pendingRadio);
           console.log('📻 SimpleRadioPlayer: Found pending radio from localStorage:', track.title);
-          // Clear immediately so it doesn't reload on subsequent renders
           localStorage.removeItem('mixmi-pending-radio');
-          // Load the track (use slight delay to ensure loadRadioTrack is set up)
           setTimeout(() => {
             if ((window as any).loadRadioTrack) {
               (window as any).loadRadioTrack(track);
             }
           }, 100);
+          setHasRestoredState(true);
+          return;
         } catch (e) {
           console.error('📻 SimpleRadioPlayer: Failed to parse pending radio:', e);
           localStorage.removeItem('mixmi-pending-radio');
         }
       }
+
+      // Then check for persisted station state (survives page navigation)
+      const savedState = localStorage.getItem('mixmi-radio-state');
+      if (savedState) {
+        try {
+          const { station, wasPlaying, savedVolume, savedExpanded } = JSON.parse(savedState);
+          console.log('📻 SimpleRadioPlayer: Restoring persisted state:', station?.title, 'wasPlaying:', wasPlaying);
+
+          if (station) {
+            setCurrentStation(station);
+            setIsExpanded(savedExpanded ?? true);
+            if (savedVolume !== undefined) setVolume(savedVolume);
+
+            // Set up audio and auto-play if it was playing before
+            if (audioRef.current) {
+              const rawStreamUrl = station.stream_url || station.audio_url;
+              if (rawStreamUrl) {
+                const audioSource = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+                audioRef.current.src = audioSource;
+                audioRef.current.volume = savedVolume ?? 0.7;
+                audioRef.current.load();
+
+                if (wasPlaying) {
+                  audioRef.current.play()
+                    .then(() => {
+                      setIsPlaying(true);
+                      console.log('📻 SimpleRadioPlayer: Restored and playing');
+                    })
+                    .catch(error => {
+                      console.error('📻 SimpleRadioPlayer: Auto-play blocked:', error);
+                      setIsPlaying(false);
+                    });
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error('📻 SimpleRadioPlayer: Failed to restore state:', e);
+        }
+      }
+      setHasRestoredState(true);
     }
-  }, []);
+  }, [hasRestoredState]);
+
+  // Persist radio state to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && hasRestoredState) {
+      if (currentStation) {
+        const stateToSave = {
+          station: currentStation,
+          wasPlaying: isPlaying,
+          savedVolume: volume,
+          savedExpanded: isExpanded
+        };
+        localStorage.setItem('mixmi-radio-state', JSON.stringify(stateToSave));
+        console.log('📻 SimpleRadioPlayer: Saved state to localStorage');
+      } else {
+        // Clear persisted state if no station
+        localStorage.removeItem('mixmi-radio-state');
+      }
+    }
+  }, [currentStation, isPlaying, volume, isExpanded, hasRestoredState]);
 
   // Handle play/pause
   const togglePlayPause = () => {
@@ -255,6 +317,33 @@ export default function SimpleRadioPlayer() {
   const isOverAny = isOverRadio || isOver;
   const canDropAny = canDropRadio || canDrop;
 
+  // Drag functionality for current station - drag to crate, playlist, or mixer
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'COLLECTION_TRACK',
+    item: () => {
+      if (!currentStation) return null;
+      return {
+        track: {
+          id: currentStation.id,
+          title: currentStation.title,
+          artist: currentStation.artist || currentStation.artist_name || 'Live Station',
+          imageUrl: currentStation.cover_image_url,
+          cover_image_url: currentStation.cover_image_url,
+          audioUrl: currentStation.stream_url || currentStation.audio_url,
+          audio_url: currentStation.audio_url,
+          stream_url: currentStation.stream_url,
+          content_type: currentStation.content_type || 'radio_station',
+          bpm: currentStation.bpm,
+          pack_position: currentStation.pack_position
+        }
+      };
+    },
+    canDrag: () => !!currentStation,
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging()
+    })
+  }), [currentStation]);
+
   return (
     <>
       {/* Large invisible drop zone for radio - extends left and up from radio position */}
@@ -330,13 +419,22 @@ export default function SimpleRadioPlayer() {
         <>
       {/* Station Info & Controls */}
       <div className="flex gap-3">
-        {/* Station Artwork */}
-        <div className="loaded-radio-artwork flex-shrink-0 rounded-lg overflow-hidden relative">
+        {/* Station Artwork - Draggable */}
+        <div
+          ref={drag as any}
+          className={`loaded-radio-artwork flex-shrink-0 rounded-lg overflow-hidden relative cursor-grab active:cursor-grabbing group ${isDragging ? 'opacity-50' : ''}`}
+          title="Drag to Crate or Playlist"
+        >
           <img
             src={getOptimizedTrackImage(currentStation, 60)}
             alt={currentStation.title}
             className="w-full h-full object-cover"
           />
+
+          {/* Drag handle indicator - shows on hover */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <GripVertical className="w-5 h-5 text-white" />
+          </div>
 
           {/* Pack position badge - top left */}
           {currentStation.pack_position && (

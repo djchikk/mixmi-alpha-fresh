@@ -26,10 +26,11 @@ export default function SimplePlaylistPlayer() {
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [hasRestoredState, setHasRestoredState] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize audio element
+  // Initialize audio element and restore state
   useEffect(() => {
     audioRef.current = new Audio();
     audioRef.current.volume = volume;
@@ -42,10 +43,36 @@ export default function SimplePlaylistPlayer() {
           const data = JSON.parse(saved);
           setPlaylist(data.playlist || []);
           setCurrentIndex(data.currentIndex ?? -1);
+          if (data.savedVolume !== undefined) setVolume(data.savedVolume);
+          if (data.savedMuted !== undefined) setIsMuted(data.savedMuted);
+          if (data.savedExpanded !== undefined) setIsExpanded(data.savedExpanded);
+
+          // Set up audio volume
+          if (audioRef.current) {
+            audioRef.current.volume = data.savedMuted ? 0 : (data.savedVolume ?? 0.7);
+          }
+
+          // Auto-resume playback if it was playing
+          if (data.wasPlaying && data.currentIndex >= 0 && data.playlist?.[data.currentIndex]) {
+            const track = data.playlist[data.currentIndex];
+            if (audioRef.current && track.audioUrl) {
+              audioRef.current.src = track.audioUrl;
+              audioRef.current.play()
+                .then(() => {
+                  setIsPlaying(true);
+                  console.log('📃 Playlist: Restored and playing:', track.title);
+                })
+                .catch(error => {
+                  console.error('📃 Playlist: Auto-play blocked:', error);
+                  setIsPlaying(false);
+                });
+            }
+          }
         } catch (e) {
           console.error('Error loading playlist:', e);
         }
       }
+      setHasRestoredState(true);
     }
 
     return () => {
@@ -56,15 +83,19 @@ export default function SimplePlaylistPlayer() {
     };
   }, []);
 
-  // Save to localStorage
+  // Save to localStorage (includes playback state)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && hasRestoredState) {
       localStorage.setItem('simple-playlist', JSON.stringify({
         playlist,
-        currentIndex
+        currentIndex,
+        wasPlaying: isPlaying,
+        savedVolume: volume,
+        savedMuted: isMuted,
+        savedExpanded: isExpanded
       }));
     }
-  }, [playlist, currentIndex]);
+  }, [playlist, currentIndex, isPlaying, volume, isMuted, isExpanded, hasRestoredState]);
 
   // Helper to fetch pack tracks
   const fetchPackTracks = async (packTrack: any): Promise<IPTrack[]> => {
