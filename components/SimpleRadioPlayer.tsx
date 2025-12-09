@@ -3,9 +3,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Radio, Play, Pause, Volume2, VolumeX, X, GripVertical } from 'lucide-react';
 import { useDrag, useDrop } from 'react-dnd';
+import Hls from 'hls.js';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import { supabase } from '@/lib/supabase';
+
+// Helper to detect HLS streams
+const isHlsStream = (url: string): boolean => {
+  return url.includes('.m3u8') || url.includes('m3u8');
+};
 
 export default function SimpleRadioPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -16,6 +22,81 @@ export default function SimpleRadioPlayer() {
   const [hasRestoredState, setHasRestoredState] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
+
+  // Helper to load audio source (handles both HLS and regular streams)
+  const loadAudioSource = (audio: HTMLAudioElement, rawUrl: string) => {
+    // Clean up existing HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (isHlsStream(rawUrl) && Hls.isSupported()) {
+      // Use HLS.js for m3u8 streams - load directly (most HLS servers have CORS)
+      console.log('📻 Using HLS.js for stream:', rawUrl);
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        // Add xhrSetup to handle CORS if needed
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = false;
+        },
+      });
+      hlsRef.current = hls;
+
+      // Try direct first, fall back to proxy if CORS fails
+      hls.loadSource(rawUrl);
+      hls.attachMedia(audio);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log('📻 HLS manifest loaded successfully');
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error('📻 HLS error:', data.type, data.details);
+        if (data.fatal) {
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            // Try proxied URL as fallback
+            console.log('📻 HLS direct failed, trying proxied URL...');
+            hls.destroy();
+
+            // Create new HLS instance with proxied URL
+            const proxyHls = new Hls({
+              enableWorker: true,
+              lowLatencyMode: true,
+            });
+            hlsRef.current = proxyHls;
+            const proxiedUrl = `/api/radio-proxy?url=${encodeURIComponent(rawUrl)}`;
+            proxyHls.loadSource(proxiedUrl);
+            proxyHls.attachMedia(audio);
+
+            proxyHls.on(Hls.Events.ERROR, (event2, data2) => {
+              if (data2.fatal) {
+                console.error('📻 HLS proxy also failed, giving up');
+                proxyHls.destroy();
+                hlsRef.current = null;
+              }
+            });
+          } else {
+            hls.destroy();
+            hlsRef.current = null;
+          }
+        }
+      });
+    } else if (isHlsStream(rawUrl) && audio.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari native HLS support - load directly
+      console.log('📻 Using native HLS support');
+      audio.src = rawUrl;
+      audio.load();
+    } else {
+      // Regular audio stream (MP3, AAC, etc.) - use proxy for CORS
+      console.log('📻 Using standard audio playback (proxied)');
+      const audioSource = `/api/radio-proxy?url=${encodeURIComponent(rawUrl)}`;
+      audio.src = audioSource;
+      audio.load();
+    }
+  };
 
   // Initialize audio element
   useEffect(() => {
@@ -63,10 +144,8 @@ export default function SimpleRadioPlayer() {
               return;
             }
 
-            // Proxy radio streams through API to avoid CORS issues
-            const audioSource = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
-            audioRef.current.src = audioSource;
-            audioRef.current.load();
+            // Load audio source (handles HLS and regular streams)
+            loadAudioSource(audioRef.current, rawStreamUrl);
 
             // Auto-play when loading new station
             audioRef.current.play()
@@ -94,10 +173,8 @@ export default function SimpleRadioPlayer() {
             return;
           }
 
-          // Proxy radio streams through API to avoid CORS issues
-          const audioSource = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
-          audioRef.current.src = audioSource;
-          audioRef.current.load();
+          // Load audio source (handles HLS and regular streams)
+          loadAudioSource(audioRef.current, rawStreamUrl);
 
           // Auto-play when loading new station
           audioRef.current.play()
@@ -114,6 +191,11 @@ export default function SimpleRadioPlayer() {
     }
 
     return () => {
+      // Clean up HLS instance
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -163,10 +245,9 @@ export default function SimpleRadioPlayer() {
             if (audioRef.current) {
               const rawStreamUrl = station.stream_url || station.audio_url;
               if (rawStreamUrl) {
-                const audioSource = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
-                audioRef.current.src = audioSource;
+                // Load audio source (handles HLS and regular streams)
+                loadAudioSource(audioRef.current, rawStreamUrl);
                 audioRef.current.volume = savedVolume ?? 0.7;
-                audioRef.current.load();
 
                 if (wasPlaying) {
                   audioRef.current.play()
