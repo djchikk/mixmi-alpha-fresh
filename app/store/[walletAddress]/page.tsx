@@ -39,6 +39,7 @@ export default function CreatorStorePage() {
   const [creatorName, setCreatorName] = useState<string>('');
   const [actualWalletAddress, setActualWalletAddress] = useState<string>('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [storeLabel, setStoreLabel] = useState<string>('Store');
   const [isContentTypeSelectorOpen, setIsContentTypeSelectorOpen] = useState(false);
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
   const [isRadioModalOpen, setIsRadioModalOpen] = useState(false);
@@ -81,7 +82,7 @@ export default function CreatorStorePage() {
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('display_name, username, avatar_url')
+            .select('display_name, username, avatar_url, store_label')
             .eq('wallet_address', walletOrUsername)
             .single();
 
@@ -99,6 +100,11 @@ export default function CreatorStorePage() {
               setProfileImage(profileData.avatar_url);
             }
             // Otherwise leave it for track fetch to set from first track cover
+
+            // Set store label from profile if customized
+            if (profileData.store_label) {
+              setStoreLabel(profileData.store_label);
+            }
           }
         } catch (error) {
           console.error('Error fetching profile data:', error);
@@ -110,7 +116,7 @@ export default function CreatorStorePage() {
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('wallet_address, display_name, username, avatar_url')
+            .select('wallet_address, display_name, username, avatar_url, store_label')
             .eq('username', walletOrUsername)
             .single();
 
@@ -127,6 +133,11 @@ export default function CreatorStorePage() {
             // Set profile image from avatar_url if customized
             if (profileData.avatar_url) {
               setProfileImage(profileData.avatar_url);
+            }
+
+            // Set store label from profile if customized
+            if (profileData.store_label) {
+              setStoreLabel(profileData.store_label);
             }
           } else {
             // Username not found, treat as wallet address
@@ -525,9 +536,9 @@ export default function CreatorStorePage() {
                       >
                         {creatorName}
                       </Link>
-                      's Store
+                      's {storeLabel}
                     </>
-                  ) : 'Creator Store'}
+                  ) : `Creator ${storeLabel}`}
                 </span>
               </h1>
               <p className="text-gray-400 mt-1">

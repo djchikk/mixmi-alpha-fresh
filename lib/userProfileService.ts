@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 
+export type StoreLabel = 'Store' | 'Space' | 'Shelf' | 'Spot' | 'Stall';
+
 export interface UserProfile {
   wallet_address: string;
   username?: string;
@@ -13,6 +15,7 @@ export interface UserProfile {
   custom_sticker?: string;
   show_wallet_address: boolean;
   show_btc_address: boolean;
+  store_label?: StoreLabel;
   created_at: string;
   updated_at: string;
 }

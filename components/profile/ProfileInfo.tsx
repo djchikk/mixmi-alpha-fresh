@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useToast } from "@/contexts/ToastContext";
-import { Instagram, Youtube, Music, Github, Twitch, Clipboard, Edit2 } from "lucide-react";
+import { Instagram, Youtube, Music, Github, Twitch, Clipboard, Edit2, ChevronDown } from "lucide-react";
+import { UserProfileService } from "@/lib/userProfileService";
 import {
   FaSoundcloud,
   FaMixcloud,
@@ -10,6 +11,8 @@ import {
   FaXTwitter
 } from "react-icons/fa6";
 import ProfileInfoModal from "./ProfileInfoModal";
+
+type StoreLabel = 'Store' | 'Space' | 'Shelf' | 'Spot' | 'Stall';
 
 interface ProfileInfoProps {
   profile: {
@@ -19,6 +22,7 @@ interface ProfileInfoProps {
     show_wallet_address?: boolean;
     show_btc_address?: boolean;
     btc_address?: string | null;
+    store_label?: StoreLabel | null;
   };
   links: Array<{
     platform: string;
@@ -31,6 +35,8 @@ interface ProfileInfoProps {
   onUpdate: () => Promise<void>;
 }
 
+const STORE_LABEL_OPTIONS: StoreLabel[] = ['Store', 'Space', 'Shelf', 'Spot', 'Stall'];
+
 export default function ProfileInfo({
   profile,
   links,
@@ -42,6 +48,45 @@ export default function ProfileInfo({
 }: ProfileInfoProps) {
   const { showToast } = useToast();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showLabelDropdown, setShowLabelDropdown] = useState(false);
+  const [isUpdatingLabel, setIsUpdatingLabel] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Current store label (default to 'Store' if not set)
+  const currentStoreLabel = profile.store_label || 'Store';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowLabelDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle store label change
+  const handleLabelChange = async (newLabel: StoreLabel) => {
+    if (newLabel === currentStoreLabel) {
+      setShowLabelDropdown(false);
+      return;
+    }
+
+    setIsUpdatingLabel(true);
+    try {
+      await UserProfileService.updateProfile(targetWallet, { store_label: newLabel });
+      showToast(`Button updated to "${newLabel}"`, 'success');
+      setShowLabelDropdown(false);
+      await onUpdate();
+    } catch (error) {
+      console.error('Failed to update store label:', error);
+      showToast('Failed to update label', 'error');
+    } finally {
+      setIsUpdatingLabel(false);
+    }
+  };
   
   // Map social links to their icons
   const getSocialIcon = (platform: string) => {
@@ -179,12 +224,64 @@ export default function ProfileInfo({
       {/* Store Button */}
       {hasUploadedTracks && (
         <div className="flex justify-center mt-6">
-          <a
-            href={`/store/${username || targetWallet}`}
-            className="px-8 py-2 bg-[#061F3C] border-2 border-[#81E4F2] rounded-lg text-[#81E4F2] font-medium hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300"
-          >
-            Store
-          </a>
+          <div className="relative" ref={dropdownRef}>
+            {/* Main button - link for visitors, dropdown trigger for owners */}
+            {isOwnProfile ? (
+              <button
+                onClick={() => setShowLabelDropdown(!showLabelDropdown)}
+                disabled={isUpdatingLabel}
+                className="px-8 py-2 bg-[#061F3C] border-2 border-[#81E4F2] rounded-lg text-[#81E4F2] font-medium hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300 flex items-center gap-2 disabled:opacity-50"
+              >
+                {isUpdatingLabel ? (
+                  <div className="w-4 h-4 border-2 border-[#81E4F2] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    {currentStoreLabel}
+                    <ChevronDown size={16} className={`transition-transform ${showLabelDropdown ? 'rotate-180' : ''}`} />
+                  </>
+                )}
+              </button>
+            ) : (
+              <a
+                href={`/store/${username || targetWallet}`}
+                className="px-8 py-2 bg-[#061F3C] border-2 border-[#81E4F2] rounded-lg text-[#81E4F2] font-medium hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300 inline-block"
+              >
+                {currentStoreLabel}
+              </a>
+            )}
+
+            {/* Dropdown for owners */}
+            {isOwnProfile && showLabelDropdown && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[#0f172a] border border-[#81E4F2]/40 rounded-lg shadow-xl overflow-hidden z-50 min-w-[140px]">
+                {/* Go to store link */}
+                <a
+                  href={`/store/${username || targetWallet}`}
+                  className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#81E4F2]/10 hover:text-[#81E4F2] border-b border-[#81E4F2]/20"
+                >
+                  Go to {currentStoreLabel} →
+                </a>
+                {/* Divider with label */}
+                <div className="px-4 py-1.5 text-xs text-gray-500 bg-slate-800/50">
+                  Change button label:
+                </div>
+                {/* Label options */}
+                {STORE_LABEL_OPTIONS.map((label) => (
+                  <button
+                    key={label}
+                    onClick={() => handleLabelChange(label)}
+                    className={`w-full px-4 py-2 text-sm text-left transition-colors ${
+                      label === currentStoreLabel
+                        ? 'bg-[#81E4F2]/20 text-[#81E4F2] font-medium'
+                        : 'text-gray-300 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                    {label === currentStoreLabel && ' ✓'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
       </div>
