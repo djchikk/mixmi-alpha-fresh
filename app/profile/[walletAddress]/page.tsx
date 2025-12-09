@@ -164,7 +164,9 @@ export default function UserProfilePage() {
   const profile = profileData?.profile ? {
     ...profileData.profile,
     // Use "..." placeholder if tagline is empty
-    tagline: profileData.profile.tagline || '...'
+    tagline: profileData.profile.tagline || '...',
+    // Ensure store_label is passed through
+    store_label: profileData.profile.store_label || 'Store'
   } : {
     wallet_address: identifier.startsWith('SP') || identifier.startsWith('ST') ? identifier : '',
     display_name: artistName, // Use fetched artist name instead of 'New User'
@@ -176,6 +178,7 @@ export default function UserProfilePage() {
     custom_sticker: undefined,
     show_wallet_address: true,
     show_btc_address: false,
+    store_label: 'Store',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
