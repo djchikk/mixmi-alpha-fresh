@@ -95,15 +95,15 @@ function getGridPosition(index: number, total: number, baseSpacing: number): { x
 }
 
 // Individual node component
-function GridNode({ 
-  node, 
-  position, 
-  color, 
-  onClick, 
+function GridNode({
+  node,
+  position,
+  color,
+  onClick,
   onHover,
-  groupSize 
-}: { 
-  node: TrackNode; 
+  groupSize
+}: {
+  node: TrackNode;
   position: THREE.Vector3;
   color: string;
   onClick: () => void;
@@ -117,7 +117,23 @@ function GridNode({
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   const [hovered, setHovered] = React.useState(false);
-  
+
+  // Deterministic animation offset based on node position (lat/lng creates unique but stable offset)
+  const breathingOffset = useMemo(() => {
+    // Use lat/lng to create a pseudo-random but deterministic offset (0-1 range)
+    const latOffset = (node.coordinates.lat + 90) / 180; // Normalize -90..90 to 0..1
+    const lngOffset = (node.coordinates.lng + 180) / 360; // Normalize -180..180 to 0..1
+    // Combine them for more variation, multiply by 2π for full cycle offset
+    return ((latOffset * 3.7 + lngOffset * 2.3) % 1) * Math.PI * 2;
+  }, [node.coordinates.lat, node.coordinates.lng]);
+
+  // Breathing cycle duration (3-5 seconds, varied per node)
+  const breathingSpeed = useMemo(() => {
+    // Vary speed between 0.8 and 1.5 (slower = more gentle)
+    const variation = ((node.coordinates.lat * 7 + node.coordinates.lng * 11) % 100) / 100;
+    return 0.8 + variation * 0.7; // Results in 0.8 to 1.5
+  }, [node.coordinates.lat, node.coordinates.lng]);
+
   // Animation values for smooth transitions
   const hoverTransition = useRef({
     scale: 1,
@@ -172,11 +188,6 @@ function GridNode({
     hoverTransition.current.glowOpacity += (targetGlowOpacity - hoverTransition.current.glowOpacity) * delta * transitionSpeed;
     hoverTransition.current.glowScale += (targetGlowScale - hoverTransition.current.glowScale) * delta * transitionSpeed;
     
-    // Fade glow based on zoom and hover
-    if (glowRef.current.material instanceof THREE.MeshBasicMaterial) {
-      glowRef.current.material.opacity = hoverTransition.current.glowOpacity;
-    }
-    
     // Apply glow scale
     glowRef.current.scale.setScalar(hoverTransition.current.glowScale);
     
@@ -186,11 +197,20 @@ function GridNode({
       ringRef.current.material.opacity = ringOpacity;
     }
     
-    // Subtle pulse continues on hover
+    // Staggered breathing animation - each node breathes on its own rhythm
     const time = state.clock.elapsedTime;
-    const basePulse = Math.sin(time * 2) * 0.05;
-    const scale = hoverTransition.current.scale + basePulse;
+    // Use the deterministic offset and varied speed for this node's breathing
+    const breathingPhase = (time * breathingSpeed) + breathingOffset;
+    // Gentle breath: scale oscillates between 0.92 and 1.08 (subtle but visible)
+    const breathingPulse = Math.sin(breathingPhase) * 0.08;
+    const scale = hoverTransition.current.scale + breathingPulse;
     meshRef.current.scale.setScalar(scale);
+
+    // Also apply subtle breathing to glow opacity for extra life
+    const glowBreathing = Math.sin(breathingPhase) * 0.1 + 0.1; // 0 to 0.2 range added to base
+    if (glowRef.current.material instanceof THREE.MeshBasicMaterial) {
+      glowRef.current.material.opacity = hoverTransition.current.glowOpacity + glowBreathing;
+    }
     
     // Update outer glow if exists
     if (outerGlowRef.current) {

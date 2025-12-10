@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Text } from '@react-three/drei';
@@ -20,6 +20,22 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   const pulse3Ref = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const { camera } = useThree();
+
+  // Deterministic animation offset based on node position (lat/lng creates unique but stable offset)
+  const breathingOffset = useMemo(() => {
+    // Use lat/lng to create a pseudo-random but deterministic offset (0-1 range)
+    const latOffset = (node.coordinates.lat + 90) / 180; // Normalize -90..90 to 0..1
+    const lngOffset = (node.coordinates.lng + 180) / 360; // Normalize -180..180 to 0..1
+    // Combine them for more variation, multiply by 2π for full cycle offset
+    return ((latOffset * 3.7 + lngOffset * 2.3) % 1) * Math.PI * 2;
+  }, [node.coordinates.lat, node.coordinates.lng]);
+
+  // Breathing cycle duration (3-5 seconds, varied per node)
+  const breathingSpeed = useMemo(() => {
+    // Vary speed between 0.8 and 1.5 (slower = more gentle)
+    const variation = ((node.coordinates.lat * 7 + node.coordinates.lng * 11) % 100) / 100;
+    return 0.8 + variation * 0.7; // Results in 0.8 to 1.5
+  }, [node.coordinates.lat, node.coordinates.lng]);
 
   // Animation values for smooth transitions
   const hoverTransition = useRef({
@@ -54,13 +70,18 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
     hoverTransition.current.scale += (targetScale - hoverTransition.current.scale) * delta * transitionSpeed;
     hoverTransition.current.intensity += (targetIntensity - hoverTransition.current.intensity) * delta * transitionSpeed;
 
-    // Core sphere - only subtle pulse on hover
+    // Core sphere - staggered breathing animation
     if (coreRef.current) {
       if (ENABLE_PULSE_ANIMATION) {
         const corePulse = Math.sin(time * 2) * 0.1 + 1;
         coreRef.current.scale.setScalar(corePulse * hoverTransition.current.scale);
       } else {
-        coreRef.current.scale.setScalar(hoverTransition.current.scale);
+        // Staggered breathing animation - each node breathes on its own rhythm
+        const breathingPhase = (time * breathingSpeed) + breathingOffset;
+        // Gentle breath: scale oscillates between 0.92 and 1.08 (subtle but visible)
+        const breathingPulse = Math.sin(breathingPhase) * 0.08;
+        const scale = hoverTransition.current.scale + breathingPulse;
+        coreRef.current.scale.setScalar(scale);
       }
     }
 
