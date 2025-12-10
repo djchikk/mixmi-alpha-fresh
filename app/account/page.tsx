@@ -730,7 +730,13 @@ const getLibraryBorderThickness = (track: Track) => {
                 key={track.id}
                 track={track as any}
                 isPlaying={playingTrackId === track.id}
-                onPlayPreview={(t) => handlePlayClick(t as any, { stopPropagation: () => {} } as any)}
+                onPlayPreview={(trackId: string, audioUrl?: string) => {
+                  // Find the track by ID and call handlePlayClick
+                  const foundTrack = tracks.find(t => t.id === trackId);
+                  if (foundTrack) {
+                    handlePlayClick(foundTrack, { stopPropagation: () => {} } as React.MouseEvent);
+                  }
+                }}
                 onStopPreview={() => {
                   if (audioElement) {
                     audioElement.pause();
