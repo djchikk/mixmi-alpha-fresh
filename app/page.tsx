@@ -1013,6 +1013,39 @@ export default function HomePage() {
           playingTrackId={playingTrackId}
         />
 
+        {/* Content type legend - vertically centered left margin */}
+        <div
+          className="fixed left-4 z-20 flex flex-col gap-2 pointer-events-none"
+          style={{
+            top: '50%',
+            transform: 'translateY(-50%)',
+            fontFamily: 'var(--font-geist-mono)'
+          }}
+        >
+          {[
+            { label: 'loops', color: '#9772F4', textColor: '#B9A4F8' },
+            { label: 'songs', color: '#D4AF37', textColor: '#E8D08A' },
+            { label: 'radio', color: '#FF6B4A', textColor: '#FFA08A' },
+            { label: 'video', color: '#2792F5', textColor: '#6BB8F9' },
+          ].map(({ label, color, textColor }) => (
+            <div key={label} className="flex items-center gap-2">
+              <div
+                className="w-[10px] h-[10px] rounded-full"
+                style={{
+                  backgroundColor: color,
+                  boxShadow: `0 0 6px ${color}80`
+                }}
+              />
+              <span
+                className="text-[10px] lowercase tracking-wide"
+                style={{ color: textColor }}
+              >
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+
         {/* Globe fills entire container */}
         <div className="w-full h-full relative">
           <Globe

@@ -124,6 +124,14 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
 
   return (
     <div className={`master-transport-controls relative grid grid-cols-3 items-center gap-4 bg-[#81E4F2]/10 rounded-lg px-3 py-2 ${className}`}>
+      {/* Mixer label - positioned just above the transport controls */}
+      <div
+        className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-500 uppercase tracking-[0.2em]"
+        style={{ fontFamily: 'var(--font-geist-mono)' }}
+      >
+        MIXER
+      </div>
+
       {/* Count-In Display - positioned above controls, not overlapping */}
       {countingIn && (
         <div className="count-in-display absolute -top-12 left-1/2 transform -translate-x-1/2">

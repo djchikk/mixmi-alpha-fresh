@@ -9,6 +9,9 @@ import { latLngToVector3 } from './Globe';
 
 const RADIO_ORANGE = '#FF6B4A';
 
+// Set to true to enable pulsing animation (disabled for now - too many stations)
+const ENABLE_PULSE_ANIMATION = false;
+
 export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
   const coreRef = useRef<THREE.Mesh>(null);
@@ -21,7 +24,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
   // Animation values for smooth transitions
   const hoverTransition = useRef({
     scale: 1,
-    intensity: 0.8
+    intensity: 0.4
   });
 
   // Calculate position
@@ -34,10 +37,10 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
     const time = state.clock.elapsedTime;
     const cameraDistance = camera.position.length();
 
-    // Scale compensation to maintain constant visual size - smaller due to pulsing animation
+    // Scale compensation to maintain constant visual size (matches GridNodeSystem)
     const referenceDistance = 2.5;
     const scaleCompensation = cameraDistance / referenceDistance;
-    let constantSizeScale = scaleCompensation * 0.55; // Increased further for better clickability
+    let constantSizeScale = scaleCompensation * 0.7; // Same as other content nodes
     const minScale = 0.4;
     const maxScale = 2.5;
     constantSizeScale = Math.max(minScale, Math.min(maxScale, constantSizeScale));
@@ -46,40 +49,46 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
     // Smooth hover transitions
     const transitionSpeed = 8;
     const targetScale = hovered ? 1.2 : 1;
-    const targetIntensity = hovered ? 1.2 : 0.8;
+    const targetIntensity = hovered ? 0.8 : 0.4;
 
     hoverTransition.current.scale += (targetScale - hoverTransition.current.scale) * delta * transitionSpeed;
     hoverTransition.current.intensity += (targetIntensity - hoverTransition.current.intensity) * delta * transitionSpeed;
 
-    // Core sphere subtle pulse
+    // Core sphere - only subtle pulse on hover
     if (coreRef.current) {
-      const corePulse = Math.sin(time * 2) * 0.1 + 1;
-      coreRef.current.scale.setScalar(corePulse * hoverTransition.current.scale);
+      if (ENABLE_PULSE_ANIMATION) {
+        const corePulse = Math.sin(time * 2) * 0.1 + 1;
+        coreRef.current.scale.setScalar(corePulse * hoverTransition.current.scale);
+      } else {
+        coreRef.current.scale.setScalar(hoverTransition.current.scale);
+      }
     }
 
-    // Animate pulsing spheres - expanding and fading
-    if (pulse1Ref.current) {
-      const pulse1Progress = (time * 1.2) % 2;
-      const pulse1Scale = 1 + pulse1Progress * 2.0;
-      pulse1Ref.current.scale.setScalar(pulse1Scale);
-      (pulse1Ref.current.material as THREE.MeshBasicMaterial).opacity =
-        Math.max(0, (1 - pulse1Progress / 2) * 0.6 * hoverTransition.current.intensity);
-    }
+    // Pulsing spheres animation (only if enabled)
+    if (ENABLE_PULSE_ANIMATION) {
+      if (pulse1Ref.current) {
+        const pulse1Progress = (time * 0.8) % 2;
+        const pulse1Scale = 1 + pulse1Progress * 1.0;
+        pulse1Ref.current.scale.setScalar(pulse1Scale);
+        (pulse1Ref.current.material as THREE.MeshBasicMaterial).opacity =
+          Math.max(0, (1 - pulse1Progress / 2) * 0.35 * hoverTransition.current.intensity);
+      }
 
-    if (pulse2Ref.current) {
-      const pulse2Progress = ((time * 1.2) + 0.66) % 2;
-      const pulse2Scale = 1 + pulse2Progress * 2.0;
-      pulse2Ref.current.scale.setScalar(pulse2Scale);
-      (pulse2Ref.current.material as THREE.MeshBasicMaterial).opacity =
-        Math.max(0, (1 - pulse2Progress / 2) * 0.6 * hoverTransition.current.intensity);
-    }
+      if (pulse2Ref.current) {
+        const pulse2Progress = ((time * 0.8) + 0.66) % 2;
+        const pulse2Scale = 1 + pulse2Progress * 1.0;
+        pulse2Ref.current.scale.setScalar(pulse2Scale);
+        (pulse2Ref.current.material as THREE.MeshBasicMaterial).opacity =
+          Math.max(0, (1 - pulse2Progress / 2) * 0.35 * hoverTransition.current.intensity);
+      }
 
-    if (pulse3Ref.current) {
-      const pulse3Progress = ((time * 1.2) + 1.33) % 2;
-      const pulse3Scale = 1 + pulse3Progress * 2.0;
-      pulse3Ref.current.scale.setScalar(pulse3Scale);
-      (pulse3Ref.current.material as THREE.MeshBasicMaterial).opacity =
-        Math.max(0, (1 - pulse3Progress / 2) * 0.6 * hoverTransition.current.intensity);
+      if (pulse3Ref.current) {
+        const pulse3Progress = ((time * 0.8) + 1.33) % 2;
+        const pulse3Scale = 1 + pulse3Progress * 1.0;
+        pulse3Ref.current.scale.setScalar(pulse3Scale);
+        (pulse3Ref.current.material as THREE.MeshBasicMaterial).opacity =
+          Math.max(0, (1 - pulse3Progress / 2) * 0.35 * hoverTransition.current.intensity);
+      }
     }
   });
 
@@ -102,7 +111,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
 
   return (
     <group ref={groupRef} position={dynamicPosition}>
-      {/* Core sphere - small and always visible */}
+      {/* Core sphere - same size as other content nodes (0.0099 matches GridNodeSystem) */}
       <mesh
         ref={coreRef}
         onClick={handleClick}
@@ -111,61 +120,66 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
       >
         <sphereGeometry args={[0.0099, 16, 16]} />
         <meshStandardMaterial
-          color={hovered ? '#FF8A7A' : RADIO_ORANGE}
+          color={RADIO_ORANGE} // Full Tomato Coral #FF6B4A
           emissive={RADIO_ORANGE}
-          emissiveIntensity={hovered ? 0.9 : 0.5}
+          emissiveIntensity={hovered ? 0.8 : 0.4}
           metalness={0.3}
           roughness={0.4}
         />
       </mesh>
 
-      {/* Pulsing sphere 1 - outermost */}
-      <mesh
-        ref={pulse1Ref}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <sphereGeometry args={[0.0099, 16, 16]} />
-        <meshBasicMaterial
-          color={RADIO_ORANGE}
-          transparent
-          opacity={0.6}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
+      {/* Pulsing spheres - only rendered when animation is enabled */}
+      {ENABLE_PULSE_ANIMATION && (
+        <>
+          {/* Pulsing sphere 1 - outermost */}
+          <mesh
+            ref={pulse1Ref}
+            onClick={handleClick}
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
+          >
+            <sphereGeometry args={[0.0099, 16, 16]} />
+            <meshBasicMaterial
+              color={RADIO_ORANGE}
+              transparent
+              opacity={0.25}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
 
-      {/* Pulsing sphere 2 - middle */}
-      <mesh
-        ref={pulse2Ref}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <sphereGeometry args={[0.0099, 16, 16]} />
-        <meshBasicMaterial
-          color={RADIO_ORANGE}
-          transparent
-          opacity={0.6}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
+          {/* Pulsing sphere 2 - middle */}
+          <mesh
+            ref={pulse2Ref}
+            onClick={handleClick}
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
+          >
+            <sphereGeometry args={[0.0099, 16, 16]} />
+            <meshBasicMaterial
+              color={RADIO_ORANGE}
+              transparent
+              opacity={0.25}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
 
-      {/* Pulsing sphere 3 - innermost */}
-      <mesh
-        ref={pulse3Ref}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <sphereGeometry args={[0.0099, 16, 16]} />
-        <meshBasicMaterial
-          color={RADIO_ORANGE}
-          transparent
-          opacity={0.6}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
+          {/* Pulsing sphere 3 - innermost */}
+          <mesh
+            ref={pulse3Ref}
+            onClick={handleClick}
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
+          >
+            <sphereGeometry args={[0.0099, 16, 16]} />
+            <meshBasicMaterial
+              color={RADIO_ORANGE}
+              transparent
+              opacity={0.25}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+        </>
+      )}
 
       {/* Aggregation indicator - show track count for aggregated nodes */}
       {node.isAggregated && node.trackCount && node.trackCount > 1 && (
