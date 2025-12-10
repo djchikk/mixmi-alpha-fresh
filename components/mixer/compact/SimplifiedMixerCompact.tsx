@@ -691,17 +691,6 @@ export default function SimplifiedMixerCompact({ className = "" }: SimplifiedMix
           <div className="flex justify-center">
             <div className="w-[600px] relative">
 
-          {/* Instructions - visible on hover or during launch glow */}
-          {(isHovered || showLaunchGlow) && (
-            <div
-              className={`text-center mb-3 transition-colors duration-1000 ${
-                showLaunchGlow ? 'text-white/90' : 'text-white/60'
-              }`}
-            >
-              <p className="text-xs">Drag single loops to Decks to mix</p>
-            </div>
-          )}
-
           {/* Video Display Area - shows when video clips are loaded */}
           <VideoDisplayArea
             deckATrack={mixerState.deckA.track}
