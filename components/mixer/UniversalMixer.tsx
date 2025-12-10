@@ -1755,13 +1755,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           <div className="flex justify-center">
             <div className="w-[600px] relative">
 
-          {/* Instructions */}
-          {isHovered && (
-            <div className="text-center mb-3 text-white/60">
-              <p className="text-xs">Drag content to Decks to mix</p>
-            </div>
-          )}
-
           {/* Transport and Loop Controls Row */}
           <div className="flex justify-center items-center gap-3 mb-5">
             {/* Deck A Controls - Fixed width container to prevent shifting */}
