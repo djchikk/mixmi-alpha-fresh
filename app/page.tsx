@@ -159,6 +159,7 @@ export default function HomePage() {
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Full-screen drop zone for pinning cards from search results
   const [{ isOverScreen }, screenDropRef] = useDrop(() => ({
@@ -1318,17 +1319,44 @@ export default function HomePage() {
                 top: `${pinnedCard.position.y}px`,
                 zIndex: draggingCardId === pinnedCard.id ? 300 : 100
               }}
-              onMouseEnter={() => setHoveredCardId(pinnedCard.id)}
-              onMouseLeave={() => setHoveredCardId(null)}
+              onMouseEnter={() => {
+                // Clear any pending hide timeout
+                if (hoverTimeoutRef.current) {
+                  clearTimeout(hoverTimeoutRef.current);
+                  hoverTimeoutRef.current = null;
+                }
+                setHoveredCardId(pinnedCard.id);
+              }}
+              onMouseLeave={() => {
+                // Delay hiding the header by 500ms for smoother UX
+                hoverTimeoutRef.current = setTimeout(() => {
+                  setHoveredCardId(null);
+                }, 500);
+              }}
             >
               <div className="bg-[#101726]/95 backdrop-blur-sm rounded-lg border border-[#81E4F2]/30 shadow-xl">
-                {/* Drag handle bar - auto-hides after first drag unless hovered */}
-                {(!pinnedCard.hasDragged || hoveredCardId === pinnedCard.id) && (
-                  <div
-                    className="bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing transition-all duration-200"
-                    onMouseDown={(e) => handleCardMouseDown(e, pinnedCard.id, pinnedCard.position)}
-                    style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
-                  >
+                {/* Drag handle bar - smooth fade in/out with 350ms transition */}
+                <div
+                  className={`bg-gradient-to-r from-[#81E4F2]/20 to-[#81E4F2]/10 px-3 py-1.5 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing transition-all duration-[350ms] ease-in-out ${
+                    (!pinnedCard.hasDragged || hoveredCardId === pinnedCard.id || draggingCardId === pinnedCard.id)
+                      ? 'opacity-100 max-h-12'
+                      : 'opacity-0 max-h-0 py-0 overflow-hidden pointer-events-none'
+                  }`}
+                  onMouseDown={(e) => {
+                    if (!pinnedCard.hasDragged || hoveredCardId === pinnedCard.id || draggingCardId === pinnedCard.id) {
+                      handleCardMouseDown(e, pinnedCard.id, pinnedCard.position);
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    // Keep header visible when mouse enters the header bar
+                    if (hoverTimeoutRef.current) {
+                      clearTimeout(hoverTimeoutRef.current);
+                      hoverTimeoutRef.current = null;
+                    }
+                    setHoveredCardId(pinnedCard.id);
+                  }}
+                  style={{ cursor: draggingCardId === pinnedCard.id ? 'grabbing' : 'grab' }}
+                >
                   <div className="flex items-center gap-2">
                     <svg className="w-3 h-3 text-[#81E4F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
@@ -1366,79 +1394,75 @@ export default function HomePage() {
                       <X className="w-4 h-4 text-cyan-300 hover:text-white" strokeWidth={2.5} />
                     </button>
                   </div>
-                  </div>
-                )}
+                </div>
 
                 {/* Card content - freely draggable to mixer/crate */}
                 <div className="p-2">
                   {isCluster && !isExpanded ? (
-                    // Collapsed cluster - show stack visual
-                    <div className="relative" style={{ height: '280px', width: '300px' }}>
-                      {/* Show first 3 cards as a stack */}
-                      {tracks.slice(0, 3).map((track, index) => (
-                        <div
-                          key={track.id}
-                          className="absolute transition-all duration-300"
-                          style={{
-                            top: `${index * 8}px`,
-                            left: `${index * 8}px`,
-                            right: `${-index * 8}px`,
-                            zIndex: 3 - index,
-                            transform: `rotate(${index * 2}deg)`,
-                            opacity: 1 - index * 0.2
-                          }}
-                        >
-                          <GlobeTrackCard
-                            track={{
-                              id: track.id,
-                              title: track.title,
-                              artist: track.artist,
-                              cover_image_url: track.imageUrl || '',
-                              audio_url: track.audioUrl || '',
-                              stream_url: track.stream_url,
-                              video_url: track.video_url,
-                              price_stx: track.price_stx || '5 STX',
-                              content_type: track.content_type || track.genre || 'loop',
-                              bpm: track.bpm,
-                              tags: track.tags || [],
-                              description: track.description || '',
-                              license: track.license || '',
-                              primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
-                              wallet_address: '',
-                              created_at: new Date().toISOString(),
-                              updated_at: new Date().toISOString(),
-                              composition_split: 50,
-                              production_split: 50,
-                              isrc: '',
-                              social_links: {},
-                              contact_email: ''
+                    // Collapsed cluster - show stack visual with expand button below
+                    <div className="flex flex-col items-center" style={{ width: '200px' }}>
+                      {/* Stacked cards container - 160px card + 16px stack offset */}
+                      <div className="relative" style={{ height: '180px', width: '200px' }}>
+                        {/* Show first 3 cards as a stack */}
+                        {tracks.slice(0, 3).map((track, index) => (
+                          <div
+                            key={track.id}
+                            className="absolute transition-all duration-300"
+                            style={{
+                              top: `${index * 8}px`,
+                              left: `${index * 8}px`,
+                              right: `${-index * 8}px`,
+                              zIndex: 3 - index,
+                              transform: `rotate(${index * 2}deg)`,
+                              opacity: 1 - index * 0.2
                             }}
-                            isPlaying={playingTrackId !== null && playingTrackId === track.id}
-                            onPlayPreview={handlePlayPreview}
-                            onStopPreview={handleStopPreview}
-                            showEditControls={false}
-                            onPurchase={(track) => {}}
-                          />
-                        </div>
-                      ))}
-                      {/* Click to expand overlay - positioned at bottom for visibility */}
-                      <div
-                        className="absolute inset-0 flex items-end justify-center pb-6 bg-black/40 rounded-lg transition-colors z-10 pointer-events-none"
-                      >
-                        <div className="text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleExpanded(pinnedCard.id);
-                            }}
-                            className="pointer-events-auto cursor-pointer hover:bg-black/20 px-6 py-4 rounded-lg transition-colors"
                           >
-                            <ChevronDown className="w-8 h-8 text-white mx-auto mb-2" />
-                            <div className="text-white font-bold text-sm">Click to expand</div>
-                            <div className="text-white/70 text-xs">{pinnedCard.node.trackCount} tracks</div>
-                          </button>
-                        </div>
+                            <GlobeTrackCard
+                              track={{
+                                id: track.id,
+                                title: track.title,
+                                artist: track.artist,
+                                cover_image_url: track.imageUrl || '',
+                                audio_url: track.audioUrl || '',
+                                stream_url: track.stream_url,
+                                video_url: track.video_url,
+                                price_stx: track.price_stx || '5 STX',
+                                content_type: track.content_type || track.genre || 'loop',
+                                bpm: track.bpm,
+                                tags: track.tags || [],
+                                description: track.description || '',
+                                license: track.license || '',
+                                primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
+                                wallet_address: '',
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString(),
+                                composition_split: 50,
+                                production_split: 50,
+                                isrc: '',
+                                social_links: {},
+                                contact_email: ''
+                              }}
+                              isPlaying={playingTrackId !== null && playingTrackId === track.id}
+                              onPlayPreview={handlePlayPreview}
+                              onStopPreview={handleStopPreview}
+                              showEditControls={false}
+                              onPurchase={(track) => {}}
+                            />
+                          </div>
+                        ))}
                       </div>
+                      {/* Click to expand button - positioned below the stack */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleExpanded(pinnedCard.id);
+                        }}
+                        className="mt-2 cursor-pointer hover:bg-white/10 px-6 py-2 rounded-lg transition-colors text-center"
+                      >
+                        <ChevronDown className="w-6 h-6 text-white mx-auto mb-1" />
+                        <div className="text-white font-bold text-sm">Click to expand</div>
+                        <div className="text-white/70 text-xs">{pinnedCard.node.trackCount} tracks</div>
+                      </button>
                     </div>
                   ) : isCluster && isExpanded ? (
                     // Expanded cluster - show all cards in a scrollable grid
