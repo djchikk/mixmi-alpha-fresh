@@ -116,7 +116,7 @@ function ExpandedPackTrack({
     }),
   }), [packTrack]);
 
-  const badgeColor = parentTrack.content_type === 'ep' ? '#D4AF37' : parentTrack.content_type === 'station_pack' ? '#FF6B4A' : '#9772F4';
+  const badgeColor = parentTrack.content_type === 'ep' ? '#A8E66B' : parentTrack.content_type === 'station_pack' ? '#FFC044' : '#A084F9';
   const textColor = parentTrack.content_type === 'ep' ? '#000000' : '#FFFFFF';
 
   return (
@@ -503,21 +503,21 @@ export default function Crate({ className = '' }: CrateProps) {
   const getBorderColor = (track: any) => {
     switch (track.content_type) {
       case 'full_song':
-        return 'border-[#D4AF37] shadow-[#D4AF37]/50';
+        return 'border-[#A8E66B] shadow-[#A8E66B]/50';
       case 'ep':
-        return 'border-[#D4AF37] shadow-[#D4AF37]/50';
+        return 'border-[#A8E66B] shadow-[#A8E66B]/50';
       case 'loop':
-        return 'border-[#9772F4] shadow-[#9772F4]/50';
+        return 'border-[#A084F9] shadow-[#A084F9]/50';
       case 'loop_pack':
-        return 'border-[#9772F4] shadow-[#9772F4]/50';
+        return 'border-[#A084F9] shadow-[#A084F9]/50';
       case 'radio_station':
-        return 'border-[#FF6B4A] shadow-[#FF6B4A]/50';
+        return 'border-[#FFC044] shadow-[#FFC044]/50';
       case 'station_pack':
-        return 'border-[#FF6B4A] shadow-[#FF6B4A]/50';
+        return 'border-[#FFC044] shadow-[#FFC044]/50';
       case 'video_clip':
-        return 'border-[#2792F5] shadow-[#2792F5]/50';
+        return 'border-[#5BB5F9] shadow-[#5BB5F9]/50';
       default:
-        return 'border-[#9772F4] shadow-[#9772F4]/50';
+        return 'border-[#A084F9] shadow-[#A084F9]/50';
     }
   };
 
@@ -894,13 +894,13 @@ export default function Crate({ className = '' }: CrateProps) {
                   {expandedPackId === track.id ? (
                     <ChevronLeft
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FF6B4A' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#A8E66B' : track.content_type === 'station_pack' ? '#FFC044' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   ) : (
                     <ChevronRight
                       className="w-3.5 h-3.5"
-                      style={{ color: track.content_type === 'ep' ? '#D4AF37' : track.content_type === 'station_pack' ? '#FF6B4A' : '#C4AEF8' }}
+                      style={{ color: track.content_type === 'ep' ? '#A8E66B' : track.content_type === 'station_pack' ? '#FFC044' : '#C4AEF8' }}
                       strokeWidth={3}
                     />
                   )}

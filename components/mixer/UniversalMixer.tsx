@@ -1989,8 +1989,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     }}
                     className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800 hover:bg-slate-700"
                     style={{
-                      borderColor: mixerState.deckA.videoMuted ? '#ef4444' : '#2792F5',
-                      color: mixerState.deckA.videoMuted ? '#ef4444' : '#2792F5'
+                      borderColor: mixerState.deckA.videoMuted ? '#ef4444' : '#5BB5F9',
+                      color: mixerState.deckA.videoMuted ? '#ef4444' : '#5BB5F9'
                     }}
                     title={mixerState.deckA.videoMuted ? 'Unmute video audio' : 'Mute video audio'}
                   >
@@ -2029,8 +2029,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
                     }`}
                     style={{
-                      borderColor: mixerState.deckA.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FF6B4A' : mixerState.deckA.playing ? '#94a3b8' : '#81E4F240',
-                      color: deckARadioPlayTime >= 10 && mixerState.deckA.contentType !== 'grabbed_radio' ? '#FF6B4A' : undefined
+                      borderColor: mixerState.deckA.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckA ? '#ef4444' : deckARadioPlayTime >= 10 ? '#FFC044' : mixerState.deckA.playing ? '#94a3b8' : '#81E4F240',
+                      color: deckARadioPlayTime >= 10 && mixerState.deckA.contentType !== 'grabbed_radio' ? '#FFC044' : undefined
                     }}
                     title={
                       mixerState.deckA.contentType === 'grabbed_radio'
@@ -2180,8 +2180,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     }}
                     className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800 hover:bg-slate-700"
                     style={{
-                      borderColor: mixerState.deckB.videoMuted ? '#ef4444' : '#2792F5',
-                      color: mixerState.deckB.videoMuted ? '#ef4444' : '#2792F5'
+                      borderColor: mixerState.deckB.videoMuted ? '#ef4444' : '#5BB5F9',
+                      color: mixerState.deckB.videoMuted ? '#ef4444' : '#5BB5F9'
                     }}
                     title={mixerState.deckB.videoMuted ? 'Unmute video audio' : 'Mute video audio'}
                   >
@@ -2220,8 +2220,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         : 'bg-slate-800 text-slate-300 hover:text-[#81E4F2] animate-pulse'
                     }`}
                     style={{
-                      borderColor: mixerState.deckB.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FF6B4A' : mixerState.deckB.playing ? '#94a3b8' : '#81E4F240',
-                      color: deckBRadioPlayTime >= 10 && mixerState.deckB.contentType !== 'grabbed_radio' ? '#FF6B4A' : undefined
+                      borderColor: mixerState.deckB.contentType === 'grabbed_radio' ? '#475569' : isGrabbingDeckB ? '#ef4444' : deckBRadioPlayTime >= 10 ? '#FFC044' : mixerState.deckB.playing ? '#94a3b8' : '#81E4F240',
+                      color: deckBRadioPlayTime >= 10 && mixerState.deckB.contentType !== 'grabbed_radio' ? '#FFC044' : undefined
                     }}
                     title={
                       mixerState.deckB.contentType === 'grabbed_radio'

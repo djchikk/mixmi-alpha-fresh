@@ -4,10 +4,10 @@ import { ContentType } from '@/types';
 // Beautiful color sets for rotating celebrations
 const colorSets = [
   // Golden vibes (perfect for EPs!)
-  ['#D4AF37', '#FFF8DC', '#F0E68C', '#DAA520', '#B8860B'],
+  ['#A8E66B', '#FFF8DC', '#F0E68C', '#DAA520', '#B8860B'],
   
   // Purple dreams (perfect for loop packs!)
-  ['#9772F4', '#B19CD9', '#DDA0DD', '#9370DB', '#8A2BE2'],
+  ['#A084F9', '#B19CD9', '#DDA0DD', '#9370DB', '#8A2BE2'],
   
   // Cyan splash (matches our UI accent)
   ['#81E4F2', '#87CEEB', '#ADD8E6', '#40E0D0', '#00CED1'],
@@ -19,7 +19,7 @@ const colorSets = [
   ['#4ECDC4', '#45B7AA', '#96D1CC', '#20B2AA', '#48D1CC'],
   
   // Rainbow chaos (pure joy!)
-  ['#D4AF37', '#9772F4', '#81E4F2', '#FF6B6B', '#4ECDC4', '#FFA500']
+  ['#A8E66B', '#A084F9', '#81E4F2', '#FF6B6B', '#4ECDC4', '#FFA500']
 ];
 
 // Keep track of which color set to use next
@@ -40,13 +40,13 @@ function getNextColorSet(): string[] {
 function getContentColors(contentType: ContentType): string[] {
   switch (contentType) {
     case 'ep':
-      return ['#D4AF37', '#FFF8DC', '#F0E68C', '#DAA520']; // Gold family
+      return ['#A8E66B', '#FFF8DC', '#F0E68C', '#DAA520']; // Gold family
     case 'loop_pack':
-      return ['#9772F4', '#B19CD9', '#DDA0DD', '#9370DB']; // Purple family
+      return ['#A084F9', '#B19CD9', '#DDA0DD', '#9370DB']; // Purple family
     case 'full_song':
       return ['#81E4F2', '#87CEEB', '#ADD8E6', '#40E0D0']; // Cyan family
     case 'loop':
-      return ['#9772F4', '#B19CD9', '#DDA0DD', '#9370DB']; // Purple family
+      return ['#A084F9', '#B19CD9', '#DDA0DD', '#9370DB']; // Purple family
     default:
       return getNextColorSet();
   }
@@ -164,7 +164,7 @@ export function celebrateContentUpload(contentType: ContentType, songCount?: num
  * Rainbow chaos celebration - pure joy!
  */
 export function rainbowCelebration() {
-  const rainbowColors = ['#D4AF37', '#9772F4', '#81E4F2', '#FF6B6B', '#4ECDC4', '#FFA500', '#FF69B4', '#32CD32'];
+  const rainbowColors = ['#A8E66B', '#A084F9', '#81E4F2', '#FF6B6B', '#4ECDC4', '#FFA500', '#FF69B4', '#32CD32'];
   
   // Scatter confetti from multiple points
   for (let i = 0; i < 5; i++) {

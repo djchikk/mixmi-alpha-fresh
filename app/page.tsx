@@ -1023,10 +1023,10 @@ export default function HomePage() {
           }}
         >
           {[
-            { label: 'loops', color: '#9772F4', textColor: '#B9A4F8' },
-            { label: 'songs', color: '#D4AF37', textColor: '#E8D08A' },
-            { label: 'radio', color: '#FF6B4A', textColor: '#FFA08A' },
-            { label: 'video', color: '#2792F5', textColor: '#6BB8F9' },
+            { label: 'loops', color: '#A084F9', textColor: '#C0AEFA' },
+            { label: 'songs', color: '#A8E66B', textColor: '#C4F09A' },
+            { label: 'radio', color: '#FFC044', textColor: '#FFD57A' },
+            { label: 'video', color: '#5BB5F9', textColor: '#8DCBFB' },
           ].map(({ label, color, textColor }) => (
             <div key={label} className="flex items-center gap-2">
               <div
@@ -1861,7 +1861,7 @@ export default function HomePage() {
         >
           {/* Drag handle - auto-hides when not hovered */}
           <div
-            className={`bg-gradient-to-r from-[#2792F5]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-center transition-opacity duration-200 relative ${
+            className={`bg-gradient-to-r from-[#5BB5F9]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-center transition-opacity duration-200 relative ${
               isVideoMixerHovered || (videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) ? 'opacity-100' : 'opacity-0'
             }`}
             style={{ cursor: 'grab' }}

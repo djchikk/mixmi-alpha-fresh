@@ -676,14 +676,14 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
 
   // Get border color based on content type
   const getBorderColor = (track: Track) => {
-    if (track.content_type === 'full_song') return 'border-[#D4AF37]';
-    if (track.content_type === 'ep') return 'border-[#D4AF37]';
-    if (track.content_type === 'loop') return 'border-[#9772F4]';
-    if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
-    if (track.content_type === 'radio_station') return 'border-[#FF6B4A]';
-    if (track.content_type === 'station_pack') return 'border-[#FF6B4A]';
-    if (track.content_type === 'video_clip') return 'border-[#2792F5]';
-    return 'border-[#9772F4]';
+    if (track.content_type === 'full_song') return 'border-[#A8E66B]';
+    if (track.content_type === 'ep') return 'border-[#A8E66B]';
+    if (track.content_type === 'loop') return 'border-[#A084F9]';
+    if (track.content_type === 'loop_pack') return 'border-[#A084F9]';
+    if (track.content_type === 'radio_station') return 'border-[#FFC044]';
+    if (track.content_type === 'station_pack') return 'border-[#FFC044]';
+    if (track.content_type === 'video_clip') return 'border-[#5BB5F9]';
+    return 'border-[#A084F9]';
   };
 
   // Get border thickness - thicker for multi-content (packs and EPs)
@@ -693,14 +693,14 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
 
 // Helper functions for Library tab (same as above, extracted for reuse)
 const getLibraryBorderColor = (track: Track) => {
-  if (track.content_type === 'full_song') return 'border-[#D4AF37]';
-  if (track.content_type === 'ep') return 'border-[#D4AF37]';
-  if (track.content_type === 'loop') return 'border-[#9772F4]';
-  if (track.content_type === 'loop_pack') return 'border-[#9772F4]';
-  if (track.content_type === 'radio_station') return 'border-[#FF6B4A]';
-  if (track.content_type === 'station_pack') return 'border-[#FF6B4A]';
-  if (track.content_type === 'video_clip') return 'border-[#2792F5]';
-  return 'border-[#9772F4]';
+  if (track.content_type === 'full_song') return 'border-[#A8E66B]';
+  if (track.content_type === 'ep') return 'border-[#A8E66B]';
+  if (track.content_type === 'loop') return 'border-[#A084F9]';
+  if (track.content_type === 'loop_pack') return 'border-[#A084F9]';
+  if (track.content_type === 'radio_station') return 'border-[#FFC044]';
+  if (track.content_type === 'station_pack') return 'border-[#FFC044]';
+  if (track.content_type === 'video_clip') return 'border-[#5BB5F9]';
+  return 'border-[#A084F9]';
 };
 
 const getLibraryBorderThickness = (track: Track) => {
@@ -937,12 +937,12 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
     switch (track.content_type) {
       case 'loop':
       case 'loop_pack':
-        return 'border-[#9772F4]'; // Purple for loops
+        return 'border-[#A084F9]'; // Purple for loops
       case 'full_song':
       case 'ep':
         return 'border-[#FFE4B5]'; // Wheat for songs
       case 'video_clip':
-        return 'border-[#2792F5]'; // Blue for video
+        return 'border-[#5BB5F9]'; // Blue for video
       case 'radio_station':
       case 'station_pack':
         return 'border-[#FB923C]'; // Orange for radio

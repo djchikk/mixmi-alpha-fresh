@@ -70,11 +70,11 @@ export default function ContentTypeSelector({
             {/* Music Option */}
             <button
               onClick={onSelectMusic}
-              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#9772F4]/50 rounded-xl p-5 transition-all duration-200"
+              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#A084F9]/50 rounded-xl p-5 transition-all duration-200"
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                  <Music className="w-6 h-6 text-[#9772F4]" />
+                  <Music className="w-6 h-6 text-[#A084F9]" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-base font-semibold text-white mb-1">Music</h3>
@@ -86,11 +86,11 @@ export default function ContentTypeSelector({
             {/* Radio Option */}
             <button
               onClick={onSelectRadio}
-              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#FF6B4A]/50 rounded-xl p-5 transition-all duration-200"
+              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#FFC044]/50 rounded-xl p-5 transition-all duration-200"
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                  <Radio className="w-6 h-6 text-[#FF6B4A]" />
+                  <Radio className="w-6 h-6 text-[#FFC044]" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-base font-semibold text-white mb-1">Radio</h3>
@@ -102,11 +102,11 @@ export default function ContentTypeSelector({
             {/* Video Option */}
             <button
               onClick={onSelectVideo}
-              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#2792F5]/50 rounded-xl p-5 transition-all duration-200"
+              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#5BB5F9]/50 rounded-xl p-5 transition-all duration-200"
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                  <Video className="w-6 h-6 text-[#2792F5]" />
+                  <Video className="w-6 h-6 text-[#5BB5F9]" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-base font-semibold text-white mb-1">Video</h3>

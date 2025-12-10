@@ -729,8 +729,8 @@ Would you like to upload another track, or shall I show you where to find your n
           <div className="flex flex-col items-center justify-center h-full text-center transition-all duration-500 ease-out">
             {/* Glowing orb icon */}
             <div className="relative mb-8">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#81E4F2]/30 to-[#9772F4]/30 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#81E4F2] to-[#9772F4] flex items-center justify-center shadow-lg shadow-[#81E4F2]/20">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#81E4F2]/30 to-[#A084F9]/30 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#81E4F2] to-[#A084F9] flex items-center justify-center shadow-lg shadow-[#81E4F2]/20">
                   <Globe size={32} className="text-white" />
                 </div>
               </div>

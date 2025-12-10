@@ -43,17 +43,17 @@ export default function SimplifiedDeckCompact({
   const getBorderColor = () => {
     switch (contentType) {
       case 'loop':
-        return '#9772F4'; // Purple - loops
+        return '#A084F9'; // Purple - loops
       case 'radio_station':
-        return '#FF6B4A'; // Orange - live radio (official radio orange)
+        return '#FFC044'; // Orange - live radio (official radio orange)
       case 'grabbed_radio':
-        return '#FF6B4A'; // Orange - grabbed moments (official radio orange)
+        return '#FFC044'; // Orange - grabbed moments (official radio orange)
       case 'full_song':
-        return '#D4AF37'; // Gold - songs
+        return '#A8E66B'; // Gold - songs
       case 'video_clip':
-        return '#2792F5'; // Sky blue - video clips
+        return '#5BB5F9'; // Sky blue - video clips
       default:
-        return '#9772F4'; // Default purple
+        return '#A084F9'; // Default purple
     }
   };
 
@@ -351,16 +351,16 @@ export default function SimplifiedDeckCompact({
         }
 
         .carousel-track.current.has-track {
-          border: 2px solid var(--border-color, #9772F4);
+          border: 2px solid var(--border-color, #A084F9);
         }
 
         .carousel-track.current.new-track-loaded {
-          border-color: var(--border-color, #9772F4) !important;
+          border-color: var(--border-color, #A084F9) !important;
         }
 
 
         .carousel-track.current.playing {
-          border-color: var(--border-color, #9772F4) !important;
+          border-color: var(--border-color, #A084F9) !important;
         }
 
         .loading-spinner {
@@ -368,7 +368,7 @@ export default function SimplifiedDeckCompact({
           height: 24px;
           border: 2px solid rgba(255, 255, 255, 0.2);
           border-radius: 50%;
-          border-top-color: var(--border-color, #9772F4);
+          border-top-color: var(--border-color, #A084F9);
           animation: spin 0.8s linear infinite;
         }
         
@@ -408,17 +408,17 @@ export default function SimplifiedDeckCompact({
         .carousel-track.drop-target-active {
           transform: scale(1.1);
           border-width: 3px;
-          border-color: var(--border-color, #9772F4) !important;
+          border-color: var(--border-color, #A084F9) !important;
           animation: pulse-border 1s ease-in-out infinite;
         }
 
         @keyframes pulse-border {
           0%, 100% {
-            border-color: var(--border-color, #9772F4);
+            border-color: var(--border-color, #A084F9);
             transform: scale(1.1);
           }
           50% {
-            border-color: var(--border-color, #9772F4);
+            border-color: var(--border-color, #A084F9);
             opacity: 0.7;
             transform: scale(1.12);
           }

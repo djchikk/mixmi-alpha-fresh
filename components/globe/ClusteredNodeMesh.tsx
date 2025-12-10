@@ -8,13 +8,13 @@ import { TrackNode } from './types';
 
 // Content type colors matching the rest of the app
 const CONTENT_TYPE_COLORS = {
-  loop: '#9772F4',        // Purple
-  loop_pack: '#9772F4',   // Purple
-  full_song: '#D4AF37',   // Gold
-  ep: '#D4AF37',          // Gold
-  video_clip: '#2792F5',  // Blue
-  radio_station: '#FF6B4A', // Orange
-  station_pack: '#FF6B4A',  // Orange
+  loop: '#A084F9',        // Purple
+  loop_pack: '#A084F9',   // Purple
+  full_song: '#A8E66B',   // Gold
+  ep: '#A8E66B',          // Gold
+  video_clip: '#5BB5F9',  // Blue
+  radio_station: '#FFC044', // Orange
+  station_pack: '#FFC044',  // Orange
 };
 
 // Fixed particle configuration - 6 particles in a scattered arrangement
@@ -120,7 +120,7 @@ export function ClusteredNodeMesh({ nodes, position, onClick, onHover }: Cluster
   const particles = useMemo(() => {
     return PARTICLE_CONFIG.map((config, index) => {
       const colorKey = config.color as keyof typeof CONTENT_TYPE_COLORS;
-      const color = CONTENT_TYPE_COLORS[colorKey] || '#2792F5';
+      const color = CONTENT_TYPE_COLORS[colorKey] || '#5BB5F9';
 
       return {
         offset: new THREE.Vector3(config.offsetX, config.offsetY, config.offsetZ),

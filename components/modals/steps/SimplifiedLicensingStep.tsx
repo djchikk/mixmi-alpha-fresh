@@ -56,7 +56,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
         </div>
 
         {/* Optional Download */}
-        <div className="bg-[#9772F4]/10 border border-[#9772F4]/30 rounded-lg p-4">
+        <div className="bg-[#A084F9]/10 border border-[#A084F9]/30 rounded-lg p-4">
           <div className="flex items-start gap-3 mb-4">
             <input
               type="checkbox"
@@ -228,7 +228,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
         </div>
 
         {/* Optional EP Downloads */}
-        <div className="bg-[#9772F4]/10 border border-[#9772F4]/30 rounded-lg p-4">
+        <div className="bg-[#A084F9]/10 border border-[#A084F9]/30 rounded-lg p-4">
           <div className="flex items-start gap-3 mb-4">
             <input
               type="checkbox"
@@ -416,7 +416,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
         </div>
 
         {/* Download Pricing - Optional */}
-        <div className="bg-[#9772F4]/10 border border-[#9772F4]/30 rounded-lg p-4">
+        <div className="bg-[#A084F9]/10 border border-[#A084F9]/30 rounded-lg p-4">
           <div className="flex items-start gap-3 mb-4">
             <input
               type="checkbox"

@@ -7,7 +7,7 @@ import { Text } from '@react-three/drei';
 import { NodeMeshProps } from './types';
 import { latLngToVector3 } from './Globe';
 
-const RADIO_ORANGE = '#FF6B4A';
+const RADIO_ORANGE = '#FFC044';
 
 // Set to true to enable pulsing animation (disabled for now - too many stations)
 const ENABLE_PULSE_ANIMATION = false;
@@ -120,7 +120,7 @@ export function RadioNodeMesh({ node, onClick, onHover }: NodeMeshProps) {
       >
         <sphereGeometry args={[0.0099, 16, 16]} />
         <meshStandardMaterial
-          color={RADIO_ORANGE} // Full Tomato Coral #FF6B4A
+          color={RADIO_ORANGE} // Full Tomato Coral #FFC044
           emissive={RADIO_ORANGE}
           emissiveIntensity={hovered ? 0.8 : 0.4}
           metalness={0.3}

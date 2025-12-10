@@ -1152,8 +1152,8 @@ export default function IPTrackModal({
                   padding: '14px',
                   minHeight: '54px',
                   background: 'rgba(56, 189, 248, 0.15)', // Always active
-                  borderColor: '#2792F5', // Always active
-                  color: '#2792F5', // Always active
+                  borderColor: '#5BB5F9', // Always active
+                  color: '#5BB5F9', // Always active
                   borderRadius: '12px'
                 }}
               >
@@ -1580,7 +1580,7 @@ export default function IPTrackModal({
                   handleInputChange('ai_assisted_idea', false);
                   handleInputChange('ai_assisted_implementation', false);
                 }}
-                className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
+                className="w-4 h-4 text-[#5BB5F9] focus:ring-[#5BB5F9] focus:ring-offset-slate-900"
               />
               <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
                 🙌 100% Human
@@ -1598,7 +1598,7 @@ export default function IPTrackModal({
                   handleInputChange('ai_assisted_idea', true);
                   handleInputChange('ai_assisted_implementation', false);
                 }}
-                className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
+                className="w-4 h-4 text-[#5BB5F9] focus:ring-[#5BB5F9] focus:ring-offset-slate-900"
               />
               <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
                 🙌🤖 AI-Assisted
@@ -1615,7 +1615,7 @@ export default function IPTrackModal({
                   handleInputChange('ai_assisted_idea', true);
                   handleInputChange('ai_assisted_implementation', true);
                 }}
-                className="w-4 h-4 text-[#2792F5] focus:ring-[#2792F5] focus:ring-offset-slate-900"
+                className="w-4 h-4 text-[#5BB5F9] focus:ring-[#5BB5F9] focus:ring-offset-slate-900"
               />
               <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
                 🤖 AI-Generated
@@ -1674,7 +1674,7 @@ export default function IPTrackModal({
                     className={`
                       relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
                       ${isVideoDragActive
-                        ? 'border-[#2792F5] bg-[#2792F5]/10'
+                        ? 'border-[#5BB5F9] bg-[#5BB5F9]/10'
                         : 'border-slate-600 hover:border-slate-500 bg-slate-800/20'
                       }
                       ${isVideoUploading ? 'opacity-50' : ''}
@@ -1683,7 +1683,7 @@ export default function IPTrackModal({
                     <input {...getVideoInputProps()} />
 
                     {isVideoDragActive ? (
-                      <div className="text-[#2792F5]">
+                      <div className="text-[#5BB5F9]">
                         <div className="text-2xl mb-2">🎥</div>
                         <div className="text-sm font-normal">Drop video file here!</div>
                       </div>
@@ -1752,7 +1752,7 @@ export default function IPTrackModal({
                         </div>
                       )}
                     </div>
-                    <div className="mt-2 text-sm text-gray-400 bg-[#2792F5]/10 border border-[#2792F5]/30 rounded-lg p-3">
+                    <div className="mt-2 text-sm text-gray-400 bg-[#5BB5F9]/10 border border-[#5BB5F9]/30 rounded-lg p-3">
                       📐 Drag to reposition • Scroll or pinch to zoom • Square crop will be applied
                     </div>
                   </div>
@@ -1763,10 +1763,10 @@ export default function IPTrackModal({
                   <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-gray-300">Uploading video and generating thumbnail...</span>
-                      <span className="text-sm text-[#2792F5]">⏳</span>
+                      <span className="text-sm text-[#5BB5F9]">⏳</span>
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-[#2792F5] h-2 rounded-full animate-pulse w-full" />
+                      <div className="bg-[#5BB5F9] h-2 rounded-full animate-pulse w-full" />
                     </div>
                   </div>
                 )}
@@ -1893,7 +1893,7 @@ export default function IPTrackModal({
               <div className="grid grid-cols-1 gap-1">
                 {(formData as any).loop_files.map((file: File, index: number) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
-                    <div className="w-5 h-5 bg-[#9772F4] rounded-full flex items-center justify-center text-white text-xs">
+                    <div className="w-5 h-5 bg-[#A084F9] rounded-full flex items-center justify-center text-white text-xs">
                       {index + 1}
                     </div>
                     <span className="text-gray-300">{file.name}</span>
@@ -1921,7 +1921,7 @@ export default function IPTrackModal({
               <div className="grid grid-cols-1 gap-1">
                 {(formData as any).ep_files.map((file: File, index: number) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
-                    <div className="w-5 h-5 bg-[#D4AF37] text-slate-900 rounded-full flex items-center justify-center text-xs font-bold">
+                    <div className="w-5 h-5 bg-[#A8E66B] text-slate-900 rounded-full flex items-center justify-center text-xs font-bold">
                       {index + 1}
                     </div>
                     <span className="text-gray-300">{file.name}</span>

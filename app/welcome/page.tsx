@@ -23,8 +23,8 @@ const designVars = {
   textSecondary: '#a8b2c3',
   textMuted: '#6b7489',
   accentCyan: '#81E4F2',
-  accentGold: '#D4AF37',
-  accentPurple: '#9772F4',
+  accentGold: '#A8E66B',
+  accentPurple: '#A084F9',
 };
 
 export default function Welcome() {
@@ -115,7 +115,7 @@ export default function Welcome() {
               </p>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#9772F4' }}></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#A084F9' }}></div>
                   <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Loops</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -123,7 +123,7 @@ export default function Welcome() {
                   <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Radio Stations</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#D4AF37' }}></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#A8E66B' }}></div>
                   <span className="text-[#a8b2c3] text-xs" style={{ fontFamily: 'var(--font-geist-mono)' }}>Songs</span>
                 </div>
                 <div className="flex items-center gap-2">

@@ -442,16 +442,16 @@ export default function SimpleRadioPlayer() {
                 onClick={() => setIsExpanded(true)}
                 className={`p-1.5 hover:bg-[#1E293B] rounded transition-all ${isOverAny && canDropAny ? 'animate-wiggle' : ''} ${isPlaying && currentStation ? 'radio-playing-pulse' : ''}`}
                 style={isOverAny && canDropAny ? {
-                  filter: 'drop-shadow(0 0 8px #FF6B4A) drop-shadow(0 0 16px #FF6B4A)',
+                  filter: 'drop-shadow(0 0 8px #FFC044) drop-shadow(0 0 16px #FFC044)',
                 } : {}}
                 title={currentStation ? (isPlaying ? `Playing: ${currentStation.title}` : `Paused: ${currentStation.title}`) : "Open Radio Player"}
               >
                 <Radio
                   className={`w-6 h-6 transition-colors ${
                     isOverAny && canDropAny
-                      ? 'text-[#FF6B4A]'
+                      ? 'text-[#FFC044]'
                       : isPlaying && currentStation
-                        ? 'text-[#FF6B4A]'
+                        ? 'text-[#FFC044]'
                         : 'text-gray-200'
                   }`}
                   strokeWidth={2.5}
@@ -522,7 +522,7 @@ export default function SimpleRadioPlayer() {
             <div
               className="absolute top-1 left-1 w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center pointer-events-none z-10"
               style={{
-                backgroundColor: '#FF6B4A',
+                backgroundColor: '#FFC044',
                 color: '#FFFFFF'
               }}
             >
@@ -638,7 +638,7 @@ export default function SimpleRadioPlayer() {
             border-color: #64748B;
           }
           50% {
-            border-color: #FF6B4A;
+            border-color: #FFC044;
           }
         }
 
@@ -646,7 +646,7 @@ export default function SimpleRadioPlayer() {
         .loaded-radio-artwork {
           width: 60px;
           height: 60px;
-          border: 2px solid #FF6B4A;
+          border: 2px solid #FFC044;
         }
 
         /* Subtle pulse animation for radio icon when playing */

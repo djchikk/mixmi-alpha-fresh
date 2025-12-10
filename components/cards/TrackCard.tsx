@@ -83,9 +83,9 @@ export default function TrackCard({
   const getBorderColor = () => {
     switch (track.content_type) {
       case 'loop':
-        return 'border-[#9772F4]'; // Vibrant purple for loops
+        return 'border-[#A084F9]'; // Vibrant purple for loops
       case 'full_song':
-        return 'border-[#D4AF37]'; // Gold for full songs
+        return 'border-[#A8E66B]'; // Gold for full songs
       default:
         return 'border-blue-400'; // Fallback for collaborations
     }
@@ -118,7 +118,7 @@ export default function TrackCard({
     // Visual feedback - green for cart add, purple for direct mixer
     const button = e.currentTarget as HTMLButtonElement;
     button.style.transform = 'scale(0.95)';
-    button.style.backgroundColor = directToMixer ? '#9772F4' : '#10b981'; // Purple for direct, green for cart
+    button.style.backgroundColor = directToMixer ? '#A084F9' : '#10b981'; // Purple for direct, green for cart
     setTimeout(() => {
       button.style.transform = 'scale(1)';
       button.style.backgroundColor = '#101726';

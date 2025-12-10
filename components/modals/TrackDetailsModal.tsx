@@ -624,7 +624,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           {track.content_type === 'video_clip' && (track as any).video_url && (
             <div className="mb-6">
               <Divider title="VIDEO PLAYER" />
-              <div className="relative w-full bg-black rounded-lg overflow-hidden border-2 border-[#2792F5]">
+              <div className="relative w-full bg-black rounded-lg overflow-hidden border-2 border-[#5BB5F9]">
                 {/* Video Element */}
                 <video
                   ref={(el) => setVideoElement(el)}
@@ -647,7 +647,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                     <button
                       onClick={handleVideoPlayPause}
-                      className="w-16 h-16 rounded-full bg-[#2792F5] hover:bg-[#2792F5]/80 flex items-center justify-center transition-all hover:scale-110"
+                      className="w-16 h-16 rounded-full bg-[#5BB5F9] hover:bg-[#5BB5F9]/80 flex items-center justify-center transition-all hover:scale-110"
                       title="Play video"
                     >
                       <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
@@ -663,7 +663,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                     <div className="flex items-center justify-between">
                       <button
                         onClick={handleVideoPlayPause}
-                        className="w-10 h-10 rounded-full bg-[#2792F5] hover:bg-[#2792F5]/80 flex items-center justify-center transition-all"
+                        className="w-10 h-10 rounded-full bg-[#5BB5F9] hover:bg-[#5BB5F9]/80 flex items-center justify-center transition-all"
                         title="Pause video"
                       >
                         <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -697,7 +697,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         className="group flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors cursor-grab"
                       >
                       {/* Loop Number */}
-                      <div className="flex-shrink-0 w-6 h-6 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#9772F4'}}>
+                      <div className="flex-shrink-0 w-6 h-6 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#A084F9'}}>
                         {index + 1}
                       </div>
                       
@@ -725,7 +725,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         disabled={!loop.audio_url}
                         className="flex-shrink-0 w-8 h-8 rounded flex items-center justify-center transition-colors disabled:bg-gray-700"
                         style={{
-                          backgroundColor: loop.audio_url ? '#9772F4' : '#374151',
+                          backgroundColor: loop.audio_url ? '#A084F9' : '#374151',
                           opacity: playingLoopId === loop.id ? 0.8 : 1
                         }}
                         onMouseEnter={(e) => {
@@ -795,7 +795,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         className="group flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors cursor-grab"
                       >
                       {/* Song Number */}
-                      <div className="flex-shrink-0 w-6 h-6 bg-[#D4AF37] text-slate-900 rounded text-xs font-bold flex items-center justify-center">
+                      <div className="flex-shrink-0 w-6 h-6 bg-[#A8E66B] text-slate-900 rounded text-xs font-bold flex items-center justify-center">
                         {index + 1}
                       </div>
                       
@@ -823,8 +823,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         disabled={!song.audio_url}
                         className={`flex-shrink-0 w-8 h-8 rounded flex items-center justify-center transition-colors ${
                           playingLoopId === song.id
-                            ? 'bg-[#D4AF37] hover:bg-[#D4AF37]/80 text-slate-900'
-                            : 'bg-[#D4AF37] hover:bg-[#D4AF37]/80 text-slate-900'
+                            ? 'bg-[#A8E66B] hover:bg-[#A8E66B]/80 text-slate-900'
+                            : 'bg-[#A8E66B] hover:bg-[#A8E66B]/80 text-slate-900'
                         } disabled:bg-gray-700`}
                         title={
                           !song.audio_url 
@@ -883,7 +883,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         className="group flex items-center gap-3 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors cursor-grab"
                       >
                       {/* Station Number */}
-                      <div className="flex-shrink-0 w-6 h-6 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#FF6B4A'}}>
+                      <div className="flex-shrink-0 w-6 h-6 rounded text-white text-xs font-bold flex items-center justify-center" style={{backgroundColor: '#FFC044'}}>
                         {index + 1}
                       </div>
 
@@ -913,7 +913,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                         disabled={!station.stream_url}
                         className="flex-shrink-0 w-8 h-8 rounded flex items-center justify-center transition-colors disabled:bg-gray-700"
                         style={{
-                          backgroundColor: station.stream_url ? '#FF6B4A' : '#374151',
+                          backgroundColor: station.stream_url ? '#FFC044' : '#374151',
                           opacity: playingLoopId === station.id ? 0.8 : 1
                         }}
                         onMouseEnter={(e) => {
@@ -1068,7 +1068,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 <>
                   <div className="flex">
                     <span className="text-gray-500 w-24">Status:</span>
-                    <span className="text-[#FF6B4A] font-bold">🔴 LIVE</span>
+                    <span className="text-[#FFC044] font-bold">🔴 LIVE</span>
                   </div>
                   {track.genre && (
                     <div className="flex">

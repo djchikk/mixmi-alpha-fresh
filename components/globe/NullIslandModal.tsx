@@ -18,28 +18,28 @@ const CONTENT_TYPE_GROUPS = [
     label: 'Radio Stations',
     emoji: '📻',
     types: ['radio_station', 'station_pack', 'grabbed_radio'],
-    color: '#FF6B4A' // Tomato Coral
+    color: '#FFC044' // Tomato Coral
   },
   {
     key: 'loops',
     label: 'Loops',
     emoji: '🔁',
     types: ['loop', 'loop_pack'],
-    color: '#9772F4' // Purple
+    color: '#A084F9' // Purple
   },
   {
     key: 'songs',
     label: 'Songs & EPs',
     emoji: '🎵',
     types: ['full_song', 'ep'],
-    color: '#D4AF37' // Champagne Gold
+    color: '#A8E66B' // Champagne Gold
   },
   {
     key: 'video',
     label: 'Video Clips',
     emoji: '🎬',
     types: ['video_clip'],
-    color: '#2792F5' // Sky Blue
+    color: '#5BB5F9' // Sky Blue
   },
   {
     key: 'other',
@@ -101,16 +101,16 @@ export function NullIslandModal({
     switch (contentType) {
       case 'loop':
       case 'loop_pack':
-        return '#9772F4'; // Purple
+        return '#A084F9'; // Purple
       case 'full_song':
       case 'ep':
-        return '#D4AF37'; // Champagne Gold
+        return '#A8E66B'; // Champagne Gold
       case 'radio_station':
       case 'station_pack':
       case 'grabbed_radio':
-        return '#FF6B4A'; // Tomato Coral
+        return '#FFC044'; // Tomato Coral
       case 'video_clip':
-        return '#2792F5'; // Sky Blue
+        return '#5BB5F9'; // Sky Blue
       default:
         return '#81E4F2'; // Cyan (Accent)
     }

@@ -19,10 +19,10 @@ const proxiedUrl = `/api/radio-proxy?url=${encodeURIComponent(stream_url)}`;
 ### Content Type Colors
 | Type | Color | Hex |
 |------|-------|-----|
-| Loop | Purple | #9772F4 |
-| Song | Wheat | #FFE4B5 |
-| Video | Blue | #2792F5 |
-| Radio | Orange | #FB923C |
+| Loop | Bright Lavender | #A084F9 |
+| Song | Lime Green | #A8E66B |
+| Video | Lighter Sky Blue | #5BB5F9 |
+| Radio | Golden Amber | #FFC044 |
 | Sync/UI | Cyan | #81E4F2 |
 
 ### BPM Priority (Master Tempo)

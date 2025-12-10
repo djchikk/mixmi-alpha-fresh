@@ -527,7 +527,7 @@ export default function CreatorStorePage() {
 
             <div>
               <h1 className="text-4xl font-bold">
-                <span className="bg-gradient-to-r from-[#9772F4] to-[#D4AF37] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#A084F9] to-[#A8E66B] bg-clip-text text-transparent">
                   {creatorName ? (
                     <>
                       <Link
@@ -648,7 +648,7 @@ export default function CreatorStorePage() {
                   onClick={() => { setActiveFilter({ type: 'radio_station' }); setShowFilters(false); }}
                   className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                     activeFilter.type === 'radio_station'
-                      ? 'bg-[#FF6B4A] text-slate-900 font-medium'
+                      ? 'bg-[#FFC044] text-slate-900 font-medium'
                       : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                   }`}
                 >
@@ -659,7 +659,7 @@ export default function CreatorStorePage() {
                   onClick={() => { setActiveFilter({ type: 'station_pack' }); setShowFilters(false); }}
                   className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                     activeFilter.type === 'station_pack'
-                      ? 'bg-[#FF6B4A] text-slate-900 font-medium'
+                      ? 'bg-[#FFC044] text-slate-900 font-medium'
                       : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                   }`}
                 >
@@ -670,7 +670,7 @@ export default function CreatorStorePage() {
                   onClick={() => { setActiveFilter({ type: 'video_clip' }); setShowFilters(false); }}
                   className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                     activeFilter.type === 'video_clip'
-                      ? 'bg-[#2792F5] text-slate-900 font-medium'
+                      ? 'bg-[#5BB5F9] text-slate-900 font-medium'
                       : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                   }`}
                 >
@@ -776,8 +776,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'loop' && !isChildItem(t)).length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#9772F4] tracking-wide">loops</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#9772F4]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#A084F9] tracking-wide">loops</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#A084F9]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
@@ -803,8 +803,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'loop_pack').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#9772F4] tracking-wide">loop packs</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#9772F4]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#A084F9] tracking-wide">loop packs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#A084F9]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
@@ -830,8 +830,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'full_song' && !isChildItem(t)).length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#D4AF37] tracking-wide">songs</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#D4AF37]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#A8E66B] tracking-wide">songs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#A8E66B]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
@@ -857,8 +857,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'ep').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#D4AF37] tracking-wide">eps</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#D4AF37]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#A8E66B] tracking-wide">eps</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#A8E66B]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
@@ -884,8 +884,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'radio_station' && !isChildItem(t)).length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#FF6B4A] tracking-wide">radio stations</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#FF6B4A]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#FFC044] tracking-wide">radio stations</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FFC044]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
@@ -911,8 +911,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'station_pack').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#FF6B4A] tracking-wide">radio packs</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#FF6B4A]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#FFC044] tracking-wide">radio packs</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#FFC044]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks
@@ -938,8 +938,8 @@ export default function CreatorStorePage() {
                 {filteredTracks.filter(t => t.content_type === 'video_clip').length > 0 && (
                   <div>
                     <div className="flex items-center gap-4 mb-6">
-                      <h2 className="font-mono text-2xl font-bold text-[#2792F5] tracking-wide">video clips</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[#2792F5]/50 to-transparent"></div>
+                      <h2 className="font-mono text-2xl font-bold text-[#5BB5F9] tracking-wide">video clips</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-[#5BB5F9]/50 to-transparent"></div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                       {filteredTracks

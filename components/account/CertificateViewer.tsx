@@ -48,15 +48,15 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
   // Get color based on content type
   const getBorderColor = () => {
     if (isRadio) {
-      return '#FF6B4A'; // Orange for radio stations
+      return '#FFC044'; // Orange for radio stations
     }
     if (track.content_type === 'video_clip') {
-      return '#2792F5'; // Blue for video clips
+      return '#5BB5F9'; // Blue for video clips
     }
     if (track.content_type === 'loop' || track.content_type === 'loop_pack') {
-      return '#9772F4'; // Purple for remixable
+      return '#A084F9'; // Purple for remixable
     }
-    return '#D4AF37'; // Gold for downloadable
+    return '#A8E66B'; // Gold for downloadable
   };
 
   const borderColor = getBorderColor();
@@ -223,7 +223,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     .header h1 {
       font-size: 36px;
       font-weight: 800;
-      color: #9772F4;
+      color: #A084F9;
       margin-bottom: 8px;
       letter-spacing: 2px;
     }
@@ -265,7 +265,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       display: inline-block;
       padding: 4px 12px;
       background: ${borderColor};
-      color: ${borderColor === '#D4AF37' ? '#1e293b' : 'white'};
+      color: ${borderColor === '#A8E66B' ? '#1e293b' : 'white'};
       border-radius: 4px;
       font-size: 12px;
       text-transform: uppercase;
@@ -636,7 +636,7 @@ mixmi.app • Discover • Mix • Create
                   className="inline-block px-3 py-1 text-xs rounded uppercase tracking-wide font-semibold"
                   style={{
                     backgroundColor: borderColor,
-                    color: borderColor === '#D4AF37' ? '#1e293b' : 'white'
+                    color: borderColor === '#A8E66B' ? '#1e293b' : 'white'
                   }}
                 >
                   {isRadio
@@ -766,7 +766,7 @@ mixmi.app • Discover • Mix • Create
           <div className="flex flex-wrap gap-3 mb-4">
             <button
               onClick={handlePrint}
-              className="flex-1 min-w-[140px] px-4 py-3 bg-[#9772F4] hover:bg-[#8662e3] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              className="flex-1 min-w-[140px] px-4 py-3 bg-[#A084F9] hover:bg-[#8662e3] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
             >
               <span>📄</span>
               <span>Print Certificate</span>
@@ -815,7 +815,7 @@ mixmi.app • Discover • Mix • Create
             top: 0;
             width: 100%;
             background: white !important;
-            border: 6px solid #9772F4 !important;
+            border: 6px solid #A084F9 !important;
             page-break-inside: avoid;
           }
         }

@@ -375,16 +375,16 @@ export default function SimplePlaylistPlayer() {
                 onClick={() => setIsExpanded(true)}
                 className={`p-1.5 hover:bg-[#1E293B] rounded transition-all ${isOverAny && canDropAny ? 'animate-wiggle' : ''} ${isPlaying && playlist.length > 0 ? 'playlist-playing-pulse' : ''}`}
                 style={isOverAny && canDropAny ? {
-                  filter: 'drop-shadow(0 0 8px #D4AF37) drop-shadow(0 0 16px #9772F4)',
+                  filter: 'drop-shadow(0 0 8px #A8E66B) drop-shadow(0 0 16px #A084F9)',
                 } : {}}
                 title={playlist.length > 0 ? (isPlaying ? `Playing: ${currentTrack?.title || 'Track'}` : `Playlist (${playlist.length} tracks)`) : "Open Playlist"}
               >
                 <ListMusic
                   className={`w-6 h-6 transition-colors ${
                     isOverAny && canDropAny
-                      ? 'text-[#D4AF37]'
+                      ? 'text-[#A8E66B]'
                       : isPlaying && playlist.length > 0
-                        ? 'text-[#D4AF37]'
+                        ? 'text-[#A8E66B]'
                         : 'text-gray-200'
                   }`}
                   strokeWidth={2.5}
