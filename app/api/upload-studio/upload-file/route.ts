@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { generateThumbnails, THUMBNAIL_SIZES } from '@/lib/thumbnailGenerator';
 
 // Initialize Supabase with service role for uploads
 const supabase = createClient(
@@ -143,6 +144,49 @@ export async function POST(request: NextRequest) {
     // For video files, we could generate a thumbnail
     if (fileCategory === 'video') {
       response.thumbnailUrl = null; // Could generate thumbnail
+    }
+
+    // For image files, generate thumbnails at 64px, 160px, 256px
+    if (fileCategory === 'image') {
+      console.log(`🖼️ Generating thumbnails for image: ${fileName}`);
+
+      try {
+        const thumbnails = await generateThumbnails(buffer, fileName, file.type);
+        const thumbnailUrls: Record<number, string> = {};
+
+        // Upload each thumbnail
+        for (const thumb of thumbnails) {
+          const thumbPath = `${storagePath}/thumbnails/${thumb.filename}`;
+
+          const { error: thumbUploadError } = await supabase.storage
+            .from('user-content')
+            .upload(thumbPath, thumb.buffer, {
+              contentType: thumb.contentType,
+              cacheControl: '31536000', // Cache for 1 year (thumbnails are immutable)
+              upsert: false
+            });
+
+          if (thumbUploadError) {
+            console.error(`❌ Failed to upload ${thumb.size}px thumbnail:`, thumbUploadError);
+            continue;
+          }
+
+          // Get public URL for thumbnail
+          const { data: thumbUrlData } = supabase.storage
+            .from('user-content')
+            .getPublicUrl(thumbPath);
+
+          thumbnailUrls[thumb.size] = thumbUrlData.publicUrl;
+          console.log(`✅ Uploaded ${thumb.size}px thumbnail: ${thumbPath}`);
+        }
+
+        // Add thumbnail URLs to response
+        response.thumbnails = thumbnailUrls;
+        console.log(`🎉 Generated ${Object.keys(thumbnailUrls).length} thumbnails`);
+      } catch (thumbError) {
+        console.error('❌ Thumbnail generation failed:', thumbError);
+        // Continue without thumbnails - the original image will still work
+      }
     }
 
     console.log(`✅ File uploaded: ${filePath} (${fileCategory})`);

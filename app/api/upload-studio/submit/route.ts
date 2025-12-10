@@ -64,6 +64,11 @@ interface TrackSubmission {
   video_url?: string;
   cover_image_url?: string;
 
+  // Pre-generated thumbnail URLs (from upload-file endpoint)
+  thumb_64_url?: string;
+  thumb_160_url?: string;
+  thumb_256_url?: string;
+
   // Splits (may include names without wallets for pending collaborators)
   composition_splits?: Array<{
     wallet?: string;
@@ -298,6 +303,11 @@ export async function POST(request: NextRequest) {
       audio_url: trackData.audio_url || null,
       video_url: trackData.video_url || null,
       cover_image_url: trackData.cover_image_url || null,
+
+      // Pre-generated thumbnail URLs
+      thumb_64_url: trackData.thumb_64_url || null,
+      thumb_160_url: trackData.thumb_160_url || null,
+      thumb_256_url: trackData.thumb_256_url || null,
 
       // Video crop data (for video clips)
       video_crop_x: trackData.video_crop_x ?? null,
@@ -627,6 +637,11 @@ async function handleMultiFileSubmission(
     video_url: null,
     cover_image_url: trackData.cover_image_url || null,
 
+    // Pre-generated thumbnail URLs
+    thumb_64_url: trackData.thumb_64_url || null,
+    thumb_160_url: trackData.thumb_160_url || null,
+    thumb_256_url: trackData.thumb_256_url || null,
+
     // Location (geocoded)
     primary_location: primaryLocation || null,
     location_lat: locationLat || null,
@@ -762,6 +777,11 @@ async function handleMultiFileSubmission(
       audio_url: fileUrl,
       video_url: null,
       cover_image_url: trackData.cover_image_url || null,
+
+      // Pre-generated thumbnail URLs (inherit from container)
+      thumb_64_url: trackData.thumb_64_url || null,
+      thumb_160_url: trackData.thumb_160_url || null,
+      thumb_256_url: trackData.thumb_256_url || null,
 
       // Location (inherit from container - geocoded)
       primary_location: primaryLocation || null,
