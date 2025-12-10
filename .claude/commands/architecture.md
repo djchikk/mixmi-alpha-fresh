@@ -162,7 +162,7 @@ Four vertical buttons stacked on right side of globe page:
 
 **8-Bar Loops (Primary Content):**
 - Accepted by: Both mixers, Crate, Playlist
-- Display: Purple border (#9772F4)
+- Display: Purple border (#A084F9)
 - Behavior: Direct drag to mixer decks
 
 **Loop Packs (Collections of Loops):**
@@ -173,7 +173,7 @@ Four vertical buttons stacked on right side of globe page:
 - Individual loops: Draggable to mixers
 
 **Songs (Full Tracks):**
-- Display: Gold border (#FFE4B5)
+- Display: Lime Green border (#A8E66B)
 - Mixers: **Rejected** (loops only)
 - Crate: Accepted for staging
 - Preview: 20-second limit

@@ -14,7 +14,7 @@ Short-form video clips (5 seconds) as a new content type in Mixmi, integrating s
 - **Audio**: Optional (can have audio track or be silent)
 - **Storage**: Supabase Storage bucket `video-clips/`
 - **BPM**: Optional (for informational display)
-- **Color**: Sky Blue (#38BDF8) - "Visual/Media" - bright and screen-like, distinct from loops (purple), songs (gold), radio (orange)
+- **Color**: Lighter Sky Blue (#5BB5F9) - "Visual/Media" - bright and screen-like, distinct from loops (lavender), songs (lime green), radio (golden amber)
 
 ## Database Schema Changes
 
@@ -110,11 +110,11 @@ Update content_type enum to include:
 
 | Content Type | Color | Use Case |
 |-------------|-------|----------|
-| `loop` | Purple (#9772F4) | Audio loops |
-| `full_song` | Gold (#FFE4B5) | Full songs |
-| `radio_station` | Orange (#FB923C) | Live radio streams |
-| `grabbed_radio` | Orange (#FB923C) | Grabbed radio moments |
-| **`video_clip`** | **Sky Blue (#38BDF8)** | **5-second video clips** |
+| `loop` | Bright Lavender (#A084F9) | Audio loops |
+| `full_song` | Lime Green (#A8E66B) | Full songs |
+| `radio_station` | Golden Amber (#FFC044) | Live radio streams |
+| `grabbed_radio` | Golden Amber (#FFC044) | Grabbed radio moments |
+| **`video_clip`** | **Lighter Sky Blue (#5BB5F9)** | **5-second video clips** |
 
 ## File Structure
 
@@ -211,7 +211,7 @@ types/
 - Per-deck mute state (`videoMuted: boolean`)
 - 72×20px button below deck image (standardized dimensions)
 - Color-coded:
-  - Blue (#2792F5) when unmuted - Volume2 icon, "AUDIO" text
+  - Blue (#5BB5F9) when unmuted - Volume2 icon, "AUDIO" text
   - Red (#ef4444) when muted - VolumeX icon, "MUTED" text
 - Controls audio element volume (0 or 1)
 

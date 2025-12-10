@@ -260,7 +260,7 @@ size={10}  // All icons use 10px size
 - **Shows when:** Deck has video content
 - **Purpose:** Mutes/unmutes video audio track
 - **Colors:**
-  - Unmuted: Blue (#2792F5), Volume2 icon, "AUDIO" text
+  - Unmuted: Blue (#5BB5F9), Volume2 icon, "AUDIO" text
   - Muted: Red (#ef4444), VolumeX icon, "MUTED" text
 - **Location:** UniversalMixer.tsx:1908 (Deck A), :2097 (Deck B)
 
@@ -294,8 +294,8 @@ size={10}  // All icons use 10px size
     onClick={handleVideoMute}
     className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800"
     style={{
-      borderColor: videoMuted ? '#ef4444' : '#2792F5',
-      color: videoMuted ? '#ef4444' : '#2792F5'
+      borderColor: videoMuted ? '#ef4444' : '#5BB5F9',
+      color: videoMuted ? '#ef4444' : '#5BB5F9'
     }}
   >
     {videoMuted ? <VolumeX size={10} /> : <Volume2 size={10} />}
@@ -330,11 +330,11 @@ Each content type has a dedicated color applied to its contextual controls for i
 
 | Content Type | Color | Hex Code | Applied To |
 |-------------|-------|----------|------------|
-| `loop` | Purple | `#9772F4` | Loop-related controls and indicators |
-| `full_song` | Wheat/Moccasin | `#FFE4B5` | Section Navigator borders and text |
-| `video_clip` | Blue/Red | `#2792F5` / `#ef4444` | Video mute button (unmuted/muted) |
-| `radio_station` | Orange | `#FB923C` | Radio GRAB button when ready |
-| `grabbed_radio` | Orange | `#FB923C` | Inherited from radio |
+| `loop` | Bright Lavender | `#A084F9` | Loop-related controls and indicators |
+| `full_song` | Lime Green | `#A8E66B` | Section Navigator borders and text |
+| `video_clip` | Lighter Sky Blue/Red | `#5BB5F9` / `#ef4444` | Video mute button (unmuted/muted) |
+| `radio_station` | Golden Amber | `#FFC044` | Radio GRAB button when ready |
+| `grabbed_radio` | Golden Amber | `#FFC044` | Inherited from radio |
 | Sync active | Cyan | `#81E4F2` | All sync buttons and master controls |
 
 ### Implementation Pattern
@@ -350,7 +350,7 @@ style={{
 **Example: Section Navigator**
 ```typescript
 // SectionNavigator.tsx:40
-const color = '#FFE4B5'; // Song color (moccasin/wheat)
+const color = '#A8E66B'; // Song color (lime green)
 
 // Applied to all elements
 <button style={{ borderColor: canGoPrev ? color : '#1e293b', color: canGoPrev ? color : '#475569' }}>
