@@ -14,6 +14,7 @@ interface SimplifiedDeckProps {
   onTrackDrop?: (track: Track) => void;
   onPackDrop?: (pack: any) => void; // New prop for handling pack drops
   onTrackClear?: () => void; // New prop for clearing deck
+  onDragOver?: (isOver: boolean) => void; // Callback when drag is over this deck
   deck: 'A' | 'B';
   contentType?: string; // Content type for dynamic border colors
   className?: string;
@@ -26,6 +27,7 @@ export default function SimplifiedDeckCompact({
   onTrackDrop,
   onPackDrop,
   onTrackClear,
+  onDragOver,
   deck,
   contentType,
   className = ''
@@ -157,6 +159,11 @@ export default function SimplifiedDeckCompact({
       };
     },
   }));
+
+  // Notify parent when drag is over this deck
+  useEffect(() => {
+    onDragOver?.(isOver);
+  }, [isOver, onDragOver]);
 
   // Detect when a new track is loaded or cleared
   useEffect(() => {

@@ -72,6 +72,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [syncWarningVisible, setSyncWarningVisible] = useState(false);
+  const [isDeckDragOver, setIsDeckDragOver] = useState(false); // Track when dragging over either deck
 
   // Initialize mixer state with volume controls
   const [mixerState, setMixerState] = useState<UniversalMixerState>({
@@ -1696,12 +1697,14 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
   return (
     <div
-      className={`universal-mixer bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-700/50 overflow-hidden ${className}`}
+      className={`universal-mixer bg-slate-900/30 backdrop-blur-sm rounded-xl shadow-2xl border overflow-hidden ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         padding: isCollapsed ? '0.5rem 1rem' : '1.5rem',
-        transition: 'padding 0.3s'
+        transition: 'padding 0.3s, filter 0.15s, border-color 0.15s',
+        filter: isDeckDragOver ? 'brightness(1.15)' : 'brightness(1)',
+        borderColor: isDeckDragOver ? 'rgba(129, 228, 242, 0.4)' : 'rgba(51, 65, 85, 0.5)'
       }}
     >
       {/* Collapse/Expand Button */}
@@ -1943,6 +1946,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackDrop={loadTrackToDeckA}
                   onPackDrop={(pack) => handlePackDrop(pack, 'A')}
                   onTrackClear={clearDeckA}
+                  onDragOver={setIsDeckDragOver}
                   deck="A"
                   contentType={mixerState.deckA.contentType}
                 />
@@ -2134,6 +2138,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   onTrackDrop={loadTrackToDeckB}
                   onPackDrop={(pack) => handlePackDrop(pack, 'B')}
                   onTrackClear={clearDeckB}
+                  onDragOver={setIsDeckDragOver}
                   deck="B"
                   contentType={mixerState.deckB.contentType}
                 />
