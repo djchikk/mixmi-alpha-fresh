@@ -1231,15 +1231,7 @@ function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
             <div className="space-y-8">
               {/* Section 1: Basic Profile Information */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-gray-300 text-sm font-medium">Basic Profile Information</h4>
-                  <button
-                    onClick={() => setIsInfoModalOpen(true)}
-                    className="flex-shrink-0 px-6 py-2.5 text-sm font-semibold text-white border-2 border-white/60 rounded-lg hover:bg-white/10 transition-colors"
-                  >
-                    Edit
-                  </button>
-                </div>
+                <h4 className="text-gray-300 text-sm font-medium mb-4">Basic Profile Information</h4>
 
                 <div className="flex gap-6 items-center">
                   {/* Avatar with overlay icon - larger */}
@@ -1317,6 +1309,16 @@ function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
                       <p className="text-gray-500 text-xs italic mt-2">No social links added</p>
                     )}
                   </div>
+
+                  {/* Edit button aligned with info */}
+                  <div className="flex-shrink-0 self-center">
+                    <button
+                      onClick={() => setIsInfoModalOpen(true)}
+                      className="px-6 py-2.5 text-sm font-semibold text-white border-2 border-white/60 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1325,15 +1327,7 @@ function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
 
               {/* Section 2: Creative Showcase */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-gray-300 text-sm font-medium">Creative Showcase</h4>
-                  <a
-                    href={`/profile/${profile.username || walletAddress}`}
-                    className="flex-shrink-0 px-6 py-2.5 text-sm font-semibold text-white border-2 border-white/60 rounded-lg hover:bg-white/10 transition-colors"
-                  >
-                    Customize
-                  </a>
-                </div>
+                <h4 className="text-gray-300 text-sm font-medium mb-4">Creative Showcase</h4>
 
                 <div className="flex gap-6">
                   {/* Abstract Profile Preview */}
@@ -1383,6 +1377,16 @@ function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
                       className="text-xs text-[#81E4F2] hover:text-[#81E4F2]/80 transition-colors"
                     >
                       See an example profile
+                    </a>
+                  </div>
+
+                  {/* Customize button aligned with explanation */}
+                  <div className="flex-shrink-0 self-center">
+                    <a
+                      href={`/profile/${profile.username || walletAddress}`}
+                      className="px-6 py-2.5 text-sm font-semibold text-white border-2 border-white/60 rounded-lg hover:bg-white/10 transition-colors inline-block"
+                    >
+                      Customize
                     </a>
                   </div>
                 </div>
