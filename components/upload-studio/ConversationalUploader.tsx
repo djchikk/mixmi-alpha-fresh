@@ -61,6 +61,10 @@ interface ExtractedTrackData {
   audio_url?: string;
   video_url?: string;
   cover_image_url?: string;
+  // Thumbnail URLs (pre-generated at upload)
+  thumb_64_url?: string;
+  thumb_160_url?: string;
+  thumb_256_url?: string;
   // Video crop data
   video_crop_x?: number;
   video_crop_y?: number;
@@ -407,7 +411,11 @@ export default function ConversationalUploader({ walletAddress }: Conversational
       } else if (attachment.type === 'image') {
         setExtractedData(prev => ({
           ...prev,
-          cover_image_url: result.url
+          cover_image_url: result.url,
+          // Capture pre-generated thumbnail URLs from upload response
+          thumb_64_url: result.thumbnails?.[64],
+          thumb_160_url: result.thumbnails?.[160],
+          thumb_256_url: result.thumbnails?.[256]
         }));
       }
 
