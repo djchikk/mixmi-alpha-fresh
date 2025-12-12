@@ -13,7 +13,9 @@ import EditOptionsModal from "@/components/modals/EditOptionsModal";
 import ContentTypeSelector from "@/components/modals/ContentTypeSelector";
 import InfoIcon from "@/components/shared/InfoIcon";
 import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFlip";
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import ProfileImageModal from "@/components/profile/ProfileImageModal";
+import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
+import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image } from 'lucide-react';
 
 type Tab = "uploads" | "library" | "history" | "settings";
 
@@ -1152,19 +1154,244 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
 }
 
 function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<{
+    username?: string | null;
+    bns_name?: string | null;
+    display_name?: string | null;
+    tagline?: string | null;
+    bio?: string | null;
+    avatar_url?: string | null;
+    show_wallet_address?: boolean;
+    show_btc_address?: boolean;
+  }>({});
+  const [links, setLinks] = useState<Array<{ platform: string; url: string }>>([]);
+
+  // Modal states
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+
+  // Fetch profile data
+  const fetchProfileData = async () => {
+    if (!walletAddress) return;
+
+    setLoading(true);
+    try {
+      // Fetch profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('wallet_address', walletAddress)
+        .single();
+
+      if (!profileError && profileData) {
+        setProfile(profileData);
+      }
+
+      // Fetch links
+      const { data: linksData, error: linksError } = await supabase
+        .from('profile_links')
+        .select('platform, url')
+        .eq('wallet_address', walletAddress);
+
+      if (!linksError && linksData) {
+        setLinks(linksData);
+      }
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProfileData();
+  }, [walletAddress]);
+
+  const handleProfileUpdate = async () => {
+    await fetchProfileData();
+  };
+
+  // Check if video
+  const isVideo = profile.avatar_url && (
+    profile.avatar_url.includes('.mp4') ||
+    profile.avatar_url.includes('.webm') ||
+    profile.avatar_url.includes('video/')
+  );
+
   return (
     <div>
       <div className="max-w-2xl space-y-6">
+        {/* Profile Settings */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
-          <h3 className="text-white font-semibold mb-4">Profile Settings</h3>
-          <p className="text-gray-400 text-sm">
-            Edit your profile information, avatar, and bio from your{" "}
-            <a href="#" className="text-[#81E4F2] hover:underline">
-              profile page
-            </a>
-          </p>
+          <h3 className="text-white font-semibold mb-6">Profile Settings</h3>
+
+          {loading ? (
+            <div className="text-gray-400 text-sm">Loading...</div>
+          ) : (
+            <div className="space-y-8">
+              {/* Section 1: Basic Profile Information */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-gray-300 text-sm font-medium">Basic Profile Information</h4>
+                  <button
+                    onClick={() => setIsInfoModalOpen(true)}
+                    className="flex-shrink-0 px-6 py-2.5 text-sm font-semibold text-white border-2 border-white/60 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+
+                <div className="flex gap-6 items-center">
+                  {/* Avatar with overlay icon - larger */}
+                  <div className="flex-shrink-0">
+                    <button
+                      onClick={() => setIsImageModalOpen(true)}
+                      className="relative w-48 h-48 rounded-2xl overflow-hidden bg-[#1E293B] group cursor-pointer"
+                    >
+                      {profile.avatar_url ? (
+                        <>
+                          {isVideo ? (
+                            <video
+                              src={profile.avatar_url}
+                              className="w-full h-full object-cover"
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                            />
+                          ) : (
+                            <img
+                              src={profile.avatar_url}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                          {/* Overlay for existing image */}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Image className="w-10 h-10 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        /* Empty state with plus */
+                        <div className="w-full h-full flex items-center justify-center text-gray-500 group-hover:text-gray-400 transition-colors">
+                          <Plus className="w-12 h-12" />
+                        </div>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Profile Info - centered vertically */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    {/* Display Name */}
+                    <h2 className="text-xl font-semibold text-white truncate mb-1">
+                      {profile.display_name || <span className="text-gray-500 italic font-normal">No display name</span>}
+                    </h2>
+
+                    {/* Username */}
+                    {profile.username && (
+                      <p className="text-[#81E4F2] text-sm mb-2">@{profile.username}</p>
+                    )}
+
+                    {/* Tagline */}
+                    <p className="text-gray-300 text-sm mb-2">
+                      {profile.tagline || <span className="text-gray-500 italic">No tagline</span>}
+                    </p>
+
+                    {/* Bio */}
+                    <p className="text-gray-400 text-sm whitespace-pre-wrap line-clamp-2">
+                      {profile.bio || <span className="text-gray-500 italic">No bio</span>}
+                    </p>
+
+                    {/* Social Links */}
+                    {links.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {links.map((link, i) => (
+                          <span key={i} className="text-xs px-2 py-0.5 bg-[#1E293B] rounded text-gray-400">
+                            {link.platform}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {links.length === 0 && (
+                      <p className="text-gray-500 text-xs italic mt-2">No social links added</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-[#1E293B]" />
+
+              {/* Section 2: Creative Showcase */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-gray-300 text-sm font-medium">Creative Showcase</h4>
+                  <a
+                    href={`/profile/${profile.username || walletAddress}`}
+                    className="flex-shrink-0 px-6 py-2.5 text-sm font-semibold text-white border-2 border-white/60 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Customize
+                  </a>
+                </div>
+
+                <div className="flex gap-6">
+                  {/* Abstract Profile Preview */}
+                  <div className="bg-[#0a0f1a] rounded-lg p-5 border border-[#1E293B]/50 flex-shrink-0 w-[200px] flex flex-col">
+                    {/* Content Sections */}
+                    <div className="space-y-3">
+                      {['Spotlight', 'Streams', 'Shop', 'Gallery'].map((section) => (
+                        <div key={section} className="flex flex-col items-center">
+                          <p className="text-[9px] text-gray-500 uppercase tracking-wider mb-1.5">{section}</p>
+                          <div className="flex gap-2 justify-center">
+                            {[1, 2, 3].map((i) => (
+                              <div key={i} className="w-8 h-8 rounded bg-[#2D3748] border border-[#4A5568]/70" />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Sticker at bottom */}
+                    <div className="flex justify-center mt-4 pt-4 border-t border-[#2D3748]/70">
+                      <div className="w-6 h-6 rounded-full bg-[#2D3748] border border-[#4A5568]/70" />
+                    </div>
+                  </div>
+
+                  {/* Explanation */}
+                  <div className="flex-1 flex flex-col justify-center">
+                    <p className="text-gray-300 text-sm mb-3">
+                      Your profile is your creative canvas. Build it your way!
+                    </p>
+
+                    <div className="space-y-1.5 text-xs text-gray-400 mb-3">
+                      <p><span className="text-gray-300">Spotlight</span> — Feature projects, profiles, friends, or inspo</p>
+                      <p><span className="text-gray-300">Streams</span> — Embed YouTube, SoundCloud, Spotify, Apple Music</p>
+                      <p><span className="text-gray-300">Shop</span> — Link to anything you're selling</p>
+                      <p><span className="text-gray-300">Gallery</span> — Share images, videos, or visual art</p>
+                      <p><span className="text-gray-300">Sticker</span> — Add a personal rotating badge</p>
+                    </div>
+
+                    <p className="text-gray-500 text-xs mb-2">
+                      Show or hide any section. Reorder them. Make it yours.
+                    </p>
+
+                    <a
+                      href="https://www.mixmi.app/profile/fluffytoycollective"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#81E4F2] hover:text-[#81E4F2]/80 transition-colors"
+                    >
+                      See an example profile
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* Wallet Settings */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <h3 className="text-white font-semibold mb-4">Wallet Settings</h3>
           <p className="text-gray-400 text-sm mb-4">
@@ -1182,6 +1409,7 @@ function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
           </div>
         </div>
 
+        {/* Privacy */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <h3 className="text-white font-semibold mb-4">Privacy</h3>
           <p className="text-gray-400 text-sm">
@@ -1189,6 +1417,24 @@ function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
           </p>
         </div>
       </div>
+
+      {/* Modals */}
+      <ProfileImageModal
+        isOpen={isImageModalOpen}
+        onClose={() => setIsImageModalOpen(false)}
+        currentImage={profile.avatar_url || undefined}
+        targetWallet={walletAddress || ''}
+        onUpdate={handleProfileUpdate}
+      />
+
+      <ProfileInfoModal
+        isOpen={isInfoModalOpen}
+        onClose={() => setIsInfoModalOpen(false)}
+        profile={profile}
+        links={links}
+        targetWallet={walletAddress || ''}
+        onUpdate={handleProfileUpdate}
+      />
     </div>
   );
 }
