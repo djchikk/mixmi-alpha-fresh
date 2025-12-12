@@ -71,7 +71,7 @@ function getContentType(url: string): string {
 
 /**
  * Extract storage bucket and path from Supabase URL
- * Supports both 'user-content' and 'track-covers' buckets
+ * Supports 'user-content', 'track-covers', and 'cover-images' buckets
  */
 function extractStorageInfo(url: string): { bucket: string; path: string } | null {
   // URL format: https://xxx.supabase.co/storage/v1/object/public/BUCKET/path/filename.jpg
@@ -85,6 +85,12 @@ function extractStorageInfo(url: string): { bucket: string; path: string } | nul
   match = url.match(/\/storage\/v1\/object\/public\/track-covers\/(.+)$/);
   if (match) {
     return { bucket: 'track-covers', path: match[1] };
+  }
+
+  // Try cover-images bucket (video clip covers)
+  match = url.match(/\/storage\/v1\/object\/public\/cover-images\/(.+)$/);
+  if (match) {
+    return { bucket: 'cover-images', path: match[1] };
   }
 
   return null;

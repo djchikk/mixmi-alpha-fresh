@@ -33,6 +33,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarThumb48Url, setAvatarThumb48Url] = useState<string | null>(null);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
   const [showUploadTypeModal, setShowUploadTypeModal] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -47,21 +48,23 @@ export default function Header() {
       if (!walletAddress) {
         setUsername(null);
         setAvatarUrl(null);
+        setAvatarThumb48Url(null);
         return;
       }
 
-      // Get profile data
+      // Get profile data including thumbnail
       const { data: profileData } = await supabase
         .from('user_profiles')
-        .select('username, avatar_url')
+        .select('username, avatar_url, avatar_thumb_48_url')
         .eq('wallet_address', walletAddress)
         .single();
 
       setUsername(profileData?.username || null);
 
-      // Priority 1: Profile avatar
+      // Priority 1: Profile avatar (with thumbnail for small displays)
       if (profileData?.avatar_url) {
         setAvatarUrl(profileData.avatar_url);
+        setAvatarThumb48Url(profileData?.avatar_thumb_48_url || null);
         return;
       }
 
@@ -213,7 +216,7 @@ export default function Header() {
                     />
                   ) : (
                     <img
-                      src={avatarUrl || generateAvatar(walletAddress)}
+                      src={avatarThumb48Url || avatarUrl || generateAvatar(walletAddress)}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
@@ -406,7 +409,7 @@ export default function Header() {
                         />
                       ) : (
                         <img
-                          src={avatarUrl || generateAvatar(walletAddress)}
+                          src={avatarThumb48Url || avatarUrl || generateAvatar(walletAddress)}
                           alt="Profile"
                           className="w-full h-full object-cover"
                         />

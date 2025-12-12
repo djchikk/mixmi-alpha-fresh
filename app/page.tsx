@@ -187,6 +187,10 @@ export default function HomePage() {
         license: track.license,
         price_stx: track.price_stx,
         pack_position: track.pack_position,
+        // Pre-generated thumbnails
+        thumb_64_url: track.thumb_64_url,
+        thumb_160_url: track.thumb_160_url,
+        thumb_256_url: track.thumb_256_url,
       };
 
       // Create pinned card at drop location
@@ -1166,6 +1170,10 @@ export default function HomePage() {
                     description: leftComparisonTrack.description || '',
                     license: leftComparisonTrack.license || '',
                     primary_uploader_wallet: leftComparisonTrack.uploaderAddress || leftComparisonTrack.wallet_address,
+                    // Pre-generated thumbnails
+                    thumb_64_url: leftComparisonTrack.thumb_64_url,
+                    thumb_160_url: leftComparisonTrack.thumb_160_url,
+                    thumb_256_url: leftComparisonTrack.thumb_256_url,
                     // Required fields for IPTrack
                     wallet_address: '',
                     created_at: new Date().toISOString(),
@@ -1224,6 +1232,10 @@ export default function HomePage() {
                     description: rightComparisonTrack.description || '',
                     license: rightComparisonTrack.license || '',
                     primary_uploader_wallet: rightComparisonTrack.uploaderAddress || rightComparisonTrack.wallet_address,
+                    // Pre-generated thumbnails
+                    thumb_64_url: rightComparisonTrack.thumb_64_url,
+                    thumb_160_url: rightComparisonTrack.thumb_160_url,
+                    thumb_256_url: rightComparisonTrack.thumb_256_url,
                     // Required fields for IPTrack
                     wallet_address: '',
                     created_at: new Date().toISOString(),
@@ -1282,6 +1294,10 @@ export default function HomePage() {
                     description: centerTrackCard.description || '',
                     license: centerTrackCard.license || '',
                     primary_uploader_wallet: centerTrackCard.uploaderAddress || centerTrackCard.wallet_address,
+                    // Pre-generated thumbnails
+                    thumb_64_url: centerTrackCard.thumb_64_url,
+                    thumb_160_url: centerTrackCard.thumb_160_url,
+                    thumb_256_url: centerTrackCard.thumb_256_url,
                     wallet_address: '',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -1433,6 +1449,10 @@ export default function HomePage() {
                                 description: track.description || '',
                                 license: track.license || '',
                                 primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
+                                // Pre-generated thumbnails
+                                thumb_64_url: track.thumb_64_url,
+                                thumb_160_url: track.thumb_160_url,
+                                thumb_256_url: track.thumb_256_url,
                                 wallet_address: '',
                                 created_at: new Date().toISOString(),
                                 updated_at: new Date().toISOString(),
@@ -1488,6 +1508,10 @@ export default function HomePage() {
                               description: track.description || '',
                               license: track.license || '',
                               primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
+                              // Pre-generated thumbnails
+                              thumb_64_url: track.thumb_64_url,
+                              thumb_160_url: track.thumb_160_url,
+                              thumb_256_url: track.thumb_256_url,
                               wallet_address: '',
                               created_at: new Date().toISOString(),
                               updated_at: new Date().toISOString(),
@@ -1524,6 +1548,10 @@ export default function HomePage() {
                         description: pinnedCard.node.description || '',
                         license: pinnedCard.node.license || '',
                         primary_uploader_wallet: pinnedCard.node.uploaderAddress || pinnedCard.node.wallet_address,
+                        // Pre-generated thumbnails
+                        thumb_64_url: pinnedCard.node.thumb_64_url,
+                        thumb_160_url: pinnedCard.node.thumb_160_url,
+                        thumb_256_url: pinnedCard.node.thumb_256_url,
                         wallet_address: '',
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
@@ -1632,7 +1660,11 @@ export default function HomePage() {
                             duration: track.duration,
                             description: track.description,
                             primary_location: track.location,
-                            primary_uploader_wallet: track.uploaderAddress || track.wallet_address
+                            primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
+                            // Pre-generated thumbnails
+                            thumb_64_url: track.thumb_64_url,
+                            thumb_160_url: track.thumb_160_url,
+                            thumb_256_url: track.thumb_256_url
                           } as any}
                           isPlaying={playingTrackId !== null && playingTrackId === track.id}
                           onPlayPreview={handlePlayPreview}
@@ -1689,7 +1721,11 @@ export default function HomePage() {
                               duration: track.duration,
                               description: track.description,
                               primary_location: track.location,
-                              primary_uploader_wallet: track.uploaderAddress || track.wallet_address
+                              primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
+                              // Pre-generated thumbnails
+                              thumb_64_url: track.thumb_64_url,
+                              thumb_160_url: track.thumb_160_url,
+                              thumb_256_url: track.thumb_256_url
                             } as any}
                             isPlaying={playingTrackId !== null && playingTrackId === track.id}
                             onPlayPreview={handlePlayPreview}
@@ -1730,6 +1766,10 @@ export default function HomePage() {
                       description: displayTrack.description || '',
                       license: displayTrack.license || '',
                       primary_uploader_wallet: displayTrack.uploaderAddress || displayTrack.wallet_address,
+                      // Pre-generated thumbnails
+                      thumb_64_url: displayTrack.thumb_64_url,
+                      thumb_160_url: displayTrack.thumb_160_url,
+                      thumb_256_url: displayTrack.thumb_256_url,
                       // Required fields for IPTrack
                       wallet_address: '',
                       created_at: new Date().toISOString(),

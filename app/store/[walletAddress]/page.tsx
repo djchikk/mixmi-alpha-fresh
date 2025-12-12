@@ -39,6 +39,7 @@ export default function CreatorStorePage() {
   const [creatorName, setCreatorName] = useState<string>('');
   const [actualWalletAddress, setActualWalletAddress] = useState<string>('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileThumb96Url, setProfileThumb96Url] = useState<string | null>(null);
   const [storeLabel, setStoreLabel] = useState<string>('Store');
   const [isContentTypeSelectorOpen, setIsContentTypeSelectorOpen] = useState(false);
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
@@ -82,7 +83,7 @@ export default function CreatorStorePage() {
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('display_name, username, avatar_url, store_label')
+            .select('display_name, username, avatar_url, avatar_thumb_96_url, store_label')
             .eq('wallet_address', walletOrUsername)
             .single();
 
@@ -98,6 +99,7 @@ export default function CreatorStorePage() {
             // Set profile image from avatar_url if customized
             if (profileData.avatar_url) {
               setProfileImage(profileData.avatar_url);
+              setProfileThumb96Url(profileData.avatar_thumb_96_url || null);
             }
             // Otherwise leave it for track fetch to set from first track cover
 
@@ -116,7 +118,7 @@ export default function CreatorStorePage() {
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('wallet_address, display_name, username, avatar_url, store_label')
+            .select('wallet_address, display_name, username, avatar_url, avatar_thumb_96_url, store_label')
             .eq('username', walletOrUsername)
             .single();
 
@@ -133,6 +135,7 @@ export default function CreatorStorePage() {
             // Set profile image from avatar_url if customized
             if (profileData.avatar_url) {
               setProfileImage(profileData.avatar_url);
+              setProfileThumb96Url(profileData.avatar_thumb_96_url || null);
             }
 
             // Set store label from profile if customized
@@ -508,7 +511,7 @@ export default function CreatorStorePage() {
                   />
                 ) : (
                   <img
-                    src={profileImage}
+                    src={profileThumb96Url || profileImage}
                     alt={creatorName || 'Creator'}
                     className="w-full h-full object-cover"
                     onError={(e) => {

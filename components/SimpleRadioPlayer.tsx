@@ -332,6 +332,22 @@ export default function SimpleRadioPlayer() {
     }
   };
 
+  // Dismiss/clear current station
+  const dismissStation = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    setCurrentStation(null);
+    setIsPlaying(false);
+    localStorage.removeItem('mixmi-radio-state');
+    console.log('📻 SimpleRadioPlayer: Station dismissed');
+  };
+
   // Update audio volume when volume state changes
   useEffect(() => {
     if (audioRef.current && !isMuted) {
@@ -507,15 +523,27 @@ export default function SimpleRadioPlayer() {
           title="Drag to Crate or Playlist"
         >
           <img
-            src={getOptimizedTrackImage(currentStation, 60)}
+            src={getOptimizedTrackImage(currentStation, 64)}
             alt={currentStation.title}
             className="w-full h-full object-cover"
           />
 
           {/* Drag handle indicator - shows on hover */}
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
             <GripVertical className="w-5 h-5 text-white" />
           </div>
+
+          {/* Dismiss X button - top right, shows on hover */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              dismissStation();
+            }}
+            className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/70 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            title="Clear station"
+          >
+            <X className="w-3 h-3 text-white" />
+          </button>
 
           {/* Pack position badge - top left */}
           {currentStation.pack_position && (

@@ -10,6 +10,8 @@ export interface UserProfile {
   tagline: string;
   bio: string;
   avatar_url?: string;
+  avatar_thumb_48_url?: string;  // 48px thumbnail for header displays
+  avatar_thumb_96_url?: string;  // 96px thumbnail for store/dashboard
   sticker_id: string;
   sticker_visible: boolean;
   custom_sticker?: string;

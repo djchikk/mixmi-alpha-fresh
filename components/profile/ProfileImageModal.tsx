@@ -77,6 +77,25 @@ export default function ProfileImageModal({
         avatar_url: imageUrl
       });
 
+      // Generate thumbnails in the background (for header/store/dashboard displays)
+      // This is fire-and-forget since we don't need thumbnails immediately on profile page
+      if (imageUrl.startsWith('http') && !imageUrl.includes('.mp4') && !imageUrl.includes('.webm')) {
+        fetch('/api/profile/generate-thumbnails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: targetWallet,
+            avatarUrl: imageUrl
+          })
+        }).then(res => {
+          if (res.ok) {
+            console.log('✅ Profile thumbnails generated in background');
+          }
+        }).catch(err => {
+          console.error('⚠️ Background thumbnail generation failed:', err);
+        });
+      }
+
       // Call the onUpdate callback to refresh the parent component
       await onUpdate();
       

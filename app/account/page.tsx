@@ -55,6 +55,7 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileThumb96Url, setProfileThumb96Url] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>('');
 
   // Upload modal states (separate from editing modals)
@@ -104,7 +105,7 @@ export default function AccountPage() {
       try {
         const { data: profileData, error: profileError } = await supabase
           .from('user_profiles')
-          .select('display_name, username, avatar_url')
+          .select('display_name, username, avatar_url, avatar_thumb_96_url')
           .eq('wallet_address', walletAddress)
           .single();
 
@@ -118,9 +119,10 @@ export default function AccountPage() {
             setDisplayName(walletAddress.slice(0, 8) + '...');
           }
 
-          // Set profile image
+          // Set profile image (with thumbnail for small displays)
           if (profileData.avatar_url) {
             setProfileImage(profileData.avatar_url);
+            setProfileThumb96Url(profileData.avatar_thumb_96_url || null);
           }
         }
       } catch (error) {
@@ -229,7 +231,7 @@ export default function AccountPage() {
             <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800">
               {profileImage ? (
                 <img
-                  src={profileImage}
+                  src={profileThumb96Url || profileImage}
                   alt={displayName || 'User'}
                   className="w-full h-full object-cover"
                   onError={(e) => {

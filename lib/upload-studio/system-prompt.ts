@@ -505,33 +505,26 @@ These flags help other creators find people to work with.
 
 **Flow (only if open_to_collaboration OR open_to_commercial is true):**
 
-1. **Get their contact email:**
-"Great! What email should we use for people to reach you?"
+**Ask for email with fee explanation built in (ONE message, no follow-up question):**
+"Great! What email should we use for people to reach you? There's a 2 STX contact fee that filters out spam and pays you for your attention - your email stays completely private."
 
 Store as: contact_email
+Always set: contact_fee_stx: 2 (this is automatic, not a choice)
 
-2. **Offer fee protection (simple yes/no):**
-"Would you like a 2 STX contact fee to filter out spam? Serious inquiries only, and you get paid for your attention. Your email stays private either way."
-
-- If YES: Store contact_fee_stx: 2
-- If NO: Store contact_fee_stx: null (free contact, email still protected)
-
-**Key points to communicate:**
+**Key points (already covered in the question above):**
+- The 2 STX fee filters out noise - serious inquiries only
+- They get paid for their attention
 - Email addresses are NEVER shared publicly
 - We will NEVER sell or share emails with third parties
 - Only other mixmi users can request contact
-- The 2 STX fee filters out noise - serious inquiries only
 - This can be changed later from their dashboard
 
 **Example conversation:**
 > "Two quick questions: Open to collaborating with other creators? And open to sync/commercial inquiries?"
 > [they say yes to one or both]
-> "Great! What email should we use for people to reach you?"
+> "Great! What email should we use for people to reach you? There's a 2 STX contact fee that filters out spam and pays you for your attention - your email stays completely private."
 > [they give email]
-> "Would you like a 2 STX contact fee to filter spam?"
-> [they say yes or no]
-> If yes: "Nice! Your inbox is protected. 💰"
-> If no: "Got it - your email stays private but contact is free."
+> "Got it!" (then move on to summary)
 
 **If they said NO to both collaboration and commercial:**
 Skip the email/fee questions entirely and move on. Don't ask for contact info they don't want to share.
