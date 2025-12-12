@@ -70,12 +70,24 @@ function getContentType(url: string): string {
 }
 
 /**
- * Extract storage path from Supabase URL
+ * Extract storage bucket and path from Supabase URL
+ * Supports both 'user-content' and 'track-covers' buckets
  */
-function extractStoragePath(url: string): string | null {
-  // URL format: https://xxx.supabase.co/storage/v1/object/public/user-content/cover-images/filename.jpg
-  const match = url.match(/\/storage\/v1\/object\/public\/user-content\/(.+)$/);
-  return match ? match[1] : null;
+function extractStorageInfo(url: string): { bucket: string; path: string } | null {
+  // URL format: https://xxx.supabase.co/storage/v1/object/public/BUCKET/path/filename.jpg
+  // Try user-content bucket first (new uploads)
+  let match = url.match(/\/storage\/v1\/object\/public\/user-content\/(.+)$/);
+  if (match) {
+    return { bucket: 'user-content', path: match[1] };
+  }
+
+  // Try track-covers bucket (old uploads)
+  match = url.match(/\/storage\/v1\/object\/public\/track-covers\/(.+)$/);
+  if (match) {
+    return { bucket: 'track-covers', path: match[1] };
+  }
+
+  return null;
 }
 
 /**
@@ -158,16 +170,16 @@ async function generateThumbnails(
  */
 async function uploadThumbnails(
   thumbnails: Map<number, { buffer: Buffer; filename: string; contentType: string }>,
-  storagePath: string
+  storageInfo: { bucket: string; path: string }
 ): Promise<Map<number, string>> {
   const urls = new Map<number, string>();
-  const baseDir = storagePath.substring(0, storagePath.lastIndexOf('/'));
+  const baseDir = storageInfo.path.substring(0, storageInfo.path.lastIndexOf('/'));
 
   for (const [size, thumb] of thumbnails) {
     const thumbPath = `${baseDir}/thumbnails/${thumb.filename}`;
 
     const { error } = await supabase.storage
-      .from('user-content')
+      .from(storageInfo.bucket)
       .upload(thumbPath, thumb.buffer, {
         contentType: thumb.contentType,
         cacheControl: '31536000',
@@ -180,7 +192,7 @@ async function uploadThumbnails(
     }
 
     const { data: urlData } = supabase.storage
-      .from('user-content')
+      .from(storageInfo.bucket)
       .getPublicUrl(thumbPath);
 
     urls.set(size, urlData.publicUrl);
@@ -242,9 +254,9 @@ async function processTrack(track: Track): Promise<boolean> {
     return false;
   }
 
-  // Extract storage path
-  const storagePath = extractStoragePath(track.cover_image_url);
-  if (!storagePath) {
+  // Extract storage info (bucket and path)
+  const storageInfo = extractStorageInfo(track.cover_image_url);
+  if (!storageInfo) {
     console.log('  ❌ Could not extract storage path');
     return false;
   }
@@ -260,7 +272,7 @@ async function processTrack(track: Track): Promise<boolean> {
   const contentType = getContentType(track.cover_image_url);
 
   // Generate base filename
-  const originalFilename = storagePath.split('/').pop()!;
+  const originalFilename = storageInfo.path.split('/').pop()!;
   const baseFilename = originalFilename.replace(/\.[^.]+$/, '');
 
   // Generate thumbnails
@@ -274,7 +286,7 @@ async function processTrack(track: Track): Promise<boolean> {
 
   // Upload thumbnails
   console.log('  📤 Uploading thumbnails...');
-  const thumbnailUrls = await uploadThumbnails(thumbnails, storagePath);
+  const thumbnailUrls = await uploadThumbnails(thumbnails, storageInfo);
 
   if (thumbnailUrls.size === 0) {
     console.log('  ❌ No thumbnails uploaded');

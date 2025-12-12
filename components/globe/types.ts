@@ -32,6 +32,11 @@ export interface TrackNode {
   // Profile/Artist fields for enhanced display
   profileImageUrl?: string; // Artist profile picture
   artistName?: string; // Display name for artist
+
+  // Pre-generated thumbnail URLs
+  thumb_64_url?: string;
+  thumb_160_url?: string;
+  thumb_256_url?: string;
 }
 
 export interface GlobeProps {

@@ -43,17 +43,18 @@ export default function SafeImage({
     setImgSrc(src);
   }, [src]);
 
-  // Determine if this is a user-provided URL or our own image
-  const isUserProvidedUrl = (url: string): boolean => {
+  // Determine if this URL should use a plain img tag (skip Next.js Image optimization)
+  const shouldUsePlainImg = (url: string): boolean => {
     if (!url) return false;
-    
-    // Our own images (safe to use with Next.js Image)
-    if (url.startsWith('/')) return false; // Local paths
-    if (url.startsWith('data:')) return false; // Base64 images
-    if (url.includes('supabase.co/storage/')) return false; // Our cloud storage
-    
-    // Everything else is user-provided
-    return true;
+
+    // Pre-generated thumbnails - already optimized, skip Next.js Image
+    if (url.includes('/thumbnails/')) return true;
+
+    // User-provided external URLs - can't be optimized by Next.js
+    if (url.startsWith('http') && !url.includes('supabase.co/storage/')) return true;
+
+    // Local paths, data URLs, and Supabase originals go through Next.js Image
+    return false;
   };
 
   const handleError = () => {
@@ -64,8 +65,8 @@ export default function SafeImage({
     }
   };
 
-  // For user-provided URLs, use regular img tag to avoid Next.js domain issues
-  if (isUserProvidedUrl(src) && !hasError) {
+  // For thumbnails and user-provided URLs, use regular img tag (skip Next.js Image)
+  if (shouldUsePlainImg(src) && !hasError) {
     return (
       <img
         src={imgSrc}

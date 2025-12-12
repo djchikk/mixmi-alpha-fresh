@@ -132,6 +132,11 @@ export interface IPTrack {
   cover_image_url?: string;
   audio_url?: string;
   video_url?: string; // For video_clip content type - URL to MP4 file in Supabase Storage
+
+  // Pre-generated thumbnail URLs
+  thumb_64_url?: string;
+  thumb_160_url?: string;
+  thumb_256_url?: string;
   
   // Loop Pack System
   pack_id?: string; // Links individual loops to their parent loop pack

@@ -51,7 +51,11 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
       production_split: track.production_split_1_percentage || 0,
       wallet_address: track.composition_split_1_wallet || track.uploader_address || track.primary_uploader_wallet,
       // Sacred/devotional content protection
-      remix_protected: track.remix_protected || false
+      remix_protected: track.remix_protected || false,
+      // Pre-generated thumbnails
+      thumb_64_url: track.thumb_64_url || undefined,
+      thumb_160_url: track.thumb_160_url || undefined,
+      thumb_256_url: track.thumb_256_url || undefined
     }));
   }
   
@@ -92,7 +96,11 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     production_split: track.production_split_1_percentage || 0,
     wallet_address: track.composition_split_1_wallet || track.uploader_address || track.primary_uploader_wallet,
     // Sacred/devotional content protection
-    remix_protected: track.remix_protected || false
+    remix_protected: track.remix_protected || false,
+    // Pre-generated thumbnails
+    thumb_64_url: track.thumb_64_url || undefined,
+    thumb_160_url: track.thumb_160_url || undefined,
+    thumb_256_url: track.thumb_256_url || undefined
   };
 }
 
@@ -125,7 +133,7 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
     // This excludes individual tracks within packs/EPs but includes the pack/EP containers themselves
     const { data, error } = await supabase
       .from('ip_tracks')
-      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, tags, description, notes, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations, remix_protected, pack_id, pack_position') // Now includes remix_protected for sacred/devotional content
+      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, thumb_64_url, thumb_160_url, thumb_256_url, tags, description, notes, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations, remix_protected, pack_id, pack_position') // Includes thumbnail URLs for optimized image loading
       .is('deleted_at', null) // Exclude soft-deleted tracks from globe display
       .or('pack_id.is.null,pack_position.eq.0') // Standalone content OR pack/EP container records
       .order('created_at', { ascending: false })
