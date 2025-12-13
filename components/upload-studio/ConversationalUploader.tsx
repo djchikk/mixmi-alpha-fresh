@@ -126,7 +126,7 @@ export default function ConversationalUploader({ walletAddress }: Conversational
       const greeting: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: "Hey! I'm here to help you register your music. Drop your files and tell me a bit about what you're uploading - I'll handle the rest!",
+        content: "Hey! Drop your files and I'll help you get them on the globe and into your Creator Store.",
         timestamp: new Date()
       };
       setMessages([greeting]);
