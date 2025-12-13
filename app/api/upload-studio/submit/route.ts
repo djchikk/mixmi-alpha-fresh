@@ -268,6 +268,52 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Handle additional_locations from chatbot (separate from primary location)
+    const additionalLocations: string[] = (trackData as any).additional_locations || [];
+    if (additionalLocations.length > 0) {
+      console.log('📍 Processing additional locations:', additionalLocations);
+
+      // Initialize allLocations with primary if not already set
+      if (!allLocations && locationLat && locationLng && primaryLocation) {
+        allLocations = [{
+          lat: locationLat,
+          lng: locationLng,
+          name: primaryLocation,
+          country: locationCountry || undefined,
+          region: locationRegion || undefined
+        }];
+      }
+
+      // Geocode each additional location and add to allLocations
+      for (const additionalLoc of additionalLocations) {
+        console.log('📍 Geocoding additional location:', additionalLoc);
+        const additionalResult = await parseLocationsAndGetCoordinates(additionalLoc);
+        if (additionalResult.primary && additionalResult.primary.lat !== 0 && additionalResult.primary.lng !== 0) {
+          const newLoc = {
+            lat: additionalResult.primary.lat,
+            lng: additionalResult.primary.lng,
+            name: additionalResult.primary.name,
+            country: additionalResult.primary.country || undefined,
+            region: additionalResult.primary.region || undefined
+          };
+
+          // Add to allLocations if not already present
+          if (!allLocations) {
+            allLocations = [newLoc];
+          } else if (!allLocations.some(loc => loc.name === newLoc.name)) {
+            allLocations.push(newLoc);
+          }
+          console.log('✅ Added additional location:', newLoc.name);
+        } else {
+          console.log('⚠️ Could not geocode additional location:', additionalLoc);
+        }
+      }
+
+      if (allLocations && allLocations.length > 1) {
+        console.log('🌐 Total locations for globe arcs:', allLocations.map(l => l.name).join(' ↔ '));
+      }
+    }
+
     // Build tags array with location tag (🌍 prefix like the form does)
     let tags = trackData.tags || [];
     if (primaryLocation) {
@@ -601,6 +647,52 @@ async function handleMultiFileSubmission(
     } else {
       primaryLocation = locationText;
       console.log('⚠️ Could not geocode location, storing text only:', locationText);
+    }
+  }
+
+  // Handle additional_locations from chatbot (separate from primary location)
+  const additionalLocations: string[] = (trackData as any).additional_locations || [];
+  if (additionalLocations.length > 0) {
+    console.log('📍 Processing additional locations for pack:', additionalLocations);
+
+    // Initialize allLocations with primary if not already set
+    if (!allLocations && locationLat && locationLng && primaryLocation) {
+      allLocations = [{
+        lat: locationLat,
+        lng: locationLng,
+        name: primaryLocation,
+        country: locationCountry || undefined,
+        region: locationRegion || undefined
+      }];
+    }
+
+    // Geocode each additional location and add to allLocations
+    for (const additionalLoc of additionalLocations) {
+      console.log('📍 Geocoding additional location:', additionalLoc);
+      const additionalResult = await parseLocationsAndGetCoordinates(additionalLoc);
+      if (additionalResult.primary && additionalResult.primary.lat !== 0 && additionalResult.primary.lng !== 0) {
+        const newLoc = {
+          lat: additionalResult.primary.lat,
+          lng: additionalResult.primary.lng,
+          name: additionalResult.primary.name,
+          country: additionalResult.primary.country || undefined,
+          region: additionalResult.primary.region || undefined
+        };
+
+        // Add to allLocations if not already present
+        if (!allLocations) {
+          allLocations = [newLoc];
+        } else if (!allLocations.some(loc => loc.name === newLoc.name)) {
+          allLocations.push(newLoc);
+        }
+        console.log('✅ Added additional location:', newLoc.name);
+      } else {
+        console.log('⚠️ Could not geocode additional location:', additionalLoc);
+      }
+    }
+
+    if (allLocations && allLocations.length > 1) {
+      console.log('🌐 Total locations for globe arcs:', allLocations.map(l => l.name).join(' ↔ '));
     }
   }
 
