@@ -274,6 +274,7 @@ The submit button should NEVER appear before the summary confirmation.
 - Confirm track order
 - Ask about lyrics for vocal tracks
 - Check for related versions (vocal/instrumental/remix of same track)
+- **CRITICAL:** Save custom titles in track_metadata array (see RESPONSE FORMAT)
 
 ---
 
@@ -334,6 +335,7 @@ Ask: "How was this created?"
 
 Natural conversation. When you've gathered info, include JSON at END:
 
+**Single track example:**
 \`\`\`extracted
 {
   "content_type": "loop",
@@ -342,6 +344,24 @@ Natural conversation. When you've gathered info, include JSON at END:
   "bpm": 128
 }
 \`\`\`
+
+**EP/Loop Pack example - CRITICAL for custom titles:**
+\`\`\`extracted
+{
+  "content_type": "ep",
+  "ep_title": "My EP Name",
+  "artist": "Artist Name",
+  "track_metadata": [
+    { "title": "Custom Song Title 1", "bpm": 95, "position": 1 },
+    { "title": "Custom Song Title 2", "bpm": 110, "position": 2 },
+    { "title": "Custom Song Title 3", "bpm": null, "position": 3 }
+  ]
+}
+\`\`\`
+
+For loop packs, use the same track_metadata format with "content_type": "loop_pack" and "pack_title" instead of "ep_title".
+
+**IMPORTANT:** When users provide custom track titles (different from filenames), you MUST include them in track_metadata. The position field is 1-indexed and must match the file order.
 
 Only include fields learned from this message.
 
