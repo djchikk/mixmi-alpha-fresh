@@ -314,11 +314,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build tags array with location tag (🌍 prefix like the form does)
+    // Build tags array with location tags (🌍 prefix like the form does)
     let tags = trackData.tags || [];
-    if (primaryLocation) {
+
+    // Add ALL locations as tags (primary + additional)
+    if (allLocations && allLocations.length > 0) {
+      // Add each location as a tag
+      for (const loc of allLocations) {
+        const locationTag = `🌍 ${loc.name}`;
+        if (!tags.some((t: string) => t === locationTag)) {
+          tags = [...tags, locationTag];
+        }
+      }
+      console.log('📍 Added location tags:', allLocations.map(l => l.name).join(', '));
+    } else if (primaryLocation) {
+      // Fallback to just primary location if allLocations not set
       const locationTag = `🌍 ${primaryLocation}`;
-      // Add location tag if not already present
       if (!tags.some((t: string) => t.startsWith('🌍'))) {
         tags = [...tags, locationTag];
       }
@@ -696,11 +707,22 @@ async function handleMultiFileSubmission(
     }
   }
 
-  // Build tags array with location tag (🌍 prefix like the form does)
+  // Build tags array with location tags (🌍 prefix like the form does)
   let tags = trackData.tags || [];
-  if (primaryLocation) {
+
+  // Add ALL locations as tags (primary + additional)
+  if (allLocations && allLocations.length > 0) {
+    // Add each location as a tag
+    for (const loc of allLocations) {
+      const locationTag = `🌍 ${loc.name}`;
+      if (!tags.some((t: string) => t === locationTag)) {
+        tags = [...tags, locationTag];
+      }
+    }
+    console.log('📍 Added location tags:', allLocations.map(l => l.name).join(', '));
+  } else if (primaryLocation) {
+    // Fallback to just primary location if allLocations not set
     const locationTag = `🌍 ${primaryLocation}`;
-    // Add location tag if not already present
     if (!tags.some((t: string) => t.startsWith('🌍'))) {
       tags = [...tags, locationTag];
     }
