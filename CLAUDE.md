@@ -272,3 +272,51 @@ const { users } = await response.json();
 - Spotlight section: Link to other mixmi users' profiles/stores
 - IP splits: Search for collaborators by name instead of wallet address
 - Any user picker UI
+
+---
+
+## Known Issues (To Fix Later)
+
+### Loop Pack Pricing Display (Dec 2024)
+**Status:** Data saves correctly, display components use wrong field
+
+**What's happening:**
+- Chatbot correctly saves: `download_price_stx` = per-loop price, `price_stx` = total pack price
+- TrackDetailsModal shows per-loop price labeled as "full pack" price
+- Crate → Cart drag uses pack price for individual loops (should use per-loop)
+- Globe card and Shopping Cart show correct prices
+
+**Files to fix:**
+- `components/modals/TrackDetailsModal.tsx` - Use `price_stx` for pack total display
+- Crate drag handlers - Use `download_price_stx` for individual loop pricing
+
+**Example:** 4-loop pack at 3 STX/loop should show "12 STX (full pack)" not "3 STX (full pack)"
+
+### Edit Form - Video Clip Cover Images (Dec 2024)
+**Status:** Edit form doesn't accept video clips as cover images
+
+**What's happening:**
+- The chatbot and upload flow accept 5-second MP4 clips as cover images
+- But the edit form launched from Dashboard doesn't allow video uploads for cover
+- Users who want to add/change to a video cover can't do it from edit form
+
+**Files to fix:**
+- `components/modals/IPTrackModal.tsx` - Update cover image upload to accept video
+
+### Edit Form - Price Display (Dec 2024)
+**Status:** Same issue as TrackDetailsModal - shows per-item price not pack total
+
+**Files to fix:**
+- `components/modals/IPTrackModal.tsx` - Price display section
+
+### Song Upload - WAV File Size Limit (Dec 2024)
+**Status:** FIXED - WAV rejected for songs/EPs with helpful message
+
+**Solution implemented:**
+- WAV still allowed for loops/loop packs (short files)
+- WAV rejected for songs/EPs with message: "WAV files are too large for songs. Please use MP3, M4A, or FLAC format instead."
+- Chatbot prompt updated to explain file format requirements
+
+**Files updated:**
+- `components/modals/IPTrackModal.tsx` - Added WAV check for songs/EPs
+- `lib/upload-studio/system-prompt.ts` - Added file format guidance

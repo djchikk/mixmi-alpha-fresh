@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Upload, Music, Video, Loader2, CheckCircle, X, Globe } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Send, Mic, Upload, Music, Video, Loader2, CheckCircle, X, Globe, MapPin } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { createClient } from '@supabase/supabase-js';
+import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
 
 // Initialize Supabase client for thumbnail uploads
 const supabase = createClient(
@@ -108,6 +109,18 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   // Track if we should show the welcome hero (before any user interaction)
   const [showWelcomeHero, setShowWelcomeHero] = useState(true);
 
+  // Location autocomplete
+  const [locationInput, setLocationInput] = useState('');
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const {
+    suggestions: locationSuggestions,
+    isLoading: isLoadingLocations,
+    handleInputChange: handleLocationSearch,
+    clearSuggestions: clearLocationSuggestions,
+    cleanup: cleanupLocationSearch
+  } = useLocationAutocomplete({ minCharacters: 2, limit: 5 });
+
   // Initialize conversation
   useEffect(() => {
     const newConversationId = crypto.randomUUID();
@@ -119,6 +132,129 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Cleanup location search on unmount
+  useEffect(() => {
+    return () => cleanupLocationSearch();
+  }, [cleanupLocationSearch]);
+
+  // Detect if the chatbot is asking for location
+  const isAskingForLocation = useMemo(() => {
+    const lastMessage = messages.filter(m => m.role === 'assistant').slice(-1)[0];
+    if (!lastMessage) return false;
+
+    const content = lastMessage.content.toLowerCase();
+
+    // More specific location phrases to avoid false positives
+    const locationPhrases = [
+      'where is this from',
+      'where\'s this from',
+      'what location',
+      'what city',
+      'what country',
+      'where are you based',
+      'where was this',
+      'for the globe',
+      'place it on the',
+      'on the mixmi globe',
+      'city, country, or region'
+    ];
+
+    // Check if the message is specifically asking about location
+    return locationPhrases.some(phrase => content.includes(phrase));
+  }, [messages]);
+
+  // Handle location input change
+  const handleLocationInputChange = (value: string) => {
+    setLocationInput(value);
+    handleLocationSearch(value);
+    setShowLocationDropdown(value.length >= 2);
+  };
+
+  // Handle location selection from dropdown
+  const handleLocationSelect = (placeName: string) => {
+    setLocationInput(placeName);
+    setShowLocationDropdown(false);
+    clearLocationSuggestions();
+
+    // Send location as a message
+    setInputValue(placeName);
+    // Small delay to let state update, then auto-send
+    setTimeout(() => {
+      const input = placeName;
+      setInputValue('');
+
+      // Create user message with location
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: input,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
+      setLocationInput('');
+
+      // Trigger the chat API call
+      sendLocationMessage(input);
+    }, 50);
+  };
+
+  // Send location message to chat API
+  const sendLocationMessage = async (location: string) => {
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/upload-studio/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          message: location,
+          attachments: [],
+          currentData: extractedData,
+          walletAddress,
+          messageHistory: messages.map(m => ({
+            role: m.role,
+            content: m.content
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Chat request failed');
+      }
+
+      const result = await response.json();
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: result.message,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      if (result.extractedData) {
+        setExtractedData(prev => ({ ...prev, ...result.extractedData }));
+      }
+
+      if (result.readyToSubmit) {
+        setIsReadyToSubmit(true);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: "I'm having trouble processing that. Could you try again?",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Add initial greeting when transitioning from hero to chat
   const addInitialGreeting = () => {
@@ -650,10 +786,24 @@ Feel free to try again with a different file, or let me know if you need help!`,
 
       const result = await response.json();
 
+      // Get the correct title based on content type
+      const displayTitle = extractedData.content_type === 'ep'
+        ? extractedData.ep_title
+        : extractedData.content_type === 'loop_pack'
+          ? extractedData.pack_title
+          : extractedData.title;
+
+      // Get friendly content type name
+      const contentTypeName = extractedData.content_type === 'loop' ? 'loop'
+        : extractedData.content_type === 'loop_pack' ? 'loop pack'
+        : extractedData.content_type === 'full_song' ? 'song'
+        : extractedData.content_type === 'ep' ? 'EP'
+        : extractedData.content_type || 'track';
+
       const successMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `🎉 **Success!** Your ${extractedData.content_type === 'loop' ? 'loop' : extractedData.content_type === 'full_song' ? 'song' : extractedData.content_type || 'track'} "${extractedData.title}" has been registered!
+        content: `🎉 **Success!** Your ${contentTypeName} "${displayTitle || 'track'}" has been registered!
 
 Your creative work is now:
 • Timestamped on the blockchain
@@ -928,23 +1078,87 @@ Would you like to upload another track, or shall I show you where to find your n
             className="hidden"
           />
 
-          {/* Text Input */}
+          {/* Text Input - with location autocomplete when asking for location */}
           <div className="flex-1 relative">
-            <textarea
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Drop files here or just start typing..."
-              rows={1}
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
-              style={{ minHeight: '48px', maxHeight: '120px' }}
-            />
+            {isAskingForLocation ? (
+              <>
+                {/* Location input with autocomplete */}
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <MapPin size={18} className="text-[#81E4F2]" />
+                  </div>
+                  <input
+                    ref={locationInputRef}
+                    type="text"
+                    value={locationInput}
+                    onChange={(e) => handleLocationInputChange(e.target.value)}
+                    onFocus={() => locationInput.length >= 2 && setShowLocationDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && locationInput.trim()) {
+                        e.preventDefault();
+                        handleLocationSelect(locationInput.trim());
+                      }
+                    }}
+                    placeholder="Start typing a city, country, or region..."
+                    className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-[#81E4F2]/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#81E4F2] transition-colors"
+                    autoFocus
+                  />
+                  {isLoadingLocations && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 size={16} className="animate-spin text-[#81E4F2]" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Location suggestions dropdown */}
+                {showLocationDropdown && locationSuggestions.length > 0 && (
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 border border-slate-600 rounded-xl shadow-lg overflow-hidden z-50 max-h-[200px] overflow-y-auto">
+                    {locationSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleLocationSelect(suggestion.place_name);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-slate-700 transition-colors flex items-center gap-3 border-b border-slate-700 last:border-0"
+                      >
+                        <MapPin size={14} className="text-[#81E4F2] flex-shrink-0" />
+                        <span className="text-white text-sm truncate">{suggestion.place_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Or type manually hint */}
+                <p className="text-xs text-gray-500 mt-1">
+                  Select from suggestions or type your own location
+                </p>
+              </>
+            ) : (
+              <textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Drop files here or just start typing..."
+                rows={1}
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
+                style={{ minHeight: '48px', maxHeight: '120px' }}
+              />
+            )}
           </div>
 
           {/* Send Button */}
           <button
-            onClick={sendMessage}
-            disabled={isLoading || (!inputValue.trim() && attachments.filter(a => a.status === 'uploaded').length === 0)}
+            onClick={isAskingForLocation && locationInput.trim()
+              ? () => handleLocationSelect(locationInput.trim())
+              : sendMessage
+            }
+            disabled={isLoading || (
+              isAskingForLocation
+                ? !locationInput.trim()
+                : (!inputValue.trim() && attachments.filter(a => a.status === 'uploaded').length === 0)
+            )}
             className="p-3 bg-[#81E4F2] hover:bg-[#6BC4D4] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send size={20} className="text-[#0a0e1a]" />

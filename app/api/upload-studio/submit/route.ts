@@ -4,6 +4,23 @@ import { v4 as uuidv4 } from 'uuid';
 import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
 import { parseLocationsAndGetCoordinates } from '@/lib/locationLookup';
 
+// Helper to check if two locations are duplicates (by coordinates or name)
+function isLocationDuplicate(
+  existing: Array<{ lat: number; lng: number; name: string }>,
+  newLoc: { lat: number; lng: number; name: string }
+): boolean {
+  const COORD_TOLERANCE = 0.01; // ~1km tolerance for coordinate matching
+
+  return existing.some(loc => {
+    // Check by coordinates (within tolerance)
+    const coordMatch = Math.abs(loc.lat - newLoc.lat) < COORD_TOLERANCE &&
+                       Math.abs(loc.lng - newLoc.lng) < COORD_TOLERANCE;
+    // Also check by name (case insensitive, trimmed)
+    const nameMatch = loc.name.toLowerCase().trim() === newLoc.name.toLowerCase().trim();
+    return coordMatch || nameMatch;
+  });
+}
+
 // Initialize Supabase with service role
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -297,13 +314,16 @@ export async function POST(request: NextRequest) {
             region: additionalResult.primary.region || undefined
           };
 
-          // Add to allLocations if not already present
+          // Add to allLocations if not already present (check by coordinates AND name)
           if (!allLocations) {
             allLocations = [newLoc];
-          } else if (!allLocations.some(loc => loc.name === newLoc.name)) {
+            console.log('✅ Added additional location:', newLoc.name);
+          } else if (!isLocationDuplicate(allLocations, newLoc)) {
             allLocations.push(newLoc);
+            console.log('✅ Added additional location:', newLoc.name);
+          } else {
+            console.log('⏭️ Skipping duplicate location:', newLoc.name);
           }
-          console.log('✅ Added additional location:', newLoc.name);
         } else {
           console.log('⚠️ Could not geocode additional location:', additionalLoc);
         }
@@ -690,13 +710,16 @@ async function handleMultiFileSubmission(
           region: additionalResult.primary.region || undefined
         };
 
-        // Add to allLocations if not already present
+        // Add to allLocations if not already present (check by coordinates AND name)
         if (!allLocations) {
           allLocations = [newLoc];
-        } else if (!allLocations.some(loc => loc.name === newLoc.name)) {
+          console.log('✅ Added additional location:', newLoc.name);
+        } else if (!isLocationDuplicate(allLocations, newLoc)) {
           allLocations.push(newLoc);
+          console.log('✅ Added additional location:', newLoc.name);
+        } else {
+          console.log('⏭️ Skipping duplicate location:', newLoc.name);
         }
-        console.log('✅ Added additional location:', newLoc.name);
       } else {
         console.log('⚠️ Could not geocode additional location:', additionalLoc);
       }
@@ -797,13 +820,15 @@ async function handleMultiFileSubmission(
     collab_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
 
     // Pricing
+    // download_price_stx = per-item price (per loop or per song)
+    // price_stx = total pack/EP price (per-item × count)
     remix_price_stx: contentType === 'ep' ? 0 : 1.0,
     download_price_stx: trackData.allow_downloads
       ? (trackData.download_price_stx || (contentType === 'ep' ? 2 : 1))
       : null,
     price_stx: trackData.allow_downloads
-      ? (trackData.download_price_stx || (contentType === 'ep' ? 2 : 1))
-      : 1.0,
+      ? (trackData.download_price_stx || (contentType === 'ep' ? 2 : 1)) * files.length
+      : 1.0 * files.length,
 
     // Metadata
     created_at: now,

@@ -223,16 +223,25 @@ export default function IPTrackModal({
           console.log(`🏷️ Setting tags from track:`, nonLocationTags);
         }
 
-        // Editing existing track - populate location if it exists
-        // Use primary_location as the canonical source (tags are just visual duplicates)
-        if (track.primary_location) {
-          // Parse existing locations from primary_location field
-          const locations = track.primary_location.split(',').map(l => l.trim()).filter(l => l.length > 0);
+        // Editing existing track - populate locations
+        // Priority: 1) locations array (new format), 2) primary_location, 3) tags fallback
+        if (track.locations && Array.isArray(track.locations) && track.locations.length > 0) {
+          // New format: locations is an array of {lat, lng, name, country?, region?}
+          const locationNames = track.locations
+            .map((loc: any) => loc.name)
+            .filter((name: string) => name && name.length > 0);
+          const uniqueLocations = [...new Set(locationNames)];
+          setSelectedLocations(uniqueLocations);
+          console.log('📍 Loaded locations from array:', uniqueLocations);
+        } else if (track.primary_location) {
+          // Fallback: Use primary_location (might be comma-separated for old data)
+          const locations = track.primary_location.split(',').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
           // Deduplicate in case of any existing duplicates
           const uniqueLocations = [...new Set(locations)];
           setSelectedLocations(uniqueLocations);
+          console.log('📍 Loaded locations from primary_location:', uniqueLocations);
         } else {
-          // Fallback: if no primary_location, try extracting from tags
+          // Last fallback: try extracting from tags
           if (track.tags && Array.isArray(track.tags)) {
             const locationTags = track.tags
               .filter(tag => tag.startsWith('🌍'))
@@ -240,6 +249,7 @@ export default function IPTrackModal({
               .filter(l => l.length > 0);
             const uniqueLocations = [...new Set(locationTags)];
             setSelectedLocations(uniqueLocations);
+            console.log('📍 Loaded locations from tags:', uniqueLocations);
           }
         }
 
@@ -525,12 +535,19 @@ export default function IPTrackModal({
         }
         
         // Validate file types and sizes (larger limit for songs)
+        // WAV files are too large for songs - only allow compressed formats
+        const wavFiles = files.filter(file => file.name.toLowerCase().endsWith('.wav'));
+        if (wavFiles.length > 0) {
+          setValidationErrors(['WAV files are too large for songs. Please use MP3, M4A, or FLAC format instead.']);
+          return;
+        }
+
         const invalidFiles = files.filter(file => {
-          const isValidType = file.type.startsWith('audio/') || ['.mp3', '.wav', '.flac', '.m4a', '.ogg'].some(ext => file.name.toLowerCase().endsWith(ext));
+          const isValidType = file.type.startsWith('audio/') || ['.mp3', '.flac', '.m4a', '.ogg'].some(ext => file.name.toLowerCase().endsWith(ext));
           const isValidSize = file.size <= 50 * 1024 * 1024; // 50MB limit per song file
           return !isValidType || !isValidSize;
         });
-        
+
         if (invalidFiles.length > 0) {
           setValidationErrors([`Invalid files: ${invalidFiles.map(f => f.name).join(', ')}. Check file type and size (max 50MB each).`]);
           return;
@@ -555,6 +572,12 @@ export default function IPTrackModal({
         
       } else {
         // Single file handling for regular tracks
+        // Check for WAV files when uploading songs (WAV too large for songs)
+        const file = e.target.files?.[0];
+        if (file && formData.content_type === 'full_song' && file.name.toLowerCase().endsWith('.wav')) {
+          setValidationErrors(['WAV files are too large for songs. Please use MP3, M4A, or FLAC format instead.']);
+          return;
+        }
         await handleAudioFileUploadBase(e);
       }
     } catch (error) {
