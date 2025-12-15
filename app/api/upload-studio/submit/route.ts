@@ -5,11 +5,18 @@ import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
 import { parseLocationsAndGetCoordinates } from '@/lib/locationLookup';
 
 // Helper to check if two locations are duplicates (by coordinates, name, or containment)
+// Common country abbreviations and their full names
+const COUNTRY_ABBREVIATIONS: Record<string, string[]> = {
+  'uk': ['united kingdom', 'england', 'scotland', 'wales', 'northern ireland', 'great britain', 'britain'],
+  'usa': ['united states', 'america', 'u.s.a.', 'u.s.'],
+  'uae': ['united arab emirates', 'emirates'],
+};
+
 function isLocationDuplicate(
   existing: Array<{ lat: number; lng: number; name: string }>,
   newLoc: { lat: number; lng: number; name: string }
 ): boolean {
-  const COORD_TOLERANCE = 0.01; // ~1km tolerance for coordinate matching
+  const COORD_TOLERANCE = 0.5; // ~50km tolerance - country-level locations can be far from cities
 
   return existing.some(loc => {
     // Check by coordinates (within tolerance)
@@ -21,7 +28,21 @@ function isLocationDuplicate(
     const nameMatch = existingName === newName;
     // Check if one name contains the other (e.g., "New York" vs "New York, New York, United States")
     const containmentMatch = existingName.includes(newName) || newName.includes(existingName);
-    return coordMatch || nameMatch || containmentMatch;
+
+    // Check for country abbreviation matches (e.g., "UK" when location contains "United Kingdom")
+    let abbreviationMatch = false;
+    for (const [abbrev, fullNames] of Object.entries(COUNTRY_ABBREVIATIONS)) {
+      // If new location is an abbreviation, check if existing contains a full name
+      if (newName === abbrev || newName === abbrev.toUpperCase().toLowerCase()) {
+        abbreviationMatch = fullNames.some(fullName => existingName.includes(fullName));
+      }
+      // If existing location is an abbreviation, check if new contains a full name
+      if (existingName === abbrev) {
+        abbreviationMatch = abbreviationMatch || fullNames.some(fullName => newName.includes(fullName));
+      }
+    }
+
+    return coordMatch || nameMatch || containmentMatch || abbreviationMatch;
   });
 }
 
