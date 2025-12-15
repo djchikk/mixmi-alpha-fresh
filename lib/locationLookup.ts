@@ -252,13 +252,13 @@ export async function parseLocationsAndGetCoordinates(input: string): Promise<{
   // This preserves "Timbuktu, Mali" or "New York, New York, United States" as a single location instead of splitting it
   const trimmedInput = input.trim();
 
-  // Simple heuristic: if it looks like "City, Country" (1 comma) or "City, State, Country" (2 commas)
+  // Simple heuristic: if it looks like a single address (up to 3 commas for UK-style "City, County, Region, Country")
   // and each part is relatively short, treat as single location
   const commaCount = (trimmedInput.match(/,/g) || []).length;
 
   let rawLocations: string[];
-  if (commaCount <= 2 && trimmedInput.split(',').every(part => part.trim().split(' ').length <= 3)) {
-    // Likely a "City, State, Country" format - keep as single location
+  if (commaCount <= 3 && trimmedInput.split(',').every(part => part.trim().split(' ').length <= 3)) {
+    // Likely a "City, County, Region, Country" format - keep as single location
     rawLocations = [trimmedInput];
   } else {
     // Multiple locations or complex format - split by comma
