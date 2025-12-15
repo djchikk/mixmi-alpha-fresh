@@ -404,6 +404,11 @@ Before submitting, show everything:
 
 Does this all look correct? Ready to save?"
 
+**For video clips, use different IP terminology:**
+- Instead of "composition" say "idea"
+- Instead of "production" say "implementation"
+- Example: "Sandy H (100% idea, 50% implementation / 50% AI implementation)"
+
 **Use "save" not "register"** - register sounds too formal/bureaucratic.
 
 **After they confirm, add the dashboard reminder:**
