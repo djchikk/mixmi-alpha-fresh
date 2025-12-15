@@ -230,7 +230,11 @@ export default function AccountPage() {
         <div className="max-w-6xl mx-auto px-6">
           {/* Page Header */}
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800">
+            <button
+              onClick={() => router.push(`/profile/${walletAddress}`)}
+              className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:border-[#a3f3ff] transition-colors cursor-pointer"
+              title="View your profile"
+            >
               {profileImage ? (
                 <img
                   src={profileThumb96Url || profileImage}
@@ -246,7 +250,7 @@ export default function AccountPage() {
                   {displayName ? displayName.charAt(0).toUpperCase() : walletAddress ? walletAddress.charAt(0).toUpperCase() : 'A'}
                 </div>
               )}
-            </div>
+            </button>
 
             <div>
               <h1 className="text-4xl font-bold">

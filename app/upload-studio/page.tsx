@@ -62,17 +62,13 @@ export default function UploadStudioPage() {
         <Header />
         <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
           <div className="text-center max-w-md mx-auto p-8">
-            <div className="text-6xl mb-6">🎵</div>
             <h1 className="text-2xl font-bold text-white mb-4">Upload Studio</h1>
-            <p className="text-gray-400 mb-6">
-              Sign in with your wallet or alpha code to start uploading your music through our conversational assistant.
+            <p className="text-gray-400 mb-2">
+              Sign in to start uploading your work through our conversational assistant.
             </p>
-            <button
-              onClick={() => router.push('/')}
-              className="px-6 py-3 bg-[#81E4F2] text-[#0a0e1a] font-semibold rounded-lg hover:bg-[#6BC4D4] transition-colors"
-            >
-              Go to Homepage to Sign In
-            </button>
+            <p className="text-gray-500 text-sm">
+              Click <span className="text-[#81E4F2]">Sign In</span> in the top right corner to get started.
+            </p>
           </div>
         </div>
       </div>

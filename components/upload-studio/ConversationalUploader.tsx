@@ -468,6 +468,15 @@ export default function ConversationalUploader({ walletAddress }: Conversational
 
       // Update extracted data based on file type
       if (attachment.type === 'audio') {
+        // Check if there's already a video clip in progress - can't mix audio with video clips
+        if (extractedData.content_type === 'video_clip' && extractedData.video_url) {
+          showToast('⚠️ Can\'t add audio to a video clip - please start a new upload for audio content', 'warning');
+          setAttachments(prev => prev.map(a =>
+            a.id === attachment.id ? { ...a, status: 'error' } : a
+          ));
+          return;
+        }
+
         setExtractedData(prev => {
           // Check if this is potentially a multi-file upload (loop pack or EP)
           // If we already have an audio_url, add to an array instead
@@ -518,7 +527,17 @@ export default function ConversationalUploader({ walletAddress }: Conversational
           };
         });
       } else if (attachment.type === 'video') {
-        // Auto-capture thumbnail from video first frame with smart crop
+        // Check if there's already audio uploaded - video covers aren't supported for audio content
+        if (extractedData.audio_url || (extractedData.loop_files && extractedData.loop_files.length > 0)) {
+          showToast('⚠️ Video covers aren\'t supported for audio content yet - use JPEG, PNG, WebP, or GIF instead', 'warning');
+          // Mark as error and skip
+          setAttachments(prev => prev.map(a =>
+            a.id === attachment.id ? { ...a, status: 'error' } : a
+          ));
+          return;
+        }
+
+        // Standalone video clip - process normally
         const { thumbnailUrl, cropData } = await captureVideoThumbnail(attachment.file);
 
         setExtractedData(prev => ({
@@ -598,12 +617,20 @@ Feel free to try again with a different file, or let me know if you need help!`,
     // Hide the welcome hero when user sends first message
     setShowWelcomeHero(false);
 
+    // Build content that includes attachment info so it's not filtered out as empty
+    const uploadedAttachments = attachments.filter(a => a.status === 'uploaded');
+    let messageContent = inputValue;
+    if (!inputValue.trim() && uploadedAttachments.length > 0) {
+      // Include attachment info in content so message isn't filtered out in history
+      messageContent = `[Attached: ${uploadedAttachments.map(a => a.name).join(', ')}]`;
+    }
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: inputValue,
+      content: messageContent,
       timestamp: new Date(),
-      attachments: attachments.filter(a => a.status === 'uploaded')
+      attachments: uploadedAttachments
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -980,6 +1007,28 @@ Would you like to upload another track, or shall I show you where to find your n
       {/* Pending Attachments */}
       {attachments.length > 0 && (
         <div className="px-6 py-2 border-t border-slate-700/50">
+          {/* Upload Progress Bar - shows when files are uploading */}
+          {attachments.some(a => a.status === 'uploading' || a.status === 'pending') && (
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+                <span className="flex items-center gap-2">
+                  <Loader2 size={12} className="animate-spin text-[#81E4F2]" />
+                  Uploading files...
+                </span>
+                <span>
+                  {attachments.filter(a => a.status === 'uploaded').length} of {attachments.length} ready
+                </span>
+              </div>
+              <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#81E4F2] to-[#6BC4D4] transition-all duration-300 ease-out"
+                  style={{
+                    width: `${(attachments.filter(a => a.status === 'uploaded').length / attachments.length) * 100}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {attachments.map(att => (
               <div
@@ -1154,12 +1203,14 @@ Would you like to upload another track, or shall I show you where to find your n
               ? () => handleLocationSelect(locationInput.trim())
               : sendMessage
             }
-            disabled={isLoading || (
+            disabled={isLoading ||
+              attachments.some(a => a.status === 'uploading' || a.status === 'pending') || (
               isAskingForLocation
                 ? !locationInput.trim()
                 : (!inputValue.trim() && attachments.filter(a => a.status === 'uploaded').length === 0)
             )}
             className="p-3 bg-[#81E4F2] hover:bg-[#6BC4D4] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={attachments.some(a => a.status === 'uploading' || a.status === 'pending') ? 'Wait for uploads to complete' : 'Send message'}
           >
             <Send size={20} className="text-[#0a0e1a]" />
           </button>

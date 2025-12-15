@@ -532,7 +532,12 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   };
 
   // Get collaborator display info - resolves name from pending: prefix or pending_collaborators table
-  const getCollaboratorDisplay = (wallet: string, splitType: 'composition' | 'production', position: number): { name: string; isPending: boolean } => {
+  const getCollaboratorDisplay = (wallet: string, splitType: 'composition' | 'production', position: number): { name: string; isPending: boolean; isAI?: boolean } => {
+    // Check if this is AI (for AI-assisted/generated content)
+    if (wallet === 'AI') {
+      return { name: '🤖 AI', isPending: false, isAI: true };
+    }
+
     // Check if wallet has pending: prefix (name-only collaborator)
     if (wallet.startsWith('pending:')) {
       const name = wallet.replace('pending:', '');
@@ -1349,7 +1354,9 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               <>
                 {/* Composition Rights */}
                 <div className="mb-4">
-                  <div className="text-gray-400 text-xs font-semibold mb-2">IDEA (Composition):</div>
+                  <div className="text-gray-400 text-xs font-semibold mb-2">
+                    {track.content_type === 'video_clip' ? 'IDEA:' : 'IDEA (Composition):'}
+                  </div>
                   <div className="space-y-1 text-xs pl-4">
                     {ipRights && ipRights.composition_splits.length > 0 ? (
                       ipRights.composition_splits.map((split, index) => {
@@ -1377,15 +1384,17 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
                 {/* Production Rights */}
                 <div>
-                  <div className="text-gray-400 text-xs font-semibold mb-2">IMPLEMENTATION (Recording):</div>
+                  <div className="text-gray-400 text-xs font-semibold mb-2">
+                    {track.content_type === 'video_clip' ? 'IMPLEMENTATION:' : 'IMPLEMENTATION (Recording):'}
+                  </div>
                   <div className="space-y-1 text-xs pl-4">
                     {ipRights && ipRights.production_splits.length > 0 ? (
                       ipRights.production_splits.map((split, index) => {
-                        const { name, isPending } = getCollaboratorDisplay(split.wallet, 'production', index + 1);
-                        const showWallet = !split.wallet.startsWith('pending:') && split.wallet.length > 10;
+                        const { name, isPending, isAI } = getCollaboratorDisplay(split.wallet, 'production', index + 1);
+                        const showWallet = !split.wallet.startsWith('pending:') && split.wallet.length > 10 && !isAI;
                         return (
                           <div key={index} className="flex items-center flex-wrap">
-                            <span className="text-gray-300">
+                            <span className={isAI ? "text-cyan-400" : "text-gray-300"}>
                               • {name}: {split.percentage}%
                             </span>
                             {isPending && (

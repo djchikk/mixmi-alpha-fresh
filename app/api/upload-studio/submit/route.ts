@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
 import { parseLocationsAndGetCoordinates } from '@/lib/locationLookup';
 
-// Helper to check if two locations are duplicates (by coordinates or name)
+// Helper to check if two locations are duplicates (by coordinates, name, or containment)
 function isLocationDuplicate(
   existing: Array<{ lat: number; lng: number; name: string }>,
   newLoc: { lat: number; lng: number; name: string }
@@ -15,9 +15,13 @@ function isLocationDuplicate(
     // Check by coordinates (within tolerance)
     const coordMatch = Math.abs(loc.lat - newLoc.lat) < COORD_TOLERANCE &&
                        Math.abs(loc.lng - newLoc.lng) < COORD_TOLERANCE;
-    // Also check by name (case insensitive, trimmed)
-    const nameMatch = loc.name.toLowerCase().trim() === newLoc.name.toLowerCase().trim();
-    return coordMatch || nameMatch;
+    // Check by name (case insensitive, trimmed)
+    const existingName = loc.name.toLowerCase().trim();
+    const newName = newLoc.name.toLowerCase().trim();
+    const nameMatch = existingName === newName;
+    // Check if one name contains the other (e.g., "New York" vs "New York, New York, United States")
+    const containmentMatch = existingName.includes(newName) || newName.includes(existingName);
+    return coordMatch || nameMatch || containmentMatch;
   });
 }
 
@@ -36,6 +40,7 @@ interface TrackSubmission {
   // Optional metadata
   description?: string;
   notes?: string;
+  credits?: string;
   tags?: string[];
   bpm?: number;
   key?: string;
@@ -165,6 +170,13 @@ export async function POST(request: NextRequest) {
     // Determine content type
     // Auto-detect loop_pack if multiple loop files are provided (chatbot may say "loop" but mean "loop_pack")
     let contentType = trackData.content_type || 'loop';
+
+    // Normalize content type names (chatbot uses friendly names, database uses technical names)
+    if (contentType === 'song') {
+      contentType = 'full_song';
+      console.log('📋 Normalized content_type: song → full_song');
+    }
+
     if (contentType === 'loop' && trackData.loop_files && trackData.loop_files.length > 1) {
       console.log('📦 Auto-upgrading content_type to loop_pack (detected multiple loop_files)');
       contentType = 'loop_pack';
@@ -213,7 +225,28 @@ export async function POST(request: NextRequest) {
 
     // Process splits - handle pending collaborators
     const compositionSplits = processSplits(trackData.composition_splits, effectiveWallet);
-    const productionSplits = processSplits(trackData.production_splits, effectiveWallet);
+    let productionSplits = processSplits(trackData.production_splits, effectiveWallet);
+
+    // Handle AI involvement in implementation splits
+    // ai_assisted_idea=true means AI-Generated (100% AI implementation)
+    // ai_assisted_idea=false + ai_assisted_implementation=true means AI-Assisted (50/50)
+    if (trackData.ai_assisted_implementation) {
+      if (trackData.ai_assisted_idea) {
+        // AI-Generated: 100% AI for implementation
+        productionSplits = [{ wallet: 'AI', percentage: 100, name: 'AI' }];
+        console.log('🤖 AI-Generated: Setting implementation to 100% AI');
+      } else {
+        // AI-Assisted: 50% human, 50% AI
+        // Halve the human percentages and add 50% AI
+        const totalHumanPercent = productionSplits.reduce((sum, s) => sum + s.percentage, 0);
+        productionSplits = productionSplits.map(s => ({
+          ...s,
+          percentage: Math.round(s.percentage * 0.5) // Halve human percentages
+        }));
+        productionSplits.push({ wallet: 'AI', percentage: 50, name: 'AI' });
+        console.log('✨ AI-Assisted: Setting implementation to 50% human / 50% AI');
+      }
+    }
 
     // Check for pending collaborators (those with names but no wallets)
     const pendingCollaborators = [
@@ -337,22 +370,32 @@ export async function POST(request: NextRequest) {
     // Build tags array with location tags (🌍 prefix like the form does)
     let tags = trackData.tags || [];
 
+    // Remove any existing location tags first (chatbot might have added duplicates)
+    tags = tags.filter((t: string) => !t.startsWith('🌍'));
+
     // Add ALL locations as tags (primary + additional)
     if (allLocations && allLocations.length > 0) {
-      // Add each location as a tag
+      // Add each location as a tag, checking for containment to avoid partial duplicates
       for (const loc of allLocations) {
         const locationTag = `🌍 ${loc.name}`;
-        if (!tags.some((t: string) => t === locationTag)) {
+        const locNameLower = loc.name.toLowerCase();
+        // Check if this location is already represented (exact or containment)
+        const isDuplicate = tags.some((t: string) => {
+          if (!t.startsWith('🌍')) return false;
+          const existingName = t.replace('🌍 ', '').toLowerCase();
+          return existingName === locNameLower ||
+                 existingName.includes(locNameLower) ||
+                 locNameLower.includes(existingName);
+        });
+        if (!isDuplicate) {
           tags = [...tags, locationTag];
         }
       }
-      console.log('📍 Added location tags:', allLocations.map(l => l.name).join(', '));
+      console.log('📍 Added location tags:', tags.filter((t: string) => t.startsWith('🌍')).join(', '));
     } else if (primaryLocation) {
       // Fallback to just primary location if allLocations not set
       const locationTag = `🌍 ${primaryLocation}`;
-      if (!tags.some((t: string) => t.startsWith('🌍'))) {
-        tags = [...tags, locationTag];
-      }
+      tags = [...tags, locationTag];
     }
 
     // Build the track record
@@ -366,7 +409,10 @@ export async function POST(request: NextRequest) {
       artist: trackData.artist,
       description: trackData.description || '',
       tags: tags,
-      notes: trackData.notes || trackData.tell_us_more || '',
+      notes: [
+        trackData.notes || trackData.tell_us_more || '',
+        trackData.credits ? `Credits: ${trackData.credits}` : ''
+      ].filter(Boolean).join('\n\n').trim() || '',
       content_type: contentType,
       loop_category: contentType === 'loop' ? (trackData.loop_category || 'instrumental') : null,
       sample_type: contentType === 'loop' ? 'instrumentals' : 'FULL SONGS',
@@ -733,22 +779,32 @@ async function handleMultiFileSubmission(
   // Build tags array with location tags (🌍 prefix like the form does)
   let tags = trackData.tags || [];
 
+  // Remove any existing location tags first (chatbot might have added duplicates)
+  tags = tags.filter((t: string) => !t.startsWith('🌍'));
+
   // Add ALL locations as tags (primary + additional)
   if (allLocations && allLocations.length > 0) {
-    // Add each location as a tag
+    // Add each location as a tag, checking for containment to avoid partial duplicates
     for (const loc of allLocations) {
       const locationTag = `🌍 ${loc.name}`;
-      if (!tags.some((t: string) => t === locationTag)) {
+      const locNameLower = loc.name.toLowerCase();
+      // Check if this location is already represented (exact or containment)
+      const isDuplicate = tags.some((t: string) => {
+        if (!t.startsWith('🌍')) return false;
+        const existingName = t.replace('🌍 ', '').toLowerCase();
+        return existingName === locNameLower ||
+               existingName.includes(locNameLower) ||
+               locNameLower.includes(existingName);
+      });
+      if (!isDuplicate) {
         tags = [...tags, locationTag];
       }
     }
-    console.log('📍 Added location tags:', allLocations.map(l => l.name).join(', '));
+    console.log('📍 Added location tags:', tags.filter((t: string) => t.startsWith('🌍')).join(', '));
   } else if (primaryLocation) {
     // Fallback to just primary location if allLocations not set
     const locationTag = `🌍 ${primaryLocation}`;
-    if (!tags.some((t: string) => t.startsWith('🌍'))) {
-      tags = [...tags, locationTag];
-    }
+    tags = [...tags, locationTag];
   }
 
   // 1. Create the container record (the pack/EP itself)
@@ -759,7 +815,10 @@ async function handleMultiFileSubmission(
     artist: trackData.artist,
     description: trackData.description || '',
     tags: tags,
-    notes: trackData.notes || trackData.tell_us_more || '',
+    notes: [
+      trackData.notes || trackData.tell_us_more || '',
+      trackData.credits ? `Credits: ${trackData.credits}` : ''
+    ].filter(Boolean).join('\n\n').trim() || '',
     content_type: contentType,
     loop_category: contentType === 'loop_pack' ? (trackData.loop_category || 'instrumental') : null,
     sample_type: contentType === 'loop_pack' ? 'instrumentals' : 'FULL SONGS',
