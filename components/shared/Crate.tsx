@@ -50,6 +50,7 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           notes: track.notes, // Include notes for CC text overlay
           content_type: track.content_type,
           price_stx: track.price_stx,
+          download_price_stx: (track as any).download_price_stx, // Per-item price for cart
           license: track.license,
           primary_uploader_wallet: track.primary_uploader_wallet
         },
@@ -106,6 +107,7 @@ function ExpandedPackTrack({
         notes: packTrack.notes, // Include notes for CC text overlay
         content_type: packTrack.content_type,
         price_stx: packTrack.price_stx,
+        download_price_stx: packTrack.download_price_stx, // Per-item price for cart
         license: packTrack.license,
         pack_position: packTrack.pack_position // Preserve pack position for numbered badges
       },

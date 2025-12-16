@@ -225,19 +225,35 @@ export default function IPTrackModal({
 
         // Editing existing track - populate locations
         // Priority: 1) locations array (new format), 2) primary_location, 3) tags fallback
+
+        // Helper to deduplicate hierarchical locations
+        // If "Chichester, West Sussex, England, UK" exists, remove "West Sussex, England, UK" etc.
+        const dedupeHierarchicalLocations = (locations: string[]): string[] => {
+          const normalized = locations.map(l => l.toLowerCase().trim());
+          return locations.filter((loc, idx) => {
+            const locLower = normalized[idx];
+            // Keep this location only if no OTHER location contains it
+            return !normalized.some((other, otherIdx) => {
+              if (idx === otherIdx) return false;
+              // Check if this location is a suffix of another (hierarchical parent)
+              return other.endsWith(locLower) || other.includes(`, ${locLower}`);
+            });
+          });
+        };
+
         if (track.locations && Array.isArray(track.locations) && track.locations.length > 0) {
           // New format: locations is an array of {lat, lng, name, country?, region?}
           const locationNames = track.locations
             .map((loc: any) => loc.name)
             .filter((name: string) => name && name.length > 0);
-          const uniqueLocations = [...new Set(locationNames)];
+          const uniqueLocations = dedupeHierarchicalLocations([...new Set(locationNames)]);
           setSelectedLocations(uniqueLocations);
           console.log('📍 Loaded locations from array:', uniqueLocations);
         } else if (track.primary_location) {
           // Fallback: Use primary_location (might be comma-separated for old data)
           const locations = track.primary_location.split(',').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
           // Deduplicate in case of any existing duplicates
-          const uniqueLocations = [...new Set(locations)];
+          const uniqueLocations = dedupeHierarchicalLocations([...new Set(locations)]);
           setSelectedLocations(uniqueLocations);
           console.log('📍 Loaded locations from primary_location:', uniqueLocations);
         } else {
@@ -247,9 +263,10 @@ export default function IPTrackModal({
               .filter(tag => tag.startsWith('🌍'))
               .map(tag => tag.replace('🌍 ', '').replace('🌍', '').trim())
               .filter(l => l.length > 0);
-            const uniqueLocations = [...new Set(locationTags)];
+            // Deduplicate hierarchical location tags
+            const uniqueLocations = dedupeHierarchicalLocations([...new Set(locationTags)]);
             setSelectedLocations(uniqueLocations);
-            console.log('📍 Loaded locations from tags:', uniqueLocations);
+            console.log('📍 Loaded locations from tags (deduplicated):', uniqueLocations);
           }
         }
 
@@ -1664,21 +1681,22 @@ export default function IPTrackModal({
 
   const renderFileUploads = () => (
     <div className="space-y-6">
-      {/* Cover Image - Simplified direct upload - Hide for video clips since we auto-generate thumbnails */}
-      {formData.content_type !== 'video_clip' && (
-        <div>
-          <label className="block text-lg font-semibold text-gray-200 mb-3">
-            {formData.content_type === 'loop_pack' ? 'Pack Cover Artwork' : 'Cover Artwork'}
-            <span className="text-gray-500 text-sm font-normal"> (optional)</span>
-          </label>
+      {/* Cover Image - Simplified direct upload */}
+      <div>
+        <label className="block text-lg font-semibold text-gray-200 mb-3">
+          {formData.content_type === 'loop_pack' ? 'Pack Cover Artwork' :
+           formData.content_type === 'video_clip' ? 'Video Thumbnail' : 'Cover Artwork'}
+          <span className="text-gray-500 text-sm font-normal">
+            {formData.content_type === 'video_clip' ? ' (auto-generated, or upload custom)' : ' (optional)'}
+          </span>
+        </label>
 
-          <TrackCoverUploader
-            walletAddress={formData.wallet_address || ''} // Alpha wallet address for RLS
-            onImageChange={(url) => handleInputChange('cover_image_url', url)}
-            initialImage={formData.cover_image_url}
-          />
-        </div>
-      )}
+        <TrackCoverUploader
+          walletAddress={formData.wallet_address || ''} // Alpha wallet address for RLS
+          onImageChange={(url) => handleInputChange('cover_image_url', url)}
+          initialImage={formData.cover_image_url}
+        />
+      </div>
 
       {/* Video/Audio Upload - Conditional based on content type */}
       <div>

@@ -155,8 +155,8 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     isrc: track?.isrc_number || '',
     duration: track?.duration || undefined,
     
-    // Wallet address for this content
-    wallet_address: (track as any)?.wallet_address || walletAddress || '',
+    // Wallet address for this content (use primary_uploader_wallet when editing)
+    wallet_address: track?.primary_uploader_wallet || (track as any)?.wallet_address || walletAddress || '',
     
     // Composition splits
     composition_split_1_wallet: track?.composition_split_1_wallet || walletAddress || '',

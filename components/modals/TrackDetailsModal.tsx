@@ -985,11 +985,19 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               {track.content_type === 'loop_pack' ? (
                 <>
                   {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
-                    // Downloadable pack: Show total download price
-                    <div className="flex">
-                      <span className="text-gray-500 w-24">Download:</span>
-                      <span className="text-gray-300">{ipRights.download_price_stx} STX (full pack)</span>
-                    </div>
+                    // Downloadable pack: Show total pack price and per-loop price
+                    <>
+                      <div className="flex">
+                        <span className="text-gray-500 w-24">Download:</span>
+                        <span className="text-gray-300">{ipRights.price_stx || ipRights.download_price_stx} STX (full pack)</span>
+                      </div>
+                      {packLoops.length > 1 && (
+                        <div className="flex">
+                          <span className="text-gray-500 w-24">Per loop:</span>
+                          <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     // Remix-only pack: Show per-loop remix price
                     <div className="flex">
@@ -1017,8 +1025,35 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                     </div>
                   )}
                 </>
+              ) : track.content_type === 'ep' ? (
+                // EPs: Show total EP price and per-song price
+                <>
+                  {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                    <>
+                      <div className="flex">
+                        <span className="text-gray-500 w-24">Download:</span>
+                        <span className="text-gray-300">{ipRights.price_stx || ipRights.download_price_stx} STX (full EP)</span>
+                      </div>
+                      {packLoops.length > 1 && (
+                        <div className="flex">
+                          <span className="text-gray-500 w-24">Per song:</span>
+                          <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex">
+                      <span className="text-gray-500 w-24">Downloads:</span>
+                      <span className="text-gray-400">Not available</span>
+                    </div>
+                  )}
+                  <div className="flex">
+                    <span className="text-gray-500 w-24">Songs:</span>
+                    <span className="text-gray-300">{packLoops.length || '?'} songs in EP</span>
+                  </div>
+                </>
               ) : (
-                // Songs/EPs: Only show download price if downloads are enabled
+                // Songs: Only show download price if downloads are enabled
                 ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
                   <div className="flex">
                     <span className="text-gray-500 w-24">Download:</span>
