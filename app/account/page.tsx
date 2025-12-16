@@ -482,7 +482,10 @@ export default function AccountPage() {
                 <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
               )}
               {activeTab === "settings" && (
-                <SettingsTab walletAddress={walletAddress} />
+                <SettingsTab walletAddress={walletAddress} onProfileImageUpdate={(url, thumbUrl) => {
+                  setProfileImage(url);
+                  setProfileThumb96Url(thumbUrl);
+                }} />
               )}
             </>
           )}
@@ -1157,7 +1160,10 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
   );
 }
 
-function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
+function SettingsTab({ walletAddress, onProfileImageUpdate }: {
+  walletAddress: string | null;
+  onProfileImageUpdate?: (url: string | null, thumbUrl: string | null) => void;
+}) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{
     username?: string | null;
@@ -1213,6 +1219,18 @@ function SettingsTab({ walletAddress }: { walletAddress: string | null }) {
 
   const handleProfileUpdate = async () => {
     await fetchProfileData();
+    // Notify parent to update the profile image in the header
+    if (onProfileImageUpdate && profile.avatar_url !== undefined) {
+      // Re-fetch to get the latest avatar_url and thumbnail
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('avatar_url, avatar_thumb_96_url')
+        .eq('wallet_address', walletAddress)
+        .single();
+      if (data) {
+        onProfileImageUpdate(data.avatar_url, data.avatar_thumb_96_url);
+      }
+    }
   };
 
   // Check if video
