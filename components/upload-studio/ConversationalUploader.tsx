@@ -1244,8 +1244,8 @@ Would you like to upload another track, or shall I show you where to find your n
       </div>
       </div>
 
-      {/* Preview Card - Right Side */}
-      <div className="hidden lg:flex flex-col pt-20">
+      {/* Preview Card - Right Side, positioned near chat input */}
+      <div className="hidden lg:flex flex-col justify-end pb-32">
         <UploadPreviewCard
           data={extractedData}
           coverImageUrl={getCoverImageUrl() || undefined}

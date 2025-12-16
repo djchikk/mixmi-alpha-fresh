@@ -1,7 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import SafeImage from '../shared/SafeImage';
+import TrackDetailsModal from '../modals/TrackDetailsModal';
+import { IPTrack } from '@/types';
 
 interface ExtractedData {
   content_type?: string;
@@ -11,9 +13,13 @@ interface ExtractedData {
   cover_image_url?: string;
   tags?: string[];
   location?: string;
+  additional_locations?: string[];
   description?: string;
+  notes?: string;
   allow_downloads?: boolean;
   download_price_stx?: number;
+  composition_splits?: Array<{ name: string; percentage: number }>;
+  production_splits?: Array<{ name: string; percentage: number }>;
 }
 
 interface UploadPreviewCardProps {
@@ -22,6 +28,8 @@ interface UploadPreviewCardProps {
 }
 
 export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreviewCardProps) {
+  const [showDetails, setShowDetails] = useState(false);
+
   // Get border color based on content type
   const getBorderColor = () => {
     switch (data.content_type) {
@@ -65,10 +73,44 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
     }
   };
 
+  // Build a preview track object for the details modal
+  const buildPreviewTrack = (): IPTrack => {
+    return {
+      id: 'preview',
+      title: data.title || 'Untitled',
+      artist: data.artist || 'Unknown Artist',
+      content_type: data.content_type || 'loop',
+      bpm: data.bpm,
+      description: data.description,
+      notes: data.notes,
+      tags: data.tags,
+      cover_image_url: coverImageUrl || data.cover_image_url,
+      download_price_stx: data.download_price_stx,
+      allow_downloads: data.allow_downloads,
+      // Location info
+      location: data.location,
+      primary_location: data.location,
+      // IP splits
+      composition_splits: data.composition_splits,
+      production_splits: data.production_splits,
+    } as IPTrack;
+  };
+
   const borderColor = getBorderColor();
   const typeLabel = getTypeLabel();
   const hasContent = data.content_type || data.title || data.artist || coverImageUrl;
   const coverUrl = coverImageUrl || data.cover_image_url;
+
+  // Collect all locations
+  const allLocations: string[] = [];
+  if (data.location) {
+    allLocations.push(data.location.split(',')[0]); // Just city name
+  }
+  if (data.additional_locations) {
+    data.additional_locations.forEach(loc => {
+      allLocations.push(loc.split(',')[0]); // Just city name
+    });
+  }
 
   return (
     <div className="flex flex-col items-center">
@@ -110,12 +152,12 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
 
           {/* Overlay with details - always visible when we have data */}
           {hasContent && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 flex flex-col justify-between">
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40 p-2 flex flex-col justify-between">
               {/* Top Section: Title, Artist */}
               <div className="space-y-0.5">
                 {data.title ? (
                   <h3
-                    className="font-medium text-white text-sm leading-tight truncate transition-all duration-300"
+                    className="font-medium text-[#81E4F2] text-sm leading-tight truncate transition-all duration-300"
                     style={{ animation: 'fadeSlideIn 0.3s ease-out' }}
                   >
                     {data.title}
@@ -125,7 +167,7 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
                 )}
                 {data.artist ? (
                   <p
-                    className="text-white/80 text-xs truncate transition-all duration-300"
+                    className="text-[#81E4F2]/80 text-xs truncate transition-all duration-300"
                     style={{ animation: 'fadeSlideIn 0.3s ease-out 0.1s both' }}
                   >
                     {data.artist}
@@ -185,14 +227,22 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
         </div>
       </div>
 
-      {/* Location indicator below card */}
-      {data.location && (
+      {/* Location pins below card - show all locations */}
+      {allLocations.length > 0 && (
         <div
-          className="mt-2 flex items-center gap-1 text-xs text-gray-400 max-w-[160px] truncate"
+          className="mt-2 flex flex-wrap gap-1 justify-center max-w-[160px]"
           style={{ animation: 'fadeSlideIn 0.3s ease-out' }}
         >
-          <span>📍</span>
-          <span className="truncate">{data.location.split(',')[0]}</span>
+          {allLocations.map((loc, i) => (
+            <span
+              key={i}
+              className="flex items-center gap-0.5 text-xs text-gray-400"
+              style={{ animation: `fadeSlideIn 0.3s ease-out ${i * 0.1}s both` }}
+            >
+              <span>📍</span>
+              <span className="truncate max-w-[70px]">{loc}</span>
+            </span>
+          ))}
         </div>
       )}
 
@@ -213,6 +263,25 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
           )}
         </div>
       )}
+
+      {/* Info button - show when we have some data */}
+      {hasContent && data.title && (
+        <button
+          onClick={() => setShowDetails(true)}
+          className="mt-3 flex items-center gap-1 text-xs text-gray-400 hover:text-[#81E4F2] transition-colors"
+          style={{ animation: 'fadeSlideIn 0.3s ease-out 0.3s both' }}
+        >
+          <span>ℹ️</span>
+          <span>View details</span>
+        </button>
+      )}
+
+      {/* Track Details Modal */}
+      <TrackDetailsModal
+        track={buildPreviewTrack()}
+        isOpen={showDetails}
+        onClose={() => setShowDetails(false)}
+      />
 
       {/* CSS for animations */}
       <style jsx>{`
