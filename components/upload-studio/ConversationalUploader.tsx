@@ -5,6 +5,7 @@ import { Send, Mic, Upload, Music, Video, Loader2, CheckCircle, X, Globe, MapPin
 import { useToast } from '@/contexts/ToastContext';
 import { createClient } from '@supabase/supabase-js';
 import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
+import UploadPreviewCard from './UploadPreviewCard';
 
 // Initialize Supabase client for thumbnail uploads
 const supabase = createClient(
@@ -863,14 +864,35 @@ Would you like to upload another track, or shall I show you where to find your n
     }
   };
 
+  // Get cover image URL from extractedData or from uploaded image attachments
+  const getCoverImageUrl = () => {
+    // First check extractedData
+    if (extractedData.cover_image_url) return extractedData.cover_image_url;
+
+    // Then check for uploaded image attachments
+    const imageAttachment = attachments.find(a => a.type === 'image' && a.status === 'uploaded' && a.url);
+    if (imageAttachment?.url) return imageAttachment.url;
+
+    // For video clips, we might have a video but no cover yet
+    const videoAttachment = attachments.find(a => a.type === 'video' && a.status === 'uploaded' && a.url);
+    if (videoAttachment?.url && extractedData.content_type === 'video_clip') {
+      // Could show video thumbnail, but for now just return null
+      return null;
+    }
+
+    return null;
+  };
+
   return (
-    <div
-      className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto relative"
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-    >
+    <div className="flex h-[calc(100vh-80px)] max-w-6xl mx-auto gap-6 px-4">
+      {/* Main Chat Container */}
+      <div
+        className="flex flex-col flex-1 max-w-4xl relative"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
       {/* Drag Overlay */}
       {isDragOver && (
         <div className="absolute inset-0 z-50 bg-[#0a0e1a]/90 backdrop-blur-sm flex items-center justify-center border-2 border-dashed border-[#81E4F2] rounded-xl m-2">
@@ -1219,6 +1241,15 @@ Would you like to upload another track, or shall I show you where to find your n
         <p className="text-xs text-gray-500 mt-2 text-center">
           Press Enter to send • Shift+Enter for new line
         </p>
+      </div>
+      </div>
+
+      {/* Preview Card - Right Side */}
+      <div className="hidden lg:flex flex-col pt-20">
+        <UploadPreviewCard
+          data={extractedData}
+          coverImageUrl={getCoverImageUrl() || undefined}
+        />
       </div>
     </div>
   );
