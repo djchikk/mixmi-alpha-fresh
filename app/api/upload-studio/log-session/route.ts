@@ -99,12 +99,20 @@ export async function POST(request: NextRequest) {
       sessionDurationMs = endTime - startTime;
     }
 
-    // Analyze uploaded files
-    const hasAudio = uploadedFiles?.some(f => f.type === 'audio') ||
-                     inferredData?.audio_url ||
-                     (inferredData?.loop_files?.length > 0);
-    const hasVideo = uploadedFiles?.some(f => f.type === 'video') || inferredData?.video_url;
-    const hasCoverImage = uploadedFiles?.some(f => f.type === 'image') || inferredData?.cover_image_url;
+    // Analyze uploaded files - ensure boolean values
+    const hasAudio = Boolean(
+      uploadedFiles?.some(f => f.type === 'audio') ||
+      inferredData?.audio_url ||
+      (inferredData?.loop_files?.length > 0)
+    );
+    const hasVideo = Boolean(
+      uploadedFiles?.some(f => f.type === 'video') ||
+      inferredData?.video_url
+    );
+    const hasCoverImage = Boolean(
+      uploadedFiles?.some(f => f.type === 'image') ||
+      inferredData?.cover_image_url
+    );
     const fileCount = uploadedFiles?.length || 0;
     const isMultiFile = (inferredData?.loop_files?.length > 1) ||
                         (inferredData?.ep_files?.length > 1) ||

@@ -20,11 +20,13 @@ When starting a new conversation:
 
 | Type | Description | BPM | Mixer |
 |------|-------------|-----|-------|
-| loop | 8-bar loops for remixing | Required (60-200) | Required |
-| loop_pack | 2-5 loops, same BPM | Required (all must match) | Required |
+| loop | **8-bar loops** for remixing in the mixer | Required (60-200) | Required |
+| loop_pack | 2-5 **8-bar loops**, same BPM | Required (all must match) | Required |
 | song | Complete songs | Optional but helpful | Optional (can opt out) |
 | ep | 2-5 songs | Optional per track | Optional |
 | video_clip | 5-second video loops | N/A | N/A |
+
+**IMPORTANT: All loops MUST be exactly 8 bars.** This is required for the mixer to sync them properly. If someone uploads a loop that isn't 8 bars, explain: "Loops need to be exactly 8 bars for the mixer to sync them. Is this 8 bars, or is it actually a song/longer piece?"
 
 ## Required Information Checklist
 
@@ -61,11 +63,11 @@ If someone uploads a WAV for a song/EP, explain: "WAV files are great quality bu
 When files are uploaded, immediately identify the type:
 
 **Single audio file:**
-"Got it! Is this a loop (for remixing) or a complete song?"
+"Got it! Is this an 8-bar loop (for remixing in the mixer) or a complete song?"
 
 **Multiple audio files (2-5):**
 "I see [X] audio files! Are these:
-- 🔁 A loop pack (related loops, same BPM)
+- 🔁 A loop pack (8-bar loops, same BPM - for the mixer)
 - 💿 An EP (related songs)
 - 📁 Separate uploads (register individually)"
 
