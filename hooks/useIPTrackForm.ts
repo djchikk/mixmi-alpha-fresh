@@ -210,10 +210,13 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     audio_source: (track as any)?.audio_source || 'included',
 
     // Pricing - use download_price_stx from database (the actual column name)
+    // For songs: price_stx is the download price
+    // For loops: download_price_stx is the per-item price, price_stx is the total (for packs)
     price_stx: track?.price_stx || 0,
     remix_price: (track as any)?.remix_price || 0.5,
     combined_price: (track as any)?.combined_price || 2.5,
-    download_price: (track as any)?.download_price_stx || (track as any)?.download_price || 2.5,
+    // IMPORTANT: Fall back to price_stx for songs/EPs that only have price_stx set
+    download_price: (track as any)?.download_price_stx || (track as any)?.download_price || track?.price_stx || 2.5,
     
     // Contact info
     commercial_contact: (track as any)?.commercial_contact || '',
