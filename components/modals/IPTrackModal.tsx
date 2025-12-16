@@ -229,14 +229,47 @@ export default function IPTrackModal({
         // Helper to deduplicate hierarchical locations
         // If "Chichester, West Sussex, England, UK" exists, remove "West Sussex, England, UK" etc.
         const dedupeHierarchicalLocations = (locations: string[]): string[] => {
+          // Common abbreviation mappings for country names
+          const abbreviations: Record<string, string[]> = {
+            'united kingdom': ['uk', 'u.k.', 'great britain', 'gb', 'g.b.'],
+            'united states': ['usa', 'u.s.a.', 'us', 'u.s.', 'america'],
+          };
+
+          // Expand a location string to include its abbreviation variants
+          const getVariants = (loc: string): string[] => {
+            const lower = loc.toLowerCase();
+            const variants = [lower];
+            for (const [full, abbrevs] of Object.entries(abbreviations)) {
+              if (lower.includes(full)) {
+                for (const abbrev of abbrevs) {
+                  variants.push(lower.replace(full, abbrev));
+                }
+              }
+              for (const abbrev of abbrevs) {
+                if (lower === abbrev || lower.endsWith(`, ${abbrev}`)) {
+                  variants.push(lower.replace(abbrev, full));
+                }
+              }
+            }
+            return variants;
+          };
+
           const normalized = locations.map(l => l.toLowerCase().trim());
           return locations.filter((loc, idx) => {
             const locLower = normalized[idx];
+            const locVariants = getVariants(locLower);
+
             // Keep this location only if no OTHER location contains it
             return !normalized.some((other, otherIdx) => {
               if (idx === otherIdx) return false;
-              // Check if this location is a suffix of another (hierarchical parent)
-              return other.endsWith(locLower) || other.includes(`, ${locLower}`);
+              const otherVariants = getVariants(other);
+
+              // Check if any variant of this location is a suffix/substring of any variant of another
+              return locVariants.some(locVar =>
+                otherVariants.some(otherVar =>
+                  otherVar.endsWith(locVar) || otherVar.includes(`, ${locVar}`)
+                )
+              );
             });
           });
         };
@@ -871,14 +904,48 @@ export default function IPTrackModal({
     // Deduplicate hierarchical locations before creating tags
     // If "Chichester, West Sussex, England, UK" exists, don't also add "England, UK"
     const dedupeLocationNames = (locations: Array<{ name: string }>): string[] => {
+      // Common abbreviation mappings for country names
+      const abbreviations: Record<string, string[]> = {
+        'united kingdom': ['uk', 'u.k.', 'great britain', 'gb', 'g.b.'],
+        'united states': ['usa', 'u.s.a.', 'us', 'u.s.', 'america'],
+      };
+
+      // Expand a location string to include its abbreviation variants
+      const getVariants = (loc: string): string[] => {
+        const lower = loc.toLowerCase();
+        const variants = [lower];
+        for (const [full, abbrevs] of Object.entries(abbreviations)) {
+          if (lower.includes(full)) {
+            for (const abbrev of abbrevs) {
+              variants.push(lower.replace(full, abbrev));
+            }
+          }
+          for (const abbrev of abbrevs) {
+            if (lower === abbrev || lower.endsWith(`, ${abbrev}`)) {
+              variants.push(lower.replace(abbrev, full));
+            }
+          }
+        }
+        return variants;
+      };
+
       const names = locations.map(l => l.name);
       const normalized = names.map(n => n.toLowerCase().trim());
       return names.filter((name, idx) => {
         const nameLower = normalized[idx];
+        const nameVariants = getVariants(nameLower);
+
         // Keep this location only if no OTHER location contains it as a suffix
         return !normalized.some((other, otherIdx) => {
           if (idx === otherIdx) return false;
-          return other.endsWith(nameLower) || other.includes(`, ${nameLower}`);
+          const otherVariants = getVariants(other);
+
+          // Check if any variant of this location is a suffix/substring of any variant of another
+          return nameVariants.some(nameVar =>
+            otherVariants.some(otherVar =>
+              otherVar.endsWith(nameVar) || otherVar.includes(`, ${nameVar}`)
+            )
+          );
         });
       });
     };
@@ -1715,21 +1782,24 @@ export default function IPTrackModal({
   const renderFileUploads = () => (
     <div className="space-y-6">
       {/* Cover Image - Simplified direct upload */}
-      <div>
-        <label className="block text-lg font-semibold text-gray-200 mb-3">
-          {formData.content_type === 'loop_pack' ? 'Pack Cover Artwork' :
-           formData.content_type === 'video_clip' ? 'Video Thumbnail' : 'Cover Artwork'}
-          <span className="text-gray-500 text-sm font-normal">
-            {formData.content_type === 'video_clip' ? ' (auto-generated, or upload custom)' : ' (optional)'}
-          </span>
-        </label>
+      {/* Hide for video clips when editing - changing cover breaks video playback */}
+      {!(formData.content_type === 'video_clip' && track) && (
+        <div>
+          <label className="block text-lg font-semibold text-gray-200 mb-3">
+            {formData.content_type === 'loop_pack' ? 'Pack Cover Artwork' :
+             formData.content_type === 'video_clip' ? 'Video Thumbnail' : 'Cover Artwork'}
+            <span className="text-gray-500 text-sm font-normal">
+              {formData.content_type === 'video_clip' ? ' (auto-generated, or upload custom)' : ' (optional)'}
+            </span>
+          </label>
 
-        <TrackCoverUploader
-          walletAddress={formData.wallet_address || ''} // Alpha wallet address for RLS
-          onImageChange={(url) => handleInputChange('cover_image_url', url)}
-          initialImage={formData.cover_image_url}
-        />
-      </div>
+          <TrackCoverUploader
+            walletAddress={formData.wallet_address || ''} // Alpha wallet address for RLS
+            onImageChange={(url) => handleInputChange('cover_image_url', url)}
+            initialImage={formData.cover_image_url}
+          />
+        </div>
+      )}
 
       {/* Video/Audio Upload - Conditional based on content type */}
       <div>
