@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { createClient } from '@supabase/supabase-js';
 import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
 import UploadPreviewCard from './UploadPreviewCard';
+import DOMPurify from 'dompurify';
 
 // Initialize Supabase client for thumbnail uploads
 const supabase = createClient(
@@ -980,11 +981,14 @@ Would you like to upload another track, or shall I show you where to find your n
               <div
                 className="text-sm whitespace-pre-wrap"
                 dangerouslySetInnerHTML={{
-                  __html: message.content
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    .replace(/`(.*?)`/g, '<code class="bg-slate-700/50 px-1 rounded">$1</code>')
-                    .replace(/^• /gm, '• ')
+                  __html: DOMPurify.sanitize(
+                    message.content
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      .replace(/`(.*?)`/g, '<code class="bg-slate-700/50 px-1 rounded">$1</code>')
+                      .replace(/^• /gm, '• '),
+                    { ALLOWED_TAGS: ['strong', 'em', 'code'], ALLOWED_ATTR: ['class'] }
+                  )
                 }}
               />
 
