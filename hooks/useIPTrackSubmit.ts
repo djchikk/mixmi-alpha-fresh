@@ -3,7 +3,28 @@ import { IPTrack } from '@/types';
 import { SupabaseAuthBridge } from '@/lib/auth/supabase-auth-bridge';
 import AlphaAuth from '@/lib/auth/alpha-auth';
 import { CertificateService } from '@/lib/certificate-service';
-import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
+import { getWalletFromAuthIdentity, isValidStacksAddress } from '@/lib/auth/wallet-mapping';
+
+/**
+ * Format a split wallet value for storage.
+ * - If it's a valid Stacks address, keep as-is
+ * - If it's already prefixed with 'pending:', keep as-is
+ * - If it's a name (not a wallet), prefix with 'pending:'
+ */
+function formatSplitWallet(value: string | null | undefined): string | null {
+  if (!value || value.trim() === '') return null;
+
+  const trimmed = value.trim();
+
+  // Already has pending prefix
+  if (trimmed.startsWith('pending:')) return trimmed;
+
+  // Valid Stacks wallet address - keep as-is
+  if (isValidStacksAddress(trimmed)) return trimmed;
+
+  // It's a name - add pending prefix
+  return `pending:${trimmed}`;
+}
 
 interface SubmitFormData {
   id: string;
@@ -495,19 +516,21 @@ export function useIPTrackSubmit({
         notes: formData.notes || '',
         
         // Composition splits - Auto-populate for quick upload or use form data
+        // Slot 1 is always the uploader's wallet, slots 2-3 use formatSplitWallet to handle names
         composition_split_1_wallet: formData.composition_split_1_wallet || effectiveWalletAddress,
         composition_split_1_percentage: formData.composition_split_1_percentage || 100,
-        composition_split_2_wallet: formData.composition_split_2_wallet || null,
+        composition_split_2_wallet: formatSplitWallet(formData.composition_split_2_wallet),
         composition_split_2_percentage: formData.composition_split_2_percentage || 0,
-        composition_split_3_wallet: formData.composition_split_3_wallet || null,
+        composition_split_3_wallet: formatSplitWallet(formData.composition_split_3_wallet),
         composition_split_3_percentage: formData.composition_split_3_percentage || 0,
-        
+
         // Production splits - Auto-populate for quick upload or use form data
+        // Slot 1 is always the uploader's wallet, slots 2-3 use formatSplitWallet to handle names
         production_split_1_wallet: formData.production_split_1_wallet || effectiveWalletAddress,
         production_split_1_percentage: formData.production_split_1_percentage || 100,
-        production_split_2_wallet: formData.production_split_2_wallet || null,
+        production_split_2_wallet: formatSplitWallet(formData.production_split_2_wallet),
         production_split_2_percentage: formData.production_split_2_percentage || 0,
-        production_split_3_wallet: formData.production_split_3_wallet || null,
+        production_split_3_wallet: formatSplitWallet(formData.production_split_3_wallet),
         production_split_3_percentage: formData.production_split_3_percentage || 0,
         
         // Licensing and permissions

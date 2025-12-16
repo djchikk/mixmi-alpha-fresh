@@ -665,7 +665,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 {/* Control Bar - Always visible when playing */}
                 {isVideoPlaying && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-center">
                       <button
                         onClick={handleVideoPlayPause}
                         className="w-10 h-10 rounded-full bg-[#5BB5F9] hover:bg-[#5BB5F9]/80 flex items-center justify-center transition-all"
@@ -675,9 +675,6 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                           <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                         </svg>
                       </button>
-                      <span className="text-white text-xs">
-                        20-second preview
-                      </span>
                     </div>
                   </div>
                 )}

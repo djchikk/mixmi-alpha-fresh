@@ -178,6 +178,10 @@ export default function IPTrackModal({
   }
   const [trackMetadata, setTrackMetadata] = useState<TrackMetadata[]>([]);
 
+  // Dynamic splits visibility state
+  const [visibleCompositionSplits, setVisibleCompositionSplits] = useState(1);
+  const [visibleProductionSplits, setVisibleProductionSplits] = useState(1);
+
   // Crop callback
   const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -208,7 +212,21 @@ export default function IPTrackModal({
         setSelectedLocations([]);
         setSelectedLocationCoords([]); // Also clear the coordinates
         clearSuggestions();
+        // Reset to show only first split row
+        setVisibleCompositionSplits(1);
+        setVisibleProductionSplits(1);
       } else {
+        // Editing existing track - count visible splits based on existing data
+        const compSplits = [
+          track.composition_split_2_wallet,
+          track.composition_split_3_wallet
+        ].filter(w => w && w.trim() !== '').length + 1;
+        const prodSplits = [
+          track.production_split_2_wallet,
+          track.production_split_3_wallet
+        ].filter(w => w && w.trim() !== '').length + 1;
+        setVisibleCompositionSplits(compSplits);
+        setVisibleProductionSplits(prodSplits);
         // Editing existing track - ensure title is set (in case form state wasn't initialized properly)
         if (track.title && formData.title !== track.title) {
           handleInputChange('title', track.title);
@@ -1781,16 +1799,12 @@ export default function IPTrackModal({
 
   const renderFileUploads = () => (
     <div className="space-y-6">
-      {/* Cover Image - Simplified direct upload */}
-      {/* Hide for video clips when editing - changing cover breaks video playback */}
-      {!(formData.content_type === 'video_clip' && track) && (
+      {/* Cover Image - Hide completely for video clips (thumbnail auto-generated) */}
+      {formData.content_type !== 'video_clip' && (
         <div>
           <label className="block text-lg font-semibold text-gray-200 mb-3">
-            {formData.content_type === 'loop_pack' ? 'Pack Cover Artwork' :
-             formData.content_type === 'video_clip' ? 'Video Thumbnail' : 'Cover Artwork'}
-            <span className="text-gray-500 text-sm font-normal">
-              {formData.content_type === 'video_clip' ? ' (auto-generated, or upload custom)' : ' (optional)'}
-            </span>
+            {formData.content_type === 'loop_pack' ? 'Pack Cover Artwork' : 'Cover Artwork'}
+            <span className="text-gray-500 text-sm font-normal"> (optional)</span>
           </label>
 
           <TrackCoverUploader
@@ -1804,7 +1818,12 @@ export default function IPTrackModal({
       {/* Video/Audio Upload - Conditional based on content type */}
       <div>
         <label className="block text-lg font-semibold text-gray-200 mb-3">
-          {formData.content_type === 'video_clip' ? 'Video File' :
+          {formData.content_type === 'video_clip' ? (
+            <>
+              Video File
+              <span className="text-gray-400 text-sm font-normal ml-2">• Thumbnail automatically generated</span>
+            </>
+          ) :
            formData.content_type === 'loop_pack' ? 'Upload Your Loops' :
            formData.content_type === 'ep' ? 'Upload Your Songs' : 'Audio File'}
         </label>
@@ -2091,133 +2110,211 @@ export default function IPTrackModal({
   );
 
 
-  const renderCompositionSplits = () => (
-    <div className="space-y-4">
-      <div className="mb-4">
-        <h4 className="text-base font-medium text-white mb-2">
-          💡 IDEA RIGHTS{formData.content_type !== 'video_clip' && ' (Composition)'}
-        </h4>
-        <p className="text-sm font-normal text-gray-300 mb-2">
-          {formData.content_type === 'video_clip'
-            ? 'Who created the concept, direction, and ideas for this video?'
-            : 'Who created the melodies, lyrics, structure, vibes?'}
-        </p>
-      </div>
+  const renderCompositionSplits = () => {
+    const totalPercentage = formData.composition_split_1_percentage + formData.composition_split_2_percentage + formData.composition_split_3_percentage;
 
-      {/* Split inputs */}
+    return (
       <div className="space-y-4">
-        {[1, 2, 3].map((num) => (
-          <div key={num} className="flex gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                value={formData[`composition_split_${num}_wallet` as keyof typeof formData] as string}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
-                  
-                  // Validate wallet address format (reject alpha codes)
-                  if (value.trim() && !isValidStacksAddress(value) && isAlphaCode(value)) {
-                    showToast('❌ Please enter a valid Stacks address (SP... or SM...), not an alpha code', 'error');
-                  }
-                }}
-                className="input-field"
-                placeholder={`Creator ${num} name or wallet address`}
-              />
+        <div className="mb-4">
+          <h4 className="text-base font-medium text-white mb-2">
+            💡 IDEA RIGHTS{formData.content_type !== 'video_clip' && ' (Composition)'}
+          </h4>
+          <p className="text-sm font-normal text-gray-300 mb-2">
+            {formData.content_type === 'video_clip'
+              ? 'Who created the concept, direction, and ideas for this video?'
+              : 'Who created the melodies, lyrics, structure, vibes?'}
+          </p>
+        </div>
+
+        {/* Split inputs - dynamic visibility */}
+        <div className="space-y-3">
+          {[1, 2, 3].slice(0, visibleCompositionSplits).map((num) => (
+            <div key={num} className="flex gap-3 items-center">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={formData[`composition_split_${num}_wallet` as keyof typeof formData] as string}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
+
+                    // Validate wallet address format (reject alpha codes)
+                    if (value.trim() && !isValidStacksAddress(value) && isAlphaCode(value)) {
+                      showToast('❌ Please enter a valid Stacks address (SP... or SM...), not an alpha code', 'error');
+                    }
+                  }}
+                  className="input-field"
+                  placeholder={num === 1 ? '' : 'Name or wallet address'}
+                  disabled={num === 1} // First row is always the uploader
+                />
+              </div>
+              <div className="w-24">
+                <input
+                  type="number"
+                  value={formData[`composition_split_${num}_percentage` as keyof typeof formData] as number}
+                  onChange={(e) => handleInputChange(`composition_split_${num}_percentage` as keyof typeof formData, parseFloat(e.target.value) || 0)}
+                  className="input-field text-center"
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+              </div>
+              {/* Remove button for collaborators (not first row) */}
+              {num > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Clear this split and shift others up
+                    if (num === 2) {
+                      handleInputChange('composition_split_2_wallet', formData.composition_split_3_wallet);
+                      handleInputChange('composition_split_2_percentage', formData.composition_split_3_percentage);
+                    }
+                    handleInputChange('composition_split_3_wallet', '');
+                    handleInputChange('composition_split_3_percentage', 0);
+                    setVisibleCompositionSplits(prev => Math.max(1, prev - 1));
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors"
+                  title="Remove collaborator"
+                >
+                  ✕
+                </button>
+              )}
+              {/* Spacer for first row alignment */}
+              {num === 1 && visibleCompositionSplits > 1 && <div className="w-8" />}
             </div>
-            <div className="w-32">
-              <input
-                type="number"
-                value={formData[`composition_split_${num}_percentage` as keyof typeof formData] as number}
-                onChange={(e) => handleInputChange(`composition_split_${num}_percentage` as keyof typeof formData, parseFloat(e.target.value) || 0)}
-                className="input-field"
-                placeholder="0"
-                min="0"
-                max="100"
-                step="0.01"
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Total percentage */}
-      <div className="text-right">
-        <span className="text-gray-400">Total: </span>
-        <span className={`font-medium ${
-          Math.abs((formData.composition_split_1_percentage + formData.composition_split_2_percentage + formData.composition_split_3_percentage) - 100) < 0.01
-            ? 'text-green-400'
-            : 'text-red-400'
-        }`}>
-          {(formData.composition_split_1_percentage + formData.composition_split_2_percentage + formData.composition_split_3_percentage).toFixed(2)}%
-        </span>
-      </div>
-    </div>
-  );
+        {/* Add collaborator button */}
+        {visibleCompositionSplits < 3 && (
+          <button
+            type="button"
+            onClick={() => setVisibleCompositionSplits(prev => Math.min(3, prev + 1))}
+            className="flex items-center gap-2 text-sm text-[#81E4F2] hover:text-[#a0ecf7] transition-colors"
+          >
+            <span className="w-5 h-5 flex items-center justify-center border border-[#81E4F2] rounded-full text-xs">+</span>
+            Add collaborator
+          </button>
+        )}
 
-  const renderProductionSplits = () => (
-    <div className="space-y-4">
-      <div className="mb-4">
-        <h4 className="text-base font-medium text-white mb-2">
-          🔧 IMPLEMENTATION RIGHTS{formData.content_type !== 'video_clip' && ' (Sound Recording)'}
-        </h4>
-        <p className="text-sm font-normal text-gray-300 mb-2">
-          {formData.content_type === 'video_clip'
-            ? 'Who filmed, edited, produced, and brought it to life?'
-            : 'Who produced, performed, engineered, made it real?'}
-        </p>
+        {/* Total percentage */}
+        <div className="text-right pt-2 border-t border-slate-700/50">
+          <span className="text-gray-400">Total: </span>
+          <span className={`font-medium ${
+            Math.abs(totalPercentage - 100) < 0.01
+              ? 'text-green-400'
+              : 'text-red-400'
+          }`}>
+            {totalPercentage.toFixed(2)}%
+          </span>
+        </div>
       </div>
+    );
+  };
 
-      {/* Split inputs */}
+  const renderProductionSplits = () => {
+    const totalPercentage = formData.production_split_1_percentage + formData.production_split_2_percentage + formData.production_split_3_percentage;
+
+    return (
       <div className="space-y-4">
-        {[1, 2, 3].map((num) => (
-          <div key={num} className="flex gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                value={formData[`production_split_${num}_wallet` as keyof typeof formData] as string}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);
-                  
-                  // Validate wallet address format (reject alpha codes)
-                  if (value.trim() && !isValidStacksAddress(value) && isAlphaCode(value)) {
-                    showToast('❌ Please enter a valid Stacks address (SP... or SM...), not an alpha code', 'error');
-                  }
-                }}
-                className="input-field"
-                placeholder={`Creator ${num} name or wallet address`}
-              />
-            </div>
-            <div className="w-32">
-              <input
-                type="number"
-                value={formData[`production_split_${num}_percentage` as keyof typeof formData] as number}
-                onChange={(e) => handleInputChange(`production_split_${num}_percentage` as keyof typeof formData, parseFloat(e.target.value) || 0)}
-                className="input-field"
-                placeholder="0"
-                min="0"
-                max="100"
-                step="0.01"
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+        <div className="mb-4">
+          <h4 className="text-base font-medium text-white mb-2">
+            🔧 IMPLEMENTATION RIGHTS{formData.content_type !== 'video_clip' && ' (Sound Recording)'}
+          </h4>
+          <p className="text-sm font-normal text-gray-300 mb-2">
+            {formData.content_type === 'video_clip'
+              ? 'Who filmed, edited, produced, and brought it to life?'
+              : 'Who produced, performed, engineered, made it real?'}
+          </p>
+        </div>
 
-      {/* Total percentage */}
-      <div className="text-right">
-        <span className="text-gray-400">Total: </span>
-        <span className={`font-medium ${
-          Math.abs((formData.production_split_1_percentage + formData.production_split_2_percentage + formData.production_split_3_percentage) - 100) < 0.01
-            ? 'text-green-400'
-            : 'text-red-400'
-        }`}>
-          {(formData.production_split_1_percentage + formData.production_split_2_percentage + formData.production_split_3_percentage).toFixed(2)}%
-        </span>
+        {/* Split inputs - dynamic visibility */}
+        <div className="space-y-3">
+          {[1, 2, 3].slice(0, visibleProductionSplits).map((num) => (
+            <div key={num} className="flex gap-3 items-center">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={formData[`production_split_${num}_wallet` as keyof typeof formData] as string}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);
+
+                    // Validate wallet address format (reject alpha codes)
+                    if (value.trim() && !isValidStacksAddress(value) && isAlphaCode(value)) {
+                      showToast('❌ Please enter a valid Stacks address (SP... or SM...), not an alpha code', 'error');
+                    }
+                  }}
+                  className="input-field"
+                  placeholder={num === 1 ? '' : 'Name or wallet address'}
+                  disabled={num === 1} // First row is always the uploader
+                />
+              </div>
+              <div className="w-24">
+                <input
+                  type="number"
+                  value={formData[`production_split_${num}_percentage` as keyof typeof formData] as number}
+                  onChange={(e) => handleInputChange(`production_split_${num}_percentage` as keyof typeof formData, parseFloat(e.target.value) || 0)}
+                  className="input-field text-center"
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+              </div>
+              {/* Remove button for collaborators (not first row) */}
+              {num > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Clear this split and shift others up
+                    if (num === 2) {
+                      handleInputChange('production_split_2_wallet', formData.production_split_3_wallet);
+                      handleInputChange('production_split_2_percentage', formData.production_split_3_percentage);
+                    }
+                    handleInputChange('production_split_3_wallet', '');
+                    handleInputChange('production_split_3_percentage', 0);
+                    setVisibleProductionSplits(prev => Math.max(1, prev - 1));
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors"
+                  title="Remove collaborator"
+                >
+                  ✕
+                </button>
+              )}
+              {/* Spacer for first row alignment */}
+              {num === 1 && visibleProductionSplits > 1 && <div className="w-8" />}
+            </div>
+          ))}
+        </div>
+
+        {/* Add collaborator button */}
+        {visibleProductionSplits < 3 && (
+          <button
+            type="button"
+            onClick={() => setVisibleProductionSplits(prev => Math.min(3, prev + 1))}
+            className="flex items-center gap-2 text-sm text-[#81E4F2] hover:text-[#a0ecf7] transition-colors"
+          >
+            <span className="w-5 h-5 flex items-center justify-center border border-[#81E4F2] rounded-full text-xs">+</span>
+            Add collaborator
+          </button>
+        )}
+
+        {/* Total percentage */}
+        <div className="text-right pt-2 border-t border-slate-700/50">
+          <span className="text-gray-400">Total: </span>
+          <span className={`font-medium ${
+            Math.abs(totalPercentage - 100) < 0.01
+              ? 'text-green-400'
+              : 'text-red-400'
+          }`}>
+            {totalPercentage.toFixed(2)}%
+          </span>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderLicensing = () => {
     return (
