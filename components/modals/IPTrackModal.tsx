@@ -2122,7 +2122,7 @@ export default function IPTrackModal({
                   }
                 }}
                 className="input-field"
-                placeholder={`Creator ${num} Stacks address (SP...)`}
+                placeholder={`Creator ${num} name or wallet address`}
               />
             </div>
             <div className="w-32">
@@ -2186,7 +2186,7 @@ export default function IPTrackModal({
                   }
                 }}
                 className="input-field"
-                placeholder={`Creator ${num} Stacks address (SP...)`}
+                placeholder={`Creator ${num} name or wallet address`}
               />
             </div>
             <div className="w-32">

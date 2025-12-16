@@ -313,22 +313,23 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     const errors: string[] = [];
     const prefix = splitType === 'composition' ? 'composition' : 'production';
     const displayName = splitType === 'composition' ? 'Composition' : 'Production';
-    
+
     // Get split values
+    // Note: "wallet" fields can contain names OR wallet addresses (flexible for collaborators)
     const split1Wallet = formData[`${prefix}_split_1_wallet` as keyof IPTrackFormData] as string;
     const split1Percentage = formData[`${prefix}_split_1_percentage` as keyof IPTrackFormData] as number;
     const split2Wallet = formData[`${prefix}_split_2_wallet` as keyof IPTrackFormData] as string;
     const split2Percentage = formData[`${prefix}_split_2_percentage` as keyof IPTrackFormData] as number;
     const split3Wallet = formData[`${prefix}_split_3_wallet` as keyof IPTrackFormData] as string;
     const split3Percentage = formData[`${prefix}_split_3_percentage` as keyof IPTrackFormData] as number;
-    
+
     // Check total percentage
     const totalPercentage = split1Percentage + split2Percentage + split3Percentage;
     if (totalPercentage !== 100) {
       errors.push(`${displayName} split percentages must total 100% (currently ${totalPercentage}%)`);
     }
-    
-    // Check for empty wallets with percentages
+
+    // Check for empty identifiers with percentages
     // For Split 1: Auto-fill with uploader wallet if missing but percentage > 0
     if (split1Percentage > 0 && !split1Wallet) {
       const effectiveWallet = formData.wallet_address || walletAddress;
@@ -340,24 +341,25 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
           [`${fieldPrefix}_split_1_wallet`]: effectiveWallet
         }));
       } else {
-        errors.push(`${displayName} Split 1: Wallet address required when percentage is set`);
+        errors.push(`${displayName} Split 1: Name or wallet address required when percentage is set`);
       }
     }
+    // For splits 2 and 3, accept any non-empty string (name or wallet)
     if (split2Percentage > 0 && !split2Wallet) {
-      errors.push(`${displayName} Split 2: Wallet address required when percentage is set`);
+      errors.push(`${displayName} Split 2: Name or wallet address required when percentage is set`);
     }
     if (split3Percentage > 0 && !split3Wallet) {
-      errors.push(`${displayName} Split 3: Wallet address required when percentage is set`);
+      errors.push(`${displayName} Split 3: Name or wallet address required when percentage is set`);
     }
-    
-    // Check for wallets without percentages
+
+    // Check for identifiers without percentages
     if (split2Wallet && split2Percentage === 0) {
-      errors.push(`${displayName} Split 2: Percentage required when wallet is set`);
+      errors.push(`${displayName} Split 2: Percentage required when collaborator is set`);
     }
     if (split3Wallet && split3Percentage === 0) {
-      errors.push(`${displayName} Split 3: Percentage required when wallet is set`);
+      errors.push(`${displayName} Split 3: Percentage required when collaborator is set`);
     }
-    
+
     return { isValid: errors.length === 0, errors };
   };
 
