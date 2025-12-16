@@ -68,6 +68,9 @@ interface IPTrackFormData {
   remix_price: number;
   combined_price: number;
   download_price: number;
+  download_price_stx: number | null;  // Used by SimplifiedLicensingStep for songs/loops
+  price_per_song?: number;  // For EPs
+  price_per_loop?: number;  // For loop packs
   
   // Contact info for commercial and collaboration
   commercial_contact: string;
@@ -217,6 +220,9 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     combined_price: (track as any)?.combined_price || 2.5,
     // IMPORTANT: Fall back to price_stx for songs/EPs that only have price_stx set
     download_price: (track as any)?.download_price_stx || (track as any)?.download_price || track?.price_stx || 2.5,
+    // download_price_stx is used directly by SimplifiedLicensingStep for songs/loops
+    download_price_stx: (track as any)?.download_price_stx ?? track?.price_stx ?? null,
+    // price_per_song/loop are calculated from total for EPs/packs (handled in IPTrackModal)
     
     // Contact info
     commercial_contact: (track as any)?.commercial_contact || '',
@@ -517,6 +523,7 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
       remix_price: 0.5,
       combined_price: 2.5,
       download_price: 2.5,
+      download_price_stx: null,
       commercial_contact: '',
       commercial_contact_fee: 10,
       collab_contact: '',

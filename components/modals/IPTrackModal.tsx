@@ -248,13 +248,29 @@ export default function IPTrackModal({
             .filter((name: string) => name && name.length > 0);
           const uniqueLocations = dedupeHierarchicalLocations([...new Set(locationNames)]);
           setSelectedLocations(uniqueLocations);
-          console.log('📍 Loaded locations from array:', uniqueLocations);
+
+          // IMPORTANT: Also load the full location objects with coordinates
+          // This ensures existing locations are preserved when user adds new ones
+          const validCoords = track.locations
+            .filter((loc: any) => loc.name && loc.lat !== undefined && loc.lng !== undefined)
+            .map((loc: any) => ({ lat: loc.lat, lng: loc.lng, name: loc.name }));
+          setSelectedLocationCoords(validCoords);
+          console.log('📍 Loaded locations from array:', uniqueLocations, 'with coords:', validCoords);
         } else if (track.primary_location) {
           // Fallback: Use primary_location (might be comma-separated for old data)
           const locations = track.primary_location.split(',').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
           // Deduplicate in case of any existing duplicates
           const uniqueLocations = dedupeHierarchicalLocations([...new Set(locations)]);
           setSelectedLocations(uniqueLocations);
+
+          // If we have coordinates, create a location coord for the primary location
+          if (track.location_lat && track.location_lng && uniqueLocations.length > 0) {
+            setSelectedLocationCoords([{
+              lat: track.location_lat,
+              lng: track.location_lng,
+              name: uniqueLocations[0] // Use first location name
+            }]);
+          }
           console.log('📍 Loaded locations from primary_location:', uniqueLocations);
         } else {
           // Last fallback: try extracting from tags
