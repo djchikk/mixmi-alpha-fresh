@@ -102,6 +102,8 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   const [isReadyToSubmit, setIsReadyToSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [sessionStartTime] = useState<Date>(new Date()); // Track when session started
+  const sessionLoggedRef = useRef(false); // Prevent double-logging
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,6 +141,108 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   useEffect(() => {
     return () => cleanupLocationSearch();
   }, [cleanupLocationSearch]);
+
+  // Log session data for analysis
+  const logSession = async (
+    outcome: 'submitted' | 'abandoned' | 'error' | 'in_progress',
+    finalTrackId?: string,
+    finalPackId?: string,
+    errorMessage?: string
+  ) => {
+    // Prevent double-logging
+    if (sessionLoggedRef.current && outcome === 'submitted') return;
+    if (outcome === 'submitted') sessionLoggedRef.current = true;
+
+    // Only log if there was actual interaction
+    if (messages.length === 0 && Object.keys(extractedData).length === 0) {
+      return;
+    }
+
+    try {
+      const uploadedFiles = attachments
+        .filter(a => a.status === 'uploaded' && a.url)
+        .map(a => ({
+          type: a.type,
+          url: a.url!,
+          name: a.name,
+          uploadedAt: new Date().toISOString()
+        }));
+
+      await fetch('/api/upload-studio/log-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          walletAddress,
+          messages: messages.map(m => ({
+            role: m.role,
+            content: m.content,
+            timestamp: m.timestamp.toISOString(),
+            attachments: m.attachments?.map(a => ({
+              type: a.type,
+              url: a.url,
+              name: a.name
+            }))
+          })),
+          uploadedFiles,
+          inferredData: extractedData,
+          detectedContentType: extractedData.content_type,
+          outcome,
+          finalTrackId,
+          finalPackId,
+          reachedReadyState: isReadyToSubmit,
+          errorMessage,
+          sessionStartTime: sessionStartTime.toISOString()
+        })
+      });
+
+      console.log('📝 Session logged:', { conversationId, outcome });
+    } catch (error) {
+      // Don't throw - logging failures shouldn't break the app
+      console.warn('Failed to log session:', error);
+    }
+  };
+
+  // Track abandonment on unmount (if session had meaningful interaction)
+  useEffect(() => {
+    return () => {
+      // Log abandonment if there was interaction but no submission
+      if (!sessionLoggedRef.current && (messages.length > 1 || Object.keys(extractedData).length > 0)) {
+        // Use sendBeacon for reliable delivery on page unload
+        const data = {
+          conversationId,
+          walletAddress,
+          messages: messages.map(m => ({
+            role: m.role,
+            content: m.content,
+            timestamp: m.timestamp.toISOString()
+          })),
+          inferredData: extractedData,
+          detectedContentType: extractedData.content_type,
+          outcome: 'abandoned',
+          reachedReadyState: isReadyToSubmit,
+          sessionStartTime: sessionStartTime.toISOString()
+        };
+
+        // Try sendBeacon first (works on page unload)
+        const beaconSuccess = navigator.sendBeacon(
+          '/api/upload-studio/log-session',
+          new Blob([JSON.stringify(data)], { type: 'application/json' })
+        );
+
+        if (!beaconSuccess) {
+          // Fallback to fetch (may not complete on unload)
+          fetch('/api/upload-studio/log-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            keepalive: true
+          }).catch(() => {});
+        }
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Detect if the chatbot is asking for location
   const isAskingForLocation = useMemo(() => {
@@ -815,6 +919,13 @@ Feel free to try again with a different file, or let me know if you need help!`,
 
       const result = await response.json();
 
+      // Log the successful session
+      await logSession(
+        'submitted',
+        result.trackId || result.tracks?.[0]?.id,
+        result.packId
+      );
+
       // Get the correct title based on content type
       const displayTitle = extractedData.content_type === 'ep'
         ? extractedData.ep_title
@@ -848,8 +959,12 @@ Would you like to upload another track, or shall I show you where to find your n
       setExtractedData({});
       showToast('🎉 Track registered successfully!', 'success');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submit error:', error);
+
+      // Log the error
+      await logSession('error', undefined, undefined, error.message || 'Submission failed');
+
       showToast('❌ Failed to register track. Please try again.', 'error');
 
       const errorMessage: Message = {
