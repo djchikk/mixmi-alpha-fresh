@@ -205,6 +205,47 @@ New `UploadPreviewCard.tsx` component shows content card building in real-time a
 
 ---
 
+## Session: December 16, 2025
+
+**Focus:** Conversation logging system for Upload Studio analytics
+
+### Upload Session Recorder
+Three-layer logging system to analyze and improve the chatbot:
+
+**Layer 1 - Raw Transcripts:**
+- Every message logged to `upload_session_events` table
+- Attachments, timestamps, and full content preserved
+
+**Layer 2 - AI Sense-Making:**
+- `inferred_data` captures what chatbot extracted
+- `confidence_scores` for field-level confidence
+- `flags` for observations during conversation
+
+**Layer 3 - Outcome Signals:**
+- Track submitted/abandoned/error outcomes
+- Link to final `ip_tracks` record
+- Session duration and message counts
+
+### Sensitivity Detection
+Keyword scanning for traditional/sacred content communities:
+- Keywords: god, prayer, sacred, ceremony, ancestor, blessing, spiritual, elder, tradition, secret, family only, not for everyone
+- Triggers `sensitivity_signal` event with context
+- Helps identify content needing cultural sensitivity
+
+### Files
+- `app/api/upload-studio/log-session/route.ts` - Logging API
+- `components/upload-studio/ConversationalUploader.tsx` - Client integration
+- `scripts/migrations/create-upload-sessions-table.sql` - Sessions table
+- `scripts/migrations/add-upload-session-events.sql` - Events table
+
+### Database Tables
+- `upload_sessions` - Session summaries (outcome, inferred_data, flags)
+- `upload_session_events` - Append-only event log (messages, signals)
+
+See `docs/CONVERSATION-LOGGING.md` for full documentation.
+
+---
+
 ## Key File Locations
 
 ### Mixer System
@@ -218,6 +259,7 @@ New `UploadPreviewCard.tsx` component shows content card building in real-time a
 - `components/upload-studio/UploadPreviewCard.tsx` - Live preview card
 - `lib/upload-studio/system-prompt.ts` - Chatbot personality and guidance
 - `app/api/upload-studio/submit/route.ts` - Track submission API
+- `app/api/upload-studio/log-session/route.ts` - Session logging API
 
 ### Playback
 - `components/SimplePlaylistPlayer.tsx` - Playlist with drag support
