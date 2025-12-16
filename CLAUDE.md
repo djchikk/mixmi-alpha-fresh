@@ -174,6 +174,37 @@ Chatbot now suggests IP credit when users mention sampling others' work (10-25% 
 
 ---
 
+## Session: December 15, 2025
+
+**Focus:** Live preview card for upload studio
+
+### Upload Preview Card
+New `UploadPreviewCard.tsx` component shows content card building in real-time as chatbot collects info.
+
+**Features:**
+- 160×160px card matching globe card style
+- Border color changes by content type (uses standard color palette)
+- Cyan title/artist text (#81E4F2) with dark gradient overlay
+- Location pins displayed below card (all locations, not just primary)
+- Tags displayed below card (up to 3 with +N indicator)
+- Info button launches TrackDetailsModal with preview data
+
+**Integration:**
+- Positioned to right of chat, aligned near input area (`justify-end pb-32`)
+- Hidden on mobile (`hidden lg:flex`)
+- Receives `extractedData` from ConversationalUploader state
+
+**Files:**
+- `components/upload-studio/UploadPreviewCard.tsx` - Preview card component
+- `components/upload-studio/ConversationalUploader.tsx` - Integration and layout
+
+### Location Deduplication Fixes
+- Country abbreviation matching (UK → United Kingdom, USA → United States)
+- UK-style 4-part addresses handled as single location (≤3 commas threshold)
+- Coordinate tolerance increased to 0.5 (~50km) for fuzzy matching
+
+---
+
 ## Key File Locations
 
 ### Mixer System
@@ -184,6 +215,7 @@ Chatbot now suggests IP credit when users mention sampling others' work (10-25% 
 
 ### Upload System
 - `components/upload-studio/ConversationalUploader.tsx` - Chat-based upload
+- `components/upload-studio/UploadPreviewCard.tsx` - Live preview card
 - `lib/upload-studio/system-prompt.ts` - Chatbot personality and guidance
 - `app/api/upload-studio/submit/route.ts` - Track submission API
 
