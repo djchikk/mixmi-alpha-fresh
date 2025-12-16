@@ -851,7 +851,24 @@ export default function IPTrackModal({
     // Add location tags with 🌍 prefix - use all location names
     // First, remove any existing location tags to avoid duplicates
     const nonLocationTags = formData.tags.filter(tag => !tag.startsWith('🌍'));
-    const locationTags = locationResult.all.map(loc => `🌍 ${loc.name}`);
+
+    // Deduplicate hierarchical locations before creating tags
+    // If "Chichester, West Sussex, England, UK" exists, don't also add "England, UK"
+    const dedupeLocationNames = (locations: Array<{ name: string }>): string[] => {
+      const names = locations.map(l => l.name);
+      const normalized = names.map(n => n.toLowerCase().trim());
+      return names.filter((name, idx) => {
+        const nameLower = normalized[idx];
+        // Keep this location only if no OTHER location contains it as a suffix
+        return !normalized.some((other, otherIdx) => {
+          if (idx === otherIdx) return false;
+          return other.endsWith(nameLower) || other.includes(`, ${nameLower}`);
+        });
+      });
+    };
+
+    const dedupedLocationNames = dedupeLocationNames(locationResult.all);
+    const locationTags = dedupedLocationNames.map(name => `🌍 ${name}`);
     const allTags = [...nonLocationTags, ...locationTags];
     
     // Update form data with location info

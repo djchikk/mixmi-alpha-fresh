@@ -764,7 +764,35 @@ export function useIPTrackSubmit({
       // Success!
       setSaveStatus('complete');
       console.log(`✨ Track ${track ? 'updated' : 'created'} successfully!`);
-      
+
+      // Generate thumbnails if cover image was added or changed
+      const coverImageChanged = mappedTrackData.cover_image_url &&
+        (!track || track.cover_image_url !== mappedTrackData.cover_image_url);
+
+      if (coverImageChanged) {
+        console.log('🖼️ Cover image changed, generating thumbnails...');
+        try {
+          const thumbnailResponse = await fetch('/api/tracks/generate-thumbnails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              trackId: mappedTrackData.id,
+              coverImageUrl: mappedTrackData.cover_image_url
+            })
+          });
+
+          if (thumbnailResponse.ok) {
+            const thumbnailResult = await thumbnailResponse.json();
+            console.log('✅ Thumbnails generated:', thumbnailResult.thumbnails);
+          } else {
+            console.warn('⚠️ Thumbnail generation failed, but track saved successfully');
+          }
+        } catch (thumbnailError) {
+          console.warn('⚠️ Thumbnail generation error:', thumbnailError);
+          // Don't fail the overall save - thumbnails are nice-to-have
+        }
+      }
+
       // Generate certificate asynchronously for new tracks
       if (!track && effectiveWalletAddress) {
         console.log('🎓 Generating certificate for new track...');
