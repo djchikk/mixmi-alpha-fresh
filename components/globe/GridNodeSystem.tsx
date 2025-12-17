@@ -18,13 +18,16 @@ const ZOOM_LEVELS = {
 
 // Content type color mapping
 const CONTENT_TYPE_COLORS = {
-  loop: '#A084F9',        // Purple for loops
-  loop_pack: '#A084F9',   // Purple for loop packs
-  full_song: '#A8E66B',   // Gold for songs
-  ep: '#A8E66B',          // Gold for EPs
-  video_clip: '#5BB5F9',  // Deeper blue for video clips
+  loop: '#A084F9',        // Bright Lavender for loops
+  loop_pack: '#A084F9',   // Bright Lavender for loop packs
+  full_song: '#A8E66B',   // Lime Green for songs
+  ep: '#A8E66B',          // Lime Green for EPs
+  video_clip: '#5BB5F9',  // Lighter Sky Blue for video clips
+  radio_station: '#FFC044', // Golden Amber for radio stations
+  station_pack: '#FFC044',  // Golden Amber for station packs
+  portal: '#FFFFFF',      // White/silver for portal keepers
   cluster: '#81E4F2',     // Accent cyan for clustered content (carousels)
-  default: '#5BB5F9'      // Deeper blue fallback for unknown types
+  default: '#5BB5F9'      // Lighter Sky Blue fallback for unknown types
 };
 
 // Get color based on content type

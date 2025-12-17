@@ -6,6 +6,7 @@ import { IPTrack } from '@/types';
 import { TrackNode } from '@/components/globe/types';
 import { supabase } from '@/lib/supabase';
 import CompactTrackCardWithFlip from '@/components/cards/CompactTrackCardWithFlip';
+import PortalCard, { Portal } from '@/components/cards/PortalCard';
 import { X } from 'lucide-react';
 
 interface TrackNodeModalProps {
@@ -100,20 +101,34 @@ export default function TrackNodeModal({
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mb-4"></div>
-                <p className="text-gray-400">Loading track...</p>
+                <p className="text-gray-400">Loading...</p>
               </div>
             ) : ipTrack ? (
               <div className="flex justify-center">
-                <CompactTrackCardWithFlip
-                  track={ipTrack}
-                  isPlaying={playingTrackId === ipTrack.id}
-                  onPlayPreview={onPlayPreview}
-                  onStopPreview={onStopPreview}
-                  showEditControls={false}
-                  onPurchase={() => {
-                    console.log('Purchase track:', ipTrack.title);
-                  }}
-                />
+                {/* Render PortalCard for portal content type, otherwise regular track card */}
+                {ipTrack.content_type === 'portal' ? (
+                  <PortalCard
+                    portal={{
+                      id: ipTrack.id,
+                      name: ipTrack.title,
+                      description: ipTrack.description || '',
+                      imageUrl: ipTrack.cover_image_url || '',
+                      profileUrl: (ipTrack as any).profile_url || `/profile/${(ipTrack as any).portal_username || ipTrack.primary_uploader_wallet}`,
+                      content_type: 'portal',
+                    }}
+                  />
+                ) : (
+                  <CompactTrackCardWithFlip
+                    track={ipTrack}
+                    isPlaying={playingTrackId === ipTrack.id}
+                    onPlayPreview={onPlayPreview}
+                    onStopPreview={onStopPreview}
+                    showEditControls={false}
+                    onPurchase={() => {
+                      console.log('Purchase track:', ipTrack.title);
+                    }}
+                  />
+                )}
               </div>
             ) : (
               // Fallback display if track data can't be fetched
