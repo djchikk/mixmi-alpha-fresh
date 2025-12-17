@@ -20,6 +20,7 @@ import { NullIslandModal } from "@/components/globe/NullIslandModal";
 
 
 // Dynamically import GlobeTrackCard to avoid SSR issues
+// GlobeTrackCard handles portal rendering internally
 const GlobeTrackCard = dynamic(() => import('@/components/cards/GlobeTrackCard'), {
   ssr: false
 });
@@ -1552,6 +1553,8 @@ export default function HomePage() {
                         thumb_64_url: pinnedCard.node.thumb_64_url,
                         thumb_160_url: pinnedCard.node.thumb_160_url,
                         thumb_256_url: pinnedCard.node.thumb_256_url,
+                        // Portal fields
+                        portal_username: pinnedCard.node.portal_username,
                         wallet_address: '',
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
@@ -1742,13 +1745,13 @@ export default function HomePage() {
               /* Individual Track Display */
               (() => {
                 const displayTrack = selectedNode;
-                
+
               return (
                 <>
-                  {/* Globe Track Card */}
+                  {/* Globe Track Card - handles portal rendering internally */}
                   <div
                     className="group relative cursor-grab active:cursor-grabbing"
-                    title="💿 Drag this card to Mixer Decks, Crate, or Radio Player"
+                    title={displayTrack.content_type === 'portal' ? 'Click to visit profile' : '💿 Drag this card to Mixer Decks, Crate, or Radio Player'}
                   >
                     <GlobeTrackCard
                       track={{
@@ -1770,6 +1773,8 @@ export default function HomePage() {
                       thumb_64_url: displayTrack.thumb_64_url,
                       thumb_160_url: displayTrack.thumb_160_url,
                       thumb_256_url: displayTrack.thumb_256_url,
+                      // Portal fields
+                      portal_username: displayTrack.portal_username,
                       // Required fields for IPTrack
                       wallet_address: '',
                       created_at: new Date().toISOString(),

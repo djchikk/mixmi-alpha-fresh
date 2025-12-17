@@ -80,7 +80,7 @@ export interface IPTrack {
   tell_us_more?: string; // New field for additional context
   notes?: string; // For lyrics/descriptions to display in CC overlay
   tags: string[];
-  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix' | 'radio_station' | 'station_pack' | 'video_clip';
+  content_type: 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'mix' | 'radio_station' | 'station_pack' | 'video_clip' | 'portal';
   loop_category?: string; // Only for loops: 'vocals', 'beats', 'instrumental', 'stem', 'other'
   sample_type: string; // Legacy field - will be replaced by content_type + loop_category
   bpm?: number; // Beats per minute - optional for full songs, essential for loops
@@ -162,6 +162,9 @@ export interface IPTrack {
   primary_location?: string;
   locations?: Array<{ lat: number; lng: number; name: string }>;
   
+  // Portal System Fields (for content_type: 'portal')
+  portal_username?: string; // Username for the Portal Keeper's profile link
+
   // Collaboration System Fields (MC Claude enhancement)
   primary_uploader_wallet?: string; // Who "owns" this track in their store
   collaboration_preferences?: Record<string, boolean>; // JSONB field for collaboration control

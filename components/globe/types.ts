@@ -37,6 +37,9 @@ export interface TrackNode {
   thumb_64_url?: string;
   thumb_160_url?: string;
   thumb_256_url?: string;
+
+  // Portal fields
+  portal_username?: string;
 }
 
 export interface GlobeProps {

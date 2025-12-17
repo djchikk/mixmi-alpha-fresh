@@ -295,52 +295,79 @@ export default function AdminPortalsPage() {
           <h2 className="text-xl font-semibold text-white mb-4">Create New Portal</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Portal Keeper Search */}
-            <div className="relative">
-              <label className="block text-gray-400 text-sm mb-1">Portal Keeper (search by name) *</label>
-              <input
-                type="text"
-                value={userSearchQuery}
-                onChange={(e) => {
-                  handleUserSearch(e.target.value);
-                  setShowUserSuggestions(true);
-                }}
-                onFocus={() => setShowUserSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowUserSuggestions(false), 200)}
-                placeholder="Start typing a user's name..."
-                className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
-              />
+            {/* Portal Keeper - Search OR Manual Entry */}
+            <div className="space-y-3">
+              <div className="relative">
+                <label className="block text-gray-400 text-sm mb-1">Portal Keeper (search by name)</label>
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => {
+                    handleUserSearch(e.target.value);
+                    setShowUserSuggestions(true);
+                  }}
+                  onFocus={() => setShowUserSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowUserSuggestions(false), 200)}
+                  placeholder="Search for existing user..."
+                  className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
+                />
 
-              {/* User suggestions dropdown */}
-              {showUserSuggestions && userSearchResults.length > 0 && (
-                <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {userSearchResults.map((user) => (
-                    <button
-                      key={user.walletAddress}
-                      type="button"
-                      onClick={() => handleUserSelect(user)}
-                      className="w-full px-4 py-3 text-left hover:bg-slate-700 transition-colors flex items-center gap-3"
-                    >
-                      {user.avatarUrl && (
-                        <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
-                      )}
-                      <div>
-                        <div className="text-white text-sm font-medium">{user.displayName}</div>
-                        <div className="text-gray-400 text-xs">@{user.username}</div>
-                      </div>
-                    </button>
-                  ))}
+                {/* User suggestions dropdown */}
+                {showUserSuggestions && userSearchResults.length > 0 && (
+                  <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {userSearchResults.map((user) => (
+                      <button
+                        key={user.walletAddress}
+                        type="button"
+                        onClick={() => handleUserSelect(user)}
+                        className="w-full px-4 py-3 text-left hover:bg-slate-700 transition-colors flex items-center gap-3"
+                      >
+                        {user.avatarUrl && (
+                          <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                        )}
+                        <div>
+                          <div className="text-white text-sm font-medium">{user.displayName}</div>
+                          <div className="text-gray-400 text-xs">@{user.username}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {userSearchLoading && (
+                  <div className="absolute right-3 top-9 text-gray-400 text-xs">Searching...</div>
+                )}
+              </div>
+
+              <div className="text-gray-500 text-xs text-center">— OR enter manually if no profile exists —</div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">Wallet Address *</label>
+                  <input
+                    type="text"
+                    value={form.walletAddress}
+                    onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
+                    placeholder="SP..."
+                    className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2] font-mono text-sm"
+                  />
                 </div>
-              )}
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">Username (for profile link) *</label>
+                  <input
+                    type="text"
+                    value={form.portalUsername}
+                    onChange={(e) => setForm({ ...form, portalUsername: e.target.value })}
+                    placeholder="e.g., felix"
+                    className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
+                  />
+                </div>
+              </div>
 
-              {userSearchLoading && (
-                <div className="absolute right-3 top-9 text-gray-400 text-xs">Searching...</div>
-              )}
-
-              {/* Show selected user info */}
-              {form.walletAddress && (
-                <p className="text-green-400 text-xs mt-1">
-                  Selected: @{form.portalUsername} ({form.walletAddress.slice(0, 8)}...{form.walletAddress.slice(-4)})
+              {/* Show confirmation when filled */}
+              {form.walletAddress && form.portalUsername && (
+                <p className="text-green-400 text-xs">
+                  Portal will link to /profile/{form.portalUsername} • Owned by {form.walletAddress.slice(0, 8)}...
                 </p>
               )}
             </div>

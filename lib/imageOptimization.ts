@@ -49,37 +49,19 @@ export function getOptimizedTrackImage(
   const thumbnailSize = SIZE_MAP[targetSize];
   const originalUrl = track.cover_image_url || track.imageUrl || '';
 
-  // DEBUG: Log thumbnail availability
-  console.log('🖼️ getOptimizedTrackImage:', {
-    title: track.title,
-    targetSize,
-    thumbnailSize,
-    hasThumb64: !!track.thumb_64_url,
-    hasThumb160: !!track.thumb_160_url,
-    hasThumb256: !!track.thumb_256_url,
-    thumb256_url: track.thumb_256_url?.substring(0, 80) + '...',
-    originalUrl: originalUrl?.substring(0, 80) + '...'
-  });
-
   // Check for pre-generated thumbnail at the appropriate size
   if (thumbnailSize === 64 && track.thumb_64_url) {
-    console.log('🖼️ Using thumb_64_url');
     return track.thumb_64_url;
   }
   if (thumbnailSize === 160 && track.thumb_160_url) {
-    console.log('🖼️ Using thumb_160_url');
     return track.thumb_160_url;
   }
   if (thumbnailSize === 256 && track.thumb_256_url) {
-    console.log('🖼️ Using thumb_256_url');
     return track.thumb_256_url;
   }
 
   // No pre-generated thumbnail available
   // For legacy content, return original URL without transformation
-  // This saves quota - users will see full-size images for old content
-  // until we run the backfill script
-  console.log('🖼️ No thumbnail available, using original URL');
   return originalUrl;
 }
 
