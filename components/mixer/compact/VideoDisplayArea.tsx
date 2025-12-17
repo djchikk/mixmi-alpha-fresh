@@ -19,7 +19,7 @@ interface VideoEffects {
   colorShift: number;
   pixelate: number;
   invert: number;
-  mirror: number;
+  bw: number;
 }
 
 export default function VideoDisplayArea({
@@ -29,7 +29,7 @@ export default function VideoDisplayArea({
   deckBPlaying,
   crossfaderPosition,
   crossfadeMode = 'slide',
-  videoEffects = { colorShift: 0, pixelate: 0, invert: 0, mirror: 0 }
+  videoEffects = { colorShift: 0, pixelate: 0, invert: 0, bw: 0 }
 }: VideoDisplayAreaProps) {
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
@@ -143,6 +143,13 @@ export default function VideoDisplayArea({
       filters.push(`hue-rotate(${videoEffects.invert * 180}deg)`); // Half color wheel rotation
     }
 
+    if (videoEffects.bw > 0) {
+      // HIGH CONTRAST NOIR: Dramatic black & white with deep shadows
+      filters.push(`grayscale(1)`); // Full grayscale
+      filters.push(`contrast(${1 + videoEffects.bw * 0.4})`); // 1.4x contrast for punchy shadows
+      filters.push(`brightness(${1 - videoEffects.bw * 0.05})`); // Slight darkening for deeper blacks
+    }
+
     return filters.length > 0 ? filters.join(' ') : 'none';
   };
 
@@ -216,8 +223,7 @@ export default function VideoDisplayArea({
             }`}
             style={{
               width: crossfadeMode === 'blend' ? '100%' : deckAWidth,
-              opacity: deckAOpacity,
-              transform: videoEffects.mirror > 0 ? 'scaleX(-1)' : 'none'
+              opacity: deckAOpacity
             }}
           >
             <video
@@ -248,7 +254,6 @@ export default function VideoDisplayArea({
             style={{
               width: crossfadeMode === 'blend' ? '100%' : deckBWidth,
               opacity: deckBOpacity,
-              transform: videoEffects.mirror > 0 ? 'scaleX(-1)' : 'none',
               mixBlendMode: crossfadeMode === 'blend' && deckAOpacity > 0 && deckBOpacity > 0 ? 'screen' : 'normal',
               zIndex: crossfadeMode === 'blend' ? 10 : 'auto'
             }}

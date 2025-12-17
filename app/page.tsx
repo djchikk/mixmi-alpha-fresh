@@ -138,13 +138,13 @@ export default function HomePage() {
 
   // Video mixer controls state
   type CrossfadeMode = 'slide' | 'blend' | 'cut';
-  type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'mirror';
+  type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'bw';
   const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('slide');
   const [videoEffects, setVideoEffects] = useState({
     colorShift: 0,
     pixelate: 0,
     invert: 0,
-    mirror: 0
+    bw: 0
   });
   const [activeEffect, setActiveEffect] = useState<VideoFXType | null>(null);
 

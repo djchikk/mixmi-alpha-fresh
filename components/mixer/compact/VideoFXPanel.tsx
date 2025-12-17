@@ -1,10 +1,10 @@
 "use client";
 
 import React, { memo, useState } from 'react';
-import { X, Palette, Wind, Grid3x3, FlipHorizontal } from 'lucide-react';
+import { X, Palette, Wind, Grid3x3, Circle } from 'lucide-react';
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut';
-type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'mirror';
+type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'bw';
 
 interface VideoFXPanelProps {
   isOpen: boolean;
@@ -119,20 +119,20 @@ const VideoFXPanel = memo(function VideoFXPanel({
             <div className="text-[8px] font-bold uppercase text-slate-300">Invert</div>
           </button>
 
-          {/* Mirror */}
+          {/* B&W Noir */}
           <button
-            onPointerDown={() => handleEffectStart('mirror')}
+            onPointerDown={() => handleEffectStart('bw')}
             onPointerUp={handleEffectStop}
             onPointerLeave={handleEffectStop}
             className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
-              activeEffect === 'mirror'
+              activeEffect === 'bw'
                 ? 'border-green-400 bg-green-900 scale-95 shadow-lg shadow-green-500/50'
                 : 'border-slate-600 hover:border-green-400 hover:bg-slate-700 active:scale-95'
             }`}
-            style={{ borderColor: activeEffect === 'mirror' ? '#4ade80' : 'rgba(74, 222, 128, 0.3)' }}
+            style={{ borderColor: activeEffect === 'bw' ? '#4ade80' : 'rgba(74, 222, 128, 0.3)' }}
           >
-            <FlipHorizontal size={16} className="text-green-400 mb-1" />
-            <div className="text-[8px] font-bold uppercase text-slate-300">Mirror</div>
+            <Circle size={16} className="text-green-400 mb-1" />
+            <div className="text-[8px] font-bold uppercase text-slate-300">B&W</div>
           </button>
         </div>
       </div>

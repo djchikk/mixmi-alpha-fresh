@@ -3,7 +3,7 @@
 import React from 'react';
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut';
-type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'mirror';
+type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'bw';
 
 interface VideoControlPanelProps {
   crossfadeMode: CrossfadeMode;
@@ -135,9 +135,9 @@ export default function VideoControlPanel({
               />
             </button>
 
-            {/* Mirror - Green */}
+            {/* B&W Noir - Green */}
             <button
-              onPointerDown={() => onEffectStart('mirror')}
+              onPointerDown={() => onEffectStart('bw')}
               onPointerUp={onEffectStop}
               onPointerLeave={onEffectStop}
               className="relative overflow-hidden transition-all"
@@ -152,7 +152,7 @@ export default function VideoControlPanel({
                 className="absolute inset-0 transition-opacity duration-200"
                 style={{
                   background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
-                  opacity: activeEffect === 'mirror' ? 1 : 0.65
+                  opacity: activeEffect === 'bw' ? 1 : 0.65
                 }}
               />
             </button>
