@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import PortalCard from '@/components/cards/PortalCard';
+import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
 
 // Simple access code - change this to something only you know
 const ADMIN_CODE = 'mixmi-portal-admin-2024';
@@ -13,8 +14,8 @@ interface PortalForm {
   imageUrl: string;
   portalUsername: string;
   location: string;
-  lat: string;
-  lng: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 interface ExistingPortal {
@@ -40,11 +41,32 @@ export default function AdminPortalsPage() {
     imageUrl: '',
     portalUsername: '',
     location: '',
-    lat: '',
-    lng: '',
+    lat: null,
+    lng: null,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+
+  // Location autocomplete
+  const {
+    suggestions: locationSuggestions,
+    isLoading: locationLoading,
+    handleInputChange: handleLocationSearch,
+    clearSuggestions: clearLocationSuggestions,
+  } = useLocationAutocomplete({ minCharacters: 2, limit: 6 });
+
+  const handleLocationSelect = (suggestion: { place_name: string; center: [number, number] }) => {
+    setForm({
+      ...form,
+      location: suggestion.place_name,
+      lng: suggestion.center[0],
+      lat: suggestion.center[1],
+    });
+    setShowLocationSuggestions(false);
+    clearLocationSuggestions();
+  };
   const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [existingPortals, setExistingPortals] = useState<ExistingPortal[]>([]);
   const [loadingPortals, setLoadingPortals] = useState(false);
@@ -96,8 +118,8 @@ export default function AdminPortalsPage() {
 
     try {
       // Validate required fields
-      if (!form.name || !form.portalUsername || !form.lat || !form.lng) {
-        throw new Error('Name, username, and coordinates are required');
+      if (!form.name || !form.portalUsername || form.lat === null || form.lng === null) {
+        throw new Error('Name, username, and location are required');
       }
 
       const portalData = {
@@ -108,8 +130,8 @@ export default function AdminPortalsPage() {
         cover_image_url: form.imageUrl || null,
         portal_username: form.portalUsername,
         primary_location: form.location || null,
-        location_lat: parseFloat(form.lat),
-        location_lng: parseFloat(form.lng),
+        location_lat: form.lat,
+        location_lng: form.lng,
         // Set some defaults
         allow_downloads: false,
         allow_streaming: false,
@@ -134,8 +156,8 @@ export default function AdminPortalsPage() {
         imageUrl: '',
         portalUsername: '',
         location: '',
-        lat: '',
-        lng: '',
+        lat: null,
+        lng: null,
       });
 
       // Reload portals list
@@ -249,48 +271,56 @@ export default function AdminPortalsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">Location Name</label>
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  placeholder="e.g., New York City"
-                  className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
-                />
-              </div>
+            <div className="relative">
+              <label className="block text-gray-400 text-sm mb-1">Location *</label>
+              <input
+                ref={locationInputRef}
+                type="text"
+                value={form.location}
+                onChange={(e) => {
+                  setForm({ ...form, location: e.target.value, lat: null, lng: null });
+                  handleLocationSearch(e.target.value);
+                  setShowLocationSuggestions(true);
+                }}
+                onFocus={() => setShowLocationSuggestions(true)}
+                onBlur={() => {
+                  // Delay hiding to allow click on suggestion
+                  setTimeout(() => setShowLocationSuggestions(false), 200);
+                }}
+                placeholder="Start typing a city or place..."
+                className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
+                required
+              />
 
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">Latitude *</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={form.lat}
-                  onChange={(e) => setForm({ ...form, lat: e.target.value })}
-                  placeholder="e.g., 40.7128"
-                  className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
-                  required
-                />
-              </div>
+              {/* Location suggestions dropdown */}
+              {showLocationSuggestions && locationSuggestions.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {locationSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.id}
+                      type="button"
+                      onClick={() => handleLocationSelect(suggestion)}
+                      className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-colors text-sm"
+                    >
+                      {suggestion.place_name}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">Longitude *</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={form.lng}
-                  onChange={(e) => setForm({ ...form, lng: e.target.value })}
-                  placeholder="e.g., -74.0060"
-                  className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
-                  required
-                />
-              </div>
+              {locationLoading && (
+                <div className="absolute right-3 top-9 text-gray-400 text-xs">
+                  Searching...
+                </div>
+              )}
+
+              {/* Show selected coordinates */}
+              {form.lat !== null && form.lng !== null && (
+                <p className="text-green-400 text-xs mt-1">
+                  Coordinates: {form.lat.toFixed(4)}, {form.lng.toFixed(4)}
+                </p>
+              )}
             </div>
-
-            <p className="text-gray-500 text-xs">
-              Tip: Get coordinates from Google Maps - right-click any location and copy the lat/lng
-            </p>
 
             {submitStatus && (
               <div className={`p-3 rounded-lg ${submitStatus.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
