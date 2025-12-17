@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut';
 type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'bw';
@@ -22,6 +22,48 @@ export default function VideoControlPanel({
   onEffectStart,
   onEffectStop
 }: VideoControlPanelProps) {
+  // Track which effect is locked (stays on without holding)
+  const [lockedEffect, setLockedEffect] = useState<VideoFXType | null>(null);
+  const lastClickTimeRef = useRef<{ [key: string]: number }>({});
+  const DOUBLE_CLICK_THRESHOLD = 300; // ms
+
+  const handlePointerDown = (fxType: VideoFXType) => {
+    const now = Date.now();
+    const lastClick = lastClickTimeRef.current[fxType] || 0;
+    const isDoubleClick = now - lastClick < DOUBLE_CLICK_THRESHOLD;
+
+    if (isDoubleClick) {
+      // Double-click: toggle lock
+      if (lockedEffect === fxType) {
+        // Already locked on this effect - unlock and turn off
+        setLockedEffect(null);
+        onEffectStop();
+      } else {
+        // Lock this effect on
+        setLockedEffect(fxType);
+        onEffectStart(fxType);
+      }
+    } else {
+      // Single click/hold: start effect
+      onEffectStart(fxType);
+    }
+
+    lastClickTimeRef.current[fxType] = now;
+  };
+
+  const handlePointerUp = (fxType: VideoFXType) => {
+    // Only stop if this effect isn't locked
+    if (lockedEffect !== fxType) {
+      onEffectStop();
+    }
+  };
+
+  const handlePointerLeave = (fxType: VideoFXType) => {
+    // Only stop if this effect isn't locked
+    if (lockedEffect !== fxType) {
+      onEffectStop();
+    }
+  };
   return (
     <div
       className="bg-black/90 backdrop-blur-sm px-4 py-3 rounded-b-lg"
@@ -71,9 +113,9 @@ export default function VideoControlPanel({
           <div className="flex gap-2">
             {/* Color Shift - Pink */}
             <button
-              onPointerDown={() => onEffectStart('colorShift')}
-              onPointerUp={onEffectStop}
-              onPointerLeave={onEffectStop}
+              onPointerDown={() => handlePointerDown('colorShift')}
+              onPointerUp={() => handlePointerUp('colorShift')}
+              onPointerLeave={() => handlePointerLeave('colorShift')}
               className="relative overflow-hidden transition-all"
               style={{
                 width: '24px',
@@ -81,6 +123,7 @@ export default function VideoControlPanel({
                 borderRadius: '4px',
                 backgroundColor: '#000000'
               }}
+              title="Hold for momentary, double-click to lock"
             >
               <div
                 className="absolute inset-0 transition-opacity duration-200"
@@ -91,11 +134,11 @@ export default function VideoControlPanel({
               />
             </button>
 
-            {/* Pixelate - Orange */}
+            {/* Pixelate/Glitch - Orange */}
             <button
-              onPointerDown={() => onEffectStart('pixelate')}
-              onPointerUp={onEffectStop}
-              onPointerLeave={onEffectStop}
+              onPointerDown={() => handlePointerDown('pixelate')}
+              onPointerUp={() => handlePointerUp('pixelate')}
+              onPointerLeave={() => handlePointerLeave('pixelate')}
               className="relative overflow-hidden transition-all"
               style={{
                 width: '24px',
@@ -103,6 +146,7 @@ export default function VideoControlPanel({
                 borderRadius: '4px',
                 backgroundColor: '#000000'
               }}
+              title="Hold for momentary, double-click to lock"
             >
               <div
                 className="absolute inset-0 transition-opacity duration-200"
@@ -115,9 +159,9 @@ export default function VideoControlPanel({
 
             {/* Invert - Yellow */}
             <button
-              onPointerDown={() => onEffectStart('invert')}
-              onPointerUp={onEffectStop}
-              onPointerLeave={onEffectStop}
+              onPointerDown={() => handlePointerDown('invert')}
+              onPointerUp={() => handlePointerUp('invert')}
+              onPointerLeave={() => handlePointerLeave('invert')}
               className="relative overflow-hidden transition-all"
               style={{
                 width: '24px',
@@ -125,6 +169,7 @@ export default function VideoControlPanel({
                 borderRadius: '4px',
                 backgroundColor: '#000000'
               }}
+              title="Hold for momentary, double-click to lock"
             >
               <div
                 className="absolute inset-0 transition-opacity duration-200"
@@ -137,9 +182,9 @@ export default function VideoControlPanel({
 
             {/* B&W Noir - Green */}
             <button
-              onPointerDown={() => onEffectStart('bw')}
-              onPointerUp={onEffectStop}
-              onPointerLeave={onEffectStop}
+              onPointerDown={() => handlePointerDown('bw')}
+              onPointerUp={() => handlePointerUp('bw')}
+              onPointerLeave={() => handlePointerLeave('bw')}
               className="relative overflow-hidden transition-all"
               style={{
                 width: '24px',
@@ -147,6 +192,7 @@ export default function VideoControlPanel({
                 borderRadius: '4px',
                 backgroundColor: '#000000'
               }}
+              title="Hold for momentary, double-click to lock"
             >
               <div
                 className="absolute inset-0 transition-opacity duration-200"

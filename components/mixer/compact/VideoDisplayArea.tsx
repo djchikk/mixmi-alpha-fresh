@@ -126,12 +126,12 @@ export default function VideoDisplayArea({
       filters.push(`brightness(${1 + videoEffects.colorShift * 0.3})`); // Slight brightness boost
     }
 
-    // Pixelate is handled via imageRendering CSS property
-    // Strong color boost for pronounced retro aesthetic
+    // VHS Glitch aesthetic - posterization and color crush
     if (videoEffects.pixelate > 0) {
-      filters.push(`contrast(${1.5})`); // Higher contrast for color banding
-      filters.push(`saturate(${1.3})`); // Higher saturation for digital pop
-      filters.push(`brightness(${0.95})`); // Slight darkening for CRT feel
+      filters.push(`contrast(${1.6})`); // High contrast for crushed look
+      filters.push(`saturate(${1.4})`); // Boosted saturation
+      filters.push(`brightness(${0.92})`); // Slight darkening
+      // Note: True posterization would need canvas, but high contrast achieves similar effect
     }
 
     if (videoEffects.invert > 0) {
@@ -205,15 +205,57 @@ export default function VideoDisplayArea({
           position: 'relative' // Ensure positioning context for absolute children
         }}
       >
-        {/* CRT Scan Lines Overlay */}
+        {/* VHS Glitch Effect - Multiple Layers */}
         {videoEffects.pixelate > 0 && (
-          <div
-            className="absolute inset-0 pointer-events-none z-20"
-            style={{
-              backgroundImage: 'repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0px, rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 2px)',
-              mixBlendMode: 'multiply'
-            }}
-          />
+          <>
+            {/* Glitch Slice 1 - Top band */}
+            <div
+              className="absolute left-0 right-0 pointer-events-none z-20 animate-glitch1"
+              style={{
+                top: '15%',
+                height: '8%',
+                background: 'inherit',
+                clipPath: 'inset(0)',
+              }}
+            />
+            {/* Glitch Slice 2 - Middle band */}
+            <div
+              className="absolute left-0 right-0 pointer-events-none z-20 animate-glitch2"
+              style={{
+                top: '45%',
+                height: '5%',
+                background: 'inherit',
+                clipPath: 'inset(0)',
+              }}
+            />
+            {/* Glitch Slice 3 - Lower band */}
+            <div
+              className="absolute left-0 right-0 pointer-events-none z-20 animate-glitch3"
+              style={{
+                top: '72%',
+                height: '6%',
+                background: 'inherit',
+                clipPath: 'inset(0)',
+              }}
+            />
+            {/* Static Noise Overlay */}
+            <div
+              className="absolute inset-0 pointer-events-none z-21 animate-noise"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                opacity: 0.12,
+                mixBlendMode: 'overlay'
+              }}
+            />
+            {/* RGB Split / Chromatic Aberration */}
+            <div
+              className="absolute inset-0 pointer-events-none z-19 animate-rgbsplit"
+              style={{
+                background: 'linear-gradient(90deg, rgba(255,0,0,0.05) 0%, transparent 15%, transparent 85%, rgba(0,255,255,0.05) 100%)',
+                mixBlendMode: 'screen'
+              }}
+            />
+          </>
         )}
         {/* Deck A Video */}
         {showDeckA && (
@@ -287,6 +329,69 @@ export default function VideoDisplayArea({
           />
         )}
       </div>
+
+      {/* Glitch Effect Animations */}
+      <style jsx>{`
+        @keyframes glitch1 {
+          0%, 85%, 100% { transform: translateX(0); opacity: 0; }
+          86% { transform: translateX(-8px); opacity: 0.7; }
+          88% { transform: translateX(12px); opacity: 0.5; }
+          90% { transform: translateX(-4px); opacity: 0.8; }
+          92% { transform: translateX(0); opacity: 0; }
+        }
+
+        @keyframes glitch2 {
+          0%, 70%, 100% { transform: translateX(0) scaleX(1); opacity: 0; }
+          72% { transform: translateX(15px) scaleX(1.1); opacity: 0.6; }
+          74% { transform: translateX(-10px) scaleX(0.95); opacity: 0.7; }
+          76% { transform: translateX(5px) scaleX(1.05); opacity: 0.5; }
+          78% { transform: translateX(0) scaleX(1); opacity: 0; }
+        }
+
+        @keyframes glitch3 {
+          0%, 40%, 55%, 100% { transform: translateX(0); opacity: 0; }
+          42% { transform: translateX(20px); opacity: 0.8; }
+          44% { transform: translateX(-15px); opacity: 0.6; }
+          46% { transform: translateX(8px); opacity: 0.7; }
+          48% { transform: translateX(0); opacity: 0; }
+        }
+
+        @keyframes noise {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          20% { transform: translate(-2%, 1%) scale(1.01); }
+          40% { transform: translate(1%, -1%) scale(0.99); }
+          60% { transform: translate(-1%, 2%) scale(1.02); }
+          80% { transform: translate(2%, -2%) scale(0.98); }
+        }
+
+        @keyframes rgbsplit {
+          0%, 88%, 100% { opacity: 0; transform: translateX(0); }
+          90% { opacity: 1; transform: translateX(-3px); }
+          92% { opacity: 0.5; transform: translateX(4px); }
+          94% { opacity: 1; transform: translateX(-2px); }
+          96% { opacity: 0; transform: translateX(0); }
+        }
+
+        .animate-glitch1 {
+          animation: glitch1 2.5s ease-in-out infinite;
+        }
+
+        .animate-glitch2 {
+          animation: glitch2 3.2s ease-in-out infinite;
+        }
+
+        .animate-glitch3 {
+          animation: glitch3 2.8s ease-in-out infinite;
+        }
+
+        .animate-noise {
+          animation: noise 0.3s steps(5) infinite;
+        }
+
+        .animate-rgbsplit {
+          animation: rgbsplit 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
