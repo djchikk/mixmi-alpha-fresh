@@ -67,7 +67,7 @@ export default function PortalCard({ portal }: PortalCardProps) {
         <div className="portal-border absolute inset-0 rounded-full" />
 
         {/* Inner content area */}
-        <div className="absolute inset-[4px] rounded-full overflow-hidden bg-slate-900">
+        <div className="absolute inset-[6px] rounded-full overflow-hidden bg-slate-900">
           {/* Profile image - fills the circle */}
           <SafeImage
             src={portal.imageUrl}
