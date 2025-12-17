@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 import PortalCard from '@/components/cards/PortalCard';
 import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
@@ -14,9 +15,17 @@ interface PortalForm {
   description: string;
   imageUrl: string;
   portalUsername: string;
+  walletAddress: string;  // Portal Keeper's wallet - ties ownership
   location: string;
   lat: number | null;
   lng: number | null;
+}
+
+interface UserSearchResult {
+  walletAddress: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string;
 }
 
 interface ExistingPortal {
@@ -41,6 +50,7 @@ export default function AdminPortalsPage() {
     description: '',
     imageUrl: '',
     portalUsername: '',
+    walletAddress: '',
     location: '',
     lat: null,
     lng: null,
@@ -49,6 +59,52 @@ export default function AdminPortalsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
+
+  // User search state
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
+  const [showUserSuggestions, setShowUserSuggestions] = useState(false);
+  const [userSearchLoading, setUserSearchLoading] = useState(false);
+  const userSearchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Search for users by name
+  const handleUserSearch = (query: string) => {
+    setUserSearchQuery(query);
+
+    if (userSearchTimeout.current) {
+      clearTimeout(userSearchTimeout.current);
+    }
+
+    if (query.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+
+    setUserSearchLoading(true);
+    userSearchTimeout.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/profile/search-users?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        setUserSearchResults(data.users || []);
+      } catch (err) {
+        console.error('User search failed:', err);
+      } finally {
+        setUserSearchLoading(false);
+      }
+    }, 300);
+  };
+
+  const handleUserSelect = (user: UserSearchResult) => {
+    setForm({
+      ...form,
+      portalUsername: user.username,
+      walletAddress: user.walletAddress,
+      name: form.name || user.displayName, // Pre-fill name if empty
+    });
+    setUserSearchQuery(user.displayName);
+    setShowUserSuggestions(false);
+    setUserSearchResults([]);
+  };
 
   // Location autocomplete
   const {
@@ -119,17 +175,19 @@ export default function AdminPortalsPage() {
 
     try {
       // Validate required fields
-      if (!form.name || !form.portalUsername || form.lat === null || form.lng === null) {
-        throw new Error('Name, username, and location are required');
+      if (!form.name || !form.portalUsername || !form.walletAddress || form.lat === null || form.lng === null) {
+        throw new Error('Portal Keeper, name, and location are required');
       }
 
       const portalData = {
+        id: uuidv4(),
         content_type: 'portal',
         title: form.name,
         artist: form.name, // Use name as artist too for consistency
         description: form.description || null,
         cover_image_url: form.imageUrl || null,
         portal_username: form.portalUsername,
+        primary_uploader_wallet: form.walletAddress,  // Ties ownership to the Portal Keeper
         primary_location: form.location || null,
         location_lat: form.lat,
         location_lng: form.lng,
@@ -168,10 +226,12 @@ export default function AdminPortalsPage() {
         description: '',
         imageUrl: '',
         portalUsername: '',
+        walletAddress: '',
         location: '',
         lat: null,
         lng: null,
       });
+      setUserSearchQuery('');
 
       // Reload portals list
       loadExistingPortals();
@@ -235,30 +295,68 @@ export default function AdminPortalsPage() {
           <h2 className="text-xl font-semibold text-white mb-4">Create New Portal</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">Portal Keeper Name *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g., Felix"
-                  className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
-                  required
-                />
-              </div>
+            {/* Portal Keeper Search */}
+            <div className="relative">
+              <label className="block text-gray-400 text-sm mb-1">Portal Keeper (search by name) *</label>
+              <input
+                type="text"
+                value={userSearchQuery}
+                onChange={(e) => {
+                  handleUserSearch(e.target.value);
+                  setShowUserSuggestions(true);
+                }}
+                onFocus={() => setShowUserSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowUserSuggestions(false), 200)}
+                placeholder="Start typing a user's name..."
+                className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
+              />
 
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">Profile Username *</label>
-                <input
-                  type="text"
-                  value={form.portalUsername}
-                  onChange={(e) => setForm({ ...form, portalUsername: e.target.value })}
-                  placeholder="e.g., felix (from /profile/felix)"
-                  className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
-                  required
-                />
-              </div>
+              {/* User suggestions dropdown */}
+              {showUserSuggestions && userSearchResults.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {userSearchResults.map((user) => (
+                    <button
+                      key={user.walletAddress}
+                      type="button"
+                      onClick={() => handleUserSelect(user)}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-700 transition-colors flex items-center gap-3"
+                    >
+                      {user.avatarUrl && (
+                        <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      )}
+                      <div>
+                        <div className="text-white text-sm font-medium">{user.displayName}</div>
+                        <div className="text-gray-400 text-xs">@{user.username}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {userSearchLoading && (
+                <div className="absolute right-3 top-9 text-gray-400 text-xs">Searching...</div>
+              )}
+
+              {/* Show selected user info */}
+              {form.walletAddress && (
+                <p className="text-green-400 text-xs mt-1">
+                  Selected: @{form.portalUsername} ({form.walletAddress.slice(0, 8)}...{form.walletAddress.slice(-4)})
+                </p>
+              )}
+            </div>
+
+            {/* Portal Display Name */}
+            <div>
+              <label className="block text-gray-400 text-sm mb-1">Portal Display Name *</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g., Felix (can differ from profile name)"
+                className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
+                required
+              />
+              <p className="text-gray-500 text-xs mt-1">This is the name shown on the portal card</p>
             </div>
 
             <div>
