@@ -34,6 +34,7 @@ interface ExistingPortal {
   description: string;
   cover_image_url: string;
   portal_username: string;
+  primary_uploader_wallet: string;
   primary_location: string;
   location_lat: number;
   location_lng: number;
@@ -59,6 +60,9 @@ export default function AdminPortalsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit mode state
+  const [editingPortalId, setEditingPortalId] = useState<string | null>(null);
 
   // User search state
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -180,7 +184,6 @@ export default function AdminPortalsPage() {
       }
 
       const portalData = {
-        id: uuidv4(),
         content_type: 'portal',
         title: form.name,
         artist: form.name, // Use name as artist too for consistency
@@ -193,15 +196,33 @@ export default function AdminPortalsPage() {
         location_lng: form.lng,
       };
 
-      const { data, error } = await supabase
-        .from('ip_tracks')
-        .insert(portalData)
-        .select()
-        .single();
+      let data;
+      let error;
+
+      if (editingPortalId) {
+        // UPDATE existing portal
+        const result = await supabase
+          .from('ip_tracks')
+          .update(portalData)
+          .eq('id', editingPortalId)
+          .select()
+          .single();
+        data = result.data;
+        error = result.error;
+      } else {
+        // CREATE new portal
+        const result = await supabase
+          .from('ip_tracks')
+          .insert({ ...portalData, id: uuidv4() })
+          .select()
+          .single();
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
 
-      // Generate thumbnails if we have an image
+      // Generate thumbnails if we have an image (for new portals or image changes)
       if (data && form.imageUrl) {
         try {
           await fetch('/api/tracks/generate-thumbnails', {
@@ -218,9 +239,11 @@ export default function AdminPortalsPage() {
         }
       }
 
-      setSubmitStatus({ type: 'success', message: `Portal "${form.name}" created successfully!` });
+      const action = editingPortalId ? 'updated' : 'created';
+      setSubmitStatus({ type: 'success', message: `Portal "${form.name}" ${action} successfully!` });
 
-      // Reset form
+      // Reset form and edit state
+      setEditingPortalId(null);
       setForm({
         name: '',
         description: '',
@@ -237,7 +260,7 @@ export default function AdminPortalsPage() {
       loadExistingPortals();
 
     } catch (err: any) {
-      setSubmitStatus({ type: 'error', message: err.message || 'Failed to create portal' });
+      setSubmitStatus({ type: 'error', message: err.message || 'Failed to save portal' });
     } finally {
       setIsSubmitting(false);
     }
@@ -256,6 +279,42 @@ export default function AdminPortalsPage() {
     } else {
       loadExistingPortals();
     }
+  };
+
+  // Start editing a portal
+  const handleEdit = (portal: ExistingPortal) => {
+    setEditingPortalId(portal.id);
+    setForm({
+      name: portal.title,
+      description: portal.description || '',
+      imageUrl: portal.cover_image_url || '',
+      portalUsername: portal.portal_username,
+      walletAddress: portal.primary_uploader_wallet || '',
+      location: portal.primary_location || '',
+      lat: portal.location_lat,
+      lng: portal.location_lng,
+    });
+    setUserSearchQuery('');
+    setSubmitStatus(null);
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingPortalId(null);
+    setForm({
+      name: '',
+      description: '',
+      imageUrl: '',
+      portalUsername: '',
+      walletAddress: '',
+      location: '',
+      lat: null,
+      lng: null,
+    });
+    setUserSearchQuery('');
+    setSubmitStatus(null);
   };
 
   // Authorization screen
@@ -290,9 +349,22 @@ export default function AdminPortalsPage() {
         <h1 className="text-3xl font-bold text-white mb-2">Portal Admin</h1>
         <p className="text-gray-400 mb-8">Create and manage Portal Keeper cards</p>
 
-        {/* Create Form */}
+        {/* Create/Edit Form */}
         <div className="bg-slate-900 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">Create New Portal</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-white">
+              {editingPortalId ? 'Edit Portal' : 'Create New Portal'}
+            </h2>
+            {editingPortalId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-gray-400 hover:text-white text-sm"
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Portal Keeper - Search OR Manual Entry */}
@@ -469,7 +541,9 @@ export default function AdminPortalsPage() {
               disabled={isSubmitting}
               className="w-full bg-[#81E4F2] text-slate-900 font-bold py-3 rounded-lg hover:bg-[#6BC4D2] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Creating...' : 'Create Portal'}
+              {isSubmitting
+                ? (editingPortalId ? 'Saving...' : 'Creating...')
+                : (editingPortalId ? 'Save Changes' : 'Create Portal')}
             </button>
           </form>
         </div>
@@ -504,7 +578,7 @@ export default function AdminPortalsPage() {
           ) : (
             <div className="space-y-4">
               {existingPortals.map((portal) => (
-                <div key={portal.id} className="flex items-center justify-between bg-slate-800 rounded-lg p-4">
+                <div key={portal.id} className={`flex items-center justify-between rounded-lg p-4 ${editingPortalId === portal.id ? 'bg-cyan-900/30 border border-cyan-500/50' : 'bg-slate-800'}`}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700">
                       {portal.cover_image_url && (
@@ -516,12 +590,20 @@ export default function AdminPortalsPage() {
                       <p className="text-gray-400 text-sm">@{portal.portal_username} • {portal.primary_location}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(portal.id, portal.title)}
-                    className="text-red-400 hover:text-red-300 text-sm"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleEdit(portal)}
+                      className="text-cyan-400 hover:text-cyan-300 text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(portal.id, portal.title)}
+                      className="text-red-400 hover:text-red-300 text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
