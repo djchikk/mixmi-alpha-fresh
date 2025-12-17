@@ -1913,6 +1913,21 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 )}
               </div> */}
 
+              {/* Deck A */}
+              <div className="absolute left-[20px] bottom-[42px]">
+                <SimplifiedDeckCompact
+                  currentTrack={mixerState.deckA.track}
+                  isPlaying={mixerState.deckA.playing}
+                  isLoading={mixerState.deckA.loading}
+                  onTrackDrop={loadTrackToDeckA}
+                  onPackDrop={(pack) => handlePackDrop(pack, 'A')}
+                  onTrackClear={clearDeckA}
+                  onDragOver={setIsDeckDragOver}
+                  deck="A"
+                  contentType={mixerState.deckA.contentType}
+                />
+              </div>
+
               {/* Deck A FX Button - Centered between crossfader and deck image */}
               <div className="absolute left-1/2 -translate-x-[179px] bottom-0">
                 {mixerState.deckA.track && (
@@ -1928,21 +1943,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                     )}
                   </button>
                 )}
-              </div>
-
-              {/* Deck A */}
-              <div className="absolute left-[20px] bottom-[42px]">
-                <SimplifiedDeckCompact
-                  currentTrack={mixerState.deckA.track}
-                  isPlaying={mixerState.deckA.playing}
-                  isLoading={mixerState.deckA.loading}
-                  onTrackDrop={loadTrackToDeckA}
-                  onPackDrop={(pack) => handlePackDrop(pack, 'A')}
-                  onTrackClear={clearDeckA}
-                  onDragOver={setIsDeckDragOver}
-                  deck="A"
-                  contentType={mixerState.deckA.contentType}
-                />
               </div>
 
               {/* Deck A Section Navigator (Below Deck Image, left-aligned) */}
@@ -2072,8 +2072,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                           return controls.triggerFilterSweep();
                         case 'reverb':
                           return controls.triggerReverb();
-                        case 'brake':
-                          return controls.triggerBrake();
+                        case 'gate':
+                          return controls.triggerGate(mixerState.masterBPM || 120);
                         default:
                           return () => {};
                       }
@@ -2264,8 +2264,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                           return controls.triggerFilterSweep();
                         case 'reverb':
                           return controls.triggerReverb();
-                        case 'brake':
-                          return controls.triggerBrake();
+                        case 'gate':
+                          return controls.triggerGate(mixerState.masterBPM || 120);
                         default:
                           return () => {};
                       }

@@ -1109,7 +1109,7 @@ export interface MixerAudioControls {
   triggerEchoOut: () => () => void; // Echo with decreasing feedback - returns stop function
   triggerFilterSweep: () => () => void; // Automated low-pass filter sweep down - returns stop function
   triggerReverb: () => () => void; // Flanger effect - returns stop function
-  triggerBrake: () => () => void; // Spindown/brake effect - returns stop function
+  triggerGate: (bpm: number) => () => void; // 16th note gate/stutter effect - returns stop function
 
   cleanup: () => void;
 }
@@ -1723,72 +1723,79 @@ export class MixerAudioEngine {
           };
         },
 
-        // 🎛️ Instant FX: Brake - spindown effect (hold to activate)
-        triggerBrake: () => {
-          console.log(`🎛️ Deck ${deckId} starting Brake effect (hold-based)`);
+        // 🎛️ Instant FX: Gate - 16th note stutter effect (hold to activate)
+        triggerGate: (bpm: number) => {
+          console.log(`🎛️ Deck ${deckId} starting Gate effect at ${bpm} BPM (hold-based)`);
 
-          const currentRate = audio.playbackRate;
-          const targetRate = 0.3; // Slow down to 30% speed
-          const slowdownDuration = 0.8; // 800ms to slow down
+          // Calculate 16th note duration in seconds
+          const sixteenthNoteDuration = 60 / bpm / 4;
+          const gateOnTime = sixteenthNoteDuration * 0.5; // 50% duty cycle
+          const gateOffTime = sixteenthNoteDuration * 0.5;
 
-          let animationFrameId: number | null = null;
-          let startTime = Date.now();
+          console.log(`🎛️ Gate timing: 16th note = ${(sixteenthNoteDuration * 1000).toFixed(1)}ms, on=${(gateOnTime * 1000).toFixed(1)}ms, off=${(gateOffTime * 1000).toFixed(1)}ms`);
 
-          // Smooth deceleration using animation frames
-          const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / (slowdownDuration * 1000), 1.0);
+          // Create gate gain node
+          const gateGain = audioContext.createGain();
+          gateGain.gain.value = 1.0;
 
-            // Exponential curve for realistic brake feel
-            const curve = Math.pow(progress, 2.5);
-            const rate = currentRate + (targetRate - currentRate) * curve;
+          // Insert gate into signal chain
+          state.gainNode.disconnect();
+          state.gainNode.connect(gateGain);
+          gateGain.connect(audioContext.destination);
 
-            audio.playbackRate = rate;
+          // Schedule repeating gate pattern
+          let isRunning = true;
+          let nextGateTime = audioContext.currentTime;
 
-            if (progress < 1.0) {
-              animationFrameId = requestAnimationFrame(animate);
-            } else {
-              console.log(`🎛️ Deck ${deckId} Brake at target rate ${targetRate.toFixed(2)}x - hold to maintain`);
+          const scheduleGates = () => {
+            if (!isRunning) return;
+
+            const now = audioContext.currentTime;
+            // Schedule gates ahead by 100ms for smooth playback
+            const scheduleAhead = 0.1;
+
+            while (nextGateTime < now + scheduleAhead) {
+              // Gate ON (full volume)
+              gateGain.gain.setValueAtTime(1.0, nextGateTime);
+              // Gate OFF (silence) - use small value instead of 0 to avoid clicks
+              gateGain.gain.setValueAtTime(0.001, nextGateTime + gateOnTime);
+
+              nextGateTime += sixteenthNoteDuration;
+            }
+
+            // Continue scheduling
+            if (isRunning) {
+              requestAnimationFrame(scheduleGates);
             }
           };
 
-          // Start animation
-          animate();
+          // Start the gate scheduling
+          scheduleGates();
 
-          console.log(`🎛️ Deck ${deckId} Brake active - release to speed back up`);
+          console.log(`🎛️ Deck ${deckId} Gate active - release to stop`);
 
-          // Return cleanup function to speed back up
+          // Return cleanup function
           return () => {
-            console.log(`🎛️ Deck ${deckId} releasing Brake - speeding back up`);
+            console.log(`🎛️ Deck ${deckId} stopping Gate effect`);
+            isRunning = false;
 
-            // Cancel ongoing animation if still slowing down
-            if (animationFrameId !== null) {
-              cancelAnimationFrame(animationFrameId);
-            }
+            // Restore full volume smoothly
+            const now = audioContext.currentTime;
+            gateGain.gain.cancelScheduledValues(now);
+            gateGain.gain.setValueAtTime(gateGain.gain.value, now);
+            gateGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
 
-            const currentSlowRate = audio.playbackRate;
-            const speedupDuration = 0.6; // 600ms to speed back up
-            startTime = Date.now();
-
-            const speedUp = () => {
-              const elapsed = Date.now() - startTime;
-              const progress = Math.min(elapsed / (speedupDuration * 1000), 1.0);
-
-              // Ease-out curve for smooth acceleration
-              const curve = 1 - Math.pow(1 - progress, 2);
-              const rate = currentSlowRate + (currentRate - currentSlowRate) * curve;
-
-              audio.playbackRate = rate;
-
-              if (progress < 1.0) {
-                requestAnimationFrame(speedUp);
-              } else {
-                audio.playbackRate = currentRate;
-                console.log(`✅ Deck ${deckId} Brake released - back to ${currentRate.toFixed(2)}x`);
+            // Restore original signal chain after fade
+            setTimeout(() => {
+              try {
+                gateGain.disconnect();
+                state.gainNode.disconnect();
+                state.gainNode.connect(audioContext.destination);
+                console.log(`✅ Deck ${deckId} Gate stopped - signal chain restored`);
+              } catch (e) {
+                console.warn('Gate cleanup error:', e);
               }
-            };
-
-            speedUp();
+            }, 60);
           };
         },
 

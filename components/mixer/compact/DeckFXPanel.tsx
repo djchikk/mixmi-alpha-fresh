@@ -3,7 +3,7 @@
 import React, { memo, useState, useRef } from 'react';
 import { X } from 'lucide-react';
 
-type InstantFXType = 'echoOut' | 'filterSweep' | 'reverb' | 'brake';
+type InstantFXType = 'echoOut' | 'filterSweep' | 'reverb' | 'gate';
 
 interface DeckFXPanelProps {
   deck: 'A' | 'B';
@@ -142,10 +142,10 @@ const DeckFXPanel = memo(function DeckFXPanel({
             <span className="text-[8px] font-bold uppercase text-slate-400">FLNG</span>
           </div>
 
-          {/* Brake - Green (like video mirror) */}
+          {/* Gate - Green (16th note stutter) */}
           <div className="flex flex-col items-center gap-0.5">
             <button
-              onPointerDown={() => handleEffectStart('brake')}
+              onPointerDown={() => handleEffectStart('gate')}
               onPointerUp={handleEffectStop}
               onPointerLeave={handleEffectStop}
               className="relative overflow-hidden transition-all"
@@ -160,11 +160,11 @@ const DeckFXPanel = memo(function DeckFXPanel({
                 className="absolute inset-0 transition-opacity duration-200"
                 style={{
                   background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
-                  opacity: activeEffect === 'brake' ? 1 : 0.65
+                  opacity: activeEffect === 'gate' ? 1 : 0.65
                 }}
               />
             </button>
-            <span className="text-[8px] font-bold uppercase text-slate-400">BRK</span>
+            <span className="text-[8px] font-bold uppercase text-slate-400">GATE</span>
           </div>
         </div>
 
