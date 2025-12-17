@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import PortalCard from '@/components/cards/PortalCard';
 import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
+import TrackCoverUploader from '@/components/shared/TrackCoverUploader';
 
 // Simple access code - change this to something only you know
 const ADMIN_CODE = 'mixmi-portal-admin-2024';
@@ -147,6 +148,23 @@ export default function AdminPortalsPage() {
 
       if (error) throw error;
 
+      // Generate thumbnails if we have an image
+      if (data && form.imageUrl) {
+        try {
+          await fetch('/api/tracks/generate-thumbnails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              trackId: data.id,
+              coverImageUrl: form.imageUrl
+            })
+          });
+          console.log('✅ Thumbnails generated for portal');
+        } catch (thumbError) {
+          console.warn('Thumbnail generation failed (non-critical):', thumbError);
+        }
+      }
+
       setSubmitStatus({ type: 'success', message: `Portal "${form.name}" created successfully!` });
 
       // Reset form
@@ -261,13 +279,11 @@ export default function AdminPortalsPage() {
             </div>
 
             <div>
-              <label className="block text-gray-400 text-sm mb-1">Profile Image URL</label>
-              <input
-                type="url"
-                value={form.imageUrl}
-                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                placeholder="https://..."
-                className="w-full bg-slate-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#81E4F2]"
+              <label className="block text-gray-400 text-sm mb-1">Profile Image</label>
+              <TrackCoverUploader
+                walletAddress="admin-portals"
+                initialImage={form.imageUrl}
+                onImageChange={(url) => setForm({ ...form, imageUrl: url })}
               />
             </div>
 
