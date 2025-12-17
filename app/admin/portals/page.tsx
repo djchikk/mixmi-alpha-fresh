@@ -133,11 +133,6 @@ export default function AdminPortalsPage() {
         primary_location: form.location || null,
         location_lat: form.lat,
         location_lng: form.lng,
-        // Set some defaults
-        allow_downloads: false,
-        allow_streaming: false,
-        allow_remixing: false,
-        visible: true,
       };
 
       const { data, error } = await supabase
