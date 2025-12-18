@@ -39,6 +39,7 @@ interface ExistingPortal {
   location_lat: number;
   location_lng: number;
   created_at: string;
+  deleted_at: string | null; // For soft hide/show
 }
 
 export default function AdminPortalsPage() {
@@ -149,6 +150,7 @@ export default function AdminPortalsPage() {
 
   const loadExistingPortals = async () => {
     setLoadingPortals(true);
+    // Fetch ALL portals including hidden ones (deleted_at is not null)
     const { data, error } = await supabase
       .from('ip_tracks')
       .select('*')
@@ -159,6 +161,34 @@ export default function AdminPortalsPage() {
       setExistingPortals(data);
     }
     setLoadingPortals(false);
+  };
+
+  // Hide portal (soft delete - won't show on globe)
+  const handleHide = async (portalId: string, portalName: string) => {
+    const { error } = await supabase
+      .from('ip_tracks')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', portalId);
+
+    if (error) {
+      alert('Failed to hide: ' + error.message);
+    } else {
+      loadExistingPortals();
+    }
+  };
+
+  // Show portal (remove soft delete - will appear on globe again)
+  const handleShow = async (portalId: string) => {
+    const { error } = await supabase
+      .from('ip_tracks')
+      .update({ deleted_at: null })
+      .eq('id', portalId);
+
+    if (error) {
+      alert('Failed to show: ' + error.message);
+    } else {
+      loadExistingPortals();
+    }
   };
 
   const handleCodeSubmit = (e: React.FormEvent) => {
@@ -567,17 +597,17 @@ export default function AdminPortalsPage() {
           </div>
         )}
 
-        {/* Existing Portals */}
-        <div className="bg-slate-900 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Existing Portals</h2>
+        {/* Active Portals */}
+        <div className="bg-slate-900 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4">Active Portals</h2>
 
           {loadingPortals ? (
             <p className="text-gray-400">Loading...</p>
-          ) : existingPortals.length === 0 ? (
-            <p className="text-gray-400">No portals created yet</p>
+          ) : existingPortals.filter(p => !p.deleted_at).length === 0 ? (
+            <p className="text-gray-400">No active portals</p>
           ) : (
             <div className="space-y-4">
-              {existingPortals.map((portal) => (
+              {existingPortals.filter(p => !p.deleted_at).map((portal) => (
                 <div key={portal.id} className={`flex items-center justify-between rounded-lg p-4 ${editingPortalId === portal.id ? 'bg-cyan-900/30 border border-cyan-500/50' : 'bg-slate-800'}`}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700">
@@ -598,6 +628,12 @@ export default function AdminPortalsPage() {
                       Edit
                     </button>
                     <button
+                      onClick={() => handleHide(portal.id, portal.title)}
+                      className="text-yellow-400 hover:text-yellow-300 text-sm"
+                    >
+                      Hide
+                    </button>
+                    <button
                       onClick={() => handleDelete(portal.id, portal.title)}
                       className="text-red-400 hover:text-red-300 text-sm"
                     >
@@ -609,6 +645,46 @@ export default function AdminPortalsPage() {
             </div>
           )}
         </div>
+
+        {/* Hidden Portals */}
+        {existingPortals.filter(p => p.deleted_at).length > 0 && (
+          <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-700">
+            <h2 className="text-xl font-semibold text-gray-400 mb-4">Hidden Portals</h2>
+            <p className="text-gray-500 text-sm mb-4">These portals are hidden from the globe but not deleted.</p>
+
+            <div className="space-y-4">
+              {existingPortals.filter(p => p.deleted_at).map((portal) => (
+                <div key={portal.id} className="flex items-center justify-between rounded-lg p-4 bg-slate-800/50 opacity-75">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 grayscale">
+                      {portal.cover_image_url && (
+                        <img src={portal.cover_image_url} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-gray-300 font-medium">{portal.title}</h3>
+                      <p className="text-gray-500 text-sm">@{portal.portal_username} • {portal.primary_location}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleShow(portal.id)}
+                      className="text-green-400 hover:text-green-300 text-sm"
+                    >
+                      Show
+                    </button>
+                    <button
+                      onClick={() => handleDelete(portal.id, portal.title)}
+                      className="text-red-400 hover:text-red-300 text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Back link */}
         <div className="text-center mt-8">
