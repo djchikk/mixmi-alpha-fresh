@@ -23,6 +23,7 @@ const proxiedUrl = `/api/radio-proxy?url=${encodeURIComponent(stream_url)}`;
 | Song | Lime Green | #A8E66B |
 | Video | Lighter Sky Blue | #5BB5F9 |
 | Radio | Golden Amber | #FFC044 |
+| Portal | White | #FFFFFF |
 | Sync/UI | Cyan | #81E4F2 |
 
 ### BPM Priority (Master Tempo)
@@ -246,6 +247,48 @@ See `docs/CONVERSATION-LOGGING.md` for full documentation.
 
 ---
 
+## Session: December 17, 2025
+
+**Focus:** Portal Cards for Portal Keepers (super-curators)
+
+### Portal Card System
+New content type `portal` for highlighting super-curators who manage multiple worlds/projects.
+
+**Visual Design:**
+- Circular 160px card (vs square for other content)
+- 6px iridescent shimmer border (pearlescent animation)
+- Scan line effect on hover
+- White globe node color (#FFFFFF)
+- Hover shows name (clickable to profile) + description
+
+**No playback elements:** No play button, BPM, price, or content type badge - portals link to profiles, not audio.
+
+### Admin Page
+Hidden admin page at `/admin/portals` for creating/editing portals.
+- Access code protected
+- User search with autocomplete (or manual wallet/username entry)
+- Mapbox location autocomplete
+- Image upload with thumbnail generation
+- Edit existing portals inline
+
+### Key Files
+- `components/cards/PortalCard.tsx` - Circular card with shimmer animation
+- `components/cards/GlobeTrackCard.tsx` - Routes portal content_type to PortalCard
+- `app/admin/portals/page.tsx` - Admin CRUD interface
+- `components/globe/GridNodeSystem.tsx` - White node color for portals
+
+### Database
+Uses `ip_tracks` table with `content_type: 'portal'`:
+- `portal_username` - Username for profile link
+- `primary_uploader_wallet` - Portal Keeper's wallet (ownership)
+- `title` - Display name on card
+- `description` - 2-line description on hover
+- `cover_image_url` - Circular profile image
+
+See `docs/PORTAL-SYSTEM.md` for full documentation.
+
+---
+
 ## Key File Locations
 
 ### Mixer System
@@ -270,6 +313,12 @@ See `docs/CONVERSATION-LOGGING.md` for full documentation.
 - `lib/globeDataSupabase.ts` - Globe data fetching
 - `contexts/MixerContext.tsx` - Global crate/collection state
 
+### Portal System
+- `components/cards/PortalCard.tsx` - Circular portal card with shimmer
+- `components/cards/GlobeTrackCard.tsx` - Routes portals to PortalCard
+- `app/admin/portals/page.tsx` - Admin CRUD for portals
+- `components/globe/GridNodeSystem.tsx` - Node colors including portal white
+
 ### Profile & Display
 - `components/profile/ProfileImage.tsx` - Profile avatar (video support)
 - `components/cards/GalleryCard.tsx` - Gallery items (video support)
@@ -285,6 +334,8 @@ See `docs/CONVERSATION-LOGGING.md` for full documentation.
 - `video_natural_width/height` - Original video dimensions
 - `stream_url` - Radio station stream URL
 - `bpm` - Beats per minute
+- `portal_username` - For portal content_type, username for profile link
+- `content_type` - Includes 'portal' for Portal Keeper cards
 
 ### user_profiles
 - `sticker_id` (default 'daisy-blue')
@@ -311,6 +362,7 @@ const isVideo = contentType === 'video_clip';
 const isSong = contentType === 'full_song';
 const isLoop = contentType === 'loop';
 const isPack = ['loop_pack', 'station_pack', 'ep'].includes(contentType);
+const isPortal = contentType === 'portal';
 ```
 
 ### Memory Cleanup Pattern
