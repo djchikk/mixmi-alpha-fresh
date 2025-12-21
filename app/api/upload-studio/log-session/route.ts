@@ -56,6 +56,7 @@ interface SessionLogRequest {
     content: string;
     timestamp: string;
     attachments?: Array<{ type: string; url?: string; name: string }>;
+    inputMode?: 'text' | 'voice'; // How the user sent this message
   }>;
   uploadedFiles?: Array<{
     type: string;
@@ -250,6 +251,11 @@ export async function POST(request: NextRequest) {
         // Add attachments to payload if present
         if (message.attachments && message.attachments.length > 0) {
           payload.attachments = message.attachments;
+        }
+
+        // Track input mode (voice vs text) for user messages
+        if (message.inputMode) {
+          payload.input_mode = message.inputMode;
         }
 
         // Check for sensitivity keywords in user messages

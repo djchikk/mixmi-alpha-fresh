@@ -152,9 +152,9 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
 
           {/* Overlay with details - always visible when we have data */}
           {hasContent && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40 p-2 flex flex-col justify-between">
-              {/* Top Section: Title, Artist */}
-              <div className="space-y-0.5">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 flex flex-col justify-between">
+              {/* Top Section: Title, Artist - with dark background for readability */}
+              <div className="bg-black/60 rounded-md px-1.5 py-1 -mx-0.5 space-y-0.5">
                 {data.title ? (
                   <h3
                     className="font-medium text-[#81E4F2] text-sm leading-tight truncate transition-all duration-300"

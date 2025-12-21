@@ -20,6 +20,7 @@ interface Message {
   content: string;
   timestamp: Date;
   attachments?: FileAttachment[];
+  inputMode?: 'voice' | 'text'; // Track how user sent message
 }
 
 interface FileAttachment {
@@ -113,6 +114,17 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   // Track if we should show the welcome hero (before any user interaction)
   const [showWelcomeHero, setShowWelcomeHero] = useState(true);
 
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [lastInputMode, setLastInputMode] = useState<'voice' | 'text'>('text');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  // TTS playback state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+
   // Location autocomplete
   const [locationInput, setLocationInput] = useState('');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -141,6 +153,137 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   useEffect(() => {
     return () => cleanupLocationSearch();
   }, [cleanupLocationSearch]);
+
+  // Voice recording functions
+  const startRecording = async () => {
+    // Stop any ongoing TTS playback
+    stopSpeaking();
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+
+        // Create blob and transcribe
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log('🎤 Recording stopped, blob size:', audioBlob.size, 'bytes, chunks:', audioChunksRef.current.length);
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      showToast('Could not access microphone', 'error');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      console.log('🎤 Sending audio to transcribe API...');
+      const response = await fetch('/api/upload-studio/voice/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('🎤 Transcribe response status:', response.status);
+      const result = await response.json();
+      console.log('🎤 Transcribe result:', result);
+
+      if (result.text) {
+        console.log('🎤 Transcribed text:', result.text);
+        // Send message directly with the transcribed text (don't rely on state)
+        sendMessage('voice', result.text);
+      } else if (result.error) {
+        console.error('🎤 Transcribe error:', result.error);
+        showToast(result.error, 'error');
+      } else {
+        console.warn('🎤 No text or error in response:', result);
+        showToast('No speech detected', 'warning');
+      }
+    } catch (error) {
+      console.error('🎤 Transcription error:', error);
+      showToast('Failed to transcribe audio', 'error');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  // TTS functions
+  const stopSpeaking = () => {
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause();
+      ttsAudioRef.current.currentTime = 0;
+      URL.revokeObjectURL(ttsAudioRef.current.src);
+      ttsAudioRef.current = null;
+    }
+    setIsSpeaking(false);
+  };
+
+  const speakResponse = async (text: string) => {
+    // Note: The decision to speak is made in sendMessage based on inputMode parameter
+    // No need to double-check state here (it may not have updated yet)
+    try {
+      setIsSpeaking(true);
+
+      const response = await fetch('/api/upload-studio/voice/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: 'nova' }),
+      });
+
+      if (!response.ok) {
+        console.error('TTS error:', response.status);
+        setIsSpeaking(false);
+        return;
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      const audio = new Audio(audioUrl);
+      ttsAudioRef.current = audio;
+
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        ttsAudioRef.current = null;
+        setIsSpeaking(false);
+      };
+
+      audio.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        ttsAudioRef.current = null;
+        setIsSpeaking(false);
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('TTS playback error:', error);
+      setIsSpeaking(false);
+    }
+  };
 
   // Log session data for analysis
   const logSession = async (
@@ -182,7 +325,8 @@ export default function ConversationalUploader({ walletAddress }: Conversational
               type: a.type,
               url: a.url,
               name: a.name
-            }))
+            })),
+            inputMode: m.inputMode // Track voice vs text input
           })),
           uploadedFiles,
           inferredData: extractedData,
@@ -714,19 +858,24 @@ Feel free to try again with a different file, or let me know if you need help!`,
     setAttachments(prev => prev.filter(a => a.id !== id));
   };
 
-  // Send message
-  const sendMessage = async () => {
-    if (!inputValue.trim() && attachments.filter(a => a.status === 'uploaded').length === 0) {
+  // Send message - textOverride allows passing text directly (for voice transcription)
+  const sendMessage = async (inputMode: 'voice' | 'text' = 'text', textOverride?: string) => {
+    const messageText = textOverride ?? inputValue;
+
+    if (!messageText.trim() && attachments.filter(a => a.status === 'uploaded').length === 0) {
       return;
     }
+
+    // Track input mode for TTS response
+    setLastInputMode(inputMode);
 
     // Hide the welcome hero when user sends first message
     setShowWelcomeHero(false);
 
     // Build content that includes attachment info so it's not filtered out as empty
     const uploadedAttachments = attachments.filter(a => a.status === 'uploaded');
-    let messageContent = inputValue;
-    if (!inputValue.trim() && uploadedAttachments.length > 0) {
+    let messageContent = messageText;
+    if (!messageText.trim() && uploadedAttachments.length > 0) {
       // Include attachment info in content so message isn't filtered out in history
       messageContent = `[Attached: ${uploadedAttachments.map(a => a.name).join(', ')}]`;
     }
@@ -736,7 +885,8 @@ Feel free to try again with a different file, or let me know if you need help!`,
       role: 'user',
       content: messageContent,
       timestamp: new Date(),
-      attachments: uploadedAttachments
+      attachments: uploadedAttachments,
+      inputMode
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -752,7 +902,7 @@ Feel free to try again with a different file, or let me know if you need help!`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId,
-          message: inputValue,
+          message: messageText,
           attachments: userMessage.attachments?.map(a => ({
             type: a.type,
             url: a.url,
@@ -782,6 +932,12 @@ Feel free to try again with a different file, or let me know if you need help!`,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Speak response if user used voice input
+      console.log('🔊 Response received, inputMode:', inputMode, 'will speak:', inputMode === 'voice');
+      if (inputMode === 'voice' && result.message) {
+        speakResponse(result.message);
+      }
 
       // Update extracted data if provided
       if (result.extractedData) {
@@ -813,7 +969,7 @@ Feel free to try again with a different file, or let me know if you need help!`,
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      sendMessage('text');
     }
   };
 
@@ -1001,6 +1157,56 @@ Would you like to upload another track, or shall I show you where to find your n
 
   return (
     <div className="flex h-[calc(100vh-80px)] max-w-6xl mx-auto gap-6 px-4">
+      {/* File Drop Zone - Left Side, stays visible until ready to submit */}
+      {!isReadyToSubmit && (
+        <div className="hidden lg:flex flex-col justify-end pb-32">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            className={`w-[160px] h-[200px] rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-3 ${
+              isDragOver
+                ? 'border-[#81E4F2] bg-[#81E4F2]/10'
+                : 'border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/50'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+              isDragOver ? 'bg-[#81E4F2]/20' : 'bg-slate-700/50'
+            }`}>
+              <Upload size={24} className={isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'} />
+            </div>
+            <div className="text-center px-3">
+              {attachments.filter(a => a.status === 'uploaded').length > 0 ? (
+                <>
+                  <p className="text-sm font-medium mb-1 text-green-400">
+                    {attachments.filter(a => a.status === 'uploaded').length} file{attachments.filter(a => a.status === 'uploaded').length !== 1 ? 's' : ''} added
+                  </p>
+                  <p className="text-xs text-gray-500">Drop more or</p>
+                </>
+              ) : (
+                <>
+                  <p className={`text-sm font-medium mb-1 ${isDragOver ? 'text-[#81E4F2]' : 'text-gray-300'}`}>
+                    Drop files here
+                  </p>
+                  <p className="text-xs text-gray-500">or</p>
+                </>
+              )}
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="px-4 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            >
+              Browse Files
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Chat Container */}
       <div
         className="flex flex-col flex-1 max-w-4xl relative"
@@ -1251,13 +1457,24 @@ Would you like to upload another track, or shall I show you where to find your n
       {/* Input Area */}
       <div className="px-6 py-4 border-t border-slate-700/50">
         <div className="flex items-end gap-3">
-          {/* File Upload Button */}
+          {/* Voice Input Button */}
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors"
-            title="Upload files"
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isTranscribing || isLoading}
+            className={`p-3 rounded-xl transition-colors ${
+              isRecording
+                ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                : isTranscribing
+                  ? 'bg-slate-700'
+                  : 'bg-slate-800 hover:bg-slate-700'
+            } disabled:opacity-50`}
+            title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Voice input'}
           >
-            <Upload size={20} className="text-gray-400" />
+            {isTranscribing ? (
+              <Loader2 size={20} className="text-[#81E4F2] animate-spin" />
+            ) : (
+              <Mic size={20} className={isRecording ? 'text-white' : 'text-gray-400'} />
+            )}
           </button>
           <input
             ref={fileInputRef}
@@ -1328,9 +1545,14 @@ Would you like to upload another track, or shall I show you where to find your n
             ) : (
               <textarea
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  // Stop TTS and switch to text mode when user types
+                  if (isSpeaking) stopSpeaking();
+                  setLastInputMode('text');
+                }}
                 onKeyDown={handleKeyDown}
-                placeholder="Drop files here or just start typing..."
+                placeholder={attachments.length > 0 ? "Hit send when you're done uploading, or type here..." : "Type here or use the mic to chat by voice..."}
                 rows={1}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
                 style={{ minHeight: '48px', maxHeight: '120px' }}
@@ -1342,7 +1564,7 @@ Would you like to upload another track, or shall I show you where to find your n
           <button
             onClick={isAskingForLocation && locationInput.trim()
               ? () => handleLocationSelect(locationInput.trim())
-              : sendMessage
+              : () => sendMessage('text')
             }
             disabled={isLoading ||
               attachments.some(a => a.status === 'uploading' || a.status === 'pending') || (
@@ -1358,7 +1580,7 @@ Would you like to upload another track, or shall I show you where to find your n
         </div>
 
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Press Enter to send • Shift+Enter for new line
+          Type or speak • Enter to send • Shift+Enter for new line
         </p>
       </div>
       </div>
