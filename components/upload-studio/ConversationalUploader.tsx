@@ -177,7 +177,6 @@ export default function ConversationalUploader({ walletAddress }: Conversational
 
         // Create blob and transcribe
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        console.log('🎤 Recording stopped, blob size:', audioBlob.size, 'bytes, chunks:', audioChunksRef.current.length);
         await transcribeAudio(audioBlob);
       };
 
@@ -202,29 +201,23 @@ export default function ConversationalUploader({ walletAddress }: Conversational
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
 
-      console.log('🎤 Sending audio to transcribe API...');
       const response = await fetch('/api/upload-studio/voice/transcribe', {
         method: 'POST',
         body: formData,
       });
 
-      console.log('🎤 Transcribe response status:', response.status);
       const result = await response.json();
-      console.log('🎤 Transcribe result:', result);
 
       if (result.text) {
-        console.log('🎤 Transcribed text:', result.text);
         // Send message directly with the transcribed text (don't rely on state)
         sendMessage('voice', result.text);
       } else if (result.error) {
-        console.error('🎤 Transcribe error:', result.error);
         showToast(result.error, 'error');
       } else {
-        console.warn('🎤 No text or error in response:', result);
         showToast('No speech detected', 'warning');
       }
     } catch (error) {
-      console.error('🎤 Transcription error:', error);
+      console.error('Transcription error:', error);
       showToast('Failed to transcribe audio', 'error');
     } finally {
       setIsTranscribing(false);
@@ -934,7 +927,6 @@ Feel free to try again with a different file, or let me know if you need help!`,
       setMessages(prev => [...prev, assistantMessage]);
 
       // Speak response if user used voice input
-      console.log('🔊 Response received, inputMode:', inputMode, 'will speak:', inputMode === 'voice');
       if (inputMode === 'voice' && result.message) {
         speakResponse(result.message);
       }
