@@ -88,7 +88,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       loCutEnabled: false,
       pitchCents: 0,
       isPitchProcessing: false,
-      videoMuted: false // Default unmuted
+      videoMuted: false // Default unmuted - video audio plays through deck
     },
     deckB: {
       track: null,
@@ -102,7 +102,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       loCutEnabled: false,
       pitchCents: 0,
       isPitchProcessing: false,
-      videoMuted: false // Default unmuted
+      videoMuted: false // Default unmuted - video audio plays through deck
     },
     masterBPM: 120,
     crossfaderPosition: 50,
@@ -659,7 +659,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
     console.log(`🎵 Content type: ${contentType}, isRadio: ${isRadio}`);
 
-    // For radio stations, use stream_url; for others, use audioUrl
+    // For radio stations, use stream_url; for video clips, use video_url; for others, use audioUrl
     let audioUrl;
     if (isRadio) {
       const rawStreamUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
@@ -667,6 +667,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       audioUrl = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
       console.log('📻 Radio station detected, using proxied URL:', audioUrl);
       console.log('📻 Original stream URL:', rawStreamUrl);
+    } else if (contentType === 'video_clip') {
+      // For video clips, use video_url as audio source (MP4 contains both audio and video)
+      audioUrl = track.audioUrl || (track as any).audio_url || (track as any).video_url;
+      console.log('🎬 Video clip detected, using video_url for audio:', audioUrl);
     } else {
       audioUrl = track.audioUrl || (track as any).audio_url;
     }
@@ -850,7 +854,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
     console.log(`🎵 Content type: ${contentType}, isRadio: ${isRadio}`);
 
-    // For radio stations, use stream_url; for others, use audioUrl
+    // For radio stations, use stream_url; for video clips, use video_url; for others, use audioUrl
     let audioUrl;
     if (isRadio) {
       const rawStreamUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
@@ -858,6 +862,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       audioUrl = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
       console.log('📻 Radio station detected, using proxied URL:', audioUrl);
       console.log('📻 Original stream URL:', rawStreamUrl);
+    } else if (contentType === 'video_clip') {
+      // For video clips, use video_url as audio source (MP4 contains both audio and video)
+      audioUrl = track.audioUrl || (track as any).audio_url || (track as any).video_url;
+      console.log('🎬 Video clip detected, using video_url for audio:', audioUrl);
     } else {
       audioUrl = track.audioUrl || (track as any).audio_url;
     }
@@ -1680,6 +1688,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     mixerState.deckB.track,
     mixerState.deckA.playing,
     mixerState.deckB.playing,
+    mixerState.deckA.videoMuted,
+    mixerState.deckB.videoMuted,
     mixerState.crossfaderPosition
   ]);
 
@@ -1979,9 +1989,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                         ...prev,
                         deckA: { ...prev.deckA, videoMuted: newMuted }
                       }));
-                      // Control the audio element volume
+                      // Control the audio element volume (respect deck volume when unmuting)
                       if (mixerState.deckA.audioState?.audio) {
-                        mixerState.deckA.audioState.audio.volume = newMuted ? 0 : 1;
+                        mixerState.deckA.audioState.audio.volume = newMuted ? 0 : (mixerState.deckA.volume / 100);
                       }
                     }}
                     className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800 hover:bg-slate-700"
@@ -2166,14 +2176,25 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   <button
                     onClick={() => {
                       const newMuted = !mixerState.deckB.videoMuted;
+                      console.log('🔇 Deck B mute clicked:', {
+                        newMuted,
+                        hasAudioState: !!mixerState.deckB.audioState,
+                        hasAudio: !!mixerState.deckB.audioState?.audio,
+                        currentVolume: mixerState.deckB.audioState?.audio?.volume,
+                        deckVolume: mixerState.deckB.volume
+                      });
                       // Update state
                       setMixerState(prev => ({
                         ...prev,
                         deckB: { ...prev.deckB, videoMuted: newMuted }
                       }));
-                      // Control the audio element volume
+                      // Control the audio element volume (respect deck volume when unmuting)
                       if (mixerState.deckB.audioState?.audio) {
-                        mixerState.deckB.audioState.audio.volume = newMuted ? 0 : 1;
+                        const targetVolume = newMuted ? 0 : (mixerState.deckB.volume / 100);
+                        mixerState.deckB.audioState.audio.volume = targetVolume;
+                        console.log('🔇 Set Deck B audio volume to:', targetVolume);
+                      } else {
+                        console.log('🔇 No audio element found for Deck B');
                       }
                     }}
                     className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800 hover:bg-slate-700"
