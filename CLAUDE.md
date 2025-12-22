@@ -289,6 +289,63 @@ See `docs/PORTAL-SYSTEM.md` for full documentation.
 
 ---
 
+## Session: December 21, 2025
+
+**Focus:** Voice input/output for Upload Studio chatbot, video mute button fix
+
+### Voice Integration for Upload Chatbot
+Full voice conversation support using OpenAI Whisper (STT) and OpenAI TTS.
+
+**User Flow:**
+1. User clicks mic button next to chat input
+2. Browser records audio via MediaRecorder (webm/opus)
+3. Audio sent to `/api/upload-studio/voice/transcribe` → OpenAI Whisper
+4. Transcribed text appears in chat and sends to Anthropic
+5. AI response automatically speaks back via TTS
+
+**Key Implementation Details:**
+- `inputMode` tracking: 'text' or 'voice' determines if TTS plays response
+- `textOverride` parameter in `sendMessage()` bypasses async state issues with transcription
+- TTS only plays for voice-initiated messages (not text typing)
+- Recording indicator shows "Recording..." during capture
+
+**Voice API Endpoints:**
+```typescript
+// Speech-to-Text (Whisper)
+POST /api/upload-studio/voice/transcribe
+Body: FormData with 'audio' file
+Returns: { text: string }
+
+// Text-to-Speech
+POST /api/upload-studio/voice/speak
+Body: { text: string, voice?: string }
+Returns: audio/mpeg stream
+```
+
+**TTS Voices Available:** alloy, echo, fable, onyx, nova (default), shimmer
+
+**Files:**
+- `app/api/upload-studio/voice/transcribe/route.ts` - Whisper integration
+- `app/api/upload-studio/voice/speak/route.ts` - TTS integration
+- `components/upload-studio/ConversationalUploader.tsx` - Voice UI and state
+
+### Video Mute Button Fix
+Fixed AUDIO/MUTED buttons for video clips in mixer.
+
+**Root Cause:** Deck thumbnail video in `SimplifiedDeckCompact.tsx` was missing `muted` attribute, playing audio directly and bypassing mixer audio controls.
+
+**Fixes Applied:**
+1. Added `muted` to deck thumbnail video element
+2. Added `video_url` fallback when loading video clip audio (MP4 contains both tracks)
+3. Mute button now respects deck volume slider when unmuting
+
+**Architecture:**
+- All video elements render with `muted={true}` (visual only)
+- Audio plays via separate HTMLAudioElement created by `createMixerAudio`
+- AUDIO button controls that audio element's volume (0 = muted, deck volume = unmuted)
+
+---
+
 ## Key File Locations
 
 ### Mixer System
@@ -298,11 +355,13 @@ See `docs/PORTAL-SYSTEM.md` for full documentation.
 - `components/mixer/compact/MasterTransportControlsCompact.tsx` - Transport controls
 
 ### Upload System
-- `components/upload-studio/ConversationalUploader.tsx` - Chat-based upload
+- `components/upload-studio/ConversationalUploader.tsx` - Chat-based upload with voice
 - `components/upload-studio/UploadPreviewCard.tsx` - Live preview card
 - `lib/upload-studio/system-prompt.ts` - Chatbot personality and guidance
 - `app/api/upload-studio/submit/route.ts` - Track submission API
 - `app/api/upload-studio/log-session/route.ts` - Session logging API
+- `app/api/upload-studio/voice/transcribe/route.ts` - Whisper STT API
+- `app/api/upload-studio/voice/speak/route.ts` - OpenAI TTS API
 
 ### Playback
 - `components/SimplePlaylistPlayer.tsx` - Playlist with drag support
