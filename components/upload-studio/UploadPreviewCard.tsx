@@ -150,14 +150,14 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
             </div>
           )}
 
-          {/* Overlay with details - always visible when we have data */}
+          {/* Overlay with details - no gradient, just dark bg on text containers */}
           {hasContent && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 flex flex-col justify-between">
+            <div className="absolute inset-0 p-2 flex flex-col justify-between">
               {/* Top Section: Title, Artist - with dark background for readability */}
-              <div className="bg-black/60 rounded-md px-1.5 py-1 -mx-0.5 space-y-0.5">
+              <div className="bg-black/40 rounded-md px-1.5 py-1 space-y-0.5 self-start">
                 {data.title ? (
                   <h3
-                    className="font-medium text-[#81E4F2] text-sm leading-tight truncate transition-all duration-300"
+                    className="font-medium text-[#81E4F2] text-sm leading-tight truncate transition-all duration-300 max-w-[140px]"
                     style={{ animation: 'fadeSlideIn 0.3s ease-out' }}
                   >
                     {data.title}
@@ -167,7 +167,7 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
                 )}
                 {data.artist ? (
                   <p
-                    className="text-[#81E4F2]/80 text-xs truncate transition-all duration-300"
+                    className="text-[#81E4F2]/80 text-xs truncate transition-all duration-300 max-w-[140px]"
                     style={{ animation: 'fadeSlideIn 0.3s ease-out 0.1s both' }}
                   >
                     {data.artist}
@@ -177,8 +177,8 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
                 ) : null}
               </div>
 
-              {/* Bottom Section: Type, Price/Badge, BPM */}
-              <div className="flex items-center justify-between">
+              {/* Bottom Section: Type, Price/Badge, BPM - with dark background */}
+              <div className="bg-black/40 rounded-md px-1.5 py-1 flex items-center justify-between self-stretch">
                 {/* Price/Badge */}
                 <div>
                   {data.allow_downloads !== false && data.download_price_stx !== undefined ? (
