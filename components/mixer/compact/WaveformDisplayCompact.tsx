@@ -1,0 +1,602 @@
+'use client'
+import React, { useRef, useEffect, useState, useMemo, memo } from 'react'
+import { useDebouncedCallback } from '@/hooks/useDebounce'
+
+// Types from our content-aware system
+interface LoopBoundaries {
+  contentStart: number;
+  contentEnd: number;
+  mathematicalDuration: number;
+  actualLoopDuration: number;
+  confidence: number;
+}
+
+interface WaveformDisplayProps {
+  audioBuffer?: AudioBuffer;
+  loopBoundaries?: LoopBoundaries | null;
+  currentTime?: number;
+  isPlaying?: boolean;
+  className?: string;
+  width?: number;
+  height?: number;
+  // 🎯 NEW: Loop position props for draggable brackets
+  trackBPM?: number;
+  loopEnabled?: boolean;
+  loopLength?: number;
+  loopPosition?: number;
+  onLoopPositionChange?: (position: number) => void;
+  waveformColor?: string; // Custom waveform color
+  contentType?: string; // 🎵 Track content type for section-aware rendering
+}
+
+const WaveformDisplayCompact = memo(function WaveformDisplayCompact({
+  audioBuffer,
+  loopBoundaries,
+  currentTime = 0,
+  isPlaying = false,
+  className = '',
+  width = 800,
+  height = 120,
+  // 🎯 NEW: Loop position props
+  trackBPM = 120,
+  loopEnabled = false,
+  loopLength = 8,
+  loopPosition = 0,
+  onLoopPositionChange,
+  waveformColor = '#64748B', // Default slate gray
+  contentType
+}: WaveformDisplayProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
+  
+  // 🎯 NEW: Drag state for loop position brackets
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartPosition, setDragStartPosition] = useState(0);
+  const [localLoopPosition, setLocalLoopPosition] = useState(loopPosition);
+  const [showDragTooltip, setShowDragTooltip] = useState(false);
+  
+  // Debounced position change for smooth dragging
+  const debouncedLoopPositionChange = useDebouncedCallback(
+    onLoopPositionChange ? onLoopPositionChange : () => {},
+    30
+  );
+  
+  // Sync local position with prop changes
+  useEffect(() => {
+    setLocalLoopPosition(loopPosition);
+  }, [loopPosition]);
+
+  // 🎯 NEW: Contextual brackets logic - only show when needed
+  const showLoopBrackets = loopEnabled && loopLength !== 8;
+  
+  // 🎯 NEW: Calculate bracket positions from bar timing (memoized)
+  const bracketPositions = useMemo(() => {
+    if (!audioBuffer || !showLoopBrackets) return null;
+
+    const barDuration = (60 / trackBPM) * 4; // 4 beats per bar
+    const isSong = contentType === 'full_song';
+
+    let startX, endX, loopStartTime, loopEndTime;
+
+    if (isSong && loopEnabled) {
+      // 🎵 For songs: Brackets show loop portion within visible 8-bar section
+      // Section view shows 8 bars, brackets show which portion is looping
+      const sectionSize = 8; // Fixed 8-bar sections
+      const loopRatio = loopLength / sectionSize; // e.g., 4/8 = 0.5 (half the width)
+
+      startX = 0; // Always start at beginning of visible section
+      endX = width * loopRatio; // End based on loop length proportion
+
+      // Calculate actual times for the loop
+      const sectionStartTime = loopPosition * barDuration * sectionSize;
+      loopStartTime = sectionStartTime;
+      loopEndTime = sectionStartTime + (barDuration * loopLength);
+    } else {
+      // 🔁 For loops: Brackets based on actual position in full waveform
+      const totalDuration = audioBuffer.duration;
+
+      // Use prop loopPosition, not localLoopPosition, for accurate bracket placement
+      loopStartTime = loopPosition * barDuration;
+      loopEndTime = (loopPosition + loopLength) * barDuration;
+
+      startX = (loopStartTime / totalDuration) * width;
+      endX = (loopEndTime / totalDuration) * width;
+    }
+
+    return {
+      startX: Math.max(0, Math.min(width, startX)),
+      endX: Math.max(0, Math.min(width, endX)),
+      loopStartTime,
+      loopEndTime
+    };
+  }, [audioBuffer, showLoopBrackets, trackBPM, loopLength, width, contentType, loopEnabled, loopPosition]);
+
+  // 🎯 NEW: Mouse event handlers for bracket dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!showLoopBrackets || !onLoopPositionChange) return;
+
+    // 🎵 Disable dragging for songs - loop position is fixed at start of section
+    const isSong = contentType === 'full_song';
+    if (isSong) {
+      // Show tooltip briefly when user tries to drag
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x = e.clientX - rect.left;
+      const brackets = bracketPositions;
+      if (brackets && x >= brackets.startX - 10 && x <= brackets.endX + 10) {
+        setShowDragTooltip(true);
+        setTimeout(() => setShowDragTooltip(false), 2000);
+      }
+      return;
+    }
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = e.clientX - rect.left;
+    const brackets = bracketPositions;
+
+    if (brackets) {
+      // Check if click is within the bracket region
+      const bracketWidth = brackets.endX - brackets.startX;
+      const margin = 10; // Allow clicking slightly outside for easier grabbing
+
+      if (x >= brackets.startX - margin && x <= brackets.endX + margin) {
+        setIsDragging(true);
+        setDragStartX(x);
+        setDragStartPosition(loopPosition);
+        e.preventDefault();
+      }
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !onLoopPositionChange || !audioBuffer) return;
+    
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const x = e.clientX - rect.left;
+    const deltaX = x - dragStartX;
+    
+    // Convert pixel movement to bar movement
+    const totalDuration = audioBuffer.duration;
+    const barDuration = (60 / trackBPM) * 4;
+    const deltaTime = (deltaX / width) * totalDuration;
+    const deltaBars = deltaTime / barDuration;
+    
+    // Calculate new position with beat-level quantization (0.25 bar increments)
+    const newPosition = Math.max(0, Math.round((dragStartPosition + deltaBars) * 4) / 4);
+    const maxPosition = Math.max(0, Math.floor(totalDuration / barDuration) - loopLength);
+    
+    const clampedPosition = Math.min(newPosition, maxPosition);
+    
+    if (clampedPosition !== loopPosition) {
+      onLoopPositionChange(clampedPosition);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Extract and downsample waveform data for performance
+  useEffect(() => {
+    if (!audioBuffer) {
+      setWaveformData(null);
+      return;
+    }
+
+    const extractWaveformData = () => {
+      const channelData = audioBuffer.getChannelData(0); // Use first channel
+      const sampleRate = audioBuffer.sampleRate;
+      const duration = audioBuffer.duration;
+
+      // 🎵 For songs with section looping, only show the selected section
+      const isSong = contentType === 'full_song';
+      const showSectionOnly = isSong && loopEnabled;
+
+      let startTime = 0;
+      let endTime = duration;
+
+      if (showSectionOnly) {
+        // Calculate section boundaries - section size is ALWAYS 8 bars for songs
+        const barDuration = (60 / trackBPM) * 4; // 4 beats per bar
+        const sectionSize = 8; // Fixed 8-bar sections for songs
+        const sectionDuration = barDuration * sectionSize;
+        startTime = loopPosition * sectionDuration;
+        endTime = Math.min(startTime + sectionDuration, duration);
+
+        console.log(`🎨 Waveform section rendering:`, {
+          trackBPM,
+          loopLength,
+          loopPosition,
+          sectionSize,
+          barDuration: barDuration.toFixed(2),
+          sectionDuration: sectionDuration.toFixed(2),
+          startTime: startTime.toFixed(2),
+          endTime: endTime.toFixed(2),
+          totalDuration: duration.toFixed(2)
+        });
+      }
+
+      // Convert time to samples
+      const startSample = Math.floor(startTime * sampleRate);
+      const endSample = Math.floor(endTime * sampleRate);
+      const sectionLength = endSample - startSample;
+
+      // Downsample to reasonable resolution (1 pixel per sample group)
+      const samplesPerPixel = Math.ceil(sectionLength / width);
+      const waveform = new Float32Array(width);
+
+      // Extract RMS values for each pixel
+      for (let i = 0; i < width; i++) {
+        const pixelStartSample = startSample + (i * samplesPerPixel);
+        const pixelEndSample = Math.min(pixelStartSample + samplesPerPixel, endSample);
+
+        let sum = 0;
+        let count = 0;
+        for (let j = pixelStartSample; j < pixelEndSample; j++) {
+          if (j < channelData.length) {
+            sum += channelData[j] * channelData[j];
+            count++;
+          }
+        }
+
+        // RMS calculation for more accurate amplitude representation
+        waveform[i] = count > 0 ? Math.sqrt(sum / count) : 0;
+      }
+      
+      setWaveformData(waveform);
+      console.log(`🎨 Waveform extracted: ${width} samples, duration: ${duration.toFixed(2)}s`);
+    };
+
+    extractWaveformData();
+  }, [audioBuffer, width, contentType, loopEnabled, trackBPM, loopPosition, loopLength]);
+
+  // Draw waveform and overlays
+  useEffect(() => {
+    if (!waveformData || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    canvas.width = width * window.devicePixelRatio;
+    canvas.height = height * window.devicePixelRatio;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+    // Clear canvas
+    ctx.fillStyle = '#0A0A0B'; // Dark background matching mixer
+    ctx.fillRect(0, 0, width, height);
+
+    const centerY = height / 2;
+    const maxAmplitude = Math.max(...Array.from(waveformData));
+    const amplitudeScale = maxAmplitude > 0 ? (height * 0.4) / maxAmplitude : 1;
+
+    // 🎵 Draw content boundaries if available
+    if (loopBoundaries && audioBuffer) {
+      const duration = audioBuffer.duration;
+      const pixelsPerSecond = width / duration;
+      
+      // Content start/end positions
+      const contentStartX = loopBoundaries.contentStart * pixelsPerSecond;
+      const contentEndX = loopBoundaries.contentEnd * pixelsPerSecond;
+      const actualLoopEndX = (loopBoundaries.contentStart + loopBoundaries.actualLoopDuration) * pixelsPerSecond;
+      
+      // Draw silence regions (if any)
+      if (contentStartX > 0) {
+        ctx.fillStyle = '#FF4444AA'; // Red tint for leading silence
+        ctx.fillRect(0, 0, contentStartX, height);
+      }
+      
+      if (contentEndX < width) {
+        ctx.fillStyle = '#FF4444AA'; // Red tint for trailing silence  
+        ctx.fillRect(contentEndX, 0, width - contentEndX, height);
+      }
+      
+      // Draw actual loop boundary
+      ctx.strokeStyle = '#00FFFF'; // Cyan for actual loop boundary
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(actualLoopEndX, 0);
+      ctx.lineTo(actualLoopEndX, height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Content boundary markers
+      ctx.strokeStyle = '#FFD700'; // Gold for content boundaries
+      ctx.lineWidth = 1;
+      
+      // Content start line
+      ctx.beginPath();
+      ctx.moveTo(contentStartX, 0);
+      ctx.lineTo(contentStartX, height);
+      ctx.stroke();
+      
+      // Content end line
+      ctx.beginPath();
+      ctx.moveTo(contentEndX, 0);
+      ctx.lineTo(contentEndX, height);
+      ctx.stroke();
+    }
+
+    // 🎵 Draw waveform
+    ctx.strokeStyle = waveformColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    
+    for (let i = 0; i < waveformData.length; i++) {
+      const x = (i / waveformData.length) * width;
+      const amplitude = waveformData[i] * amplitudeScale;
+      
+      if (i === 0) {
+        ctx.moveTo(x, centerY - amplitude);
+      } else {
+        ctx.lineTo(x, centerY - amplitude);
+      }
+    }
+    
+    // Draw bottom half (mirrored)
+    for (let i = waveformData.length - 1; i >= 0; i--) {
+      const x = (i / waveformData.length) * width;
+      const amplitude = waveformData[i] * amplitudeScale;
+      ctx.lineTo(x, centerY + amplitude);
+    }
+    
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // 🎯 NEW: Draw clearly visible timing grid (8 bars per track)
+    if (audioBuffer) {
+      ctx.strokeStyle = '#9CA3AF'; // Lighter, more visible gray for bar markers
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.8; // Much more visible!
+      
+      // Draw 7 bar division lines (8 bars = 7 divisions) 
+      for (let bar = 1; bar < 8; bar++) {
+        const barX = (bar / 8) * width;
+        ctx.beginPath();
+        ctx.moveTo(barX, 0);
+        ctx.lineTo(barX, height);
+        ctx.stroke();
+      }
+      
+      // Draw visible beat markers (4 beats per bar)
+      ctx.strokeStyle = '#9CA3AF';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.4; // More visible beat divisions
+      
+      for (let bar = 0; bar < 8; bar++) {
+        for (let beat = 1; beat < 4; beat++) { // 3 beat lines per bar (excluding downbeat)
+          const beatX = ((bar + beat/4) / 8) * width;
+          ctx.beginPath();
+          ctx.moveTo(beatX, height * 0.25); // Shorter lines for beats
+          ctx.lineTo(beatX, height * 0.75);
+          ctx.stroke();
+        }
+      }
+      
+      // Reset alpha for other elements
+      ctx.globalAlpha = 1.0;
+    }
+
+    // 🎵 Draw playback position
+    if (isPlaying && audioBuffer) {
+      const duration = audioBuffer.duration;
+      const barDuration = (60 / trackBPM) * 4;
+
+      // 🎵 Calculate playhead position (content-type aware)
+      const isSong = contentType === 'full_song';
+      const showSectionOnly = isSong && loopEnabled;
+
+      let playbackX: number;
+      if (showSectionOnly) {
+        // For section looping, calculate position within the visible section
+        const sectionSize = 8; // Fixed 8-bar sections for songs
+        const sectionDuration = barDuration * sectionSize;
+        const sectionStartTime = loopPosition * sectionDuration;
+
+        // Calculate position within section (0 to 1)
+        const positionInSection = (currentTime - sectionStartTime) / sectionDuration;
+        playbackX = Math.max(0, Math.min(1, positionInSection)) * width;
+      } else if (loopEnabled && loopLength < 8) {
+        // 🔁 For loops with active looping (not full 8-bar), show position within loop boundaries
+        // Use prop loopPosition for consistency with brackets
+        const loopStartTime = loopPosition * barDuration;
+        const loopDuration = loopLength * barDuration;
+
+        // Position within the active loop
+        const positionInLoop = (currentTime - loopStartTime) / loopDuration;
+
+        // Map to the bracket region on screen
+        const brackets = bracketPositions;
+        if (brackets) {
+          const bracketWidth = brackets.endX - brackets.startX;
+          playbackX = brackets.startX + (positionInLoop * bracketWidth);
+          // Clamp within bracket boundaries
+          playbackX = Math.max(brackets.startX, Math.min(brackets.endX, playbackX));
+        } else {
+          // Fallback to full waveform if no brackets
+          playbackX = (currentTime / duration) * width;
+        }
+      } else {
+        // For full track display (8-bar loop or looping disabled), use normal calculation
+        playbackX = (currentTime / duration) * width;
+      }
+
+      ctx.strokeStyle = '#00FF00'; // Green playback line
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(playbackX, 0);
+      ctx.lineTo(playbackX, height);
+      ctx.stroke();
+    }
+
+    // 🎯 REMOVED: Debug strategy indicators - keeping clean professional look
+
+    // 🎯 NEW: Draw contextual loop brackets (only when enabled and not 8-bar)
+    const brackets = bracketPositions;
+    if (brackets && showLoopBrackets) {
+      const { startX, endX } = brackets;
+      const bracketHeight = 8;
+      const topY = 5;
+      const bottomY = height - 5;
+      
+      // Bracket styling
+      ctx.strokeStyle = isDragging ? '#00FFFF' : '#FFA500'; // Cyan when dragging, orange when idle
+      ctx.fillStyle = ctx.strokeStyle + '20'; // Semi-transparent fill
+      ctx.lineWidth = 2;
+      
+      // Fill bracket region
+      ctx.fillRect(startX, 0, endX - startX, height);
+      
+      // Draw bracket lines
+      ctx.beginPath();
+      
+      // Left bracket
+      ctx.moveTo(startX, topY);
+      ctx.lineTo(startX, topY + bracketHeight);
+      ctx.moveTo(startX, topY);
+      ctx.lineTo(startX + bracketHeight, topY);
+      
+      ctx.moveTo(startX, bottomY);
+      ctx.lineTo(startX, bottomY - bracketHeight);
+      ctx.moveTo(startX, bottomY);
+      ctx.lineTo(startX + bracketHeight, bottomY);
+      
+      // Right bracket
+      ctx.moveTo(endX, topY);
+      ctx.lineTo(endX, topY + bracketHeight);
+      ctx.moveTo(endX, topY);
+      ctx.lineTo(endX - bracketHeight, topY);
+      
+      ctx.moveTo(endX, bottomY);
+      ctx.lineTo(endX, bottomY - bracketHeight);
+      ctx.moveTo(endX, bottomY);
+      ctx.lineTo(endX - bracketHeight, bottomY);
+      
+      ctx.stroke();
+      
+      // Draw position label with beat precision
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      
+      // Format position with beat precision
+      const formatPosition = (pos: number) => {
+        const bars = Math.floor(pos);
+        const beats = Math.round((pos - bars) * 4);
+        return beats === 0 ? `${bars + 1}` : `${bars + 1}.${beats}`;
+      };
+      
+      const startPos = formatPosition(localLoopPosition);
+      const endPos = formatPosition(localLoopPosition + loopLength);
+      const loopText = loopLength < 1 ? `${loopLength * 4}/4` : loopLength;
+      const labelText = `${loopText}-bar loop @ ${startPos}-${endPos}`;
+      const labelX = (startX + endX) / 2;
+      ctx.fillText(labelText, labelX, height - 15);
+    }
+
+  }, [waveformData, loopBoundaries, currentTime, isPlaying, width, height, audioBuffer, showLoopBrackets, loopPosition, loopLength, isDragging, contentType, loopEnabled, trackBPM, waveformColor, bracketPositions, localLoopPosition]);
+
+  // Get human-readable strategy description
+  const getStrategyText = (boundaries: LoopBoundaries): string => {
+    const mathDuration = boundaries.mathematicalDuration;
+    const actualDuration = boundaries.actualLoopDuration;
+    const confidence = boundaries.confidence;
+    
+    if (confidence > 0.8 && Math.abs(actualDuration - mathDuration) / mathDuration < 0.1) {
+      return 'Strategy: Mathematical BPM';
+    } else if (actualDuration < mathDuration * 0.8) {
+      return 'Strategy: Content-trimmed';
+    } else if (actualDuration < mathDuration * 0.9) {
+      return 'Strategy: File-length limited';
+    } else {
+      return 'Strategy: Mathematical fallback';
+    }
+  };
+
+  if (!audioBuffer) {
+    return (
+      <div className={`flex items-center justify-center bg-slate-900 rounded ${className}`} 
+           style={{ width, height }}>
+        <span className="text-slate-500 text-sm">No audio loaded</span>
+      </div>
+    );
+  }
+
+  const isSong = contentType === 'full_song';
+  const canDragBrackets = showLoopBrackets && onLoopPositionChange && !isSong;
+
+  return (
+    <div className={`relative ${className}`}>
+      <canvas
+        ref={canvasRef}
+        className={`rounded border border-slate-700 ${canDragBrackets ? 'cursor-pointer' : ''}`}
+        style={{ width, height }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      />
+
+      {/* Tooltip for song loop brackets */}
+      {showDragTooltip && isSong && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-3 py-2 rounded shadow-lg z-20 whitespace-nowrap">
+          Loop position is fixed for songs. Use section selector to change position.
+        </div>
+      )}
+      
+      {/* 🎯 HIDDEN: Legend overlay - keeping clean professional look */}
+      {/* Uncomment below for diagnostics if needed:
+      <div className="absolute top-2 right-2 text-xs text-slate-400 bg-black/50 rounded p-2">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-3 h-0.5 bg-yellow-500"></div>
+          <span>Content boundaries</span>
+        </div>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-3 h-0.5 bg-cyan-500 border-dashed"></div>
+          <span>Actual loop end</span>
+        </div>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-0.5 h-3 bg-gray-500 opacity-30"></div>
+          <span>Bar markers (8-bar structure)</span>
+        </div>
+        {isPlaying && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-0.5 bg-green-500"></div>
+            <span>Playback position</span>
+          </div>
+        )}
+      </div>
+      */}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo
+  // Only re-render if these specific props change
+  return (
+    prevProps.audioBuffer === nextProps.audioBuffer &&
+    prevProps.currentTime === nextProps.currentTime &&
+    prevProps.isPlaying === nextProps.isPlaying &&
+    prevProps.loopEnabled === nextProps.loopEnabled &&
+    prevProps.loopPosition === nextProps.loopPosition &&
+    prevProps.loopLength === nextProps.loopLength &&
+    prevProps.width === nextProps.width &&
+    prevProps.height === nextProps.height &&
+    prevProps.waveformColor === nextProps.waveformColor
+  );
+});
+
+export default WaveformDisplayCompact; 

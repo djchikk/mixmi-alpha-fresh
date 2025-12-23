@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear All Mixmi Storage</title>
+</head>
+<body>
+    <h2>🧹 Clear All Mixmi Storage</h2>
+    <button onclick="clearAll()">Clear All Storage</button>
+    <div id="result"></div>
+
+    <script>
+        function clearAll() {
+            const result = document.getElementById('result');
+            
+            // Clear all localStorage keys
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key) keysToRemove.push(key);
+            }
+            
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            
+            result.innerHTML = `
+                <h3>✅ Storage Cleared!</h3>
+                <p>Removed ${keysToRemove.length} items:</p>
+                <ul>${keysToRemove.map(key => `<li>${key}</li>`).join('')}</ul>
+                <p><strong>You can now close this tab and test uploads fresh!</strong></p>
+            `;
+        }
+    </script>
+</body>
+</html> 

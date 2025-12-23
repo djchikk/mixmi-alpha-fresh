@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clear Local Storage</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #101726;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      padding: 20px;
+      background-color: #151C2A;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    button {
+      background-color: #81E4F2;
+      color: #101726;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #65d5e3;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .success {
+      background-color: rgba(0, 255, 0, 0.1);
+      border: 1px solid rgba(0, 255, 0, 0.3);
+    }
+    .error {
+      background-color: rgba(255, 0, 0, 0.1);
+      border: 1px solid rgba(255, 0, 0, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Clear Profile Storage</h1>
+    <button onclick="clearStorage()">Clear All Profile Data</button>
+    <div id="status"></div>
+    
+    <script>
+      function clearStorage() {
+        // Clear all profile-related localStorage
+        localStorage.removeItem('mixmi-profile');
+        localStorage.removeItem('mixmi-spotlight');
+        localStorage.removeItem('mixmi-media');
+        localStorage.removeItem('mixmi-shop');
+        localStorage.removeItem('mixmi-gallery');
+        
+        document.getElementById('status').innerHTML = '<p style="color: green;">✅ All profile data cleared! Refresh your app to see placeholder content.</p>';
+        
+        console.log('Cleared localStorage keys:');
+        console.log('- mixmi-profile');
+        console.log('- mixmi-spotlight');
+        console.log('- mixmi-media');
+        console.log('- mixmi-shop');
+        console.log('- mixmi-gallery');
+      }
+      
+      // Show current localStorage content
+      window.onload = function() {
+        const keys = ['mixmi-profile', 'mixmi-spotlight', 'mixmi-media', 'mixmi-shop', 'mixmi-gallery'];
+        let hasData = false;
+        
+        keys.forEach(key => {
+          const data = localStorage.getItem(key);
+          if (data) {
+            hasData = true;
+            console.log(`${key}:`, JSON.parse(data));
+          }
+        });
+        
+        if (hasData) {
+          document.getElementById('status').innerHTML = '<p style="color: orange;">⚠️ Profile data found in localStorage. Click button to clear.</p>';
+        } else {
+          document.getElementById('status').innerHTML = '<p style="color: blue;">ℹ️ No profile data in localStorage.</p>';
+        }
+      };
+    </script>
+  </div>
+</body>
+</html> 

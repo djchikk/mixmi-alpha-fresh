@@ -1,0 +1,179 @@
+import { useState, useCallback, useEffect } from 'react';
+import { PowerUserStorage } from '@/lib/powerUserStorage';
+import { SectionType } from '@/lib/sectionLimits';
+import { SupabaseStorageService } from '@/lib/supabase-storage';
+
+interface UploadProgress {
+  stage: 'idle' | 'analyzing' | 'compressing' | 'uploading' | 'finalizing' | 'complete';
+  message: string;
+  progress: number;
+  fileSize?: string;
+}
+
+interface CompressionOptions {
+  enableCompression: boolean;
+  quality: number;
+  preserveAnimation?: boolean;
+}
+
+interface UseImageUploadProps {
+  walletAddress?: string;
+  section: SectionType;
+  onImageChange: (imageData: string) => void;
+  compressionLevel: 'optimized' | 'balanced' | 'maximum-quality';
+}
+
+interface UseImageUploadReturn {
+  isProcessing: boolean;
+  uploadProgress: UploadProgress;
+  currentFile: File | null;
+  processFile: (file: File) => Promise<void>;
+  cancelUpload: () => void;
+  resetUpload: () => void;
+}
+
+export function useImageUpload({
+  walletAddress,
+  section,
+  onImageChange,
+  compressionLevel
+}: UseImageUploadProps): UseImageUploadReturn {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
+    stage: 'idle',
+    message: '',
+    progress: 0
+  });
+
+  // Prevent navigation during upload
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isProcessing && uploadProgress.stage !== 'idle' && uploadProgress.stage !== 'complete') {
+        event.preventDefault();
+        event.returnValue = 'Upload in progress. Are you sure you want to leave?';
+        return 'Upload in progress. Are you sure you want to leave?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isProcessing, uploadProgress.stage]);
+
+  const getCompressionOptions = useCallback((): CompressionOptions => {
+    switch (compressionLevel) {
+      case 'optimized':
+        return { enableCompression: true, quality: 0.7, preserveAnimation: true };
+      case 'balanced':
+        return { enableCompression: true, quality: 0.85, preserveAnimation: true };
+      case 'maximum-quality':
+        return { enableCompression: false, quality: 1.0, preserveAnimation: true };
+      default:
+        return { enableCompression: true, quality: 0.7, preserveAnimation: true };
+    }
+  }, [compressionLevel]);
+
+  const processFile = useCallback(async (file: File) => {
+    try {
+      setIsProcessing(true);
+      setCurrentFile(file);
+
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      const isGif = file.type === 'image/gif';
+      const isVideo = file.type.startsWith('video/');
+      const fileType = isVideo ? 'video' : isGif ? 'GIF' : 'image';
+
+      // Stage 1: Analyzing
+      setUploadProgress({
+        stage: 'analyzing',
+        message: `Analyzing your ${fileType}...`,
+        progress: 10,
+        fileSize: `${fileSizeMB}MB`
+      });
+
+      console.log(`📂 Processing file: ${file.name} (${fileSizeMB}MB)`);
+      console.log(`🎯 Type: ${file.type} | Section: ${section}`);
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Stage 2: Uploading to Supabase Storage
+      setUploadProgress({
+        stage: 'uploading',
+        message: `Uploading ${fileType} to cloud storage...`,
+        progress: 30,
+        fileSize: `${fileSizeMB}MB`
+      });
+
+      // Use wallet address or fallback ID for upload
+      const userId = walletAddress || 'anonymous';
+
+      // Upload to Supabase Storage - this returns a clean URL
+      // Map section to imageType for storage service
+      const imageType = section === 'profile' ? 'profile' :
+                       section === 'sticker' ? 'sticker' : 'gallery';
+      const uploadResult = await SupabaseStorageService.uploadImage(
+        userId,
+        file,
+        imageType as any,
+        `${section}-${Date.now()}` // Unique item ID
+      );
+
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || 'Upload failed');
+      }
+
+      // Stage 3: Complete
+      setUploadProgress({
+        stage: 'complete',
+        message: `${fileType.charAt(0).toUpperCase() + fileType.slice(1)} uploaded successfully! ✨`,
+        progress: 100,
+        fileSize: `${fileSizeMB}MB`
+      });
+
+      console.log(`✅ ${fileType} uploaded to Supabase Storage:`, uploadResult.data?.publicUrl);
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Return the clean Supabase Storage URL
+      if (uploadResult.data?.publicUrl) {
+        onImageChange(uploadResult.data.publicUrl);
+        resetUpload();
+        return;
+      }
+
+      throw new Error('Failed to get public URL from upload');
+
+    } catch (error) {
+      console.error('🚨 Upload failed:', error);
+      setIsProcessing(false);
+      setCurrentFile(null);
+      setUploadProgress({
+        stage: 'idle',
+        message: '',
+        progress: 0
+      });
+      throw error;
+    }
+  }, [walletAddress, section, onImageChange]);
+
+  const cancelUpload = useCallback(() => {
+    setIsProcessing(false);
+    setCurrentFile(null);
+    setUploadProgress({ stage: 'idle', message: '', progress: 0 });
+  }, []);
+
+  const resetUpload = useCallback(() => {
+    setIsProcessing(false);
+    setCurrentFile(null);
+    setUploadProgress({ stage: 'idle', message: '', progress: 0 });
+  }, []);
+
+  return {
+    isProcessing,
+    uploadProgress,
+    currentFile,
+    processFile,
+    cancelUpload,
+    resetUpload
+  };
+}

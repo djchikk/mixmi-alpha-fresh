@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Image Paths</title>
+    <style>
+        body { font-family: monospace; margin: 20px; background: #1e293b; color: #e2e8f0; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .path-test { background: #374151; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .good { border-left: 4px solid #10b981; }
+        .bad { border-left: 4px solid #ef4444; }
+        img { max-width: 100px; height: 100px; object-fit: cover; border-radius: 5px; }
+        button { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Image Path Debug Test</h1>
+        <p>Testing which image paths work vs which don't...</p>
+        
+        <button onclick="testPaths()">🔍 Test All Paths</button>
+        <button onclick="checkLocalStorage()">📱 Check LocalStorage</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const testPaths = [
+            { path: '/placeholders/profile/profile-image.jpeg', name: 'Profile (CORRECT)' },
+            { path: '/placeholder-images/profile-image.jpg', name: 'Profile (OLD/WRONG)' },
+            { path: '/placeholders/spotlight/spotlight-item-1.jpeg', name: 'Spotlight (CORRECT)' },
+            { path: '/placeholder-images/spotlight-1.jpg', name: 'Spotlight (OLD/WRONG)' },
+            { path: '/placeholders/shop/product-1.jpeg', name: 'Shop (CORRECT)' },
+            { path: '/placeholder-images/shop-1.jpg', name: 'Shop (OLD/WRONG)' }
+        ];
+
+        function testPaths() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>🧪 Path Test Results:</h2>';
+            
+            testPaths.forEach(({ path, name }) => {
+                const isCorrectPath = path.includes('/placeholders/');
+                const className = isCorrectPath ? 'good' : 'bad';
+                
+                results.innerHTML += `
+                    <div class="path-test ${className}">
+                        <h3>${name}</h3>
+                        <p><strong>Path:</strong> <code>${path}</code></p>
+                        <img src="${path}" 
+                             onload="this.nextElementSibling.textContent = '✅ Loads successfully'" 
+                             onerror="this.nextElementSibling.textContent = '❌ Failed to load'"
+                             alt="${name}">
+                        <p style="margin-top: 10px;">Loading...</p>
+                    </div>
+                `;
+            });
+        }
+
+        function checkLocalStorage() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>📱 localStorage Contents:</h2>';
+            
+            let hasProfileData = false;
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                if (key.includes('profile') || key.includes('spotlight') || key.includes('shop') || key.includes('gallery')) {
+                    hasProfileData = true;
+                    const displayValue = value && value.length > 100 ? value.substring(0, 100) + '...' : value;
+                    
+                    results.innerHTML += `
+                        <div class="path-test">
+                            <h3>🔑 ${key}</h3>
+                            <p style="word-break: break-all;">${displayValue}</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            if (!hasProfileData) {
+                results.innerHTML += '<div class="path-test good"><p>✅ No profile data in localStorage (clean slate!)</p></div>';
+            }
+        }
+
+        // Auto-run tests on load
+        window.onload = () => {
+            testPaths();
+            setTimeout(checkLocalStorage, 1000);
+        };
+    </script>
+</body>
+</html> 

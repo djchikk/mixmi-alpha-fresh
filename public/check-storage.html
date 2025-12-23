@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check localStorage</title>
+    <style>
+        body { font-family: monospace; margin: 20px; background: #1e293b; color: #e2e8f0; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .storage-item { background: #374151; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .key { color: #10b981; font-weight: bold; }
+        .value { color: #f97316; }
+        button { background: #dc2626; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #b91c1c; }
+        .highlight { background: #fef3c7; color: #92400e; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 localStorage Inspector</h1>
+        <p>Checking for old /placeholder-images/ paths in your browser storage...</p>
+        
+        <button onclick="checkStorage()">🔍 Check Storage</button>
+        <button onclick="clearBadStorage()">🗑️ Clear Bad Storage</button>
+        <button onclick="clearAllStorage()">💥 Clear All Storage</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function checkStorage() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>📊 Storage Contents:</h2>';
+            
+            let foundBadPaths = false;
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                const hasBadPath = value && value.includes('/placeholder-images/');
+                if (hasBadPath) foundBadPaths = true;
+                
+                const displayValue = value && value.length > 200 ? value.substring(0, 200) + '...' : value;
+                
+                results.innerHTML += `
+                    <div class="storage-item">
+                        <div class="key">🔑 ${key}</div>
+                        <div class="value">${hasBadPath ? displayValue.replace(/\/placeholder-images\//g, '<span class="highlight">/placeholder-images/</span>') : displayValue}</div>
+                        ${hasBadPath ? '<div style="color: #ef4444; margin-top: 5px;">⚠️ Contains old placeholder paths!</div>' : ''}
+                    </div>
+                `;
+            }
+            
+            if (foundBadPaths) {
+                results.innerHTML += '<div style="background: #ef4444; padding: 15px; margin: 20px 0; border-radius: 5px;"><strong>🚨 FOUND THE PROBLEM!</strong><br>Your localStorage contains old /placeholder-images/ paths that are overriding the correct placeholder data.</div>';
+            } else {
+                results.innerHTML += '<div style="background: #10b981; padding: 15px; margin: 20px 0; border-radius: 5px;">✅ No bad placeholder paths found in localStorage!</div>';
+            }
+        }
+        
+        function clearBadStorage() {
+            let clearedCount = 0;
+            const keysToCheck = [];
+            
+            // Collect keys first
+            for (let i = 0; i < localStorage.length; i++) {
+                keysToCheck.push(localStorage.key(i));
+            }
+            
+            // Check each key's value
+            keysToCheck.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value && value.includes('/placeholder-images/')) {
+                    localStorage.removeItem(key);
+                    clearedCount++;
+                    console.log(`Cleared bad storage key: ${key}`);
+                }
+            });
+            
+            alert(`🗑️ Cleared ${clearedCount} items with bad placeholder paths!`);
+            checkStorage();
+        }
+        
+        function clearAllStorage() {
+            if (confirm('Are you sure you want to clear ALL localStorage? This will reset everything.')) {
+                localStorage.clear();
+                alert('💥 All localStorage cleared!');
+                checkStorage();
+            }
+        }
+        
+        // Auto-check on load
+        window.onload = checkStorage;
+    </script>
+</body>
+</html> 

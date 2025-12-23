@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mixmi TrackCard Back - Complete Design v2.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Card Container - Square 280x280 */
+        .track-card {
+            width: 280px;
+            height: 280px;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        /* Card Back - MATCHING FRONT BG COLOR */
+        .card-back {
+            width: 100%;
+            height: 100%;
+            background: #0F172A;
+            border-radius: 12px;
+            border: 2px solid;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar for main card */
+        .card-back::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .card-back::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+        }
+
+        .card-back::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .card-back.purple {
+            border-color: #9772F4;
+        }
+
+        .card-back.gold {
+            border-color: #FFE4B5;
+        }
+
+        /* Close button - Rectangular style */
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .close-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: #ccc;
+            stroke-width: 2;
+        }
+
+        /* Header - Compact */
+        .track-header {
+            margin-bottom: 12px;
+            padding-right: 40px;
+        }
+
+        .track-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .track-artist {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* Content Sections - BOXED STYLE */
+        .content-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        /* Description Section */
+        .description-content {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #999;
+        }
+
+        /* License Terms Section */
+        .license-terms {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .license-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .license-label {
+            color: #999;
+        }
+
+        .license-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .check {
+            color: #4ade80;
+            font-size: 16px;
+        }
+
+        .x {
+            color: #FF595A;
+            font-size: 14px;
+        }
+
+        /* Rights Container */
+        .rights-container {
+            margin-bottom: 12px;
+        }
+
+        .rights-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .rights-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .rights-title {
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Split Visual - THIN BARS */
+        .split-visual {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 10px;
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .split-bar {
+            height: 100%;
+            transition: all 0.3s;
+        }
+
+        .split-bar.composition {
+            background: #81E4F2;
+            opacity: 0.8;
+        }
+
+        .split-bar.recording {
+            background: #FF595A;
+            opacity: 0.8;
+        }
+
+        /* Contributors - Compact */
+        .contributor {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .contributor:hover {
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateX(2px);
+        }
+
+        .contributor-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contributor-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #fff;
+            flex-shrink: 0;
+            overflow: hidden;
+            background: #444;
+        }
+
+        .contributor-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .contributor-name {
+            font-size: 12px;
+            color: #ccc;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .contributor-percentage {
+            font-weight: 700;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        /* Streaming URLs Section */
+        .streaming-urls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .streaming-link {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            font-size: 11px;
+            color: #999;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .streaming-link:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .streaming-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Notes Section - Scrollable */
+        .notes-content {
+            font-size: 11px;
+            line-height: 1.5;
+            color: #999;
+            white-space: pre-wrap;
+            max-height: 80px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .notes-content::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .notes-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+        }
+
+        .notes-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        /* Tags Section */
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #999;
+            transition: all 0.2s;
+        }
+
+        .tag:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ccc;
+            transform: translateY(-1px);
+        }
+
+        /* No data message */
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #555;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Card 1: Complete Example with ALL sections -->
+        <div class="track-card">
+            <div class="card-back purple">
+                <button class="close-btn">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor"/>
+                    </svg>
+                </button>
+
+                <div class="track-header">
+                    <h3 class="track-title">Purple Loops Test</h3>
+                    <p class="track-artist">Artist: Test Artist</p>
+                </div>
+
+                <!-- Description Section -->
+                <div class="content-section">
+                    <h4 class="section-title">Description</h4>
+                    <div class="description-content">
+                        A beautiful purple loop for testing the revolutionary Mixmi platform. This track showcases the power of infinite remix culture with proper attribution.
+                    </div>
+                </div>
+
+                <!-- License Terms -->
+                <div class="content-section">
+                    <h4 class="section-title">Licensing</h4>
+                    <div class="license-terms">
+                        <div class="license-item">
+                            <span class="license-label">Remixing:</span>
+                            <span class="license-icon check">✓</span>
+                        </div>
+                        <div class="license-item">
+                            <span class="license-label">Collaboration:</span>
+                            <span class="license-icon check">✓</span>
+                        </div>
+                        <div class="license-item">
+                            <span class="license-label">Commercial Use:</span>
+                            <span class="license-icon x">✗</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rights Section -->
+                <div class="content-section">
+                    <!-- Composition Rights -->
+                    <div class="rights-container">
+                        <div class="rights-header">
+                            <div class="rights-icon">♪</div>
+                            <h4 class="rights-title">Composition Rights</h4>
+                        </div>
+                        
+                        <div class="split-visual">
+                            <div class="split-bar composition" style="flex: 0.6"></div>
+                            <div class="split-bar composition" style="flex: 0.4; opacity: 0.5"></div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">JD</div>
+                                <div class="contributor-name">jane.btc</div>
+                            </div>
+                            <div class="contributor-percentage">60%</div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">TW</div>
+                                <div class="contributor-name">test-wallet-1</div>
+                            </div>
+                            <div class="contributor-percentage">40%</div>
+                        </div>
+                    </div>
+
+                    <!-- Recording Rights -->
+                    <div class="rights-container">
+                        <div class="rights-header">
+                            <div class="rights-icon">●</div>
+                            <h4 class="rights-title">Recording Rights</h4>
+                        </div>
+                        
+                        <div class="split-visual">
+                            <div class="split-bar recording" style="flex: 0.8"></div>
+                            <div class="split-bar recording" style="flex: 0.2; opacity: 0.5"></div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=producer1" alt="Mike">
+                                </div>
+                                <div class="contributor-name">mike.btc</div>
+                            </div>
+                            <div class="contributor-percentage">80%</div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">SC</div>
+                                <div class="contributor-name">SP9X8Y7Z6W5V4U3T2S1...</div>
+                            </div>
+                            <div class="contributor-percentage">20%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Streaming URLs -->
+                <div class="content-section">
+                    <h4 class="section-title">Streaming</h4>
+                    <div class="streaming-urls">
+                        <a href="#" class="streaming-link">
+                            <svg class="streaming-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                            </svg>
+                            Spotify
+                        </a>
+                        <a href="#" class="streaming-link">
+                            <svg class="streaming-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02z"/>
+                            </svg>
+                            SoundCloud
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Notes Section -->
+                <div class="content-section">
+                    <h4 class="section-title">Notes</h4>
+                    <div class="notes-content">This purple loop was created during a late night session in Brooklyn. Special thanks to the entire crew for the inspiration.
+
+Recorded at Sunset Studios
+Mixed by Mike @ The Lab
+Mastered by Sarah Chen
+
+Feel free to remix and make it your own! We believe in the power of creative collaboration and the infinite possibilities of remix culture.</div>
+                </div>
+
+                <!-- Tags -->
+                <div class="content-section">
+                    <h4 class="section-title">Tags</h4>
+                    <div class="tags-container">
+                        <span class="tag">test</span>
+                        <span class="tag">purple</span>
+                        <span class="tag">loop</span>
+                        <span class="tag">beats</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Gold Song with Lyrics -->
+        <div class="track-card">
+            <div class="card-back gold">
+                <button class="close-btn">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor"/>
+                    </svg>
+                </button>
+
+                <div class="track-header">
+                    <h3 class="track-title">Golden Hour</h3>
+                    <p class="track-artist">Artist: Sunset Collective</p>
+                </div>
+
+                <!-- Description Section -->
+                <div class="content-section">
+                    <h4 class="section-title">Description</h4>
+                    <div class="description-content">
+                        An ethereal journey through the magic hour. Blending organic instruments with electronic textures.
+                    </div>
+                </div>
+
+                <!-- License Terms -->
+                <div class="content-section">
+                    <h4 class="section-title">Licensing</h4>
+                    <div class="license-terms">
+                        <div class="license-item">
+                            <span class="license-label">Remixing:</span>
+                            <span class="license-icon check">✓</span>
+                        </div>
+                        <div class="license-item">
+                            <span class="license-label">Collaboration:</span>
+                            <span class="license-icon check">✓</span>
+                        </div>
+                        <div class="license-item">
+                            <span class="license-label">Commercial Use:</span>
+                            <span class="license-icon check">✓</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rights Section -->
+                <div class="content-section">
+                    <!-- Composition Rights -->
+                    <div class="rights-container">
+                        <div class="rights-header">
+                            <div class="rights-icon">♪</div>
+                            <h4 class="rights-title">Composition Rights</h4>
+                        </div>
+                        
+                        <div class="split-visual">
+                            <div class="split-bar composition" style="flex: 1"></div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=composer1" alt="Sarah">
+                                </div>
+                                <div class="contributor-name">sarah.btc</div>
+                            </div>
+                            <div class="contributor-percentage">100%</div>
+                        </div>
+                    </div>
+
+                    <!-- Recording Rights -->
+                    <div class="rights-container">
+                        <div class="rights-header">
+                            <div class="rights-icon">●</div>
+                            <h4 class="rights-title">Recording Rights</h4>
+                        </div>
+                        
+                        <div class="split-visual">
+                            <div class="split-bar recording" style="flex: 0.5"></div>
+                            <div class="split-bar recording" style="flex: 0.3; opacity: 0.7"></div>
+                            <div class="split-bar recording" style="flex: 0.2; opacity: 0.4"></div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=producer2" alt="Alex">
+                                </div>
+                                <div class="contributor-name">alex.btc</div>
+                            </div>
+                            <div class="contributor-percentage">50%</div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">KT</div>
+                                <div class="contributor-name">kenji.btc</div>
+                            </div>
+                            <div class="contributor-percentage">30%</div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">MN</div>
+                                <div class="contributor-name">SP2M3N4O5P6Q7R8S9...</div>
+                            </div>
+                            <div class="contributor-percentage">20%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Streaming URLs -->
+                <div class="content-section">
+                    <h4 class="section-title">Streaming</h4>
+                    <div class="streaming-urls">
+                        <a href="#" class="streaming-link">
+                            <svg class="streaming-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                <path d="M8 15V9l8 3z"/>
+                            </svg>
+                            Apple Music
+                        </a>
+                        <a href="#" class="streaming-link">
+                            <svg class="streaming-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                            </svg>
+                            YouTube
+                        </a>
+                        <a href="#" class="streaming-link">
+                            <svg class="streaming-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.098 10.638c-3.868-2.297-10.248-2.508-13.941-1.387-.593.18-1.22-.155-1.399-.748-.18-.593.154-1.22.748-1.4 4.239-1.287 11.285-1.038 15.738 1.605.533.317.708 1.005.392 1.538-.316.533-1.005.709-1.538.392z"/>
+                            </svg>
+                            Bandcamp
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Notes Section with Lyrics -->
+                <div class="content-section">
+                    <h4 class="section-title">Lyrics</h4>
+                    <div class="notes-content">Golden hour fading slow
+Shadows dancing, soft and low
+In this moment, time stands still
+Heart and soul, the sunset fills
+
+(Chorus)
+Golden hour, golden dreams
+Nothing's quite the way it seems
+Light that paints the world in gold
+Stories that will never get old
+
+Verse 2:
+Whispers in the evening breeze
+Memories beneath the trees
+Every color tells a tale
+As the daylight starts to pale
+
+(Repeat Chorus)
+
+Bridge:
+Hold this moment, make it last
+Future meets the distant past
+In the golden hour's glow
+Everything we need to know
+
+(Final Chorus)
+Golden hour, golden dreams
+Life is more than what it seems
+Paint the world in shades of gold
+Stories waiting to be told</div>
+                </div>
+
+                <!-- Tags -->
+                <div class="content-section">
+                    <h4 class="section-title">Tags</h4>
+                    <div class="tags-container">
+                        <span class="tag">sunset</span>
+                        <span class="tag">chill</span>
+                        <span class="tag">vibes</span>
+                        <span class="tag">ambient</span>
+                        <span class="tag">electronic</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Minimal Example -->
+        <div class="track-card">
+            <div class="card-back purple">
+                <button class="close-btn">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor"/>
+                    </svg>
+                </button>
+
+                <div class="track-header">
+                    <h3 class="track-title">Minimal Beat</h3>
+                    <p class="track-artist">Artist: Solo Creator</p>
+                </div>
+
+                <!-- Description Section -->
+                <div class="content-section">
+                    <h4 class="section-title">Description</h4>
+                    <div class="description-content">
+                        Stripped down to the essentials. Pure rhythm, no distractions.
+                    </div>
+                </div>
+
+                <!-- License Terms -->
+                <div class="content-section">
+                    <h4 class="section-title">Licensing</h4>
+                    <div class="license-terms">
+                        <div class="license-item">
+                            <span class="license-label">Remixing:</span>
+                            <span class="license-icon x">✗</span>
+                        </div>
+                        <div class="license-item">
+                            <span class="license-label">Collaboration:</span>
+                            <span class="license-icon x">✗</span>
+                        </div>
+                        <div class="license-item">
+                            <span class="license-label">Commercial Use:</span>
+                            <span class="license-icon x">✗</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rights Section -->
+                <div class="content-section">
+                    <!-- Composition Rights -->
+                    <div class="rights-container">
+                        <div class="rights-header">
+                            <div class="rights-icon">♪</div>
+                            <h4 class="rights-title">Composition Rights</h4>
+                        </div>
+                        
+                        <div class="split-visual">
+                            <div class="split-bar composition" style="flex: 1"></div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">SC</div>
+                                <div class="contributor-name">creator.btc</div>
+                            </div>
+                            <div class="contributor-percentage">100%</div>
+                        </div>
+                    </div>
+
+                    <!-- Recording Rights -->
+                    <div class="rights-container">
+                        <div class="rights-header">
+                            <div class="rights-icon">●</div>
+                            <h4 class="rights-title">Recording Rights</h4>
+                        </div>
+                        
+                        <div class="split-visual">
+                            <div class="split-bar recording" style="flex: 1"></div>
+                        </div>
+
+                        <div class="contributor">
+                            <div class="contributor-info">
+                                <div class="contributor-avatar">SC</div>
+                                <div class="contributor-name">creator.btc</div>
+                            </div>
+                            <div class="contributor-percentage">100%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No Streaming URLs -->
+                <div class="content-section">
+                    <h4 class="section-title">Streaming</h4>
+                    <div class="no-data">
+                        Not available on streaming platforms
+                    </div>
+                </div>
+
+                <!-- Notes Section -->
+                <div class="content-section">
+                    <h4 class="section-title">Notes</h4>
+                    <div class="notes-content">Personal use only. Not for distribution.</div>
+                </div>
+
+                <!-- Tags -->
+                <div class="content-section">
+                    <h4 class="section-title">Tags</h4>
+                    <div class="tags-container">
+                        <span class="tag">minimal</span>
+                        <span class="tag">techno</span>
+                        <span class="tag">loop</span>
+                        <span class="tag">experimental</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Implementation Guide for Cursor Claude -->
+    <div style="margin-top: 60px; padding: 40px; background: #0F172A; border-radius: 12px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <h2 style="color: #fff; margin-bottom: 20px;">📋 IMPLEMENTATION CHECKLIST FOR CURSOR CLAUDE</h2>
+        
+        <div style="color: #999; line-height: 1.8;">
+            <h3 style="color: #81E4F2; margin-top: 20px;">🎨 Critical Design Elements:</h3>
+            <ul>
+                <li>✅ Background color: <code style="background: #1a1a1a; padding: 2px 6px; border-radius: 4px;">#0F172A</code> (matches front card)</li>
+                <li>✅ All sections use boxes: <code style="background: #1a1a1a; padding: 2px 6px; border-radius: 4px;">background: rgba(255, 255, 255, 0.03)</code></li>
+                <li>✅ Section titles: White (<code style="background: #1a1a1a; padding: 2px 6px; border-radius: 4px;">color: #fff</code>), not grey!</li>
+                <li>✅ Close button: Rectangular with lighter background</li>
+                <li>✅ Font sizes: Title 16px, Artist 12px, Percentages 16px bold</li>
+            </ul>
+
+            <h3 style="color: #FF595A; margin-top: 20px;">🔧 Section Order:</h3>
+            <ol>
+                <li>Header (Title + Artist)</li>
+                <li>Description (new!)</li>
+                <li>Licensing (✓/✗ icons)</li>
+                <li>Rights (Composition + Recording in one box)</li>
+                <li>Streaming URLs (new!)</li>
+                <li>Notes/Lyrics/Credits</li>
+                <li>Tags</li>
+            </ol>
+
+            <h3 style="color: #81E4F2; margin-top: 20px;">💡 Key Features:</h3>
+            <ul>
+                <li>Split bars: Thin 4px height, using brand colors</li>
+                <li>Monospace font for wallet addresses</li>
+                <li>Scrollable card with custom scrollbar</li>
+                <li>Streaming links with hover effects</li>
+                <li>Profile images with initial fallbacks</li>
+            </ul>
+
+            <h3 style="color: #FF595A; margin-top: 20px;">⚠️ Don't Forget:</h3>
+            <ul>
+                <li>Both rights sections ALWAYS shown (never empty)</li>
+                <li>Cyan (#81E4F2) for composition splits only</li>
+                <li>Coral (#FF595A) for recording splits only</li>
+                <li>All text contrast follows the design (no dark grey on dark bg!)</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

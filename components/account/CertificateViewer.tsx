@@ -1,0 +1,834 @@
+"use client";
+
+import { X } from "lucide-react";
+import { toast } from "sonner";
+
+interface Track {
+  id: string;
+  title: string;
+  artist: string;
+  cover_image_url: string;
+  content_type: string;
+  bpm?: number;
+  key?: string;
+  created_at: string;
+  primary_uploader_wallet: string;
+  price_stx: number;
+  license_type?: string;
+  allow_downloads?: boolean;
+  remix_price_stx?: number;
+  download_price_stx?: number;
+  generation?: number;
+  parent_track_1_id?: string;
+  parent_track_2_id?: string;
+  parent_track_1?: {
+    id: string;
+    title: string;
+    artist: string;
+  };
+  parent_track_2?: {
+    id: string;
+    title: string;
+    artist: string;
+  };
+  stream_url?: string;
+  primary_location?: string;
+  ai_assisted_idea?: boolean;
+  ai_assisted_implementation?: boolean;
+}
+
+interface CertificateViewerProps {
+  track: Track;
+  onClose: () => void;
+}
+
+export default function CertificateViewer({ track, onClose }: CertificateViewerProps) {
+  const isRadio = track.content_type === 'radio_station' || track.content_type === 'station_pack';
+
+  // Get color based on content type
+  const getBorderColor = () => {
+    if (isRadio) {
+      return '#FFC044'; // Orange for radio stations
+    }
+    if (track.content_type === 'video_clip') {
+      return '#5BB5F9'; // Blue for video clips
+    }
+    if (track.content_type === 'loop' || track.content_type === 'loop_pack') {
+      return '#A084F9'; // Purple for remixable
+    }
+    return '#A8E66B'; // Gold for downloadable
+  };
+
+  const borderColor = getBorderColor();
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+
+    // UTC time
+    const utcHours = date.getUTCHours().toString().padStart(2, '0');
+    const utcMinutes = date.getUTCMinutes().toString().padStart(2, '0');
+
+    // PST time (UTC-8)
+    const pstDate = new Date(date.getTime() - (8 * 60 * 60 * 1000));
+    const pstHours = pstDate.getUTCHours();
+    const pstMinutes = pstDate.getUTCMinutes().toString().padStart(2, '0');
+    const pstAmPm = pstHours >= 12 ? 'PM' : 'AM';
+    const pstHours12 = pstHours % 12 || 12;
+    const pstFormatted = `${pstHours12.toString().padStart(2, '0')}:${pstMinutes} ${pstAmPm}`;
+
+    // Date format: October 9, 2025
+    const dateFormatted = date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC'
+    });
+
+    return `${dateFormatted} at ${utcHours}:${utcMinutes} UTC (${pstFormatted} PST)`;
+  };
+
+  const shortenWallet = (wallet: string) => {
+    return `${wallet.slice(0, 8)}...${wallet.slice(-6)}`;
+  };
+
+  const getLicenseInfo = () => {
+    const isLoop = track.content_type === 'loop' || track.content_type === 'loop_pack';
+    const isSong = track.content_type === 'full_song' || track.content_type === 'ep';
+    const isVideo = track.content_type === 'video_clip';
+
+    if (isLoop) {
+      return {
+        type: 'Platform Remix Only',
+        platformPrice: '1 STX (per recording)',
+        downloadPrice: track.allow_downloads && track.download_price_stx
+          ? `${track.download_price_stx} STX`
+          : 'Not Available'
+      };
+    } else if (isSong) {
+      return {
+        type: 'Platform Streaming Only',
+        platformPrice: '~0.08 STX (per full play)',
+        downloadPrice: track.allow_downloads && track.download_price_stx
+          ? `${track.download_price_stx} STX`
+          : 'Not Available'
+      };
+    } else if (isVideo) {
+      return {
+        type: 'Platform Remix Only',
+        platformPrice: '1 STX (per recording)',
+        downloadPrice: track.allow_downloads && track.download_price_stx
+          ? `${track.download_price_stx} STX`
+          : 'Not Available'
+      };
+    }
+
+    return {
+      type: 'Unknown',
+      platformPrice: 'N/A',
+      downloadPrice: 'N/A'
+    };
+  };
+
+  const licenseInfo = getLicenseInfo();
+
+  const getAIContribution = () => {
+    const ideaAI = track.ai_assisted_idea || false;
+    const implAI = track.ai_assisted_implementation || false;
+
+    // Match the logic from aiAssistanceUtils.ts
+    if (!ideaAI && !implAI) {
+      return '100% Human';
+    } else if (ideaAI && implAI) {
+      return 'AI-Generated';
+    } else {
+      return 'AI-Assisted';
+    }
+  };
+
+  const getGenerationInfo = () => {
+    // Radio stations don't have generations
+    if (isRadio) {
+      return {
+        emoji: '',
+        label: ''
+      };
+    }
+
+    const gen = track.generation || 0;
+    const emojis = {
+      0: '🌱',
+      1: '🌿',
+      2: '🌳',
+      3: '🌲'
+    };
+    return {
+      emoji: emojis[gen] || '🌲',
+      label: `Gen ${gen}`
+    };
+  };
+
+  const generationInfo = getGenerationInfo();
+  const isRemix = (track.generation || 0) > 0;
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadHTML = () => {
+    const certificateHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>mixmi ${isRadio ? 'Registration' : 'Certificate'} - ${track.title}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f172a;
+      padding: 40px 20px;
+      color: #f1f5f9;
+    }
+    .certificate {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      color: #1e293b;
+      padding: 60px 40px;
+      border: 6px solid ${borderColor};
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      border-bottom: 3px solid ${borderColor};
+      padding-bottom: 20px;
+    }
+    .header .logo-container {
+      display: inline-block;
+      background: #101726;
+      padding: 8px 16px;
+      border-radius: 6px;
+      margin: 0 auto 16px;
+    }
+    .header .logo {
+      height: 16px;
+      display: block;
+    }
+    .header h1 {
+      font-size: 36px;
+      font-weight: 800;
+      color: #A084F9;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+    }
+    .header .subtitle {
+      font-size: 14px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 600;
+    }
+    .track-info {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+    .track-info img {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 2px solid ${borderColor};
+    }
+    .track-details h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+    .track-details .artist {
+      font-size: 18px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .track-details .type {
+      display: inline-block;
+      padding: 4px 12px;
+      background: ${borderColor};
+      color: ${borderColor === '#A8E66B' ? '#1e293b' : 'white'};
+      border-radius: 4px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    .info-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+    .info-value {
+      font-weight: 600;
+      color: #1e293b;
+      text-align: right;
+    }
+    .ip-rights {
+      background: #f1f5f9;
+      padding: 24px;
+      border-radius: 8px;
+      border-left: 4px solid ${borderColor};
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 2px solid #e2e8f0;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .certificate {
+        box-shadow: none;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="certificate">
+    <div class="header">
+      <div class="logo-container">
+        <img src="/logos/logotype-mixmi.svg" alt="mixmi" class="logo" />
+      </div>
+      <h1>${isRadio ? 'REGISTRATION CERTIFICATE' : 'CERTIFICATE'}</h1>
+      <div class="subtitle">${isRadio ? 'Radio Station Registry' : 'Verified Upload'}</div>
+    </div>
+
+    <div class="track-info">
+      <img src="${track.cover_image_url}" alt="${track.title}" />
+      <div class="track-details">
+        <h2>${track.title}</h2>
+        <div class="artist">${track.artist}</div>
+        <span class="type">${isRadio ? track.content_type.replace(/_/g, ' ') : `${generationInfo.emoji} ${track.content_type.replace(/_/g, ' ')} · ${generationInfo.label}`}</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">${isRadio ? 'Registration Details' : 'Upload Details'}</div>
+      <div class="info-row">
+        <span class="info-label">${isRadio ? 'Registration Date:' : 'Upload Date:'}</span>
+        <span class="info-value">${formatDate(track.created_at)}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">${isRadio ? 'Station ID:' : 'Track ID:'}</span>
+        <span class="info-value">${track.id}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Uploader Wallet:</span>
+        <span class="info-value">${shortenWallet(track.primary_uploader_wallet)}</span>
+      </div>
+      ${isRadio && track.stream_url ? `<div class="info-row">
+        <span class="info-label">Stream URL:</span>
+        <span class="info-value">${track.stream_url}</span>
+      </div>` : ''}
+      ${isRadio && track.primary_location ? `<div class="info-row">
+        <span class="info-label">Location:</span>
+        <span class="info-value">${track.primary_location}</span>
+      </div>` : ''}
+      ${track.content_type === 'video_clip' ? `<div class="info-row">
+        <span class="info-label">AI Contribution:</span>
+        <span class="info-value">${getAIContribution()}</span>
+      </div>` : ''}
+      ${!isRadio && track.content_type !== 'video_clip' && track.bpm ? `<div class="info-row">
+        <span class="info-label">BPM:</span>
+        <span class="info-value">${track.bpm}</span>
+      </div>` : ''}
+      ${!isRadio && track.key ? `<div class="info-row">
+        <span class="info-label">Key:</span>
+        <span class="info-value">${track.key}</span>
+      </div>` : ''}
+      ${!isRadio ? `<div class="info-row">
+        <span class="info-label">Price:</span>
+        <span class="info-value">${track.price_stx} STX</span>
+      </div>` : ''}
+    </div>
+
+    ${!isRadio && isRemix ? `
+    <div class="section">
+      <div class="section-title">Built From Source Loops</div>
+      <div class="ip-rights">
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 12px;">This ${generationInfo.label} remix combines:</p>
+        ${track.parent_track_1 ? `
+        <div class="info-row">
+          <span class="info-label">• ${track.parent_track_1.title}</span>
+          <span class="info-value">by ${track.parent_track_1.artist}</span>
+        </div>
+        ` : ''}
+        ${track.parent_track_2 ? `
+        <div class="info-row">
+          <span class="info-label">• ${track.parent_track_2.title}</span>
+          <span class="info-value">by ${track.parent_track_2.artist}</span>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Intellectual Property Rights</div>
+      <div class="ip-rights">
+        <div class="info-row">
+          <span class="info-label">Remix Created By:</span>
+          <span class="info-value">${shortenWallet(track.primary_uploader_wallet)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Commission:</span>
+          <span class="info-value">20% on sales</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">IP Ownership:</span>
+          <span class="info-value">100% flows to source loop creators</span>
+        </div>
+        <p style="color: #64748b; font-size: 12px; margin-top: 12px; font-style: italic;">
+          For detailed IP breakdown, view this track on mixmi
+        </p>
+      </div>
+    </div>
+    ` : !isRadio ? `
+    <div class="section">
+      <div class="section-title">Intellectual Property Rights</div>
+      <div class="ip-rights">
+        <div class="info-row">
+          <span class="info-label">Composition Rights:</span>
+          <span class="info-value">100% - ${shortenWallet(track.primary_uploader_wallet)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Sound Recording Rights:</span>
+          <span class="info-value">100% - ${shortenWallet(track.primary_uploader_wallet)}</span>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+
+    ${!isRadio ? `<div class="section">
+      <div class="section-title">Usage Permissions</div>
+      <div class="ip-rights">
+        <div class="info-row">
+          <span class="info-label">License Type:</span>
+          <span class="info-value">${licenseInfo.type}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Platform Price:</span>
+          <span class="info-value">${licenseInfo.platformPrice}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Download Price:</span>
+          <span class="info-value">${licenseInfo.downloadPrice}</span>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <div class="footer">
+      ${isRadio ? 'This certificate verifies the registration of this radio station on mixmi Alpha.' : 'This certificate verifies the upload and attribution of this content on mixmi Alpha.'}<br>
+      Generated on ${formatDate(new Date().toISOString())}<br>
+      <strong>mixmi.app</strong> • Discover • Mix • Create
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    const blob = new Blob([certificateHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `mixmi-certificate-${track.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('Certificate downloaded as HTML!');
+  };
+
+  const handleCopyText = () => {
+    if (isRadio) {
+      // Simplified text for radio stations
+      const text = `
+mixmi REGISTRATION CERTIFICATE
+Radio Station Registry
+═══════════════════════════════════════════
+
+Station: ${track.title}
+Artist: ${track.artist}
+Content Type: ${track.content_type.replace(/_/g, ' ')}
+Registration Date: ${formatDate(track.created_at)}
+Station ID: ${track.id}
+
+REGISTRATION DETAILS
+Uploader Wallet: ${track.primary_uploader_wallet}
+${track.stream_url ? `Stream URL: ${track.stream_url}` : ''}
+${track.primary_location ? `Location: ${track.primary_location}` : ''}
+
+This certificate verifies the registration of this
+radio station on mixmi Alpha.
+
+Generated: ${formatDate(new Date().toISOString())}
+mixmi.app • Discover • Mix • Create
+      `.trim();
+
+      navigator.clipboard.writeText(text);
+      toast.success('Certificate info copied to clipboard!');
+      return;
+    }
+
+    // Original text for tracks
+    const sourceTracksText = isRemix && (track.parent_track_1 || track.parent_track_2) ? `
+BUILT FROM SOURCE LOOPS
+This ${generationInfo.label} remix combines:
+${track.parent_track_1 ? `• ${track.parent_track_1.title} by ${track.parent_track_1.artist}` : ''}
+${track.parent_track_2 ? `• ${track.parent_track_2.title} by ${track.parent_track_2.artist}` : ''}
+` : '';
+
+    const ipRightsText = isRemix ? `
+INTELLECTUAL PROPERTY RIGHTS
+Remix Created By: ${shortenWallet(track.primary_uploader_wallet)}
+Commission: 20% on sales
+IP Ownership: 100% flows to source loop creators
+
+For detailed IP breakdown, view this track on mixmi
+` : `
+INTELLECTUAL PROPERTY RIGHTS
+Composition: 100% - ${shortenWallet(track.primary_uploader_wallet)}
+Sound Recording: 100% - ${shortenWallet(track.primary_uploader_wallet)}
+`;
+
+    const text = `
+mixmi CERTIFICATE
+Verified Upload
+═══════════════════════════════════════════
+
+Track: ${track.title}
+Artist: ${track.artist}
+Content Type: ${generationInfo.emoji} ${track.content_type.replace(/_/g, ' ')} · ${generationInfo.label}
+Upload Date: ${formatDate(track.created_at)}
+Track ID: ${track.id}
+${sourceTracksText}${ipRightsText}
+USAGE PERMISSIONS
+License Type: ${licenseInfo.type}
+Platform Price: ${licenseInfo.platformPrice}
+Download Price: ${licenseInfo.downloadPrice}
+
+Uploader Wallet: ${track.primary_uploader_wallet}
+${track.content_type === 'video_clip' ? `AI Contribution: ${getAIContribution()}` : ''}
+${track.bpm && track.content_type !== 'video_clip' ? `BPM: ${track.bpm}` : ''}
+${track.key ? `Key: ${track.key}` : ''}
+Price: ${track.price_stx} STX
+
+This certificate verifies the upload and attribution
+of this content on mixmi Alpha.
+
+Generated: ${formatDate(new Date().toISOString())}
+mixmi.app • Discover • Mix • Create
+    `.trim();
+
+    navigator.clipboard.writeText(text);
+    toast.success('Certificate info copied to clipboard!');
+  };
+
+  const certificateData = {
+    track_id: track.id,
+    title: track.title,
+    artist: track.artist,
+    uploaded_at: track.created_at,
+    uploader_wallet: track.primary_uploader_wallet,
+    content_type: track.content_type,
+    bpm: track.bpm,
+    key: track.key,
+    price_stx: track.price_stx,
+    ip_attribution: {
+      composition: [{ wallet: track.primary_uploader_wallet, percentage: 100 }],
+      sound_recording: [{ wallet: track.primary_uploader_wallet, percentage: 100 }]
+    },
+    mixmi_certificate: "This track was registered on mixmi Alpha"
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#101726] rounded-lg shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 hover:bg-[#1E293B] rounded-full transition-colors z-10"
+        >
+          <X className="w-5 h-5 text-gray-400 hover:text-white" />
+        </button>
+
+        {/* Certificate Content */}
+        <div className="p-8">
+          {/* Certificate Card */}
+          <div className="certificate-display bg-white text-gray-900 p-10 rounded-lg border-4 mb-6" style={{ borderColor }}>
+            {/* Header */}
+            <div className="text-center mb-6 border-b-2 pb-4" style={{ borderColor }}>
+              <div className="inline-block bg-[#101726] px-4 py-2 rounded-md mb-4">
+                <img
+                  src="/logos/logotype-mixmi.svg"
+                  alt="mixmi"
+                  className="h-4"
+                />
+              </div>
+              <div className="text-3xl font-bold mb-2 tracking-wider" style={{ color: borderColor }}>
+                {isRadio ? 'REGISTRATION CERTIFICATE' : 'CERTIFICATE'}
+              </div>
+              <div className="text-sm text-gray-600 uppercase tracking-widest font-semibold">
+                {isRadio ? 'Radio Station Registry' : 'Verified Upload'}
+              </div>
+            </div>
+
+            {/* Track Info */}
+            <div className="flex items-center gap-6 mb-6 bg-gray-50 p-5 rounded-lg">
+              <img
+                src={track.cover_image_url}
+                alt={track.title}
+                className="w-24 h-24 rounded-lg object-cover border-2"
+                style={{ borderColor }}
+              />
+              <div className="flex-1">
+                <div className="font-bold text-2xl mb-1">{track.title}</div>
+                <div className="text-gray-600 text-lg mb-2">{track.artist}</div>
+                <span
+                  className="inline-block px-3 py-1 text-xs rounded uppercase tracking-wide font-semibold"
+                  style={{
+                    backgroundColor: borderColor,
+                    color: borderColor === '#A8E66B' ? '#1e293b' : 'white'
+                  }}
+                >
+                  {isRadio
+                    ? track.content_type.replace(/_/g, ' ')
+                    : `${generationInfo.emoji} ${track.content_type.replace(/_/g, ' ')} · ${generationInfo.label}`
+                  }
+                </span>
+              </div>
+            </div>
+
+            {/* Certificate Details */}
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                  {isRadio ? 'Registration Details' : 'Upload Details'}
+                </div>
+                <div className="space-y-2 text-sm">
+                  <DetailRow label={isRadio ? "Registration Date" : "Upload Date"} value={formatDate(track.created_at)} />
+                  <DetailRow label={isRadio ? "Station ID" : "Track ID"} value={track.id} />
+                  <DetailRow label="Uploader" value={shortenWallet(track.primary_uploader_wallet)} />
+                  {isRadio && track.stream_url && <DetailRow label="Stream URL" value={track.stream_url} />}
+                  {isRadio && track.primary_location && <DetailRow label="Location" value={track.primary_location} />}
+                  {track.content_type === 'video_clip' && <DetailRow label="AI Contribution" value={getAIContribution()} />}
+                  {!isRadio && track.content_type !== 'video_clip' && track.bpm && <DetailRow label="BPM" value={track.bpm.toString()} />}
+                  {!isRadio && track.key && <DetailRow label="Key" value={track.key} />}
+                  {!isRadio && <DetailRow label="Price" value={`${track.price_stx} STX`} />}
+                </div>
+              </div>
+
+              {/* Source Tracks (for remixes) - Not shown for radio */}
+              {!isRadio && isRemix && (track.parent_track_1 || track.parent_track_2) && (
+                <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
+                  <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                    Built From Source Loops
+                  </div>
+                  <p className="text-gray-600 text-sm mb-3">This {generationInfo.label} remix combines:</p>
+                  <div className="space-y-2 text-sm">
+                    {track.parent_track_1 && (
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                        <span className="text-gray-600">• {track.parent_track_1.title}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">by {track.parent_track_1.artist}</span>
+                          <a
+                            href={`/store/${track.parent_track_1.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#81E4F2] hover:text-[#6dd4e4] text-xs font-medium"
+                          >
+                            View →
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {track.parent_track_2 && (
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600">• {track.parent_track_2.title}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">by {track.parent_track_2.artist}</span>
+                          <a
+                            href={`/store/${track.parent_track_2.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#81E4F2] hover:text-[#6dd4e4] text-xs font-medium"
+                          >
+                            View →
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* IP Rights - Not shown for radio */}
+              {!isRadio && (
+                <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
+                  <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                    Intellectual Property Rights
+                  </div>
+                  {isRemix ? (
+                    <>
+                      <div className="space-y-2 text-sm">
+                        <DetailRow label="Remix Created By" value={shortenWallet(track.primary_uploader_wallet)} />
+                        <DetailRow label="Commission" value="20% on sales" />
+                        <DetailRow label="IP Ownership" value="100% flows to source loop creators" />
+                      </div>
+                      <p className="text-gray-500 text-xs mt-3 italic">
+                        For detailed IP breakdown, view this track on mixmi
+                      </p>
+                    </>
+                  ) : (
+                    <div className="space-y-2 text-sm">
+                      <DetailRow label="Composition Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+                      <DetailRow label="Sound Recording Rights" value={`100% - ${shortenWallet(track.primary_uploader_wallet)}`} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Usage Permissions - Not shown for radio */}
+              {!isRadio && (
+                <div className="bg-gray-50 p-6 rounded-lg border-l-4" style={{ borderColor }}>
+                  <div className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-3">
+                    Usage Permissions
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <DetailRow label="License Type" value={licenseInfo.type} />
+                    <DetailRow label="Platform Price" value={licenseInfo.platformPrice} />
+                    <DetailRow label="Download Price" value={licenseInfo.downloadPrice} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-xs text-gray-500 mt-8 pt-6 border-t border-gray-200">
+              {isRadio
+                ? 'This certificate verifies the registration of this radio station on mixmi Alpha.'
+                : 'This certificate verifies the upload and attribution of this content on mixmi Alpha.'
+              }
+              <br />
+              <span className="font-semibold">mixmi.app</span> • Discover • Mix • Create
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 mb-4">
+            <button
+              onClick={handlePrint}
+              className="flex-1 min-w-[140px] px-4 py-3 bg-[#A084F9] hover:bg-[#8662e3] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <span>📄</span>
+              <span>Print Certificate</span>
+            </button>
+            <button
+              onClick={handleDownloadHTML}
+              className="flex-1 min-w-[140px] px-4 py-3 bg-[#1E293B] hover:bg-[#252a3a] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <span>💾</span>
+              <span>Download HTML</span>
+            </button>
+            <button
+              onClick={handleCopyText}
+              className="flex-1 min-w-[140px] px-4 py-3 bg-[#1E293B] hover:bg-[#252a3a] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <span>📋</span>
+              <span>Copy Info</span>
+            </button>
+          </div>
+
+          {/* Advanced: Raw JSON */}
+          <details className="mt-4">
+            <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-300 select-none">
+              Advanced: View Raw Data
+            </summary>
+            <pre className="mt-3 p-4 bg-[#0a0f1a] rounded text-xs text-gray-300 overflow-auto max-h-60 border border-[#1E293B]">
+              {JSON.stringify(certificateData, null, 2)}
+            </pre>
+          </details>
+        </div>
+      </div>
+
+      {/* Print-specific styles */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .certificate-display,
+          .certificate-display * {
+            visibility: visible;
+          }
+          .certificate-display {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white !important;
+            border: 6px solid #A084F9 !important;
+            page-break-inside: avoid;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+      <span className="text-gray-600">{label}:</span>
+      <span className="font-semibold text-gray-900">{value}</span>
+    </div>
+  );
+}

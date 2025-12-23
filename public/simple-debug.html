@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Debug - Image Paths</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            margin: 20px; 
+            background: #1e293b; 
+            color: #e2e8f0; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        .test-section { 
+            background: #374151; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+        }
+        .good { border-left: 4px solid #10b981; }
+        .bad { border-left: 4px solid #ef4444; }
+        img { 
+            max-width: 100px; 
+            height: 100px; 
+            object-fit: cover; 
+            border-radius: 5px; 
+            margin: 5px; 
+        }
+        button { 
+            background: #3b82f6; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        button:hover { background: #2563eb; }
+        .red { background: #dc2626; }
+        .red:hover { background: #b91c1c; }
+        .output { 
+            background: #111827; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Simple Debug - Find the Old Paths</h1>
+        
+        <div class="test-section good">
+            <h3>✅ CORRECT Paths (should work):</h3>
+            <p>These are the paths your placeholder data should use:</p>
+            <img src="/placeholders/profile/profile-image.jpeg" alt="Profile" onerror="this.style.border='3px solid red';">
+            <img src="/placeholders/spotlight/spotlight-item-1.jpeg" alt="Spotlight 1" onerror="this.style.border='3px solid red';">
+            <img src="/placeholders/shop/product-1.jpeg" alt="Shop 1" onerror="this.style.border='3px solid red';">
+            <img src="/placeholders/gallery/gallery-item-1.gif" alt="Gallery 1" onerror="this.style.border='3px solid red';">
+        </div>
+
+        <div class="test-section bad">
+            <h3>❌ OLD Paths (causing the errors):</h3>
+            <p>These paths don't exist and cause the errors you see:</p>
+            <img src="/placeholder-images/profile-image.jpg" alt="Old Profile" onerror="this.style.border='3px solid red';">
+            <img src="/placeholder-images/spotlight-1.jpg" alt="Old Spotlight" onerror="this.style.border='3px solid red';">
+            <img src="/placeholder-images/shop-1.jpg" alt="Old Shop" onerror="this.style.border='3px solid red';">
+            <img src="/placeholder-images/gallery-1.jpg" alt="Old Gallery" onerror="this.style.border='3px solid red';">
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Check localStorage:</h3>
+            <button onclick="checkStorage()">Check What's Cached</button>
+            <button onclick="clearBadStorage()" class="red">Clear Bad Data</button>
+            <button onclick="clearAllStorage()" class="red">Clear ALL localStorage</button>
+            <div id="storage-output" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test Main App:</h3>
+            <p>If images load correctly above but main app still shows errors:</p>
+            <button onclick="openMainApp()">Open Main App</button>
+            <button onclick="openIncognito()">Instructions for Incognito Test</button>
+        </div>
+    </div>
+
+    <script>
+        function checkStorage() {
+            const output = document.getElementById('storage-output');
+            let result = '=== localStorage Contents ===\n\n';
+            
+            const keys = ['mixmi-profile', 'mixmi-spotlight', 'mixmi-media', 'mixmi-shop', 'mixmi-gallery'];
+            
+            keys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    result += `${key}:\n`;
+                    try {
+                        const parsed = JSON.parse(data);
+                        result += JSON.stringify(parsed, null, 2) + '\n\n';
+                        
+                        // Check for old paths
+                        const stringData = JSON.stringify(parsed);
+                        if (stringData.includes('placeholder-images')) {
+                            result += `🚨 FOUND OLD PATHS in ${key}!\n\n`;
+                        }
+                    } catch (e) {
+                        result += `${data}\n\n`;
+                    }
+                } else {
+                    result += `${key}: (empty)\n\n`;
+                }
+            });
+            
+            output.textContent = result;
+        }
+        
+        function clearBadStorage() {
+            const keys = ['mixmi-profile', 'mixmi-spotlight', 'mixmi-media', 'mixmi-shop', 'mixmi-gallery'];
+            let cleared = [];
+            
+            keys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data && data.includes('placeholder-images')) {
+                    localStorage.removeItem(key);
+                    cleared.push(key);
+                }
+            });
+            
+            if (cleared.length > 0) {
+                alert(`✅ Cleared bad data from: ${cleared.join(', ')}`);
+            } else {
+                alert('✅ No bad data found in localStorage');
+            }
+            checkStorage();
+        }
+        
+        function clearAllStorage() {
+            if (confirm('⚠️ This will clear ALL localStorage data. Continue?')) {
+                localStorage.clear();
+                alert('✅ All localStorage cleared');
+                checkStorage();
+            }
+        }
+        
+        function openMainApp() {
+            window.open('http://localhost:3010', '_blank');
+        }
+        
+        function openIncognito() {
+            alert('1. Open new incognito/private window\n2. Go to http://localhost:3010\n3. Test image upload\n4. This will show if the issue is cached data');
+        }
+        
+        // Auto-check storage on load
+        window.onload = () => {
+            checkStorage();
+        };
+    </script>
+</body>
+</html> 

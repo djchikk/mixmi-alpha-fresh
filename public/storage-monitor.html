@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Monitor - Mixmi Profile Debug</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status-card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #475569;
+        }
+        .storage-item {
+            background: #334155;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .size-large {
+            background: #991b1b;
+            border: 1px solid #dc2626;
+        }
+        .size-medium {
+            background: #92400e;
+            border: 1px solid #f59e0b;
+        }
+        .size-small {
+            background: #065f46;
+            border: 1px solid #10b981;
+        }
+        button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+        }
+        button:hover {
+            background: #0284c7;
+        }
+        button.danger {
+            background: #dc2626;
+        }
+        button.danger:hover {
+            background: #b91c1c;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #475569;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #0ea5e9;
+            transition: width 0.3s ease;
+        }
+        .progress-fill.warning {
+            background: #f59e0b;
+        }
+        .progress-fill.danger {
+            background: #dc2626;
+        }
+        pre {
+            background: #1e293b;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 localStorage Storage Monitor</h1>
+        <p>Monitor localStorage usage and diagnose quota exceeded errors</p>
+
+        <div class="status-card">
+            <h2>Storage Usage</h2>
+            <div id="storageUsage">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="usageText">Calculating...</p>
+            </div>
+            <button onclick="refreshUsage()">Refresh Usage</button>
+        </div>
+
+        <div class="status-card">
+            <h2>Storage Items</h2>
+            <div id="storageItems"></div>
+            <button onclick="cleanLargeImages()">Clean Large Images</button>
+            <button onclick="clearAll()" class="danger">Clear All localStorage</button>
+        </div>
+
+        <div class="status-card">
+            <h2>Quick Actions</h2>
+            <button onclick="testQuotaLimit()">Test Quota Limit</button>
+            <button onclick="simulateSpotlightSave()">Simulate Spotlight Save</button>
+            <button onclick="testImageCompression()">Test Image Compression</button>
+            <button onclick="exportData()">Export Data</button>
+            <button onclick="showEnvironmentCheck()">Check Environment</button>
+        </div>
+
+        <div class="status-card">
+            <h2>Log Output</h2>
+            <pre id="logOutput">Ready...\n</pre>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function getStorageSize() {
+            let total = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    total += localStorage[key].length;
+                }
+            }
+            return total;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function refreshUsage() {
+            const totalUsed = getStorageSize();
+            const estimatedLimit = 5 * 1024 * 1024; // 5MB estimate
+            const percentage = (totalUsed / estimatedLimit) * 100;
+
+            const progressFill = document.getElementById('progressFill');
+            const usageText = document.getElementById('usageText');
+
+            progressFill.style.width = Math.min(percentage, 100) + '%';
+            
+            if (percentage > 80) {
+                progressFill.className = 'progress-fill danger';
+            } else if (percentage > 60) {
+                progressFill.className = 'progress-fill warning';
+            } else {
+                progressFill.className = 'progress-fill';
+            }
+
+            usageText.textContent = `Used: ${formatBytes(totalUsed)} / ~${formatBytes(estimatedLimit)} (${percentage.toFixed(1)}%)`;
+            
+            log(`Storage usage: ${formatBytes(totalUsed)} (${percentage.toFixed(1)}%)`);
+            
+            displayStorageItems();
+        }
+
+        function displayStorageItems() {
+            const container = document.getElementById('storageItems');
+            container.innerHTML = '';
+
+            const keys = Object.keys(localStorage).sort();
+            
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                const size = value ? value.length : 0;
+                const item = document.createElement('div');
+                
+                let sizeClass = 'size-small';
+                if (size > 100000) sizeClass = 'size-large'; // 100KB+
+                else if (size > 10000) sizeClass = 'size-medium'; // 10KB+
+                
+                item.className = `storage-item ${sizeClass}`;
+                
+                const hasBase64 = value && value.includes('data:image/');
+                const base64Count = hasBase64 ? (value.match(/data:image\//g) || []).length : 0;
+                
+                item.innerHTML = `
+                    <strong>${key}</strong> - ${formatBytes(size)}
+                    ${hasBase64 ? `<span style="color: #f59e0b;"> (⚠️ ${base64Count} base64 images)</span>` : ''}
+                    <br>
+                    <button onclick="viewItem('${key}')">View</button>
+                    <button onclick="cleanItem('${key}')" ${hasBase64 ? '' : 'disabled'}>Clean Images</button>
+                    <button onclick="deleteItem('${key}')" class="danger">Delete</button>
+                `;
+                
+                container.appendChild(item);
+            });
+
+            if (keys.length === 0) {
+                container.innerHTML = '<p>No localStorage items found</p>';
+            }
+        }
+
+        function cleanItem(key) {
+            try {
+                const value = localStorage.getItem(key);
+                if (!value) return;
+
+                const data = JSON.parse(value);
+                
+                // Clean base64 images
+                const cleaned = cleanBase64Images(data);
+                localStorage.setItem(key, JSON.stringify(cleaned));
+                
+                log(`Cleaned base64 images from ${key}`);
+                refreshUsage();
+            } catch (error) {
+                log(`Error cleaning ${key}: ${error.message}`);
+            }
+        }
+
+        function cleanBase64Images(data) {
+            if (Array.isArray(data)) {
+                return data.map(cleanBase64Images);
+            } else if (data && typeof data === 'object') {
+                const cleaned = { ...data };
+                
+                if (cleaned.image && typeof cleaned.image === 'string' && cleaned.image.startsWith('data:image/')) {
+                    // Replace with placeholder
+                    if (cleaned.id && cleaned.id.includes('spotlight')) {
+                        const itemNum = cleaned.id.includes('001') ? '1' : cleaned.id.includes('002') ? '2' : '3';
+                        cleaned.image = `/placeholders/spotlight/spotlight-item-${itemNum}.jpeg`;
+                    } else if (cleaned.id && cleaned.id.includes('shop')) {
+                        const itemNum = cleaned.id.includes('001') ? '1' : cleaned.id.includes('002') ? '2' : '3';
+                        cleaned.image = `/placeholders/shop/product-${itemNum}.jpeg`;
+                    } else {
+                        cleaned.image = '/placeholders/profile/profile-image.jpeg';
+                    }
+                    log(`Replaced base64 image with placeholder: ${cleaned.image}`);
+                }
+                
+                Object.keys(cleaned).forEach(key => {
+                    cleaned[key] = cleanBase64Images(cleaned[key]);
+                });
+                
+                return cleaned;
+            }
+            return data;
+        }
+
+        function cleanLargeImages() {
+            let cleaned = 0;
+            Object.keys(localStorage).forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value && value.includes('data:image/')) {
+                    cleanItem(key);
+                    cleaned++;
+                }
+            });
+            log(`Cleaned ${cleaned} items with base64 images`);
+        }
+
+        function viewItem(key) {
+            const value = localStorage.getItem(key);
+            const preview = value ? value.substring(0, 500) + (value.length > 500 ? '...' : '') : 'null';
+            alert(`${key}:\n\n${preview}`);
+        }
+
+        function deleteItem(key) {
+            if (confirm(`Delete "${key}" from localStorage?`)) {
+                localStorage.removeItem(key);
+                log(`Deleted ${key}`);
+                refreshUsage();
+            }
+        }
+
+        function clearAll() {
+            if (confirm('Clear ALL localStorage data? This cannot be undone!')) {
+                localStorage.clear();
+                log('Cleared all localStorage data');
+                refreshUsage();
+            }
+        }
+
+        function testQuotaLimit() {
+            try {
+                let testData = 'x'.repeat(1024); // 1KB
+                let size = 1;
+                
+                while (size < 10) { // Test up to 10MB
+                    try {
+                        localStorage.setItem('quota-test', testData);
+                        localStorage.removeItem('quota-test');
+                        testData += testData; // Double the size
+                        size *= 2;
+                    } catch (error) {
+                        log(`Quota limit reached at approximately ${size}KB: ${error.name}`);
+                        break;
+                    }
+                }
+                
+                if (size >= 10) {
+                    log('Quota test completed without errors up to 10MB');
+                }
+            } catch (error) {
+                log(`Quota test error: ${error.message}`);
+            }
+        }
+
+        function simulateSpotlightSave() {
+            const testData = [
+                {
+                    id: 'spotlight-item-001',
+                    title: 'Test Item',
+                    description: 'Test description',
+                    image: 'data:image/jpeg;base64,' + 'x'.repeat(100000), // Simulate large base64
+                    link: 'https://example.com'
+                }
+            ];
+            
+            try {
+                localStorage.setItem('test-spotlight', JSON.stringify(testData));
+                log('Simulated spotlight save successful');
+                setTimeout(() => {
+                    localStorage.removeItem('test-spotlight');
+                    log('Cleaned up test data');
+                    refreshUsage();
+                }, 2000);
+            } catch (error) {
+                log(`Simulated save failed: ${error.name} - ${error.message}`);
+            }
+        }
+
+                 function testImageCompression() {
+             log('🧪 Testing image compression capabilities...');
+             
+             // Create a test canvas with a large image
+             const canvas = document.createElement('canvas');
+             canvas.width = 1200;
+             canvas.height = 800;
+             const ctx = canvas.getContext('2d');
+             
+             if (!ctx) {
+                 log('❌ Canvas not supported');
+                 return;
+             }
+             
+             // Draw a test pattern
+             const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+             gradient.addColorStop(0, '#ff6b6b');
+             gradient.addColorStop(0.5, '#4ecdc4');
+             gradient.addColorStop(1, '#45b7d1');
+             ctx.fillStyle = gradient;
+             ctx.fillRect(0, 0, canvas.width, canvas.height);
+             
+             // Add some text and shapes
+             ctx.fillStyle = 'white';
+             ctx.font = '48px Arial';
+             ctx.fillText('COMPRESSION TEST', 50, 100);
+             
+             // Create circles
+             for (let i = 0; i < 20; i++) {
+                 ctx.beginPath();
+                 ctx.arc(
+                     Math.random() * canvas.width,
+                     Math.random() * canvas.height,
+                     Math.random() * 50 + 10,
+                     0,
+                     2 * Math.PI
+                 );
+                 ctx.fillStyle = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                 ctx.fill();
+             }
+             
+             // Get original base64
+             const originalBase64 = canvas.toDataURL('image/png', 1.0);
+             const originalSize = originalBase64.length;
+             log(`📏 Original image: ${formatBytes(originalSize)}`);
+             
+             // Test different compression levels
+             const compressionTests = [
+                 { format: 'jpeg', quality: 0.9, label: 'JPEG 90%' },
+                 { format: 'jpeg', quality: 0.8, label: 'JPEG 80%' },
+                 { format: 'jpeg', quality: 0.6, label: 'JPEG 60%' },
+                 { format: 'webp', quality: 0.8, label: 'WebP 80%' }
+             ];
+             
+             compressionTests.forEach(test => {
+                 try {
+                     const compressed = canvas.toDataURL(`image/${test.format}`, test.quality);
+                     const compressedSize = compressed.length;
+                     const reduction = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+                     
+                     log(`🗜️ ${test.label}: ${formatBytes(compressedSize)} (${reduction}% reduction)`);
+                 } catch (error) {
+                     log(`❌ ${test.label}: Not supported`);
+                 }
+             });
+             
+             // Test resizing
+             const smallCanvas = document.createElement('canvas');
+             smallCanvas.width = 600;
+             smallCanvas.height = 400;
+             const smallCtx = smallCanvas.getContext('2d');
+             
+             if (smallCtx) {
+                 smallCtx.drawImage(canvas, 0, 0, smallCanvas.width, smallCanvas.height);
+                 const resized = smallCanvas.toDataURL('image/jpeg', 0.8);
+                 const resizedSize = resized.length;
+                 const resizeReduction = ((originalSize - resizedSize) / originalSize * 100).toFixed(1);
+                 
+                 log(`📐 Resized (50%) + JPEG 80%: ${formatBytes(resizedSize)} (${resizeReduction}% reduction)`);
+             }
+             
+             log('✅ Compression test completed');
+         }
+
+        function exportData() {
+            const data = {};
+            Object.keys(localStorage).forEach(key => {
+                data[key] = localStorage.getItem(key);
+            });
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'localStorage-backup.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('Exported localStorage data');
+        }
+
+        function showEnvironmentCheck() {
+            const env = {
+                userAgent: navigator.userAgent,
+                localStorage: typeof Storage !== 'undefined',
+                currentOrigin: window.location.origin,
+                storageEstimate: navigator.storage && navigator.storage.estimate ? 'Available' : 'Not available'
+            };
+            
+            log('Environment check:');
+            Object.entries(env).forEach(([key, value]) => {
+                log(`  ${key}: ${value}`);
+            });
+            
+            // Check for storage estimate if available
+            if (navigator.storage && navigator.storage.estimate) {
+                navigator.storage.estimate().then(estimate => {
+                    log(`  Quota: ${formatBytes(estimate.quota || 0)}`);
+                    log(`  Usage: ${formatBytes(estimate.usage || 0)}`);
+                });
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('logOutput').textContent = 'Ready...\n';
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Storage monitor initialized');
+            refreshUsage();
+        });
+    </script>
+</body>
+</html> 

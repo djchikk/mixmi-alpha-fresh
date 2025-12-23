@@ -1,0 +1,287 @@
+"use client";
+
+import React, { useState, useEffect, useRef, memo } from 'react';
+
+interface MasterTransportControlsProps {
+  // Current mixer state
+  deckALoaded: boolean;
+  deckBLoaded: boolean;
+  deckAPlaying: boolean;
+  deckBPlaying: boolean;
+  deckABPM: number;
+  recordingRemix: boolean;
+  syncActive: boolean;
+
+  // Control handlers
+  onMasterPlay: () => void;
+  onMasterPlayAfterCountIn: () => void;
+  onMasterStop: () => void;
+  onRecordToggle: () => void;
+  onMasterSyncReset: () => void;
+  onSyncToggle: () => void;
+
+  // Optional variant and BPM display
+  variant?: 'full' | 'simplified';
+  masterBPM?: number;
+
+  // Visual feedback
+  highlightPlayButton?: boolean; // Show cyan glow when grabbed loop is ready
+  hasRadio?: boolean; // Disable sync when radio is present
+  bothVideos?: boolean; // Disable sync when both decks have video clips
+
+  className?: string;
+}
+
+const MasterTransportControlsCompact = memo(function MasterTransportControlsCompact({
+  deckALoaded,
+  deckBLoaded,
+  deckAPlaying,
+  deckBPlaying,
+  deckABPM,
+  recordingRemix,
+  syncActive,
+  onMasterPlay,
+  onMasterPlayAfterCountIn,
+  onMasterStop,
+  onRecordToggle,
+  onMasterSyncReset,
+  onSyncToggle,
+  variant = 'full',
+  masterBPM,
+  highlightPlayButton = false,
+  hasRadio = false,
+  bothVideos = false,
+  className = ""
+}: MasterTransportControlsProps) {
+  const [countingIn, setCountingIn] = useState(false);
+  const [countBeat, setCountBeat] = useState(0);
+  const countTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Calculate if any decks are playing
+  const anyPlaying = deckAPlaying || deckBPlaying;
+  
+  // Calculate beat interval from Deck A BPM (always use Deck A as master for count-in)
+  const beatInterval = (60 / deckABPM) * 1000; // milliseconds per beat
+
+  // Fixed count-in effect - removed onMasterPlay from dependencies
+  useEffect(() => {
+    if (countingIn && countBeat > 0 && countBeat < 4) {
+      console.log(`🎵 COUNT-IN: Beat ${countBeat}, next beat in ${beatInterval}ms`);
+      countTimeoutRef.current = setTimeout(() => {
+        setCountBeat(prev => prev + 1);
+      }, beatInterval);
+      
+      return () => {
+        if (countTimeoutRef.current) {
+          clearTimeout(countTimeoutRef.current);
+        }
+      };
+    } else if (countingIn && countBeat >= 4) {
+      // Count-in complete, trigger actual play
+      console.log('🎵 COUNT-IN: Complete! Triggering master play without count-in...');
+      setCountingIn(false);
+      setCountBeat(0);
+      // Call the direct play function that bypasses count-in logic
+      onMasterPlayAfterCountIn();
+    }
+  }, [countingIn, countBeat, beatInterval]); // Removed onMasterPlay dependency
+
+  const handleMasterPlay = () => {
+    if (anyPlaying) {
+      // If anything is playing, pause everything and reset to beginning
+      console.log('🎵 MASTER TRANSPORT: Pausing and resetting to beginning');
+      onMasterStop();
+    } else {
+      // Start fresh with count-in sequence
+      if (deckALoaded || deckBLoaded) {
+        console.log(`🎵 MASTER TRANSPORT: Starting fresh 4-beat count-in at ${deckABPM} BPM`);
+        setCountingIn(true);
+        setCountBeat(1);
+      }
+    }
+  };
+
+  const handleMasterStop = () => {
+    // Cancel count-in if active
+    if (countingIn) {
+      setCountingIn(false);
+      setCountBeat(0);
+      if (countTimeoutRef.current) {
+        clearTimeout(countTimeoutRef.current);
+      }
+    }
+    onMasterStop();
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (countTimeoutRef.current) {
+        clearTimeout(countTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div className={`master-transport-controls relative grid grid-cols-3 items-center gap-4 bg-[#81E4F2]/10 rounded-lg px-3 py-2 ${className}`}>
+      {/* Mixer label - positioned just above the transport controls */}
+      <div
+        className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-500 uppercase tracking-[0.2em]"
+        style={{ fontFamily: 'var(--font-geist-mono)' }}
+      >
+        MIXER
+      </div>
+
+      {/* Count-In Display - positioned above controls, not overlapping */}
+      {countingIn && (
+        <div className="count-in-display absolute -top-12 left-1/2 transform -translate-x-1/2">
+          <div className="text-xl font-bold text-[#81E4F2] animate-pulse text-center">
+            {countBeat}
+          </div>
+        </div>
+      )}
+
+      {/* Left column: Play Button */}
+      <div className="flex justify-start">
+        <button
+          onClick={handleMasterPlay}
+          disabled={!deckALoaded && !deckBLoaded}
+          className={`master-play-btn w-10 h-10 rounded-full flex items-center justify-center text-base font-bold transition-all ${
+            anyPlaying
+              ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
+              : countingIn
+              ? 'bg-[#81E4F2]/50 border-2 border-[#81E4F2] text-slate-900 animate-pulse cursor-wait'
+              : highlightPlayButton
+              ? 'border-2 border-[#81E4F2] text-[#81E4F2] hover:border-[#81E4F2]/80 hover:text-[#81E4F2]/80 animate-pulse shadow-lg shadow-[#81E4F2]/50'
+              : deckALoaded || deckBLoaded
+              ? 'border-2 border-slate-600 text-slate-400 hover:border-[#81E4F2] hover:text-[#81E4F2] hover:shadow-[#81E4F2]/20'
+              : 'border-2 border-slate-700 text-slate-600 cursor-not-allowed'
+          }`}
+          title={
+            countingIn
+              ? `Counting in... ${countBeat}/4`
+              : anyPlaying
+              ? 'Pause & Reset to Beginning'
+              : highlightPlayButton
+              ? 'Play your grabbed loop! ▶'
+              : 'Play All (with count-in)'
+          }
+        >
+          {countingIn ? (
+            countBeat
+          ) : anyPlaying ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" className="text-[#81E4F2]">
+              <rect x="3" y="2" width="3" height="10" />
+              <rect x="8" y="2" width="3" height="10" />
+            </svg>
+          ) : (
+            '▶'
+          )}
+        </button>
+      </div>
+
+      {/* Center column: BPM Display */}
+      {variant === 'simplified' && masterBPM ? (
+        <div className="flex flex-col items-center">
+          <div className="text-xl font-bold text-slate-200">
+            {masterBPM}
+          </div>
+          <div className="text-[9px] text-slate-500 uppercase">BPM</div>
+        </div>
+      ) : (
+        <div /> // Empty spacer when no BPM
+      )}
+
+      {/* Right column: Sync Toggle Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={onSyncToggle}
+          disabled={!deckALoaded || !deckBLoaded || hasRadio || bothVideos}
+          className={`px-1.5 py-0.5 rounded-full text-[7px] font-bold transition-all uppercase tracking-wider ${
+            syncActive
+              ? 'bg-[#81E4F2] border-2 border-[#81E4F2] text-slate-900 hover:bg-[#81E4F2]/80'
+              : 'bg-black border-2 border-slate-400 text-slate-200 hover:bg-slate-600 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
+          title={
+            hasRadio
+              ? 'Radio stations cannot sync'
+              : bothVideos
+              ? 'Videos of different lengths cannot sync'
+              : !deckALoaded || !deckBLoaded
+              ? 'Load both decks to enable sync'
+              : syncActive
+              ? 'Disable sync'
+              : 'Enable sync'
+          }
+        >
+          SYNC
+        </button>
+      </div>
+
+      {/* Master Reset Button - only show for full variant */}
+      {variant === 'full' && (
+        <button
+          onClick={onMasterSyncReset}
+          disabled={!deckALoaded && !deckBLoaded}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105 ${
+            deckALoaded || deckBLoaded
+              ? 'border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300'
+              : 'border border-slate-700 text-slate-600 cursor-not-allowed'
+          }`}
+          title={
+            deckALoaded || deckBLoaded 
+              ? 'Stop transport and reset both tracks to start' 
+              : 'Load tracks to enable reset'
+          }
+        >
+          ⏮
+        </button>
+      )}
+
+      {/* Record Button - only show for full variant */}
+      {variant === 'full' && (
+        <button
+          onClick={onRecordToggle}
+          className={`record-btn w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs transition-all ${
+            recordingRemix
+              ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
+              : 'border-slate-600 text-slate-400 hover:border-red-500 hover:text-red-500'
+          }`}
+          title={recordingRemix ? 'Stop Recording' : 'Start Recording'}
+        >
+          <div className={`w-2.5 h-2.5 rounded-full ${
+            recordingRemix ? 'bg-white' : 'bg-current'
+          }`} />
+        </button>
+      )}
+
+      <style jsx>{`
+        .master-transport-controls {
+          position: relative;
+          /* Padding removed for compact version */
+          /* Background and border removed for compact version */
+        }
+        
+        .count-in-display {
+          z-index: 10;
+          background: rgba(6, 182, 212, 0.1);
+          border: 1px solid rgba(6, 182, 212, 0.3);
+          border-radius: 8px;
+          padding: 5px 8px;
+          backdrop-filter: blur(4px);
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+
+        .animate-pulse {
+          animation: pulse 1.8s ease-in-out infinite;
+        }
+      `}</style>
+    </div>
+  );
+});
+
+export default MasterTransportControlsCompact; 
