@@ -20,6 +20,7 @@ import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 // Network configuration
 const SUI_NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK || 'testnet') as 'testnet' | 'mainnet' | 'devnet';
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
+const APPLE_CLIENT_ID = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID!;
 
 // Mysten Labs prover endpoints
 const PROVER_URL = SUI_NETWORK === 'mainnet'
@@ -97,6 +98,23 @@ export function buildGoogleAuthUrl(nonce: string, redirectUri: string): string {
   });
 
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+/**
+ * Build Apple OAuth URL with zkLogin nonce
+ * Apple uses response_mode=fragment to return id_token in URL hash
+ */
+export function buildAppleAuthUrl(nonce: string, redirectUri: string): string {
+  const params = new URLSearchParams({
+    client_id: APPLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'id_token',
+    response_mode: 'fragment',
+    scope: 'openid email',
+    nonce: nonce,
+  });
+
+  return `https://appleid.apple.com/auth/authorize?${params.toString()}`;
 }
 
 /**

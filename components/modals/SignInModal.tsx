@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Modal from '../ui/Modal';
 import { useAuth } from '@/contexts/AuthContext';
 import GoogleSignInButton from '../auth/GoogleSignInButton';
+import AppleSignInButton from '../auth/AppleSignInButton';
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -224,6 +225,12 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
                 disabled={isAuthenticating}
               />
 
+              {/* Apple Sign-In */}
+              <AppleSignInButton
+                inviteCode={validatedInviteCode}
+                disabled={isAuthenticating}
+              />
+
               {/* OR Divider */}
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-px bg-white/10" />
@@ -248,7 +255,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
           <div className="text-center">
             <p className="text-gray-400 text-xs mb-2">
               {validatedInviteCode
-                ? '🎉 Google sign-in creates a SUI wallet for you automatically'
+                ? '🎉 Google or Apple sign-in creates a SUI wallet for you automatically'
                 : 'ℹ️ Alpha access required during early testing'
               }
             </p>
