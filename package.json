@@ -6,7 +6,8 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:remix-splits": "npx ts-node --project scripts/tsconfig.json scripts/test-remix-splits.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",

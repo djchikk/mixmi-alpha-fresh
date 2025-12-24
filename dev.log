@@ -1,0 +1,274 @@
+
+> mixmi-profile@0.1.0 dev
+> next dev -p 3010
+
+   ▲ Next.js 14.1.0
+   - Local:        http://localhost:3010
+   - Environments: .env.local
+
+ ✓ Ready in 16.2s
+ ○ Compiling /store ...
+ ✓ Compiled /store in 1839ms (1343 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled in 278ms (651 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 599ms (720 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 952ms (2577 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled in 466ms (1951 modules)
+ ✓ Compiled in 443ms (1951 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled /favicon.ico in 68ms (720 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled /store/[address] in 440ms (1969 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled /favicon.ico in 64ms (750 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled in 728ms (1983 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ⨯ components/shared/PersistentMixCart.tsx (112:8) @ cartState
+ ⨯ ReferenceError: cartState is not defined
+    at PersistentMixCart (./components/shared/PersistentMixCart.tsx:105:14)
+[0m [90m 110 |[39m     [33m>[39m[0m
+[0m [90m 111 |[39m       {[90m/* Collapsed State - Floating Button with Badge */[39m}[0m
+[0m[31m[1m>[22m[39m[90m 112 |[39m       {[33m![39mcartState[33m.[39misExpanded [33m&&[39m ([0m
+[0m [90m     |[39m        [31m[1m^[22m[39m[0m
+[0m [90m 113 |[39m         [33m<[39m[33mbutton[39m[0m
+[0m [90m 114 |[39m           onClick[33m=[39m{toggleExpanded}[0m
+[0m [90m 115 |[39m           className[33m=[39m[32m"cart-button-collapsed"[39m[0m
+ ✓ Compiled /favicon.ico in 58ms (750 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 431ms (1983 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled /favicon.ico in 51ms (750 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ○ Compiling / ...
+ ✓ Compiled / in 578ms (1336 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ○ Compiling /mixer ...
+ ✓ Compiled /mixer in 676ms (2627 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled in 603ms (2013 modules)
+ ✓ Compiled in 350ms (2013 modules)
+ ✓ Compiled in 305ms (2013 modules)
+ ⨯ ./components/shared/PersistentMixCart.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4m/Users/sandyhoover/Desktop/mixmi-globe-dev/components/shared/PersistentMixCart.tsx[0m:139:1]
+ [2m139[0m | 
+ [2m140[0m |   // Expanded state
+ [2m141[0m |   return (
+ [2m142[0m |     <div 
+     : [31;1m     ^^^[0m
+ [2m143[0m |       className={`collection-bar ${className}`}
+ [2m144[0m |       style={{
+ [2m145[0m |         position: 'fixed',
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/shared/PersistentMixCart.tsx
+./app/layout.tsx
+ ○ Compiling /_error ...
+ ⨯ ./components/shared/PersistentMixCart.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4m/Users/sandyhoover/Desktop/mixmi-globe-dev/components/shared/PersistentMixCart.tsx[0m:139:1]
+ [2m139[0m | 
+ [2m140[0m |   // Expanded state
+ [2m141[0m |   return (
+ [2m142[0m |     <div 
+     : [31;1m     ^^^[0m
+ [2m143[0m |       className={`collection-bar ${className}`}
+ [2m144[0m |       style={{
+ [2m145[0m |         position: 'fixed',
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/shared/PersistentMixCart.tsx
+./app/layout.tsx
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development-fallback/0.pack.gz_' -> '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development-fallback/0.pack.gz'
+ ✓ Compiled /not-found in 664ms (2166 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled /favicon.ico in 159ms (808 modules)
+ ✓ Compiled in 395ms (2208 modules)
+[Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/server-development/2.pack.gz'
+[Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/Users/sandyhoover/Desktop/mixmi-globe-dev/.next/cache/webpack/client-development/16.pack.gz'
+ ○ Compiling /api/auth/create-session ...
+ ✓ Compiled /api/auth/create-session in 580ms (947 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+🔐 Creating JWT for wallet: SP2J6ZY4...
+🔧 Generated UUID for wallet: c7e7cd44-c407-128b-938d-a06255098447
+🎯 ABOUT TO START USER CREATION PROCESS...
+🔧 Getting Supabase admin client...
+🔧 Supabase admin client result: true
+🔍 Checking if user exists in Supabase...
+🔧 Attempting to get user by ID: c7e7cd44-c407-128b-938d-a06255098447
+🔧 Get user result: { hasUser: true, error: false }
+✅ User already exists in Supabase
+🎯 USER CREATION PROCESS COMPLETE, CREATING JWT...
+✅ JWT created successfully for wallet
+🔐 Creating JWT for wallet: SP2J6ZY4...
+🔧 Generated UUID for wallet: c7e7cd44-c407-128b-938d-a06255098447
+🎯 ABOUT TO START USER CREATION PROCESS...
+🔧 Getting Supabase admin client...
+🔧 Supabase admin client result: true
+🔍 Checking if user exists in Supabase...
+🔧 Attempting to get user by ID: c7e7cd44-c407-128b-938d-a06255098447
+🔧 Get user result: { hasUser: true, error: false }
+✅ User already exists in Supabase
+🎯 USER CREATION PROCESS COMPLETE, CREATING JWT...
+✅ JWT created successfully for wallet
+ ✓ Compiled in 405ms (2175 modules)
+ ✓ Compiled in 260ms (1398 modules)
+ ✓ Compiled in 412ms (2175 modules)
+ ✓ Compiled in 315ms (2175 modules)
+🔧 Supabase Environment: { url: 'Loaded ✅', anonKey: 'Loaded ✅', serviceKey: 'Loaded ✅' }
+✅ Supabase regular client initialized
+✅ Supabase admin client initialized
+ ✓ Compiled /favicon.ico in 224ms (805 modules)
+ ✓ Compiled in 280ms (1398 modules)
+ ✓ Compiled in 381ms (2175 modules)
+ ✓ Compiled in 401ms (2176 modules)
+ ✓ Compiled in 374ms (2176 modules)
+ ✓ Compiled in 338ms (2176 modules)
+ ✓ Compiled in 438ms (2176 modules)
+ ✓ Compiled in 329ms (2174 modules)
+ ⨯ ./components/cards/CompactTrackCard.tsx
+Error: 
+  [31mx[0m Expression expected
+     ,-[[36;1;4m/Users/sandyhoover/Desktop/mixmi-globe-dev/components/cards/CompactTrackCard.tsx[0m:121:1]
+ [2m121[0m |   };
+ [2m122[0m | 
+ [2m123[0m |   return (
+ [2m124[0m |     <>
+     : [31;1m     ^[0m
+ [2m125[0m |       <div className="relative group">
+ [2m126[0m |       {/* Compact Card Container - 160x160px */}
+ [2m127[0m |       <div 
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/cards/CompactTrackCard.tsx
+./components/store/CreatorStore.tsx
+./app/store/page.tsx
+ ⨯ ./components/cards/CompactTrackCard.tsx
+Error: 
+  [31mx[0m Expression expected
+     ,-[[36;1;4m/Users/sandyhoover/Desktop/mixmi-globe-dev/components/cards/CompactTrackCard.tsx[0m:121:1]
+ [2m121[0m |   };
+ [2m122[0m | 
+ [2m123[0m |   return (
+ [2m124[0m |     <>
+     : [31;1m     ^[0m
+ [2m125[0m |       <div className="relative group">
+ [2m126[0m |       {/* Compact Card Container - 160x160px */}
+ [2m127[0m |       <div 
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/cards/CompactTrackCard.tsx
+./components/store/CreatorStore.tsx
+./app/store/page.tsx
+ ✓ Compiled in 310ms (2176 modules)
+ ✓ Compiled in 345ms (2176 modules)
+ ✓ Compiled /favicon.ico in 230ms (805 modules)
+ ✓ Compiled in 391ms (2176 modules)
+ ✓ Compiled in 309ms (2176 modules)
+ ✓ Compiled in 339ms (2176 modules)
+ ✓ Compiled in 351ms (2176 modules)
+ ✓ Compiled in 229ms (2176 modules)
+ ✓ Compiled in 341ms (2176 modules)
+ ✓ Compiled in 228ms (2176 modules)
+ ✓ Compiled in 330ms (2176 modules)
+ ✓ Compiled in 243ms (2176 modules)
+ ✓ Compiled in 394ms (2176 modules)

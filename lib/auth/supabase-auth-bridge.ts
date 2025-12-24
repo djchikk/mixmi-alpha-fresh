@@ -29,7 +29,7 @@ export class SupabaseAuthBridge {
    * This bridges the gap between Stacks wallet auth and Supabase RLS
    */
   static async createWalletSession(
-    walletAddress: string, 
+    walletAddress: string,
     options: WalletVerificationOptions = {}
   ): Promise<WalletAuthSession> {
     try {
@@ -42,10 +42,10 @@ export class SupabaseAuthBridge {
       // Call server-side API to create JWT token securely
       const response = await fetch('/api/auth/create-session', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           walletAddress,
           signature: options.signature
         })
@@ -170,14 +170,14 @@ export class SupabaseAuthBridge {
     try {
       // Create authenticated session
       const session = await this.createWalletSession(walletAddress);
-      
+
       // Generate file path
       const timestamp = Date.now();
       const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
       const filePath = path || `${walletAddress}/gifs/${fileName}`;
-      
+
       console.log('📤 Uploading file to:', filePath);
-      
+
       // Upload file using authenticated Supabase client
       const { data: uploadData, error: uploadError } = await session.supabase.storage
         .from('user-content')
@@ -185,24 +185,24 @@ export class SupabaseAuthBridge {
           cacheControl: '3600',
           upsert: false
         });
-      
+
       if (uploadError) {
         console.error('🚨 Upload failed:', uploadError);
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
-      
+
       // Get public URL
       const { data: urlData } = session.supabase.storage
         .from('user-content')
         .getPublicUrl(filePath);
-      
+
       console.log('✅ File uploaded successfully:', urlData.publicUrl);
-      
+
       return {
         url: urlData.publicUrl,
         path: filePath
       };
-      
+
     } catch (error) {
       console.error('🚨 Authenticated upload failed:', error);
       throw error;
@@ -213,7 +213,7 @@ export class SupabaseAuthBridge {
    * Verify wallet signature (placeholder for future Stacks wallet integration)
    */
   private static async verifyStacksWalletSignature(
-    walletAddress: string, 
+    walletAddress: string,
     signature: string
   ): Promise<boolean> {
     // TODO: Implement actual Stacks signature verification
@@ -222,4 +222,4 @@ export class SupabaseAuthBridge {
   }
 }
 
-export default SupabaseAuthBridge; 
+export default SupabaseAuthBridge;

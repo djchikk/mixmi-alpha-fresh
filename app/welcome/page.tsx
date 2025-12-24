@@ -29,18 +29,18 @@ const designVars = {
 
 export default function Welcome() {
   return (
-    <div 
+    <div
       className="min-h-screen relative"
-      style={{ 
+      style={{
         background: 'linear-gradient(135deg, rgba(10,14,26,0.95) 0%, rgba(20,25,39,0.98) 50%, rgba(10,14,26,0.95) 100%)',
         color: designVars.textPrimary
       }}
     >
       <Header />
-      
-      <div 
-        className="max-w-6xl mx-auto px-6 py-16 relative" 
-        style={{ 
+
+      <div
+        className="max-w-6xl mx-auto px-6 py-16 relative"
+        style={{
           paddingTop: '120px'
         }}
       >
@@ -58,8 +58,8 @@ export default function Welcome() {
             zIndex: 0
           }}
         >
-          <Globe 
-            nodes={[]} 
+          <Globe
+            nodes={[]}
             onNodeClick={() => {}}
             onNodeHover={() => {}}
             selectedNode={null}

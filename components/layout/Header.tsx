@@ -25,7 +25,7 @@ export default function Header() {
   const isMixerPage = pathname === '/mixer';
   const isProfilePage = pathname?.startsWith('/profile');
   const isStorePage = pathname?.startsWith('/store');
-  
+
   // Use auth on all pages for wallet functionality
   const { isAuthenticated, connectWallet, disconnectWallet, walletAddress, suiAddress, authType } = useAuth();
 
@@ -136,11 +136,11 @@ export default function Header() {
       {/* Left: Logo */}
       <div className="flex-1">
         <Link href="/" className="flex items-center">
-          <Image 
-            src="/logos/logotype-mixmi.svg" 
-            alt="mixmi Logo" 
-            width={100} 
-            height={32} 
+          <Image
+            src="/logos/logotype-mixmi.svg"
+            alt="mixmi Logo"
+            width={100}
+            height={32}
             priority
           />
         </Link>
@@ -328,7 +328,7 @@ export default function Header() {
             </button>
           )}
         </div>
-        
+
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -560,4 +560,4 @@ export default function Header() {
     </header>
     </>
   );
-} 
+}

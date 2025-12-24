@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     suiAddress: null as string | null,
     authType: null as 'wallet' | 'invite' | 'zklogin' | null
   });
-  
+
   // Load auth state from storage and check if user is already signed in
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -108,27 +108,27 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setAuth(defaultAuthState);
     }
   }, []);
-  
+
   // Save auth state to storage when it changes
   useEffect(() => {
     if (auth.isAuthenticated) {
       StorageService.setItem(STORAGE_KEYS.AUTH, auth);
     }
   }, [auth]);
-  
+
   const connectWallet = async () => {
     try {
       const appDetails = {
         name: "mixmi Profile",
         icon: window.location.origin + "/favicon.ico",
       };
-      
+
       console.log("Connecting to wallet...");
-      
+
       // Use dynamic import to fix @stacks/connect v8.2.0 static import issues
       const connectModule = await import("@stacks/connect");
       const connectFunction = connectModule.authenticate; // Use authenticate, not openConnect
-      
+
       connectFunction({
         appDetails,
         redirectTo: '/',
@@ -138,11 +138,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           if (userSession.isUserSignedIn()) {
             const userData = userSession.loadUserData();
             console.log("User is signed in, data:", userData);
-            
+
             // Extract addresses with fallbacks
             const stxAddress = userData.profile?.stxAddress?.mainnet || null;
             const btcAddress = userData.profile?.btcAddress?.p2wpkh?.mainnet || null;
-            
+
             if (stxAddress) {
               // First set the auth state
               setAuth({
@@ -152,13 +152,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
                 suiAddress: null,
                 authType: 'wallet'
               });
-              
+
               // Log for debugging
               console.log("Wallet addresses set:", {
                 stx: stxAddress,
                 btc: btcAddress
               });
-              
+
               // 🚀 Now create the Supabase session with JWT token
               try {
                 console.log("🔐 Creating Supabase session for wallet:", stxAddress);
@@ -182,12 +182,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       });
     } catch (error) {
       console.error("Error connecting to wallet:", error);
-      
+
       // ALPHA UPLOADER: No fallback to mock data - let connection fail gracefully
       console.log("Wallet connection failed - users can still enter wallet address manually");
     }
   };
-  
+
   const disconnectWallet = () => {
     if (userSession.isUserSignedIn()) {
       userSession.signUserOut();
@@ -213,7 +213,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     });
     StorageService.removeItem(STORAGE_KEYS.AUTH);
   };
-  
+
   return (
     <AuthContext.Provider value={{
       isAuthenticated: auth.isAuthenticated,
@@ -235,4 +235,4 @@ export const useAuth = () => {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-}; 
+};
