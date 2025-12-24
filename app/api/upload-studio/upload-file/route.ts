@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateThumbnails, THUMBNAIL_SIZES } from '@/lib/thumbnailGenerator';
 
+// Force dynamic to prevent build-time evaluation (uses sharp via thumbnailGenerator)
+export const dynamic = 'force-dynamic';
+
 // Initialize Supabase with service role for uploads
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
