@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * Receives text, sends to OpenAI TTS API,
  * returns audio stream.
  *
- * Request: { text: string, voice?: string }
+ * Request: { text: string, voice?: string, walletAddress: string }
  * Response: audio/mpeg stream
  */
 export async function POST(request: NextRequest) {
@@ -22,7 +22,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { text, voice = 'nova' } = body;
+    const { text, voice = 'nova', walletAddress } = body;
+
+    // Auth check: require wallet address
+    if (!walletAddress || walletAddress.length < 10) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json(

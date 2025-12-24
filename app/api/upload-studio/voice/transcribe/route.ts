@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * Receives audio blob from browser, sends to OpenAI Whisper API,
  * returns transcribed text.
  *
- * Request: FormData with 'audio' file
+ * Request: FormData with 'audio' file and 'walletAddress'
  * Response: { text: string } or { error: string }
  */
 export async function POST(request: NextRequest) {
@@ -23,6 +23,16 @@ export async function POST(request: NextRequest) {
 
     // Get the audio file from the request
     const formData = await request.formData();
+
+    // Auth check: require wallet address
+    const walletAddress = formData.get('walletAddress') as string;
+    if (!walletAddress || walletAddress.length < 10) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const audioFile = formData.get('audio') as File | null;
 
     if (!audioFile) {

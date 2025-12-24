@@ -200,6 +200,7 @@ export default function ConversationalUploader({ walletAddress }: Conversational
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('walletAddress', walletAddress);
 
       const response = await fetch('/api/upload-studio/voice/transcribe', {
         method: 'POST',
@@ -244,7 +245,7 @@ export default function ConversationalUploader({ walletAddress }: Conversational
       const response = await fetch('/api/upload-studio/voice/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice: 'nova' }),
+        body: JSON.stringify({ text, voice: 'nova', walletAddress }),
       });
 
       if (!response.ok) {
