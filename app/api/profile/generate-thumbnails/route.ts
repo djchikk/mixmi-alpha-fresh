@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import sharp from 'sharp';
 
-// Force dynamic to prevent build-time evaluation (sharp has native dependencies)
+// Force dynamic - sharp is imported dynamically at runtime
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // Initialize Supabase with service role for uploads
 const supabase = createClient(
@@ -43,6 +43,9 @@ async function generateProfileThumbnails(
   baseFilename: string,
   contentType: string
 ): Promise<ThumbnailResult[]> {
+  // Dynamic import of sharp to avoid build-time native module issues
+  const sharp = (await import('sharp')).default;
+
   const results: ThumbnailResult[] = [];
   const isGif = contentType === 'image/gif';
   const animated = isGif && await isAnimatedGif(imageBuffer);

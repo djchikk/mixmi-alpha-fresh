@@ -7,7 +7,7 @@
  * Sizes: 64px (tiny mixer), 160px (cards), 256px (big mixer decks)
  */
 
-import sharp from 'sharp';
+// Sharp is imported dynamically to avoid build-time native module issues
 
 export const THUMBNAIL_SIZES = [64, 160, 256] as const;
 export type ThumbnailSize = typeof THUMBNAIL_SIZES[number];
@@ -50,6 +50,9 @@ export async function generateStaticThumbnails(
   baseFilename: string,
   contentType: string
 ): Promise<ThumbnailResult[]> {
+  // Dynamic import of sharp to avoid build-time native module issues
+  const sharp = (await import('sharp')).default;
+
   const results: ThumbnailResult[] = [];
 
   // Determine output format based on input
@@ -101,6 +104,9 @@ export async function generateAnimatedGifThumbnails(
   gifBuffer: Buffer,
   baseFilename: string
 ): Promise<ThumbnailResult[]> {
+  // Dynamic import of sharp to avoid build-time native module issues
+  const sharp = (await import('sharp')).default;
+
   const results: ThumbnailResult[] = [];
 
   for (const size of THUMBNAIL_SIZES) {
