@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
+// Force dynamic to prevent build-time evaluation (sharp has native dependencies)
+export const dynamic = 'force-dynamic';
+
 // Initialize Supabase with service role for uploads
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
