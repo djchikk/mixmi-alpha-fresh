@@ -41,7 +41,8 @@ export default function AppleSignInButton({
       storePendingZkLogin(ephemeralKeyPair, maxEpoch, randomness, inviteCode);
 
       // Step 5: Build Apple OAuth URL
-      const redirectUri = `${window.location.origin}/auth/callback`;
+      // Note: Apple requires exact redirect URI match - using /auth/callback/apple as configured in Apple Developer Console
+      const redirectUri = `${window.location.origin}/auth/callback/apple`;
       const appleAuthUrl = buildAppleAuthUrl(nonce, redirectUri);
 
       // Debug: Log the URL being used
