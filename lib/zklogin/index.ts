@@ -102,13 +102,14 @@ export function buildGoogleAuthUrl(nonce: string, redirectUri: string): string {
 
 /**
  * Build Apple OAuth URL with zkLogin nonce
- * Apple uses response_mode=fragment to return id_token in URL hash
+ * Apple requires response_type: 'code id_token' for web apps
+ * Uses response_mode=fragment to return id_token in URL hash
  */
 export function buildAppleAuthUrl(nonce: string, redirectUri: string): string {
   const params = new URLSearchParams({
     client_id: APPLE_CLIENT_ID,
     redirect_uri: redirectUri,
-    response_type: 'id_token',
+    response_type: 'code id_token',
     response_mode: 'fragment',
     scope: 'openid email',
     nonce: nonce,
