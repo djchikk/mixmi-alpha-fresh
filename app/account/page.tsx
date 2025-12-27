@@ -72,7 +72,6 @@ export default function AccountPage() {
   const [isMusicUploadModalOpen, setIsMusicUploadModalOpen] = useState(false);
   const [isRadioUploadModalOpen, setIsRadioUploadModalOpen] = useState(false);
   const [isVideoUploadModalOpen, setIsVideoUploadModalOpen] = useState(false);
-  const [isAddPersonaModalOpen, setIsAddPersonaModalOpen] = useState(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -1220,6 +1219,7 @@ function SettingsTab({
   // Modal states
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isAddPersonaModalOpen, setIsAddPersonaModalOpen] = useState(false);
 
   // Fetch profile data
   const fetchProfileData = async () => {
