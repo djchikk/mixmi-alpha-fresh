@@ -19,6 +19,7 @@ export interface Track {
   primary_uploader_wallet?: string; // For linking to creator's store
   created_at?: string; // For IPTrack conversion compatibility
   updated_at?: string; // For IPTrack conversion compatibility
+  foundByAgent?: boolean; // Track was found by user's AI agent
 }
 
 export interface FXState {

@@ -865,6 +865,16 @@ export default function Crate({ className = '' }: CrateProps) {
                 </>
               )}
 
+              {/* Agent found badge - show when not hovering */}
+              {track.foundByAgent && hoveredTrackId !== track.id && (
+                <div
+                  className="absolute top-1 right-1 text-xs"
+                  title="Found by your agent"
+                >
+                  🤖
+                </div>
+              )}
+
               {/* Playing indicator (always visible when playing) */}
               {playingTrack === track.id && hoveredTrackId !== track.id && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">

@@ -16,6 +16,9 @@ import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFli
 import ProfileImageModal from "@/components/profile/ProfileImageModal";
 import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
 import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star } from 'lucide-react';
+import AgentVibeMatcher from '@/components/agent/AgentVibeMatcher';
+import { Track } from '@/components/mixer/types';
+import { useMixer } from '@/contexts/MixerContext';
 import { PRICING } from '@/config/pricing';
 import { generateAvatar } from '@/lib/avatarUtils';
 
@@ -1188,6 +1191,14 @@ function SettingsTab({
   onProfileImageUpdate?: (url: string | null, thumbUrl: string | null) => void;
 }) {
   const [loading, setLoading] = useState(true);
+  const [agentSearching, setAgentSearching] = useState(false);
+  const [agentResults, setAgentResults] = useState<{ count: number; message: string } | null>(null);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const mixerContext = useMixer();
+  const addTrackToCollection = mixerContext?.addTrackToCollection;
+  const router = useRouter();
+  const [agentName, setAgentName] = useState('');
   const [profile, setProfile] = useState<{
     username?: string | null;
     bns_name?: string | null;
@@ -1264,6 +1275,12 @@ function SettingsTab({
     fetchProfileData();
   }, [walletAddress, suiAddress]);
 
+  // Load agent name from localStorage
+  useEffect(() => {
+    const savedName = localStorage.getItem('agent-name');
+    if (savedName) setAgentName(savedName);
+  }, []);
+
   const handleProfileUpdate = async () => {
     await fetchProfileData();
     // Notify parent to update the profile image in the header
@@ -1286,6 +1303,39 @@ function SettingsTab({
     profile.avatar_url.includes('.webm') ||
     profile.avatar_url.includes('video/')
   );
+
+  // Handle zkLogin disconnect
+  const handleDisconnectZkLogin = async () => {
+    if (!suiAddress) return;
+
+    setDisconnecting(true);
+    try {
+      const response = await fetch('/api/auth/zklogin/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suiAddress }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Clear local storage and redirect to home
+        localStorage.removeItem('zklogin_session');
+        localStorage.removeItem('sui_address');
+        alert('zkLogin disconnected! You will be redirected to sign in again.');
+        router.push('/');
+        // Force page reload to clear auth state
+        window.location.reload();
+      } else {
+        alert('Failed to disconnect: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      alert('Failed to disconnect. Please try again.');
+    }
+    setDisconnecting(false);
+    setShowDisconnectConfirm(false);
+  };
 
   return (
     <div>
@@ -1548,105 +1598,192 @@ function SettingsTab({
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl">🤖</span>
-            <h3 className="text-white font-semibold">Your Agent</h3>
+            <h3 className="text-white font-semibold">
+              {agentName || 'Your Agent'}
+            </h3>
           </div>
 
-          {(() => {
-            const agentPersona = personas.find(p => (p as any).is_agent);
+          {/* Agent Name */}
+          <div className="mb-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                placeholder="Name your agent..."
+                value={agentName}
+                onChange={(e) => {
+                  setAgentName(e.target.value);
+                  localStorage.setItem('agent-name', e.target.value);
+                }}
+                className="flex-1 bg-[#0a0f1a] border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm focus:border-[#81E4F2] focus:outline-none transition-colors"
+              />
+              <span className="text-gray-500 text-sm">🤖</span>
+            </div>
+            <p className="text-gray-500 text-xs mt-1">
+              Give your AI bestie a name
+            </p>
+          </div>
 
-            if (agentPersona) {
-              const agent = agentPersona as any;
-              return (
-                <div className="space-y-4">
-                  {/* Agent Card */}
-                  <div className="flex items-center gap-4 p-4 bg-[#0a0f1a] rounded-lg border border-[#1E293B]">
-                    {/* Avatar */}
-                    <div className="w-16 h-16 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0 ring-2 ring-[#81E4F2]/50">
-                      {(() => {
-                        const avatarSrc = agent.avatar_url || profile.avatar_url;
-                        const isVideo = avatarSrc && (avatarSrc.includes('.mp4') || avatarSrc.includes('.webm') || avatarSrc.includes('video/'));
-                        if (isVideo) {
-                          return <video src={avatarSrc} className="w-full h-full object-cover" autoPlay loop muted playsInline />;
-                        }
-                        return <img src={avatarSrc || generateAvatar(agent.username || agent.id)} alt={agent.display_name || 'Agent'} className="w-full h-full object-cover" />;
-                      })()}
-                    </div>
+          <p className="text-gray-400 text-sm mb-4">
+            Drop a track below or describe what you're looking for.
+          </p>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-medium truncate">
-                          {agent.display_name || agent.username || 'Unnamed Agent'}
-                        </span>
-                        <span className="text-xs px-2 py-0.5 bg-[#81E4F2]/20 text-[#81E4F2] rounded">🤖 Agent</span>
-                      </div>
-                      {agent.username && (
-                        <div className="text-sm text-gray-400">@{agent.username}</div>
-                      )}
-                    </div>
+          <AgentVibeMatcher
+            onWakeUp={async (mode, input) => {
+              setAgentSearching(true);
+              setAgentResults(null);
+              console.log('[Agent] Waking up in mode:', mode);
+              console.log('[Agent] Input:', typeof input === 'string' ? input : input.title);
 
-                    {/* Balance */}
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-[#81E4F2] font-mono font-medium">
-                        ${agent.balance_usdc?.toFixed(2) || '0.00'} USDC
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        ${agent.agent_spent_today_usdc?.toFixed(2) || '0.00'} / ${agent.agent_daily_limit_usdc?.toFixed(2) || '5.00'} today
-                      </div>
-                    </div>
-                  </div>
+              try {
+                const response = await fetch('/api/agent/vibe-match', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ mode, input }),
+                });
 
-                  {/* Mission */}
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Mission</label>
-                    <div className="p-3 bg-[#0a0f1a] rounded-lg border border-[#1E293B] text-sm text-gray-300 whitespace-pre-wrap">
-                      {agent.agent_mission || (
-                        <span className="text-gray-500 italic">No mission set. Tell your agent what kind of loops to hunt for!</span>
-                      )}
-                    </div>
-                  </div>
+                const data = await response.json();
 
-                  {/* Daily Budget */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm text-gray-400">Daily Budget: </span>
-                      <span className="text-white font-mono">${agent.agent_daily_limit_usdc?.toFixed(2) || '5.00'} USDC</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => console.log('Edit agent:', agent.id)}
-                        className="px-4 py-2 text-sm text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-700/30 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => console.log('Wake agent:', agent.id)}
-                        className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
-                      >
-                        Wake Up
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
+                if (data.success && data.tracks && data.tracks.length > 0) {
+                  console.log('[Agent] Found', data.tracks.length, 'tracks');
 
-            // No agent yet - show create button
-            return (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-3">🤖</div>
-                <button
-                  onClick={() => console.log('Create agent')}
-                  className="px-6 py-3 text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
-                >
-                  + Create Your Agent
-                </button>
-                <p className="text-gray-500 text-sm mt-3">
-                  Give life to your AI bestie that collects and mixes
-                </p>
+                  // Add each track to the Crate with foundByAgent flag
+                  if (addTrackToCollection) {
+                    for (const track of data.tracks) {
+                      // Convert to IPTrack format for addTrackToCollection
+                      const ipTrack = {
+                        id: track.id,
+                        title: track.title,
+                        artist: track.artist,
+                        cover_image_url: track.cover_image_url || track.imageUrl,
+                        audio_url: track.audioUrl,
+                        bpm: track.bpm,
+                        content_type: track.content_type,
+                        stream_url: track.stream_url,
+                        video_url: track.video_url,
+                        price_stx: track.price_stx,
+                        download_price_stx: track.download_price_stx,
+                        allow_downloads: track.allow_downloads,
+                        primary_uploader_wallet: track.primary_uploader_wallet,
+                        foundByAgent: true, // Mark as found by agent
+                      };
+                      addTrackToCollection(ipTrack as any);
+                    }
+                  }
+
+                  const name = agentName || 'Your agent';
+                  setAgentResults({
+                    count: data.tracks.length,
+                    message: `${name} found ${data.tracks.length} track${data.tracks.length > 1 ? 's' : ''} and added to your Crate!`,
+                  });
+                } else {
+                  setAgentResults({
+                    count: 0,
+                    message: 'No matching tracks found. Try different criteria.',
+                  });
+                }
+              } catch (error) {
+                console.error('[Agent] Search error:', error);
+                setAgentResults({
+                  count: 0,
+                  message: 'Search failed. Please try again.',
+                });
+              }
+
+              setAgentSearching(false);
+            }}
+            isSearching={agentSearching}
+          />
+
+          {/* Results message */}
+          {agentResults && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${
+              agentResults.count > 0
+                ? 'bg-green-900/30 border border-green-700 text-green-300'
+                : 'bg-gray-800 border border-gray-700 text-gray-400'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span>{agentResults.count > 0 ? '🤖' : '🔍'}</span>
+                <span>{agentResults.message}</span>
               </div>
-            );
-          })()}
+              {agentResults.count > 0 && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Check your Crate to see the tracks your agent found!
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="border-t border-gray-700 my-6"></div>
+
+          {/* Agent Settings (collapsed by default) */}
+          <details className="group">
+            <summary className="flex items-center gap-2 cursor-pointer text-sm text-gray-400 hover:text-gray-300">
+              <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
+              <span>Agent Settings</span>
+            </summary>
+
+            <div className="mt-4 space-y-4">
+              {(() => {
+                const agentPersona = personas.find(p => (p as any).is_agent);
+
+                if (agentPersona) {
+                  const agent = agentPersona as any;
+                  return (
+                    <>
+                      {/* Agent Card */}
+                      <div className="flex items-center gap-4 p-4 bg-[#0a0f1a] rounded-lg border border-[#1E293B]">
+                        {/* Avatar */}
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0 ring-2 ring-[#81E4F2]/50">
+                          {(() => {
+                            const avatarSrc = agent.avatar_url || profile.avatar_url;
+                            const isVideo = avatarSrc && (avatarSrc.includes('.mp4') || avatarSrc.includes('.webm') || avatarSrc.includes('video/'));
+                            if (isVideo) {
+                              return <video src={avatarSrc} className="w-full h-full object-cover" autoPlay loop muted playsInline />;
+                            }
+                            return <img src={avatarSrc || generateAvatar(agent.username || agent.id)} alt={agent.display_name || 'Agent'} className="w-full h-full object-cover" />;
+                          })()}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-medium truncate">
+                              {agent.display_name || agent.username || 'Unnamed Agent'}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 bg-[#81E4F2]/20 text-[#81E4F2] rounded">🤖 Agent</span>
+                          </div>
+                        </div>
+
+                        {/* Edit button */}
+                        <button
+                          onClick={() => console.log('Edit agent:', agent.id)}
+                          className="px-3 py-1.5 text-xs text-gray-400 border border-gray-600 rounded hover:bg-gray-700/30 transition-colors"
+                        >
+                          Edit
+                        </button>
+                      </div>
+
+                      {/* Items found limit */}
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400">Max items per search:</span>
+                        <span className="text-white font-mono">5</span>
+                      </div>
+                    </>
+                  );
+                }
+
+                // No agent persona yet
+                return (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 text-sm">
+                      Agent settings will appear here once you use the vibe matcher.
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+          </details>
         </div>
 
         {/* Wallet Settings */}
@@ -1656,13 +1793,46 @@ function SettingsTab({
             Your connected wallet addresses for transactions and identity.
           </p>
           <div className="space-y-3">
-            {/* SUI Address */}
+            {/* SUI Address (zkLogin) */}
             {suiAddress && (
-              <div className="text-xs font-mono bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 w-12">SUI:</span>
-                  <span className="text-[#81E4F2]">{suiAddress}</span>
+              <div className="bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs font-mono min-w-0">
+                    <span className="text-gray-400 flex-shrink-0">SUI:</span>
+                    <span className="text-[#81E4F2] truncate">{suiAddress}</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded flex-shrink-0">zkLogin</span>
+                  </div>
+                  {!showDisconnectConfirm ? (
+                    <button
+                      onClick={() => setShowDisconnectConfirm(true)}
+                      className="text-xs text-gray-500 hover:text-red-400 transition-colors flex-shrink-0"
+                    >
+                      Disconnect
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs text-gray-400">Sure?</span>
+                      <button
+                        onClick={handleDisconnectZkLogin}
+                        disabled={disconnecting}
+                        className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded disabled:opacity-50"
+                      >
+                        {disconnecting ? '...' : 'Yes'}
+                      </button>
+                      <button
+                        onClick={() => setShowDisconnectConfirm(false)}
+                        className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded"
+                      >
+                        No
+                      </button>
+                    </div>
+                  )}
                 </div>
+                {showDisconnectConfirm && (
+                  <p className="text-xs text-amber-400/80 mt-2">
+                    This will unlink your Apple/Google login from this account. You'll need to sign in again with a different invite code.
+                  </p>
+                )}
               </div>
             )}
             {/* STX Address */}
