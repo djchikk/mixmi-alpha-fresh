@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
 import { parseLocationsAndGetCoordinates } from '@/lib/locationLookup';
+import { PRICING } from '@/config/pricing';
 
 // Helper to check if two locations are duplicates (by coordinates, name, or containment)
 // Common country abbreviations and their full names
@@ -499,16 +500,26 @@ export async function POST(request: NextRequest) {
       open_to_collaboration: trackData.open_to_collaboration ?? false,
       open_to_commercial: trackData.open_to_commercial ?? false,
       // Contact access - use same email/fee for both commercial and collab
-      // Default to 2 STX if they're open to collaboration/commercial but didn't set a fee
+      // Default to $1 USDC if they're open to collaboration/commercial but didn't set a fee
       commercial_contact: trackData.contact_email || trackData.commercial_contact || null,
-      commercial_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
+      commercial_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? PRICING.contact.inquiryFee : null),
       collab_contact: trackData.contact_email || trackData.collab_contact || null,
-      collab_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
+      collab_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? PRICING.contact.inquiryFee : null),
+      contact_fee_usdc: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? PRICING.contact.inquiryFee : null),
 
-      // Pricing
-      remix_price_stx: contentType === 'full_song' ? 0 : 1.0,
-      download_price_stx: trackData.allow_downloads ? (trackData.download_price_stx || (contentType === 'full_song' ? 2 : 1)) : null,
-      price_stx: trackData.allow_downloads ? (trackData.download_price_stx || (contentType === 'full_song' ? 2 : 1)) : 1.0,
+      // USDC Pricing (primary)
+      remix_price_usdc: contentType === 'full_song' ? 0 : PRICING.mixer.loopRecording,
+      download_price_usdc: trackData.allow_downloads
+        ? (trackData.download_price_stx || (contentType === 'full_song' ? PRICING.download.song : PRICING.download.loop))
+        : null,
+      // Legacy STX columns (same values for backwards compat)
+      remix_price_stx: contentType === 'full_song' ? 0 : PRICING.mixer.loopRecording,
+      download_price_stx: trackData.allow_downloads
+        ? (trackData.download_price_stx || (contentType === 'full_song' ? PRICING.download.song : PRICING.download.loop))
+        : null,
+      price_stx: trackData.allow_downloads
+        ? (trackData.download_price_stx || (contentType === 'full_song' ? PRICING.download.song : PRICING.download.loop))
+        : PRICING.mixer.loopRecording,
 
       // Metadata
       created_at: now,
@@ -893,22 +904,28 @@ async function handleMultiFileSubmission(
     open_to_collaboration: trackData.open_to_collaboration ?? false,
     open_to_commercial: trackData.open_to_commercial ?? false,
     // Contact access - use same email/fee for both commercial and collab
-    // Default to 2 STX if they're open to collaboration/commercial but didn't set a fee
+    // Default to $1 USDC if they're open to collaboration/commercial but didn't set a fee
     commercial_contact: trackData.contact_email || trackData.commercial_contact || null,
-    commercial_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
+    commercial_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? PRICING.contact.inquiryFee : null),
     collab_contact: trackData.contact_email || trackData.collab_contact || null,
-    collab_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? 2 : null),
+    collab_contact_fee: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? PRICING.contact.inquiryFee : null),
+    contact_fee_usdc: trackData.contact_fee_stx ?? ((trackData.open_to_commercial || trackData.open_to_collaboration) ? PRICING.contact.inquiryFee : null),
 
-    // Pricing
-    // download_price_stx = per-item price (per loop or per song)
-    // price_stx = total pack/EP price (per-item × count)
-    remix_price_stx: contentType === 'ep' ? 0 : 1.0,
+    // USDC Pricing for packs/EPs
+    // download_price_usdc = per-item price (per loop or per song)
+    // price_stx = total pack/EP price (per-item × count) - legacy
+    remix_price_usdc: contentType === 'ep' ? 0 : PRICING.mixer.loopRecording,
+    download_price_usdc: trackData.allow_downloads
+      ? (trackData.download_price_stx || (contentType === 'ep' ? PRICING.download.song : PRICING.download.loop))
+      : null,
+    // Legacy STX columns (same values for backwards compat)
+    remix_price_stx: contentType === 'ep' ? 0 : PRICING.mixer.loopRecording,
     download_price_stx: trackData.allow_downloads
-      ? (trackData.download_price_stx || (contentType === 'ep' ? 2 : 1))
+      ? (trackData.download_price_stx || (contentType === 'ep' ? PRICING.download.song : PRICING.download.loop))
       : null,
     price_stx: trackData.allow_downloads
-      ? (trackData.download_price_stx || (contentType === 'ep' ? 2 : 1)) * files.length
-      : 1.0 * files.length,
+      ? (trackData.download_price_stx || (contentType === 'ep' ? PRICING.download.song : PRICING.download.loop)) * files.length
+      : PRICING.mixer.loopRecording * files.length,
 
     // Metadata
     created_at: now,
@@ -1038,7 +1055,10 @@ async function handleMultiFileSubmission(
       commercial_contact: containerRecord.commercial_contact,
       collab_contact: containerRecord.collab_contact,
 
-      // Pricing
+      // USDC Pricing
+      remix_price_usdc: containerRecord.remix_price_usdc,
+      download_price_usdc: containerRecord.download_price_usdc,
+      // Legacy STX columns
       remix_price_stx: containerRecord.remix_price_stx,
       download_price_stx: containerRecord.download_price_stx,
       price_stx: containerRecord.price_stx,

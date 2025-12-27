@@ -4,6 +4,7 @@ import { SupabaseAuthBridge } from '@/lib/auth/supabase-auth-bridge';
 import AlphaAuth from '@/lib/auth/alpha-auth';
 import { CertificateService } from '@/lib/certificate-service';
 import { getWalletFromAuthIdentity, isValidStacksAddress } from '@/lib/auth/wallet-mapping';
+import { PRICING } from '@/config/pricing';
 
 /**
  * Format a split wallet value for storage.
@@ -214,10 +215,16 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
         cover_image_url: formData.cover_image_url, // Inherit pack cover image
         // Explicitly inherit licensing and pricing from pack
         allow_downloads: baseTrackData.allow_downloads,
-        remix_price_stx: 1.0, // Individual loops always 1 STX per remix
+        // USDC pricing
+        remix_price_usdc: PRICING.mixer.loopRecording,
+        download_price_usdc: baseTrackData.allow_downloads === true
+          ? ((formData as any).price_per_loop || PRICING.download.loop)
+          : null,
+        // Legacy STX columns (same values for backwards compat)
+        remix_price_stx: PRICING.mixer.loopRecording,
         download_price_stx: baseTrackData.allow_downloads === true
-          ? ((formData as any).price_per_loop || 0.5) // Individual loop download price
-          : null, // Remix-only packs have no download price
+          ? ((formData as any).price_per_loop || PRICING.download.loop)
+          : null
       };
       
       console.log(`📊 Loop ${i + 1} data:`, loopData);
@@ -260,14 +267,19 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
     bpm: baseTrackData.bpm, // Use pack-level BPM from form
     // Explicitly inherit licensing from pack
     allow_downloads: baseTrackData.allow_downloads,
-    // Use form pricing for loop packs with new pricing model
-    remix_price_stx: 1.0, // Platform standard: 1 STX per loop remix
+    // USDC pricing for loop packs
+    remix_price_usdc: PRICING.mixer.loopRecording,
+    download_price_usdc: baseTrackData.allow_downloads === true
+      ? ((formData as any).price_per_loop || PRICING.download.loop) * formData.loop_files!.length
+      : null,
+    // Legacy STX columns (same values for backwards compat)
+    remix_price_stx: PRICING.mixer.loopRecording,
     download_price_stx: baseTrackData.allow_downloads === true
-      ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Total pack download price
-      : null, // Remix-only packs have no download price
+      ? ((formData as any).price_per_loop || PRICING.download.loop) * formData.loop_files!.length
+      : null,
     price_stx: baseTrackData.allow_downloads === true
-      ? ((formData as any).price_per_loop || 0.5) * formData.loop_files!.length // Legacy: total pack download price
-      : null, // Legacy: remix-only packs should show MIX badge (no price_stx)
+      ? ((formData as any).price_per_loop || PRICING.download.loop) * formData.loop_files!.length
+      : null,
     description: formData.description + ` (Loop Pack containing ${formData.loop_files!.length} loops)`,
   };
   
@@ -360,7 +372,13 @@ async function processEP(formData: SubmitFormData, authSession: any, walletAddre
         pack_id: epId, // Link to parent EP
         pack_position: i + 1, // Position in EP
         audio_url: audioUrl,
-        price_stx: (formData as any).price_per_song || 2.5, // Per song price
+        // USDC pricing for EP songs
+        remix_price_usdc: 0, // Songs can't be remixed
+        download_price_usdc: (formData as any).price_per_song || PRICING.download.song,
+        // Legacy STX columns
+        remix_price_stx: 0,
+        download_price_stx: (formData as any).price_per_song || PRICING.download.song,
+        price_stx: (formData as any).price_per_song || PRICING.download.song,
         bpm: songBpm, // Per-track BPM enables 8-bar section navigation in mixer
         key: null, // Individual songs may have different keys
         description: `Song ${i + 1} from ${(formData as any).ep_title || formData.title}`,
@@ -414,8 +432,13 @@ async function processEP(formData: SubmitFormData, authSession: any, walletAddre
     duration: null, // EP duration could be sum of all songs, but null for now
     bpm: uniformBpm, // Set to uniform BPM if all songs have same BPM, otherwise null
     key: null, // EPs can have songs with different keys, so no master key
-    // Use form pricing for EPs
-    price_stx: ((formData as any).price_per_song || 2.5) * formData.ep_files!.length, // Total EP price
+    // USDC pricing for EPs
+    remix_price_usdc: 0, // EPs can't be remixed
+    download_price_usdc: ((formData as any).price_per_song || PRICING.download.song) * formData.ep_files!.length,
+    // Legacy STX columns
+    remix_price_stx: 0,
+    download_price_stx: ((formData as any).price_per_song || PRICING.download.song) * formData.ep_files!.length,
+    price_stx: ((formData as any).price_per_song || PRICING.download.song) * formData.ep_files!.length,
     description: formData.description + ` (EP containing ${formData.ep_files!.length} songs)`,
   };
   
@@ -552,24 +575,37 @@ export function useIPTrackSubmit({
         // Sacred/devotional content protection
         remix_protected: formData.remix_protected ?? false,
 
-        // NEW PRICING MODEL (separate remix and download pricing)
-        // Songs/EPs: Only download price (no remix)
-        // Loops: remix_price_stx (1 STX default) + optional download_price_stx
-        remix_price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
-          ? 0  // Songs/EPs can't be remixed
-          : 1.0, // Loops default to 1 STX per remix
-        // IMPORTANT: SimplifiedLicensingStep writes to download_price_stx, so check that first
-        download_price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
-          ? ((formData as any).download_price_stx ?? (formData as any).download_price ?? formData.price_stx ?? 2.5) // Songs/EPs always have download price
-          : formData.allow_downloads
-            ? ((formData as any).download_price_stx ?? (formData as any).download_price ?? formData.combined_price ?? 2.5) // Loops with downloads enabled
-            : null, // Remix-only loops have no download price
-        price_stx: formData.content_type === 'full_song' || formData.content_type === 'ep'
-          ? ((formData as any).download_price_stx ?? (formData as any).download_price ?? formData.price_stx ?? 2.5) // Legacy: same as download price
-          : formData.allow_downloads
-            ? ((formData as any).download_price_stx ?? (formData as any).download_price ?? formData.combined_price ?? 2.5) // Legacy: download price if available
-            : 1.0, // Legacy: remix price if no downloads
-        
+        // USDC PRICING MODEL (primary going forward)
+        // Songs/EPs: Only download price (no remix in mixer)
+        // Loops/Videos: remix_price_usdc ($0.10 default) + optional download_price_usdc
+
+        // Get user-entered download price (form uses USDC values now)
+        ...((() => {
+          const userDownloadPrice = (formData as any).download_price_stx ?? (formData as any).download_price ?? null;
+          const isDownloadable = formData.allow_downloads === true;
+          const isSongOrEP = formData.content_type === 'full_song' || formData.content_type === 'ep';
+
+          // Calculate download price based on content type
+          const downloadPrice = isSongOrEP
+            ? (userDownloadPrice ?? PRICING.download.song)
+            : isDownloadable
+              ? (userDownloadPrice ?? PRICING.download.loop)
+              : null;
+
+          // Recording/remix fee (for mixer-compatible content)
+          const remixPrice = isSongOrEP ? 0 : PRICING.mixer.loopRecording;
+
+          return {
+            // USDC columns (primary)
+            remix_price_usdc: remixPrice,
+            download_price_usdc: downloadPrice,
+            // STX columns (backwards compatibility - same values)
+            remix_price_stx: remixPrice,
+            download_price_stx: downloadPrice,
+            price_stx: downloadPrice ?? remixPrice, // Legacy field
+          };
+        })()),
+
         // Contact info
         commercial_contact: formData.commercial_contact,
         commercial_contact_fee: formData.commercial_contact_fee,
