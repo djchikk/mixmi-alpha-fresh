@@ -22,6 +22,7 @@ import { useMixer } from '@/contexts/MixerContext';
 import Crate from '@/components/shared/Crate';
 import { PRICING } from '@/config/pricing';
 import { generateAvatar } from '@/lib/avatarUtils';
+import AddPersonaModal from '@/components/modals/AddPersonaModal';
 
 type Tab = "uploads" | "library" | "history" | "settings";
 
@@ -71,6 +72,7 @@ export default function AccountPage() {
   const [isMusicUploadModalOpen, setIsMusicUploadModalOpen] = useState(false);
   const [isRadioUploadModalOpen, setIsRadioUploadModalOpen] = useState(false);
   const [isVideoUploadModalOpen, setIsVideoUploadModalOpen] = useState(false);
+  const [isAddPersonaModalOpen, setIsAddPersonaModalOpen] = useState(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -1567,10 +1569,7 @@ function SettingsTab({
                 {/* Add Account button - only if under limit */}
                 {personas.length < PRICING.account.maxPersonas && (
                   <button
-                    onClick={() => {
-                      // TODO: Open add account modal
-                      console.log('Add account');
-                    }}
+                    onClick={() => setIsAddPersonaModalOpen(true)}
                     className="w-full flex items-center gap-3 p-4 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-[#81E4F2]/50 hover:text-[#81E4F2] transition-colors"
                   >
                     <Plus className="w-5 h-5" />
@@ -1585,10 +1584,7 @@ function SettingsTab({
               <div className="text-center py-8 text-gray-500">
                 <p className="mb-4">No accounts found</p>
                 <button
-                  onClick={() => {
-                    // TODO: Open add account modal
-                    console.log('Add account');
-                  }}
+                  onClick={() => setIsAddPersonaModalOpen(true)}
                   className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
                 >
                   Create Your First Account
@@ -1882,6 +1878,18 @@ function SettingsTab({
         links={links}
         targetWallet={walletAddress || ''}
         onUpdate={handleProfileUpdate}
+      />
+
+      <AddPersonaModal
+        isOpen={isAddPersonaModalOpen}
+        onClose={() => setIsAddPersonaModalOpen(false)}
+        onSuccess={() => {
+          refreshPersonas();
+          setIsAddPersonaModalOpen(false);
+        }}
+        accountId={activePersona?.account_id || personas[0]?.account_id || ''}
+        currentPersonaCount={personas.length}
+        maxPersonas={PRICING.account.maxPersonas}
       />
     </div>
   );
