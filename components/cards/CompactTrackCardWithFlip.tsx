@@ -12,6 +12,7 @@ import { GripVertical, ChevronDown, ChevronUp, Radio } from 'lucide-react';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { PRICING } from '@/config/pricing';
 
 interface CompactTrackCardWithFlipProps {
   track: IPTrack;
@@ -643,7 +644,7 @@ export default function CompactTrackCardWithFlip({
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                                title="Download price in STX - click to add to cart"
+                                title="Download price in USDC - click to add to cart"
                               >
                                 {track.download_price_stx}
                               </button>
@@ -681,7 +682,7 @@ export default function CompactTrackCardWithFlip({
                             return (
                               <div
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                                title="Platform remix only - 1 STX per loop used in remix"
+                                title={`Platform remix only - $${PRICING.mixer.loopRecording} USDC per loop used in remix`}
                               >
                                 M
                               </div>
@@ -741,7 +742,7 @@ export default function CompactTrackCardWithFlip({
                           return (
                             <div
                               className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                              title="Platform remix only - 1 STX per loop used in remix"
+                              title={`Platform remix only - $${PRICING.mixer.loopRecording} USDC per loop used in remix`}
                             >
                               M
                             </div>
@@ -756,7 +757,7 @@ export default function CompactTrackCardWithFlip({
                             return (
                               <div
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                                title="Platform remix only - 1 STX per recorded remix"
+                                title={`Platform remix only - $${PRICING.mixer.loopRecording} USDC per recorded remix`}
                               >
                                 M
                               </div>
@@ -778,7 +779,7 @@ export default function CompactTrackCardWithFlip({
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                                title="Download price in STX - click to add to cart"
+                                title="Download price in USDC - click to add to cart"
                               >
                                 {track.download_price_stx}
                               </button>
@@ -816,7 +817,7 @@ export default function CompactTrackCardWithFlip({
                           return (
                             <div
                               className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                              title="Platform remix only - 1 STX per recorded remix"
+                              title={`Platform remix only - $${PRICING.mixer.loopRecording} USDC per recorded remix`}
                             >
                               M
                             </div>
@@ -828,7 +829,7 @@ export default function CompactTrackCardWithFlip({
                           return (
                             <div
                               className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
-                              title="Platform remix only - 1 STX per recorded remix"
+                              title={`Platform remix only - $${PRICING.mixer.loopRecording} USDC per recorded remix`}
                             >
                               M
                             </div>

@@ -8,6 +8,7 @@ import { useDrag } from 'react-dnd';
 import { GripVertical } from 'lucide-react';
 import Link from 'next/link';
 import { getAIAssistanceDisplay } from '@/lib/aiAssistanceUtils';
+import { PRICING } from '@/config/pricing';
 
 interface TrackDetailsModalProps {
   track: IPTrack;
@@ -986,12 +987,12 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                     <>
                       <div className="flex">
                         <span className="text-gray-500 w-24">Download:</span>
-                        <span className="text-gray-300">{ipRights.price_stx || ipRights.download_price_stx} STX (full pack)</span>
+                        <span className="text-gray-300">${ipRights.price_stx || ipRights.download_price_stx} USDC (full pack)</span>
                       </div>
                       {packLoops.length > 1 && (
                         <div className="flex">
                           <span className="text-gray-500 w-24">Per loop:</span>
-                          <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                          <span className="text-gray-300">${ipRights.download_price_stx} USDC</span>
                         </div>
                       )}
                     </>
@@ -999,7 +1000,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                     // Remix-only pack: Show per-loop remix price
                     <div className="flex">
                       <span className="text-gray-500 w-24">Remix Fee:</span>
-                      <span className="text-gray-300">1 STX per loop</span>
+                      <span className="text-gray-300">${PRICING.mixer.loopRecording} USDC per loop</span>
                     </div>
                   )}
                   <div className="flex">
@@ -1013,12 +1014,12 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
                     <div className="flex">
                       <span className="text-gray-500 w-24">Download:</span>
-                      <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                      <span className="text-gray-300">${ipRights.download_price_stx} USDC</span>
                     </div>
                   ) : (
                     <div className="flex">
                       <span className="text-gray-500 w-24">Remix Fee:</span>
-                      <span className="text-gray-300">1 STX per mix</span>
+                      <span className="text-gray-300">${PRICING.mixer.loopRecording} USDC per mix</span>
                     </div>
                   )}
                 </>
@@ -1029,12 +1030,12 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                     <>
                       <div className="flex">
                         <span className="text-gray-500 w-24">Download:</span>
-                        <span className="text-gray-300">{ipRights.price_stx || ipRights.download_price_stx} STX (full EP)</span>
+                        <span className="text-gray-300">${ipRights.price_stx || ipRights.download_price_stx} USDC (full EP)</span>
                       </div>
                       {packLoops.length > 1 && (
                         <div className="flex">
                           <span className="text-gray-500 w-24">Per song:</span>
-                          <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                          <span className="text-gray-300">${ipRights.download_price_stx} USDC</span>
                         </div>
                       )}
                     </>
@@ -1054,7 +1055,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
                   <div className="flex">
                     <span className="text-gray-500 w-24">Download:</span>
-                    <span className="text-gray-300">{ipRights.download_price_stx} STX</span>
+                    <span className="text-gray-300">${ipRights.download_price_stx} USDC</span>
                   </div>
                 ) : (
                   <div className="flex">
@@ -1067,7 +1068,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 <div className="flex">
                   <span className="text-gray-500 w-24">Commercial:</span>
                   <span className="text-green-400">
-                    ✓ {track.collab_contact_fee ? `(Contact: ${track.collab_contact_fee} STX)` : ''}
+                    ✓ {track.collab_contact_fee ? `(Contact: $${track.collab_contact_fee} USDC)` : ''}
                   </span>
                 </div>
               )}
@@ -1075,7 +1076,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 <div className="flex">
                   <span className="text-gray-500 w-24">Collaboration:</span>
                   <span className="text-green-400">
-                    ✓ {track.collab_contact_fee ? `(Contact: ${track.collab_contact_fee} STX)` : ''}
+                    ✓ {track.collab_contact_fee ? `(Contact: $${track.collab_contact_fee} USDC)` : ''}
                   </span>
                 </div>
               )}

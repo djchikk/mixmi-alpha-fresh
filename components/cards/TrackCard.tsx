@@ -424,7 +424,7 @@ export default function TrackCard({
                     onClick={handlePurchaseClick}
                     className="bg-accent hover:bg-accent/90 text-slate-900 font-bold py-1.5 px-3 rounded transition-all transform hover:scale-105 text-sm"
                   >
-                    {track.price_stx} STX
+                    ${track.download_price_usdc || track.price_stx || 0} USDC
                   </button>
                 </div>
               </div>

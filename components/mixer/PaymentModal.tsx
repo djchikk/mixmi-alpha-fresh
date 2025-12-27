@@ -13,6 +13,7 @@ import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from 
 import { calculateRemixSplits } from '@/lib/calculateRemixSplits';
 import { SupabaseAuthBridge } from '@/lib/auth/supabase-auth-bridge';
 import { toast } from 'sonner';
+import { PRICING } from '@/config/pricing';
 
 interface TrackInfo {
   id: string;
@@ -137,21 +138,21 @@ export default function PaymentModal({
     };
   }, [deckATrack?.imageUrl, deckBTrack?.imageUrl, profileImageUrl]);
 
-  // Calculate pricing based on source track prices
+  // Calculate pricing based on source track prices (USDC)
   const calculatePrices = () => {
-    // Base price for the 8-bar mix (could be a platform fee or percentage)
-    const mixBasePrice = 2; // STX platform fee for creating a mix
-    
-    // Get source track prices
-    const deckAPrice = deckATrack?.price_stx || 5; // Default to 5 STX if not set
-    const deckBPrice = deckBTrack?.price_stx || 5; // Default to 5 STX if not set
-    
-    // Loop only: Just the platform fee for the mix
+    // Recording fee per loop used in the mix
+    const mixBasePrice = PRICING.mixer.loopRecording * 2; // $0.10 per loop × 2 loops = $0.20
+
+    // Get source track download prices
+    const deckAPrice = deckATrack?.download_price_usdc || deckATrack?.price_stx || PRICING.download.loop;
+    const deckBPrice = deckBTrack?.download_price_usdc || deckBTrack?.price_stx || PRICING.download.loop;
+
+    // Loop only: Just the recording fee for the mix
     const loopOnly = mixBasePrice;
-    
-    // Loop + sources: Platform fee + both source track prices
+
+    // Loop + sources: Recording fee + both source track download prices
     const loopPlusSources = mixBasePrice + deckAPrice + deckBPrice;
-    
+
     return {
       loopOnlyPrice: loopOnly,
       loopPlusSourcesPrice: loopPlusSources
@@ -464,7 +465,7 @@ export default function PaymentModal({
         // New pricing model (from migration)
         // Gen 1 remixes can be downloaded IF both source loops allow downloads
         // Download price = sum of both loop download prices (minimum)
-        remix_price_stx: 1.0, // Fixed 1 STX per remix usage
+        remix_price_stx: PRICING.mixer.loopRecording, // Recording fee per loop in USDC
         allow_downloads: bothLoopsAllowDownloads, // Only if BOTH loops allow downloads
         download_price_stx: remixDownloadPrice, // Sum of both loop prices, or null if not downloadable
         price_stx: remixDownloadPrice || 1.0, // Legacy field - use download price if available, otherwise remix price
@@ -646,7 +647,7 @@ export default function PaymentModal({
                 <div className="flex items-center gap-2 mb-1">
                   <Music className="w-4 h-4 text-gray-400" />
                   <span className="font-semibold text-white">8-Bar Mix Only</span>
-                  <span className="text-cyan-400 font-bold ml-auto">{loopOnlyPrice} STX</span>
+                  <span className="text-cyan-400 font-bold ml-auto">${loopOnlyPrice.toFixed(2)} USDC</span>
                 </div>
                 <p className="text-gray-400 text-sm">
                   Your selected 8-bar mix for use in the mixmi ecosystem
@@ -682,7 +683,7 @@ export default function PaymentModal({
                   <div className="flex items-center gap-2 mb-1">
                     <Download className="w-4 h-4 text-gray-400" />
                     <span className="font-semibold text-white">Mix + Source Loops</span>
-                    <span className="text-cyan-400 font-bold ml-auto">{loopPlusSourcesPrice} STX</span>
+                    <span className="text-cyan-400 font-bold ml-auto">${loopPlusSourcesPrice.toFixed(2)} USDC</span>
                   </div>
                   <p className="text-gray-400 text-sm mb-2">
                     Includes your 8-bar mix plus the original loops for offline production
@@ -690,15 +691,15 @@ export default function PaymentModal({
                   <div className="flex flex-col gap-1 pl-6">
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Check className="w-3 h-3" />
-                      <span>Deck A: {deckATrack?.title || 'Unknown'} ({deckATrack?.price_stx || 5} STX)</span>
+                      <span>Deck A: {deckATrack?.title || 'Unknown'} (${deckATrack?.download_price_usdc || deckATrack?.price_stx || PRICING.download.loop} USDC)</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Check className="w-3 h-3" />
-                      <span>Deck B: {deckBTrack?.title || 'Unknown'} ({deckBTrack?.price_stx || 5} STX)</span>
+                      <span>Deck B: {deckBTrack?.title || 'Unknown'} (${deckBTrack?.download_price_usdc || deckBTrack?.price_stx || PRICING.download.loop} USDC)</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Check className="w-3 h-3" />
-                      <span>Platform fee: 2 STX</span>
+                      <span>Recording fee: ${PRICING.mixer.loopRecording * 2} USDC</span>
                     </div>
                   </div>
                 </div>
@@ -731,7 +732,7 @@ export default function PaymentModal({
               </p>
               <ul className="mt-2 text-xs text-gray-400 space-y-1">
                 <li>• The 8-bar mix will be added to my creator store with automatic IP attribution</li>
-                <li>• I am paying {loopOnlyPrice} STX to license these loops in my remix (1 STX per loop)</li>
+                <li>• I am paying ${loopOnlyPrice.toFixed(2)} USDC to license these loops in my remix (${PRICING.mixer.loopRecording} per loop)</li>
                 <li>• Original creators receive their designated splits from this licensing fee</li>
                 <li>• I can remove the mix from my store at any time</li>
                 <li>• <span className="text-gray-500 italic">Future: When customers purchase my remix, I'll earn 20% commission</span></li>
@@ -768,7 +769,7 @@ export default function PaymentModal({
               </>
             ) : (
               <>
-                Pay {selectedOption === 'loop-only' ? loopOnlyPrice : loopPlusSourcesPrice} STX
+                Pay ${selectedOption === 'loop-only' ? loopOnlyPrice.toFixed(2) : loopPlusSourcesPrice.toFixed(2)} USDC
               </>
             )}
           </button>

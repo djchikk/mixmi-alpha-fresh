@@ -12,6 +12,7 @@ import { useToast } from "@/contexts/ToastContext";
 import SplitPresetManagerUI from "./SplitPresetManager";
 import { parseLocationsAndGetCoordinates } from "@/lib/locationLookup";
 import { supabase } from "@/lib/supabase";
+import { PRICING, formatUSDCShort } from "@/config/pricing";
 
 // Import custom hooks
 import { useIPTrackForm } from "@/hooks/useIPTrackForm";
@@ -378,7 +379,7 @@ export default function IPTrackModal({
                 if (track.content_type === 'ep' && (track as any).download_price_stx && children.length > 0) {
                   const pricePerSong = (track as any).download_price_stx / children.length;
                   handleInputChange('price_per_song', pricePerSong);
-                  console.log(`💰 EP price per song calculated: ${pricePerSong} STX (total: ${(track as any).download_price_stx} / ${children.length} songs)`);
+                  console.log(`💰 EP price per song calculated: ${pricePerSong} USDC (total: ${(track as any).download_price_stx} / ${children.length} songs)`);
                 }
 
                 // Calculate and set price_per_loop and loop_count from stored download_price_stx for loop packs
@@ -387,7 +388,7 @@ export default function IPTrackModal({
                   if ((track as any).download_price_stx) {
                     const pricePerLoop = (track as any).download_price_stx / children.length;
                     handleInputChange('price_per_loop', pricePerLoop);
-                    console.log(`💰 Loop pack price per loop calculated: ${pricePerLoop} STX (total: ${(track as any).download_price_stx} / ${children.length} loops)`);
+                    console.log(`💰 Loop pack price per loop calculated: ${pricePerLoop} USDC (total: ${(track as any).download_price_stx} / ${children.length} loops)`);
                   }
                 }
 
@@ -2366,7 +2367,7 @@ export default function IPTrackModal({
                     min="0"
                     step="0.1"
                   />
-                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                 </div>
               </div>
             </div>
@@ -2435,7 +2436,7 @@ export default function IPTrackModal({
                         min="5"
                         step="5"
                       />
-                      <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                      <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                     </div>
                   </div>
                   <p className="text-yellow-600 text-xs bg-yellow-900/20 p-2 rounded">
@@ -2504,11 +2505,11 @@ export default function IPTrackModal({
                         min="0"
                         step="0.5"
                       />
-                      <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                      <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                     </div>
                   </div>
                   <p className="text-cyan-600 text-xs bg-cyan-900/20 p-2 rounded">
-                    💡 Keep it low to encourage collaborations (1 STX recommended)
+                    💡 Keep it low to encourage collaborations ($1 USDC recommended)
                   </p>
                 </div>
               </div>
@@ -2575,7 +2576,7 @@ export default function IPTrackModal({
                     min="0"
                     step="0.1"
                   />
-                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                 </div>
                 <span className="text-gray-500 text-xs">(Set to 0 for free)</span>
               </div>
@@ -2634,7 +2635,7 @@ export default function IPTrackModal({
                     min="0"
                     step="0.1"
                   />
-                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                 </div>
                 <span className="text-gray-500 text-xs">(Typically 5x remix-only price)</span>
               </div>
@@ -2699,7 +2700,7 @@ export default function IPTrackModal({
                       min="5"
                       step="5"
                     />
-                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                   </div>
                 </div>
                 <p className="text-yellow-600 text-xs bg-yellow-900/20 p-2 rounded">
@@ -2757,11 +2758,11 @@ export default function IPTrackModal({
                       min="0"
                       step="0.5"
                     />
-                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                   </div>
                 </div>
                 <p className="text-cyan-600 text-xs bg-cyan-900/20 p-2 rounded">
-                  💡 Keep it low to encourage collaborations (1 STX recommended)
+                  💡 Keep it low to encourage collaborations ($1 USDC recommended)
                 </p>
               </div>
             </div>
@@ -2847,7 +2848,7 @@ export default function IPTrackModal({
               {formData.allow_downloads && (
                 <div className="flex justify-between">
                   <span className="text-gray-400">Price per Loop:</span>
-                  <span className="text-white">{(formData as any).price_per_loop || 1} STX</span>
+                  <span className="text-white">${(formData as any).price_per_loop || PRICING.download.loop} USDC</span>
                 </div>
               )}
             </>
@@ -2892,15 +2893,15 @@ export default function IPTrackModal({
               <span className="text-white">
                 {formData.content_type === 'full_song'
                   ? (formData.allow_downloads
-                      ? `${(formData as any).download_price_stx || (formData as any).download_price || 2} STX`
-                      : '1 STX per recorded remix')
+                      ? `$${(formData as any).download_price_stx || (formData as any).download_price || PRICING.download.song} USDC`
+                      : `$${PRICING.mixer.loopRecording} USDC per recorded remix`)
                   : formData.content_type === 'ep'
-                    ? `${(((formData as any).price_per_song || 2) * ((formData as any).ep_files?.length || (formData as any).ep_song_count || 0)).toFixed(1)} STX`
+                    ? `$${(((formData as any).price_per_song || PRICING.download.song) * ((formData as any).ep_files?.length || (formData as any).ep_song_count || 0)).toFixed(2)} USDC`
                   : formData.content_type === 'loop_pack'
-                    ? `${(((formData as any).price_per_loop || 1) * ((formData as any).loop_files?.length || (formData as any).loop_count || 0)).toFixed(1)} STX (pack)`
+                    ? `$${(((formData as any).price_per_loop || PRICING.download.loop) * ((formData as any).loop_files?.length || (formData as any).loop_count || 0)).toFixed(2)} USDC (pack)`
                     : formData.allow_downloads
-                      ? `${(formData as any).download_price_stx || (formData as any).download_price || 2.5} STX`
-                      : '1 STX per mix'}
+                      ? `$${(formData as any).download_price_stx || (formData as any).download_price || PRICING.download.loop} USDC`
+                      : `$${PRICING.mixer.loopRecording} USDC per mix`}
               </span>
             </div>
           )}
@@ -2908,7 +2909,7 @@ export default function IPTrackModal({
           {(formData.content_type === 'loop' || formData.content_type === 'loop_pack') && formData.allow_downloads && (
             <div className="flex justify-between">
               <span className="text-gray-400">Remix Fee:</span>
-              <span className="text-white">1 STX per mix</span>
+              <span className="text-white">${PRICING.mixer.loopRecording} USDC per mix</span>
             </div>
           )}
           <div className="flex justify-between">

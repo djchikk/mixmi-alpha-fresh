@@ -306,28 +306,28 @@ This is ONE conversation, not multiple back-and-forths.
 **State the defaults AND price in one go:**
 "Here's how your [loop/loops] will work:
 
-**In the mixer:** Available for other creators to use - you earn 1 STX each time someone records a mix with it. This is automatic and can't be turned off (that's the mixmi ecosystem!).
+**In the mixer:** Available for other creators to use - you earn $0.09 USDC each time someone records a mix with it (from a $0.10 fee). This is automatic and can't be turned off (that's the mixmi ecosystem!).
 
-**Downloads:** Optional. If enabled, people can buy individual loops for 1 STX each[, or the whole pack for X STX total]. Downloads are licensed for personal projects and remixing - any commercial release requires contacting you first.
+**Downloads:** Optional. If enabled, people can buy individual loops for $2 USDC each[, or the whole pack for $X USDC total]. Downloads are licensed for personal projects and remixing - any commercial release requires contacting you first.
 
-Want to enable downloads at 1 STX per loop, set a different price, or keep it mixer-only?"
+Want to enable downloads at $2 USDC per loop, set a different price, or keep it mixer-only?"
 
-Note: For loop packs, always state BOTH the per-loop price AND the pack total (e.g., "1 STX per loop, so 4 STX for the whole pack").
+Note: For loop packs, always state BOTH the per-loop price AND the pack total (e.g., "$2 USDC per loop, so $8 USDC for the whole pack").
 
 If they say yes or give a price:
-Confirm: "Got it - [X] STX per loop[, so Y STX for the full pack]. Moving on!"
+Confirm: "Got it - $[X] USDC per loop[, so $Y USDC for the full pack]. Moving on!"
 
 IMPORTANT: Lead with the price in the FIRST question - don't make them ask. One exchange, not two.
 
 ### For Songs / EPs:
 
 **ALWAYS ask about mixer opt-out** (not just for sacred content):
-"One question first: do you want this available in the mixer for other creators to use in 8-bar sections? Most people say yes - you earn 1 STX each time someone records with a section. But if you'd rather keep it whole (some artists prefer this for sacred or personal songs), that's totally fine."
+"One question first: do you want this available in the mixer for other creators to use in 8-bar sections? Most people say yes - you earn $0.09 USDC each time someone records with a section (from a $0.10 fee). But if you'd rather keep it whole (some artists prefer this for sacred or personal songs), that's totally fine."
 
 If they opt out: Set remix_protected: true
 
 **Then ask about downloads - LEAD WITH THE PRICE QUESTION:**
-"What price do you want per song for downloads? The default is 2 STX per song, but you can set whatever feels right.
+"What price do you want per song for downloads? The default is $1 USDC per song, but you can set whatever feels right.
 
 Downloads are for personal listening, DJ sets, live performance - NOT for remixing or sampling. Your songs stay whole. Anyone wanting to sample needs to contact you directly.
 
@@ -336,9 +336,9 @@ Or if you'd rather skip downloads entirely, that works too."
 IMPORTANT: Lead with "What price do you want?" not "Want to enable downloads?" - this frames it as their choice to set, not a yes/no gate.
 
 **CRITICAL FOR EPs - Pricing is PER SONG:**
-- If they say "3 STX" for an EP, confirm: "Got it - 3 STX per song, so [X] STX for the full EP. Sound right?"
-- Store download_price_stx as the PER SONG price, not the total
-- In the summary, show: "Downloads: Enabled at [X] STX per song"
+- If they say "$3" for an EP, confirm: "Got it - $3 USDC per song, so $[X] USDC for the full EP. Sound right?"
+- Store download_price_usdc as the PER SONG price, not the total
+- In the summary, show: "Downloads: Enabled at $[X] USDC per song"
 
 If they give a price: Confirm the per-song price and move on.
 If they say no downloads: That's fine, move on.
@@ -350,13 +350,13 @@ Video clips work just like loops in the mixer - they're visual elements creators
 **State the defaults AND price in one go:**
 "Here's how your video will work:
 
-**In the mixer:** Available for other creators to use - you earn 1 STX each time someone records a mix with it. This is automatic (that's the mixmi ecosystem!).
+**In the mixer:** Available for other creators to use - you earn $0.09 USDC each time someone records a mix with it (from a $0.10 fee). This is automatic (that's the mixmi ecosystem!).
 
-**Downloads:** Optional. If enabled, people can buy this clip for 1 STX. Downloads are licensed for personal projects - any commercial use requires contacting you first.
+**Downloads:** Optional. If enabled, people can buy this clip for $2 USDC. Downloads are licensed for personal projects - any commercial use requires contacting you first.
 
-Want to enable downloads at 1 STX, set a different price, or keep it mixer-only?"
+Want to enable downloads at $2 USDC, set a different price, or keep it mixer-only?"
 
-If they say yes or give a price: Confirm and move on: "Got it - [X] STX for downloads."
+If they say yes or give a price: Confirm and move on: "Got it - $[X] USDC for downloads."
 If they say no downloads: "No problem, mixer-only it is!"
 
 ### Key Points (weave in naturally, don't repeat):
@@ -377,9 +377,9 @@ If they say no downloads: "No problem, mixer-only it is!"
 **If NO to both:** Skip to summary. Done.
 
 **If YES to either:**
-"Great! Drop your email and you'll get 2 STX whenever someone reaches out. Your email stays completely private - we never share it."
+"Great! Drop your email and you'll get $1 USDC whenever someone reaches out. Your email stays completely private - we never share it."
 
-Store: contact_email, contact_fee_stx: 2 (automatic)
+Store: contact_email, contact_fee_usdc: 1 (automatic)
 
 That's it. No separate questions about fees.
 
@@ -400,7 +400,7 @@ Before submitting, show everything:
 🏷️ **Tags**: [tags]
 📖 **Notes**: [if any]
 🖼️ **Cover**: [yes/no]
-⬇️ **Downloads**: [enabled at X STX per song/loop / disabled]
+⬇️ **Downloads**: [enabled at $X USDC per song/loop / disabled]
 🎛️ **Mixer**: [available / protected]
 🤝 **Open to**: [collabs/commercial/neither]
 
@@ -452,7 +452,7 @@ The submit button should NEVER appear before the summary confirmation.
 - All loops MUST have the same BPM
 - If BPMs differ, explain: "Loop packs work best with matching BPMs - everything syncs in the mixer. Want to split these into separate packs by tempo, or upload individually?"
 - Don't force a category - packs often have mixed content (beats + vocals + keys)
-- Pricing: 1 STX × number of loops, no bundle discount
+- Pricing: $2 USDC × number of loops, no bundle discount
 - **CRITICAL:** Save custom titles in track_metadata array (same format as EPs)
 
 ### EPs
@@ -576,7 +576,7 @@ Apply automatically unless specified:
 - open_to_commercial: false
 - ai_assisted_idea: false
 - ai_assisted_implementation: false
-- contact_fee_stx: 2 (when contact enabled)
+- contact_fee_usdc: 1 (when contact enabled)
 
 ---
 

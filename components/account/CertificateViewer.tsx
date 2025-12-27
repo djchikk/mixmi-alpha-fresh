@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { toast } from "sonner";
+import { PRICING } from "@/config/pricing";
 
 interface Track {
   id: string;
@@ -99,25 +100,25 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
     if (isLoop) {
       return {
         type: 'Platform Remix Only',
-        platformPrice: '1 STX (per recording)',
+        platformPrice: `$${PRICING.mixer.loopRecording} USDC (per recording)`,
         downloadPrice: track.allow_downloads && track.download_price_stx
-          ? `${track.download_price_stx} STX`
+          ? `$${track.download_price_stx} USDC`
           : 'Not Available'
       };
     } else if (isSong) {
       return {
         type: 'Platform Streaming Only',
-        platformPrice: '~0.08 STX (per full play)',
+        platformPrice: '~$0.08 USDC (per full play)',
         downloadPrice: track.allow_downloads && track.download_price_stx
-          ? `${track.download_price_stx} STX`
+          ? `$${track.download_price_stx} USDC`
           : 'Not Available'
       };
     } else if (isVideo) {
       return {
         type: 'Platform Remix Only',
-        platformPrice: '1 STX (per recording)',
+        platformPrice: `$${PRICING.mixer.loopRecording} USDC (per recording)`,
         downloadPrice: track.allow_downloads && track.download_price_stx
-          ? `${track.download_price_stx} STX`
+          ? `$${track.download_price_stx} USDC`
           : 'Not Available'
       };
     }
@@ -383,7 +384,7 @@ export default function CertificateViewer({ track, onClose }: CertificateViewerP
       </div>` : ''}
       ${!isRadio ? `<div class="info-row">
         <span class="info-label">Price:</span>
-        <span class="info-value">${track.price_stx} STX</span>
+        <span class="info-value">$${track.download_price_stx || track.price_stx || 0} USDC</span>
       </div>` : ''}
     </div>
 
@@ -553,7 +554,7 @@ Uploader Wallet: ${track.primary_uploader_wallet}
 ${track.content_type === 'video_clip' ? `AI Contribution: ${getAIContribution()}` : ''}
 ${track.bpm && track.content_type !== 'video_clip' ? `BPM: ${track.bpm}` : ''}
 ${track.key ? `Key: ${track.key}` : ''}
-Price: ${track.price_stx} STX
+Price: $${track.download_price_stx || track.price_stx || 0} USDC
 
 This certificate verifies the upload and attribution
 of this content on mixmi Alpha.
@@ -662,7 +663,7 @@ mixmi.app • Discover • Mix • Create
                   {track.content_type === 'video_clip' && <DetailRow label="AI Contribution" value={getAIContribution()} />}
                   {!isRadio && track.content_type !== 'video_clip' && track.bpm && <DetailRow label="BPM" value={track.bpm.toString()} />}
                   {!isRadio && track.key && <DetailRow label="Key" value={track.key} />}
-                  {!isRadio && <DetailRow label="Price" value={`${track.price_stx} STX`} />}
+                  {!isRadio && <DetailRow label="Price" value={`$${track.download_price_stx || track.price_stx || 0} USDC`} />}
                 </div>
               </div>
 
