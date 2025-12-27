@@ -1544,6 +1544,111 @@ function SettingsTab({
           </div>
         </div>
 
+        {/* Agent Section */}
+        <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🤖</span>
+            <h3 className="text-white font-semibold">Your Agent</h3>
+          </div>
+
+          {(() => {
+            const agentPersona = personas.find(p => (p as any).is_agent);
+
+            if (agentPersona) {
+              const agent = agentPersona as any;
+              return (
+                <div className="space-y-4">
+                  {/* Agent Card */}
+                  <div className="flex items-center gap-4 p-4 bg-[#0a0f1a] rounded-lg border border-[#1E293B]">
+                    {/* Avatar */}
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0 ring-2 ring-[#81E4F2]/50">
+                      {(() => {
+                        const avatarSrc = agent.avatar_url || profile.avatar_url;
+                        const isVideo = avatarSrc && (avatarSrc.includes('.mp4') || avatarSrc.includes('.webm') || avatarSrc.includes('video/'));
+                        if (isVideo) {
+                          return <video src={avatarSrc} className="w-full h-full object-cover" autoPlay loop muted playsInline />;
+                        }
+                        return <img src={avatarSrc || generateAvatar(agent.username || agent.id)} alt={agent.display_name || 'Agent'} className="w-full h-full object-cover" />;
+                      })()}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium truncate">
+                          {agent.display_name || agent.username || 'Unnamed Agent'}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-[#81E4F2]/20 text-[#81E4F2] rounded">🤖 Agent</span>
+                      </div>
+                      {agent.username && (
+                        <div className="text-sm text-gray-400">@{agent.username}</div>
+                      )}
+                    </div>
+
+                    {/* Balance */}
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-[#81E4F2] font-mono font-medium">
+                        ${agent.balance_usdc?.toFixed(2) || '0.00'} USDC
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        ${agent.agent_spent_today_usdc?.toFixed(2) || '0.00'} / ${agent.agent_daily_limit_usdc?.toFixed(2) || '5.00'} today
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mission */}
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Mission</label>
+                    <div className="p-3 bg-[#0a0f1a] rounded-lg border border-[#1E293B] text-sm text-gray-300 whitespace-pre-wrap">
+                      {agent.agent_mission || (
+                        <span className="text-gray-500 italic">No mission set. Tell your agent what kind of loops to hunt for!</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Daily Budget */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm text-gray-400">Daily Budget: </span>
+                      <span className="text-white font-mono">${agent.agent_daily_limit_usdc?.toFixed(2) || '5.00'} USDC</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => console.log('Edit agent:', agent.id)}
+                        className="px-4 py-2 text-sm text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-700/30 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => console.log('Wake agent:', agent.id)}
+                        className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
+                      >
+                        Wake Up
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // No agent yet - show create button
+            return (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">🤖</div>
+                <button
+                  onClick={() => console.log('Create agent')}
+                  className="px-6 py-3 text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
+                >
+                  + Create Your Agent
+                </button>
+                <p className="text-gray-500 text-sm mt-3">
+                  Give life to your AI bestie that collects and mixes
+                </p>
+              </div>
+            );
+          })()}
+        </div>
+
         {/* Wallet Settings */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <h3 className="text-white font-semibold mb-4">Connected Wallets</h3>

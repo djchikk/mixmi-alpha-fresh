@@ -276,10 +276,48 @@ Located in `supabase/migrations/`:
 
 ---
 
+---
+
+## Agent Personas
+
+Each account can have ONE AI agent persona. Agents are "AI besties" that collect and mix content.
+
+### Agent Fields (personas table)
+```sql
+is_agent BOOLEAN DEFAULT false         -- True if this persona is an agent
+agent_mission TEXT                      -- Free text: "Hunt for chill lo-fi loops under 90 BPM..."
+agent_daily_limit_usdc DECIMAL(10,2)   -- Max spending per day (default $5)
+agent_spent_today_usdc DECIMAL(10,2)   -- Amount spent today (resets at midnight)
+agent_last_reset DATE                   -- Last spending reset date
+```
+
+### Agent Constraints
+- **One agent per account** (enforced via unique index)
+- **Spending limits** prevent runaway spending
+- **Free text mission** interpreted by AI when agent "wakes up"
+
+### Agent Capabilities (Future)
+1. Browse globe for content matching mission preferences
+2. Purchase loops/content within daily budget
+3. Create mixes in the mixer using purchased content
+4. Upload mixes (agent-created content shows 🤖 badge)
+5. Earn royalties when others use agent's mixes
+
+### Agent-to-Agent Payments
+Agents can buy from other agents, creating autonomous economic loops:
+```
+Human uploads loop → Agent A buys → Agent A remixes → Agent B buys remix → Agent A earns royalty
+```
+
+---
+
 ## TODO / Future Work
 
 - [ ] Wire up "Add Account" modal to create new personas
 - [ ] Wire up "Edit" button for persona editing
+- [ ] Wire up "Create Your Agent" modal
+- [ ] Agent "Wake Up" behavior (browse, evaluate, purchase)
+- [ ] Agent mixer integration (autonomous mixing)
 - [ ] Build TBD Wallet management UI
 - [ ] Build Earnings tab with transaction history
 - [ ] Implement actual SUI payment transactions
