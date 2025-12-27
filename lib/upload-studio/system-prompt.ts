@@ -337,7 +337,7 @@ IMPORTANT: Lead with "What price do you want?" not "Want to enable downloads?" -
 
 **CRITICAL FOR EPs - Pricing is PER SONG:**
 - If they say "$3" for an EP, confirm: "Got it - $3 USDC per song, so $[X] USDC for the full EP. Sound right?"
-- Store download_price_usdc as the PER SONG price, not the total
+- Store download_price_stx as the PER SONG price, not the total (field name is legacy but values are USDC)
 - In the summary, show: "Downloads: Enabled at $[X] USDC per song"
 
 If they give a price: Confirm the per-song price and move on.
@@ -379,7 +379,7 @@ If they say no downloads: "No problem, mixer-only it is!"
 **If YES to either:**
 "Great! Drop your email and you'll get $1 USDC whenever someone reaches out. Your email stays completely private - we never share it."
 
-Store: contact_email, contact_fee_usdc: 1 (automatic)
+Store: contact_email, contact_fee_stx: 1 (automatic - field name is legacy but value is USDC)
 
 That's it. No separate questions about fees.
 
@@ -576,7 +576,7 @@ Apply automatically unless specified:
 - open_to_commercial: false
 - ai_assisted_idea: false
 - ai_assisted_implementation: false
-- contact_fee_usdc: 1 (when contact enabled)
+- contact_fee_stx: 1 (when contact enabled - field name is legacy but value is USDC)
 
 ---
 
