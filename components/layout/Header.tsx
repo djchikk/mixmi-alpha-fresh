@@ -336,7 +336,7 @@ export default function Header() {
                           )}
                         </button>
                       ))}
-                      {/* Add Persona button - only show if under limit */}
+                      {/* Add Account button - only show if under limit */}
                       {personas.length < PRICING.account.maxPersonas && (
                         <Link
                           href="/account?tab=settings"
@@ -349,7 +349,7 @@ export default function Header() {
                           <div className="w-8 h-8 rounded-full border border-dashed border-gray-600 flex items-center justify-center">
                             <Plus size={14} />
                           </div>
-                          <span className="text-sm">Add Persona</span>
+                          <span className="text-sm">Add Account</span>
                           <span className="text-xs text-gray-500 ml-auto">
                             {PRICING.account.maxPersonas - personas.length} left
                           </span>

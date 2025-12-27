@@ -1206,29 +1206,53 @@ function SettingsTab({
 
   // Fetch profile data
   const fetchProfileData = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress && !suiAddress) return;
 
     setLoading(true);
     try {
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('wallet_address', walletAddress)
-        .single();
+      let profileWallet = walletAddress;
 
-      if (!profileError && profileData) {
-        setProfile(profileData);
+      // For zkLogin users without walletAddress, try to find linked wallet via account
+      if (!walletAddress && suiAddress) {
+        // Look up via zklogin_users -> alpha_users to find linked wallet
+        const { data: zkUser } = await supabase
+          .from('zklogin_users')
+          .select('invite_code')
+          .eq('sui_address', suiAddress)
+          .single();
+
+        if (zkUser?.invite_code) {
+          const { data: alphaUser } = await supabase
+            .from('alpha_users')
+            .select('wallet_address')
+            .eq('invite_code', zkUser.invite_code)
+            .single();
+
+          profileWallet = alphaUser?.wallet_address || null;
+        }
       }
 
-      // Fetch links
-      const { data: linksData, error: linksError } = await supabase
-        .from('profile_links')
-        .select('platform, url')
-        .eq('wallet_address', walletAddress);
+      // Fetch profile if we have a wallet address
+      if (profileWallet) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('wallet_address', profileWallet)
+          .single();
 
-      if (!linksError && linksData) {
-        setLinks(linksData);
+        if (!profileError && profileData) {
+          setProfile(profileData);
+        }
+
+        // Fetch links
+        const { data: linksData, error: linksError } = await supabase
+          .from('profile_links')
+          .select('platform, url')
+          .eq('wallet_address', profileWallet);
+
+        if (!linksError && linksData) {
+          setLinks(linksData);
+        }
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -1238,7 +1262,7 @@ function SettingsTab({
 
   useEffect(() => {
     fetchProfileData();
-  }, [walletAddress]);
+  }, [walletAddress, suiAddress]);
 
   const handleProfileUpdate = async () => {
     await fetchProfileData();
@@ -1386,10 +1410,10 @@ function SettingsTab({
           )}
         </div>
 
-        {/* Personas Section */}
+        {/* Accounts Section */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold">Your Personas</h3>
+            <h3 className="text-white font-semibold">Your Accounts</h3>
             <span className="text-xs text-gray-500">{PRICING.account.maxPersonas} max</span>
           </div>
 
@@ -1456,8 +1480,8 @@ function SettingsTab({
                       )}
                       <button
                         onClick={() => {
-                          // TODO: Open persona edit modal
-                          console.log('Edit persona:', persona.id);
+                          // TODO: Open account edit modal
+                          console.log('Edit account:', persona.id);
                         }}
                         className="px-3 py-1.5 text-xs text-gray-400 border border-gray-600 rounded hover:bg-gray-700/30 transition-colors"
                       >
@@ -1467,17 +1491,17 @@ function SettingsTab({
                   </div>
                 ))}
 
-                {/* Add Persona button - only if under limit */}
+                {/* Add Account button - only if under limit */}
                 {personas.length < PRICING.account.maxPersonas && (
                   <button
                     onClick={() => {
-                      // TODO: Open add persona modal
-                      console.log('Add persona');
+                      // TODO: Open add account modal
+                      console.log('Add account');
                     }}
                     className="w-full flex items-center gap-3 p-4 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-[#81E4F2]/50 hover:text-[#81E4F2] transition-colors"
                   >
                     <Plus className="w-5 h-5" />
-                    <span>Add Persona</span>
+                    <span>Add Account</span>
                     <span className="ml-auto text-xs text-gray-500">
                       ({PRICING.account.maxPersonas - personas.length} slot{PRICING.account.maxPersonas - personas.length !== 1 ? 's' : ''} remaining)
                     </span>
@@ -1486,15 +1510,15 @@ function SettingsTab({
               </>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <p className="mb-4">No personas found</p>
+                <p className="mb-4">No accounts found</p>
                 <button
                   onClick={() => {
-                    // TODO: Open add persona modal
-                    console.log('Add persona');
+                    // TODO: Open add account modal
+                    console.log('Add account');
                   }}
                   className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
                 >
-                  Create Your First Persona
+                  Create Your First Account
                 </button>
               </div>
             )}
