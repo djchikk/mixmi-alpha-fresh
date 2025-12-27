@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, Persona } from "@/contexts/AuthContext";
 // Removed profile dependency for alpha version
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "../ui/Button";
 // SyncStatus not needed for alpha version
-import { Menu, X, Radio } from "lucide-react";
+import { Menu, X, Radio, ChevronDown, Check, Plus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SignInModal from "../modals/SignInModal";
@@ -16,6 +16,7 @@ import RadioStationModal from "../modals/RadioStationModal";
 import ContentTypeSelector from "../modals/ContentTypeSelector";
 import { generateAvatar } from "@/lib/avatarUtils";
 import { TourButton } from "../onboarding/TourButton";
+import { PRICING } from "@/config/pricing";
 
 export default function Header() {
   const pathname = usePathname();
@@ -27,10 +28,23 @@ export default function Header() {
   const isStorePage = pathname?.startsWith('/store');
 
   // Use auth on all pages for wallet functionality
-  const { isAuthenticated, connectWallet, disconnectWallet, walletAddress, suiAddress, authType } = useAuth();
+  const {
+    isAuthenticated,
+    connectWallet,
+    disconnectWallet,
+    walletAddress,
+    suiAddress,
+    authType,
+    personas,
+    activePersona,
+    setActivePersona
+  } = useAuth();
 
   // For zkLogin users, use suiAddress; for wallet users, use walletAddress
   const effectiveAddress = walletAddress || suiAddress;
+
+  // State for persona picker expansion
+  const [showPersonaList, setShowPersonaList] = useState(false);
 
   // Debug logging
   console.log('🎨 Header auth state:', { isAuthenticated, walletAddress, suiAddress, authType, effectiveAddress });
@@ -103,6 +117,7 @@ export default function Header() {
     const handleClickOutside = (event: MouseEvent) => {
       if (avatarDropdownRef.current && !avatarDropdownRef.current.contains(event.target as Node)) {
         setShowAvatarDropdown(false);
+        setShowPersonaList(false);
       }
     };
 
@@ -112,6 +127,13 @@ export default function Header() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
+  }, [showAvatarDropdown]);
+
+  // Close persona list when dropdown closes
+  useEffect(() => {
+    if (!showAvatarDropdown) {
+      setShowPersonaList(false);
+    }
   }, [showAvatarDropdown]);
 
   // Handle Escape key for upload type modal
@@ -235,14 +257,17 @@ export default function Header() {
 
               {/* Avatar Dropdown Menu */}
               {showAvatarDropdown && (
-                <div className="absolute top-full mt-2 right-0 w-64 bg-[#101726]/95 backdrop-blur-sm border border-[#1E293B] rounded-lg shadow-xl">
-                  {/* User Info Header */}
+                <div className="absolute top-full mt-2 right-0 w-72 bg-[#101726]/95 backdrop-blur-sm border border-[#1E293B] rounded-lg shadow-xl">
+                  {/* Active Persona Header - Clickable to expand persona list */}
                   <div className="p-4 border-b border-[#1E293B]">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent/50">
-                        {avatarUrl && (avatarUrl.includes('.mp4') || avatarUrl.includes('.webm') || avatarUrl.includes('video/')) ? (
+                    <button
+                      onClick={() => setShowPersonaList(!showPersonaList)}
+                      className="w-full flex items-center gap-3 hover:opacity-80 transition-opacity"
+                    >
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent/50 flex-shrink-0">
+                        {(activePersona?.avatar_url || avatarUrl) && ((activePersona?.avatar_url || avatarUrl || '').includes('.mp4') || (activePersona?.avatar_url || avatarUrl || '').includes('.webm') || (activePersona?.avatar_url || avatarUrl || '').includes('video/')) ? (
                           <video
-                            src={avatarUrl}
+                            src={activePersona?.avatar_url || avatarUrl || ''}
                             className="w-full h-full object-cover"
                             autoPlay
                             loop
@@ -251,27 +276,89 @@ export default function Header() {
                           />
                         ) : (
                           <img
-                            src={avatarUrl || generateAvatar(effectiveAddress || '')}
+                            src={activePersona?.avatar_url || avatarUrl || generateAvatar(effectiveAddress || '')}
                             alt="Profile"
                             className="w-full h-full object-cover"
                           />
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 text-left">
                         <div className="text-sm font-medium text-white truncate">
-                          {username || 'mixmi User'}
+                          {activePersona?.display_name || activePersona?.username || username || 'mixmi User'}
                         </div>
                         <div className="text-xs text-gray-400 font-mono">
                           {effectiveAddress ? `${effectiveAddress.slice(0, 6)}...${effectiveAddress.slice(-4)}` : 'No address'}
                         </div>
                       </div>
-                    </div>
+                      {personas.length > 1 && (
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${showPersonaList ? 'rotate-180' : ''}`}
+                        />
+                      )}
+                    </button>
                   </div>
+
+                  {/* Persona List (expandable) */}
+                  {showPersonaList && personas.length > 0 && (
+                    <div className="py-2 border-b border-[#1E293B]">
+                      {personas.map((persona) => (
+                        <button
+                          key={persona.id}
+                          onClick={() => {
+                            setActivePersona(persona);
+                            setShowPersonaList(false);
+                          }}
+                          className={`w-full px-4 py-2 flex items-center gap-3 hover:bg-[#1E293B]/50 transition-colors ${
+                            activePersona?.id === persona.id ? 'bg-[#1E293B]/30' : ''
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-600 flex-shrink-0">
+                            <img
+                              src={persona.avatar_url || generateAvatar(persona.username || '')}
+                              alt={persona.username || 'Persona'}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="text-sm text-white truncate">
+                              {persona.display_name || persona.username}
+                            </div>
+                            {persona.username && (
+                              <div className="text-xs text-gray-500">@{persona.username}</div>
+                            )}
+                          </div>
+                          {activePersona?.id === persona.id && (
+                            <Check size={16} className="text-[#81E4F2] flex-shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                      {/* Add Persona button - only show if under limit */}
+                      {personas.length < PRICING.account.maxPersonas && (
+                        <Link
+                          href="/account?tab=settings"
+                          onClick={() => {
+                            setShowAvatarDropdown(false);
+                            setShowPersonaList(false);
+                          }}
+                          className="w-full px-4 py-2 flex items-center gap-3 text-gray-400 hover:text-white hover:bg-[#1E293B]/50 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-full border border-dashed border-gray-600 flex items-center justify-center">
+                            <Plus size={14} />
+                          </div>
+                          <span className="text-sm">Add Persona</span>
+                          <span className="text-xs text-gray-500 ml-auto">
+                            {PRICING.account.maxPersonas - personas.length} left
+                          </span>
+                        </Link>
+                      )}
+                    </div>
+                  )}
 
                   {/* Menu Items */}
                   <div className="py-1">
                     <Link
-                      href={username ? `/profile/${username}` : `/profile/${effectiveAddress}`}
+                      href={activePersona?.username ? `/profile/${activePersona.username}` : username ? `/profile/${username}` : `/profile/${effectiveAddress}`}
                       className="block w-full px-4 py-3 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
                       onClick={() => setShowAvatarDropdown(false)}
                     >
@@ -281,7 +368,7 @@ export default function Header() {
                       </span>
                     </Link>
                     <Link
-                      href={username ? `/store/${username}` : `/store/${effectiveAddress}`}
+                      href={activePersona?.username ? `/store/${activePersona.username}` : username ? `/store/${username}` : `/store/${effectiveAddress}`}
                       className="block w-full px-4 py-3 text-sm text-gray-300 hover:bg-[#1E293B]/50 hover:text-white transition-colors"
                       onClick={() => setShowAvatarDropdown(false)}
                     >
