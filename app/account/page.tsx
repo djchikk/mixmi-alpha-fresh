@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, Persona } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
@@ -15,7 +15,9 @@ import InfoIcon from "@/components/shared/InfoIcon";
 import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFlip";
 import ProfileImageModal from "@/components/profile/ProfileImageModal";
 import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
-import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star } from 'lucide-react';
+import { PRICING } from '@/config/pricing';
+import { generateAvatar } from '@/lib/avatarUtils';
 
 type Tab = "uploads" | "library" | "history" | "settings";
 
@@ -48,7 +50,7 @@ interface ContentFilter {
 
 export default function AccountPage() {
   const router = useRouter();
-  const { isAuthenticated, walletAddress } = useAuth();
+  const { isAuthenticated, walletAddress, suiAddress, personas, activePersona, setActivePersona, refreshPersonas } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("uploads");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
@@ -482,10 +484,18 @@ export default function AccountPage() {
                 <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
               )}
               {activeTab === "settings" && (
-                <SettingsTab walletAddress={walletAddress} onProfileImageUpdate={(url, thumbUrl) => {
-                  setProfileImage(url);
-                  setProfileThumb96Url(thumbUrl);
-                }} />
+                <SettingsTab
+                  walletAddress={walletAddress}
+                  suiAddress={suiAddress}
+                  personas={personas}
+                  activePersona={activePersona}
+                  setActivePersona={setActivePersona}
+                  refreshPersonas={refreshPersonas}
+                  onProfileImageUpdate={(url, thumbUrl) => {
+                    setProfileImage(url);
+                    setProfileThumb96Url(thumbUrl);
+                  }}
+                />
               )}
             </>
           )}
@@ -1160,8 +1170,21 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
   );
 }
 
-function SettingsTab({ walletAddress, onProfileImageUpdate }: {
+function SettingsTab({
+  walletAddress,
+  suiAddress,
+  personas,
+  activePersona,
+  setActivePersona,
+  refreshPersonas,
+  onProfileImageUpdate
+}: {
   walletAddress: string | null;
+  suiAddress: string | null;
+  personas: Persona[];
+  activePersona: Persona | null;
+  setActivePersona: (persona: Persona) => void;
+  refreshPersonas: () => Promise<void>;
   onProfileImageUpdate?: (url: string | null, thumbUrl: string | null) => void;
 }) {
   const [loading, setLoading] = useState(true);
@@ -1344,93 +1367,166 @@ function SettingsTab({ walletAddress, onProfileImageUpdate }: {
                 </div>
               </div>
 
-              {/* Divider */}
-              <div className="border-t border-[#1E293B]" />
-
-              {/* Section 2: Creative Showcase */}
-              <div>
-                <h4 className="text-gray-300 text-sm font-medium mb-4">Creative Showcase</h4>
-
-                <div className="flex gap-6">
-                  {/* Abstract Profile Preview */}
-                  <div className="bg-[#0a0f1a] rounded-lg p-5 border border-[#1E293B]/50 flex-shrink-0 w-[200px] flex flex-col">
-                    {/* Content Sections */}
-                    <div className="space-y-3">
-                      {['Spotlight', 'Streams', 'Shop', 'Gallery'].map((section) => (
-                        <div key={section} className="flex flex-col items-center">
-                          <p className="text-[9px] text-gray-500 uppercase tracking-wider mb-1.5">{section}</p>
-                          <div className="flex gap-2 justify-center">
-                            {[1, 2, 3].map((i) => (
-                              <div key={i} className="w-8 h-8 rounded bg-[#2D3748] border border-[#4A5568]/70" />
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Sticker at bottom */}
-                    <div className="flex justify-center mt-4 pt-4 border-t border-[#2D3748]/70">
-                      <div className="w-6 h-6 rounded-full bg-[#2D3748] border border-[#4A5568]/70" />
-                    </div>
-                  </div>
-
-                  {/* Explanation */}
-                  <div className="flex-1 flex flex-col justify-center">
-                    <p className="text-gray-300 text-sm mb-3">
-                      Your profile is your creative canvas. Build it your way!
-                    </p>
-
-                    <div className="space-y-1.5 text-xs text-gray-400 mb-3">
-                      <p><span className="text-gray-300">Spotlight</span> — Feature projects, profiles, friends, or inspo</p>
-                      <p><span className="text-gray-300">Streams</span> — Embed YouTube, SoundCloud, Spotify, Apple Music</p>
-                      <p><span className="text-gray-300">Shop</span> — Link to anything you're selling</p>
-                      <p><span className="text-gray-300">Gallery</span> — Share images, videos, or visual art</p>
-                      <p><span className="text-gray-300">Sticker</span> — Add a personal rotating badge</p>
-                    </div>
-
-                    <p className="text-gray-500 text-xs mb-2">
-                      Show or hide any section. Reorder them. Make it yours.
-                    </p>
-
-                    <a
-                      href="https://www.mixmi.app/profile/fluffytoycollective"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-[#81E4F2] hover:text-[#81E4F2]/80 transition-colors"
-                    >
-                      See an example profile
-                    </a>
-                  </div>
-
-                  {/* Customize button aligned with explanation */}
-                  <div className="flex-shrink-0 self-center">
-                    <a
-                      href={`/profile/${profile.username || walletAddress}`}
-                      className="px-6 py-2.5 text-sm font-semibold text-white border-2 border-white/60 rounded-lg hover:bg-white/10 transition-colors inline-block"
-                    >
-                      Customize
-                    </a>
-                  </div>
-                </div>
+              {/* Quick Links */}
+              <div className="flex gap-3 mt-4">
+                <a
+                  href={`/profile/${profile.username || walletAddress}`}
+                  className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
+                >
+                  View Profile
+                </a>
+                <a
+                  href={`/profile/${profile.username || walletAddress}`}
+                  className="px-4 py-2 text-sm text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-700/30 transition-colors"
+                >
+                  Customize Profile
+                </a>
               </div>
             </div>
           )}
         </div>
 
+        {/* Personas Section */}
+        <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-semibold">Your Personas</h3>
+            <span className="text-xs text-gray-500">{PRICING.account.maxPersonas} max</span>
+          </div>
+
+          <div className="space-y-3">
+            {personas.length > 0 ? (
+              <>
+                {personas.map((persona) => (
+                  <div
+                    key={persona.id}
+                    className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
+                      activePersona?.id === persona.id
+                        ? 'bg-[#1E293B]/50 border-[#81E4F2]/30'
+                        : 'bg-[#0a0f1a] border-[#1E293B] hover:border-gray-600'
+                    }`}
+                  >
+                    {/* Active indicator */}
+                    <div className="flex-shrink-0">
+                      {activePersona?.id === persona.id ? (
+                        <Star className="w-4 h-4 text-[#81E4F2] fill-[#81E4F2]" />
+                      ) : (
+                        <div className="w-4 h-4" />
+                      )}
+                    </div>
+
+                    {/* Avatar */}
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0">
+                      <img
+                        src={persona.avatar_url || generateAvatar(persona.username || persona.id)}
+                        alt={persona.display_name || persona.username || 'Persona'}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-medium truncate">
+                        {persona.display_name || persona.username || 'Unnamed Persona'}
+                      </div>
+                      {persona.username && (
+                        <div className="text-sm text-gray-400">@{persona.username}</div>
+                      )}
+                    </div>
+
+                    {/* Balance */}
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-[#81E4F2] font-mono font-medium">
+                        ${persona.balance_usdc?.toFixed(2) || '0.00'} USDC
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 flex-shrink-0">
+                      {activePersona?.id !== persona.id && (
+                        <button
+                          onClick={() => setActivePersona(persona)}
+                          className="px-3 py-1.5 text-xs text-[#81E4F2] border border-[#81E4F2]/30 rounded hover:bg-[#81E4F2]/10 transition-colors"
+                        >
+                          Switch
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          // TODO: Open persona edit modal
+                          console.log('Edit persona:', persona.id);
+                        }}
+                        className="px-3 py-1.5 text-xs text-gray-400 border border-gray-600 rounded hover:bg-gray-700/30 transition-colors"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add Persona button - only if under limit */}
+                {personas.length < PRICING.account.maxPersonas && (
+                  <button
+                    onClick={() => {
+                      // TODO: Open add persona modal
+                      console.log('Add persona');
+                    }}
+                    className="w-full flex items-center gap-3 p-4 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-[#81E4F2]/50 hover:text-[#81E4F2] transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Add Persona</span>
+                    <span className="ml-auto text-xs text-gray-500">
+                      ({PRICING.account.maxPersonas - personas.length} slot{PRICING.account.maxPersonas - personas.length !== 1 ? 's' : ''} remaining)
+                    </span>
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p className="mb-4">No personas found</p>
+                <button
+                  onClick={() => {
+                    // TODO: Open add persona modal
+                    console.log('Add persona');
+                  }}
+                  className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
+                >
+                  Create Your First Persona
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Wallet Settings */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
-          <h3 className="text-white font-semibold mb-4">Wallet Settings</h3>
+          <h3 className="text-white font-semibold mb-4">Connected Wallets</h3>
           <p className="text-gray-400 text-sm mb-4">
-            Your connected wallet is used for all transactions and as your identity on mixmi.
+            Your connected wallet addresses for transactions and identity.
           </p>
-          <div className="text-xs text-gray-500 font-mono bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
-            {walletAddress ? (
-              <div>
-                <span className="text-gray-400">Connected: </span>
-                <span className="text-[#81E4F2]">{walletAddress}</span>
+          <div className="space-y-3">
+            {/* SUI Address */}
+            {suiAddress && (
+              <div className="text-xs font-mono bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 w-12">SUI:</span>
+                  <span className="text-[#81E4F2]">{suiAddress}</span>
+                </div>
               </div>
-            ) : (
-              <span className="text-gray-600">No wallet connected</span>
+            )}
+            {/* STX Address */}
+            {walletAddress && (
+              <div className="text-xs font-mono bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 w-12">STX:</span>
+                  <span className="text-gray-500">{walletAddress}</span>
+                </div>
+              </div>
+            )}
+            {/* No wallet */}
+            {!suiAddress && !walletAddress && (
+              <div className="text-xs text-gray-600 font-mono bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
+                No wallet connected
+              </div>
             )}
           </div>
         </div>

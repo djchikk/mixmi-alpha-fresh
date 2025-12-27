@@ -51,7 +51,7 @@ export const PRICING = {
 
   // Account limits
   account: {
-    maxPersonas: 3,
+    maxPersonas: 5,
     maxTbdWallets: 5,
   },
 } as const;
