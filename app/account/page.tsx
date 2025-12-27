@@ -19,6 +19,7 @@ import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star 
 import AgentVibeMatcher from '@/components/agent/AgentVibeMatcher';
 import { Track } from '@/components/mixer/types';
 import { useMixer } from '@/contexts/MixerContext';
+import Crate from '@/components/shared/Crate';
 import { PRICING } from '@/config/pricing';
 import { generateAvatar } from '@/lib/avatarUtils';
 
@@ -557,6 +558,9 @@ export default function AccountPage() {
         onSave={fetchTracks}
         contentCategory="visual"
       />
+
+      {/* Crate - So users can see agent-found tracks */}
+      <Crate />
     </>
   );
 }
