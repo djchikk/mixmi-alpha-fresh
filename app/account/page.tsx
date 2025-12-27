@@ -1417,9 +1417,13 @@ function SettingsTab({
                     {/* Avatar */}
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0">
                       <img
-                        src={persona.avatar_url || generateAvatar(persona.username || persona.id)}
+                        src={persona.avatar_url || profile.avatar_url || generateAvatar(persona.username || persona.id)}
                         alt={persona.display_name || persona.username || 'Persona'}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to generated avatar if image fails to load
+                          e.currentTarget.src = generateAvatar(persona.username || persona.id);
+                        }}
                       />
                     </div>
 
