@@ -200,8 +200,54 @@ const { users } = await response.json();
 
 ---
 
+## SUI Blockchain & USDC Pricing (December 2025)
+
+### Authentication Methods
+Three auth types in `AuthContext`:
+| Auth Type | `walletAddress` (STX) | `suiAddress` (SUI) | Use Case |
+|-----------|----------------------|-------------------|----------|
+| `wallet` | ✅ Real STX | ❌ null | Stacks wallet users |
+| `invite` | ✅ From alpha_users | ❌ null | Invite code only |
+| `zklogin` | ⚠️ Linked if exists | ✅ Real SUI | Google OAuth + invite |
+
+### USDC Pricing Model
+All prices now in USDC (centralized in `config/pricing.ts`):
+```typescript
+mixer: { loopRecording: 0.10, songSection: 0.10, videoClip: 0.10 }
+download: { loop: 2.00, song: 1.00, videoClip: 2.00 }
+contact: { inquiryFee: 1.00, creatorCutPercent: 100 }
+account: { maxPersonas: 5, maxTbdWallets: 5 }
+```
+
+### New Database Tables (Accounting System)
+- **accounts** - Parent account linking multiple auth methods
+- **personas** - Up to 5 identities per account, each with USDC balance
+- **tbd_wallets** - Hold earnings for collaborators without mixmi accounts
+- **earnings** - Transaction log (direct sales, Gen 1/2 remix royalties)
+- **zklogin_users** - SUI addresses linked to invite codes
+
+### Display Address Priority
+```typescript
+// For UI display, prefer SUI address
+const displayAddress = suiAddress || walletAddress;
+// For auth/profile lookups, prefer STX
+const effectiveAddress = walletAddress || suiAddress;
+```
+
+### Key Files for SUI/Accounting
+- `config/pricing.ts` - Single source of truth for all prices
+- `contexts/AuthContext.tsx` - Auth state with personas
+- `supabase/migrations/20251226000000_add_persona_accounting.sql` - Core tables
+- `supabase/migrations/20251226000002_add_usdc_pricing.sql` - USDC columns
+
+See `docs/sui-accounting-system.md` for detailed database schemas.
+
+---
+
 ## Project Info
 
-**Stack:** Next.js 14.2.33, TypeScript, Tailwind, Supabase, Stacks wallet
+**Stack:** Next.js 14.2.33, TypeScript, Tailwind, Supabase, SUI blockchain (zkLogin), Stacks wallet (legacy)
 
 **Fresh migration:** December 21, 2025 - Migrated to `mixmi-alpha-fresh-11` for clean build environment.
+
+**SUI Transition:** December 26, 2025 - Added USDC pricing, persona accounting system, zkLogin support.
