@@ -1440,15 +1440,34 @@ function SettingsTab({
 
                     {/* Avatar */}
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0">
-                      <img
-                        src={persona.avatar_url || profile.avatar_url || generateAvatar(persona.username || persona.id)}
-                        alt={persona.display_name || persona.username || 'Persona'}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to generated avatar if image fails to load
-                          e.currentTarget.src = generateAvatar(persona.username || persona.id);
-                        }}
-                      />
+                      {(() => {
+                        const avatarSrc = persona.avatar_url || profile.avatar_url;
+                        const isVideo = avatarSrc && (avatarSrc.includes('.mp4') || avatarSrc.includes('.webm') || avatarSrc.includes('video/'));
+
+                        if (isVideo) {
+                          return (
+                            <video
+                              src={avatarSrc}
+                              className="w-full h-full object-cover"
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                            />
+                          );
+                        }
+
+                        return (
+                          <img
+                            src={avatarSrc || generateAvatar(persona.username || persona.id)}
+                            alt={persona.display_name || persona.username || 'Persona'}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = generateAvatar(persona.username || persona.id);
+                            }}
+                          />
+                        );
+                      })()}
                     </div>
 
                     {/* Info */}
