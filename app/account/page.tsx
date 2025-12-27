@@ -1497,7 +1497,8 @@ function SettingsTab({
                     {/* Avatar */}
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0">
                       {(() => {
-                        const avatarSrc = persona.avatar_url || profile.avatar_url;
+                        // Only use persona's own avatar, not the main profile's
+                        const avatarSrc = persona.avatar_url;
                         const isVideo = avatarSrc && (avatarSrc.includes('.mp4') || avatarSrc.includes('.webm') || avatarSrc.includes('video/'));
 
                         if (isVideo) {
