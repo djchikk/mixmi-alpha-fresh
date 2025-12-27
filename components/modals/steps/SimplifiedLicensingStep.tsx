@@ -1,4 +1,5 @@
 import React from 'react';
+import { PRICING } from '@/config/pricing';
 
 interface SimplifiedLicensingStepProps {
   formData: any;
@@ -29,7 +30,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               </div>
               <p className="text-gray-400 text-sm mb-3">
                 Your song can be used in the platform mixer for live mixing and recorded remixes.
-                You earn <strong>1 STX</strong> each time someone records a remix that includes an 8-bar section from your song.
+                You earn <strong>${PRICING.mixer.loopRecording} USDC</strong> each time someone records a remix that includes an 8-bar section from your song.
               </p>
 
               {/* Protected message when unchecked */}
@@ -46,7 +47,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <div className="bg-slate-900/50 p-3 rounded">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-400 text-sm">Recording fee:</span>
-                    <span className="text-[#81E4F2] font-bold text-lg">1 STX</span>
+                    <span className="text-[#81E4F2] font-bold text-lg">${PRICING.mixer.loopRecording} USDC</span>
                     <span className="text-gray-500 text-xs">per recorded remix</span>
                   </div>
                 </div>
@@ -102,7 +103,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                       min="0"
                       step="1"
                     />
-                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                   </div>
                 </div>
               </div>
@@ -148,7 +149,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               </div>
               <p className="text-gray-400 text-sm mb-3">
                 Right now: 20-second previews play in the playlist widget.
-                When streaming launches, full plays earn ~0.08 STX each (~$0.04, 9-12x better than Spotify).
+                When streaming launches, full plays earn ~$0.08 USDC each (9-12x better than Spotify).
               </p>
 
               {formData.allow_streaming !== false && (
@@ -201,7 +202,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               </div>
               <p className="text-gray-400 text-sm mb-3">
                 Songs in your EP can be used in the platform mixer for live mixing and recorded remixes.
-                You earn <strong>1 STX</strong> per song each time someone records a remix that includes an 8-bar section from a song in your EP.
+                You earn <strong>${PRICING.mixer.loopRecording} USDC</strong> per song each time someone records a remix that includes an 8-bar section from a song in your EP.
               </p>
 
               {/* Protected message when unchecked */}
@@ -218,7 +219,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <div className="bg-slate-900/50 p-3 rounded">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-400 text-sm">Recording fee:</span>
-                    <span className="text-[#81E4F2] font-bold text-lg">1 STX</span>
+                    <span className="text-[#81E4F2] font-bold text-lg">${PRICING.mixer.loopRecording} USDC</span>
                     <span className="text-gray-500 text-xs">per song per recorded remix</span>
                   </div>
                 </div>
@@ -283,7 +284,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                       min="0"
                       step="1"
                     />
-                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                   </div>
                 </div>
               </div>
@@ -293,8 +294,8 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400 text-sm">Total EP Price:</span>
                   <div className="text-right">
-                    <div className="text-[#81E4F2] font-bold text-xl">{totalEPPrice} STX</div>
-                    <div className="text-gray-500 text-xs">{songCount} songs × {downloadPricePerSong} STX</div>
+                    <div className="text-[#81E4F2] font-bold text-xl">${totalEPPrice} USDC</div>
+                    <div className="text-gray-500 text-xs">{songCount} songs × ${downloadPricePerSong} USDC</div>
                   </div>
                 </div>
               </div>
@@ -340,7 +341,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               </div>
               <p className="text-gray-400 text-sm mb-3">
                 Right now: 20-second previews play in the playlist widget.
-                When streaming launches, full plays earn ~0.08 STX per song (~$0.04, 9-12x better than Spotify).
+                When streaming launches, full plays earn ~$0.08 USDC per song (9-12x better than Spotify).
               </p>
 
               {formData.allow_streaming !== false && (
@@ -390,7 +391,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
-              <p className="text-gray-400 text-sm mb-3">You earn 1 STX each time someone records a remix using a loop from this pack</p>
+              <p className="text-gray-400 text-sm mb-3">You earn ${PRICING.mixer.loopRecording} USDC each time someone records a remix using a loop from this pack</p>
 
               {/* Protected message when unchecked */}
               {formData.remix_protected && (
@@ -406,7 +407,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <div className="bg-slate-900/50 p-3 rounded">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-400 text-sm">Recording fee:</span>
-                    <span className="text-[#81E4F2] font-bold text-lg">1 STX</span>
+                    <span className="text-[#81E4F2] font-bold text-lg">${PRICING.mixer.loopRecording} USDC</span>
                     <span className="text-gray-500 text-xs">per loop</span>
                   </div>
                 </div>
@@ -472,7 +473,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                       min="0"
                       step="1"
                     />
-                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                    <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                   </div>
                 </div>
               </div>
@@ -482,8 +483,8 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400 text-sm">Total Pack Price:</span>
                   <div className="text-right">
-                    <div className="text-[#81E4F2] font-bold text-xl">{totalPackPrice} STX</div>
-                    <div className="text-gray-500 text-xs">{loopCount} loops × {downloadPricePerLoop} STX</div>
+                    <div className="text-[#81E4F2] font-bold text-xl">${totalPackPrice} USDC</div>
+                    <div className="text-gray-500 text-xs">{loopCount} loops × ${downloadPricePerLoop} USDC</div>
                   </div>
                 </div>
               </div>
@@ -522,7 +523,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
         {/* License Type Selection - Checkboxes (not radio!) */}
         <div className="space-y-4">
 
-        {/* Platform Remix - Always checked, default 1 STX */}
+        {/* Platform Remix - Always checked, default USDC recording fee */}
         <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -536,7 +537,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
               </div>
-              <p className="text-gray-400 text-sm mt-1">You earn 1 STX each time someone records a mix using this clip</p>
+              <p className="text-gray-400 text-sm mt-1">You earn ${PRICING.mixer.loopRecording} USDC each time someone records a mix using this clip</p>
             </div>
           </label>
 
@@ -545,7 +546,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
             <div className="flex items-center gap-2">
               <span className="text-gray-400 text-sm">Recording fee:</span>
               <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded text-[#81E4F2] font-medium text-sm">
-                1 STX
+                ${PRICING.mixer.loopRecording} USDC
               </div>
             </div>
           </div>
@@ -566,7 +567,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 } else if (!checked) {
                   handleInputChange('download_price_stx', null);
                 }
-                // Always set remix price to 1 STX
+                // Always set remix price to USDC recording fee
                 handleInputChange('remix_price_stx', 1.0);
               }}
               className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
@@ -598,11 +599,11 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                     min="0"
                     step="1"
                   />
-                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                  <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                 </div>
               </div>
               <div className="text-xs text-gray-500 bg-slate-800/50 p-2 rounded mt-2">
-                💡 This is separate from the 1 STX mix fee. Download price is what people pay to get the video file.
+                💡 This is separate from the ${PRICING.mixer.loopRecording} USDC mix fee. Download price is what people pay to get the video file.
               </div>
 
               {/* License terms for downloads */}
@@ -648,7 +649,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
               <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
             </div>
-            <p className="text-gray-400 text-sm mt-1">You earn 1 STX each time someone records a remix using this loop</p>
+            <p className="text-gray-400 text-sm mt-1">You earn ${PRICING.mixer.loopRecording} USDC each time someone records a remix using this loop</p>
           </div>
         </label>
 
@@ -667,7 +668,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
             <div className="flex items-center gap-2">
               <span className="text-gray-400 text-sm">Recording fee:</span>
               <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded text-[#81E4F2] font-medium text-sm">
-                1 STX
+                ${PRICING.mixer.loopRecording} USDC
               </div>
             </div>
           </div>
@@ -689,7 +690,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               } else if (!checked) {
                 handleInputChange('download_price_stx', null);
               }
-              // Always set remix price to 1 STX
+              // Always set remix price to USDC recording fee
               handleInputChange('remix_price_stx', 1.0);
             }}
             className="w-5 h-5 mt-0.5 text-[#81E4F2] bg-slate-800 border-slate-600 focus:ring-[#81E4F2]"
@@ -721,11 +722,11 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                   min="0"
                   step="1"
                 />
-                <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">STX</span>
+                <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
               </div>
             </div>
             <div className="text-xs text-gray-500 bg-slate-800/50 p-2 rounded mt-2">
-              💡 This is separate from the 1 STX remix fee. Download price is what people pay to get the audio file.
+              💡 This is separate from the ${PRICING.mixer.loopRecording} USDC remix fee. Download price is what people pay to get the audio file.
             </div>
 
             {/* License terms for downloads */}
