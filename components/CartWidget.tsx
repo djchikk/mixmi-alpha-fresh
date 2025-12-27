@@ -119,7 +119,7 @@ export default function CartWidget() {
                           <div className="text-xs text-gray-500 truncate">{item.artist}</div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-[#81E4F2]">{item.price_stx} STX</span>
+                          <span className="text-xs text-[#81E4F2]">${item.price_stx} USDC</span>
                           <button
                             onClick={() => removeFromCart(item.id)}
                             className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#252a3a] rounded transition-all"
@@ -138,7 +138,7 @@ export default function CartWidget() {
                   <div className="p-3 border-t border-[#1E293B]">
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-sm text-gray-400">Total:</span>
-                      <span className="text-sm text-white font-bold">{cartTotal.toFixed(1)} STX</span>
+                      <span className="text-sm text-white font-bold">${cartTotal.toFixed(2)} USDC</span>
                     </div>
 
                     {/* Action Buttons */}
@@ -192,10 +192,10 @@ export default function CartWidget() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#81E4F2] mx-auto mb-4"></div>
                 <h3 className="text-lg font-bold text-white mb-2">Processing Payment</h3>
                 <p className="text-sm text-gray-400">
-                  Please confirm the transaction in your Stacks wallet...
+                  Please confirm the transaction in your wallet...
                 </p>
                 <div className="mt-4 p-3 bg-[#1E293B] rounded">
-                  <p className="text-xs text-gray-300">Amount: {cartTotal.toFixed(2)} STX</p>
+                  <p className="text-xs text-gray-300">Amount: ${cartTotal.toFixed(2)} USDC</p>
                   <p className="text-xs text-gray-300 mt-1">Items: {cart.length}</p>
                 </div>
                 <button

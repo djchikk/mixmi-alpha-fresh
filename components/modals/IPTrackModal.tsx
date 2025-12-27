@@ -2134,7 +2134,7 @@ export default function IPTrackModal({
               <div className="flex-1">
                 <input
                   type="text"
-                  value={formData[`composition_split_${num}_wallet` as keyof typeof formData] as string}
+                  value={num === 1 ? 'You' : formData[`composition_split_${num}_wallet` as keyof typeof formData] as string}
                   onChange={(e) => {
                     const value = e.target.value;
                     handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
@@ -2237,7 +2237,7 @@ export default function IPTrackModal({
               <div className="flex-1">
                 <input
                   type="text"
-                  value={formData[`production_split_${num}_wallet` as keyof typeof formData] as string}
+                  value={num === 1 ? 'You' : formData[`production_split_${num}_wallet` as keyof typeof formData] as string}
                   onChange={(e) => {
                     const value = e.target.value;
                     handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);

@@ -43,6 +43,9 @@ export default function Header() {
   // For zkLogin users, use suiAddress; for wallet users, use walletAddress
   const effectiveAddress = walletAddress || suiAddress;
 
+  // Display address: prefer SUI address for display (migration to SUI)
+  const displayAddress = suiAddress || walletAddress;
+
   // State for persona picker expansion
   const [showPersonaList, setShowPersonaList] = useState(false);
 
@@ -287,7 +290,7 @@ export default function Header() {
                           {activePersona?.display_name || activePersona?.username || username || 'mixmi User'}
                         </div>
                         <div className="text-xs text-gray-400 font-mono">
-                          {effectiveAddress ? `${effectiveAddress.slice(0, 6)}...${effectiveAddress.slice(-4)}` : 'No address'}
+                          {displayAddress ? `${displayAddress.slice(0, 6)}...${displayAddress.slice(-4)}` : 'No address'}
                         </div>
                       </div>
                       {personas.length > 1 && (
@@ -516,7 +519,7 @@ export default function Header() {
                         {username || 'mixmi User'}
                       </div>
                       <div className="text-xs text-gray-400 font-mono">
-                        {effectiveAddress ? `${effectiveAddress.slice(0, 6)}...${effectiveAddress.slice(-4)}` : 'No address'}
+                        {displayAddress ? `${displayAddress.slice(0, 6)}...${displayAddress.slice(-4)}` : 'No address'}
                       </div>
                     </div>
                   </div>
