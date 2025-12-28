@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserProfileService, ProfileData } from '@/lib/userProfileService';
@@ -18,7 +18,7 @@ import ProfileSticker from '@/components/profile/ProfileSticker';
 
 export default function UserProfilePage() {
   const params = useParams();
-  const { walletAddress: currentUserWallet } = useAuth();
+  const { walletAddress: currentUserWallet, personas, activePersona } = useAuth();
   const identifier = params.walletAddress as string; // Can be username or wallet
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
@@ -27,8 +27,30 @@ export default function UserProfilePage() {
   const [targetWallet, setTargetWallet] = useState<string>('');
   const [artistName, setArtistName] = useState<string>('New User');
   const [hasUploadedTracks, setHasUploadedTracks] = useState(false);
+  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
 
-  const isOwnProfile = currentUserWallet === targetWallet;
+  // Check if this is the user's own profile:
+  // 1. Wallet matches directly
+  // 2. Profile's account_id matches the user's active persona's account_id
+  // 3. The identifier is a username that matches one of the user's personas
+  const isOwnProfile = useMemo(() => {
+    // Direct wallet match
+    if (currentUserWallet && currentUserWallet === targetWallet) {
+      return true;
+    }
+
+    // Check if profile is linked to user's account via account_id
+    if (linkedAccountId && activePersona?.account_id === linkedAccountId) {
+      return true;
+    }
+
+    // Check if identifier matches one of user's persona usernames
+    if (personas.some(p => p.username === identifier)) {
+      return true;
+    }
+
+    return false;
+  }, [currentUserWallet, targetWallet, linkedAccountId, activePersona, personas, identifier]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -44,6 +66,16 @@ export default function UserProfilePage() {
           // Set the actual wallet address for comparison
           setTargetWallet(data.profile.wallet_address);
           setProfileData(data);
+
+          // Fetch account_id separately (not returned by RPC function)
+          const { data: accountData } = await supabase
+            .from('user_profiles')
+            .select('account_id')
+            .eq('wallet_address', data.profile.wallet_address)
+            .single();
+          if (accountData?.account_id) {
+            setLinkedAccountId(accountData.account_id);
+          }
         } else {
           // If not found by identifier, try by wallet if it looks like a wallet
           if (identifier.startsWith('SP') || identifier.startsWith('ST')) {
@@ -52,6 +84,15 @@ export default function UserProfilePage() {
             if (walletData.profile) {
               setTargetWallet(identifier);
               setProfileData(walletData);
+              // Fetch account_id for persona ownership check
+              const { data: accountData } = await supabase
+                .from('user_profiles')
+                .select('account_id')
+                .eq('wallet_address', identifier)
+                .single();
+              if (accountData?.account_id) {
+                setLinkedAccountId(accountData.account_id);
+              }
             } else if (currentUserWallet === identifier) {
               // Initialize if it's the current user's profile
               setIsInitializing(true);

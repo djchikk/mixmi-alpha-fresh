@@ -4,6 +4,7 @@ export type StoreLabel = 'Store' | 'Space' | 'Shelf' | 'Spot' | 'Stall';
 
 export interface UserProfile {
   wallet_address: string;
+  account_id?: string;
   username?: string;
   bns_name?: string;
   display_name: string;
