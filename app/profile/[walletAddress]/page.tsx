@@ -18,7 +18,7 @@ import ProfileSticker from '@/components/profile/ProfileSticker';
 
 export default function UserProfilePage() {
   const params = useParams();
-  const { walletAddress: currentUserWallet, personas, activePersona } = useAuth();
+  const { walletAddress: currentUserWallet, suiAddress, personas, activePersona } = useAuth();
   const identifier = params.walletAddress as string; // Can be username or wallet
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
@@ -278,6 +278,7 @@ export default function UserProfilePage() {
                   profile={profile}
                   links={links}
                   targetWallet={targetWallet}
+                  suiAddress={isOwnProfile ? suiAddress : null}
                   username={(!identifier.startsWith('SP') && !identifier.startsWith('ST')) ? identifier : profileData?.profile?.username}
                   hasUploadedTracks={hasUploadedTracks}
                   isOwnProfile={isOwnProfile}

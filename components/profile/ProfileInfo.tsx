@@ -21,6 +21,7 @@ interface ProfileInfoProps {
     bio?: string | null;
     show_wallet_address?: boolean;
     show_btc_address?: boolean;
+    show_sui_address?: boolean;
     btc_address?: string | null;
     store_label?: StoreLabel | null;
   };
@@ -29,6 +30,7 @@ interface ProfileInfoProps {
     url: string;
   }>;
   targetWallet: string;
+  suiAddress?: string | null;  // SUI address from zkLogin
   username?: string;
   hasUploadedTracks: boolean;
   isOwnProfile: boolean;
@@ -41,6 +43,7 @@ export default function ProfileInfo({
   profile,
   links,
   targetWallet,
+  suiAddress,
   username,
   hasUploadedTracks,
   isOwnProfile,
@@ -293,6 +296,7 @@ export default function ProfileInfo({
         profile={profile}
         links={links}
         targetWallet={targetWallet}
+        suiAddress={suiAddress}
         onUpdate={onUpdate}
       />
     </>

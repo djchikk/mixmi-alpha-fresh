@@ -19,12 +19,14 @@ interface ProfileInfoModalProps {
     bio?: string | null;
     show_wallet_address?: boolean;
     show_btc_address?: boolean;
+    show_sui_address?: boolean;
   };
   links: Array<{
     platform: string;
     url: string;
   }>;
   targetWallet: string;
+  suiAddress?: string | null;  // SUI address from zkLogin (null if not zkLogin user)
   onUpdate: () => Promise<void>;
 }
 
@@ -46,6 +48,7 @@ export default function ProfileInfoModal({
   profile,
   links,
   targetWallet,
+  suiAddress,
   onUpdate
 }: ProfileInfoModalProps) {
   const [formData, setFormData] = useState({
@@ -56,7 +59,8 @@ export default function ProfileInfoModal({
     tagline: '',
     bio: '',
     show_wallet_address: false,
-    show_btc_address: false
+    show_btc_address: false,
+    show_sui_address: false
   });
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const [usernameError, setUsernameError] = useState<string>('');
@@ -94,7 +98,8 @@ export default function ProfileInfoModal({
         tagline: profile.tagline || '',
         bio: profile.bio || '',
         show_wallet_address: profile.show_wallet_address || false,
-        show_btc_address: profile.show_btc_address || false
+        show_btc_address: profile.show_btc_address || false,
+        show_sui_address: profile.show_sui_address || false
       });
       setSocialLinks(links || []);
       setErrors({});
@@ -378,7 +383,8 @@ export default function ProfileInfoModal({
         tagline: formData.tagline || null,
         bio: formData.bio || null,
         show_wallet_address: formData.show_wallet_address,
-        show_btc_address: formData.show_btc_address
+        show_btc_address: formData.show_btc_address,
+        show_sui_address: formData.show_sui_address
       };
 
       console.log('Profile update payload:', profileUpdate);
@@ -707,14 +713,34 @@ export default function ProfileInfoModal({
             Display Settings
           </label>
 
-          <label className="flex items-center space-x-3 cursor-pointer">
+          {/* STX Wallet Toggle - greyed out if no STX wallet linked */}
+          <label className={`flex items-center space-x-3 ${targetWallet ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
             <input
               type="checkbox"
               checked={formData.show_wallet_address}
               onChange={(e) => handleInputChange('show_wallet_address', e.target.checked)}
-              className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-[#81E4F2] focus:ring-[#81E4F2] focus:ring-offset-0"
+              disabled={!targetWallet}
+              className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-[#81E4F2] focus:ring-[#81E4F2] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            <span className="text-sm text-gray-400">Show STX wallet address</span>
+            <span className="text-sm text-gray-400">
+              Show STX wallet address
+              {!targetWallet && <span className="text-xs text-gray-500 ml-2">(No STX wallet linked)</span>}
+            </span>
+          </label>
+
+          {/* SUI Wallet Toggle - greyed out if no zkLogin */}
+          <label className={`flex items-center space-x-3 ${suiAddress ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+            <input
+              type="checkbox"
+              checked={formData.show_sui_address}
+              onChange={(e) => handleInputChange('show_sui_address', e.target.checked)}
+              disabled={!suiAddress}
+              className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-[#81E4F2] focus:ring-[#81E4F2] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            <span className="text-sm text-gray-400">
+              Show SUI wallet address
+              {!suiAddress && <span className="text-xs text-gray-500 ml-2">(Requires zkLogin)</span>}
+            </span>
           </label>
 
           {/* BTC wallet address option hidden for now */}

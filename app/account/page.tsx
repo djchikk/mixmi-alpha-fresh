@@ -1877,6 +1877,7 @@ function SettingsTab({
         profile={profile}
         links={links}
         targetWallet={effectiveWallet || ''}
+        suiAddress={suiAddress}
         onUpdate={handleProfileUpdate}
       />
 

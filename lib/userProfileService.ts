@@ -18,6 +18,7 @@ export interface UserProfile {
   custom_sticker?: string;
   show_wallet_address: boolean;
   show_btc_address: boolean;
+  show_sui_address: boolean;
   store_label?: StoreLabel;
   created_at: string;
   updated_at: string;
