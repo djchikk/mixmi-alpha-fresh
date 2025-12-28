@@ -118,21 +118,15 @@ async function transferWalletToPersona(sourceWallet: string, targetPersonaUserna
     console.log('   ✅ Wallet linked to account');
   }
 
-  // 6. Try to add wallet_address to persona (if column exists)
+  // 6. Set wallet_address on persona
   console.log('6️⃣ Associating wallet with persona...');
   const { error: walletLinkError } = await supabase
     .from('personas')
-    .update({ wallet_address: sourceWallet } as any)
+    .update({ wallet_address: sourceWallet })
     .eq('id', targetPersona.id);
 
   if (walletLinkError) {
-    if (walletLinkError.message.includes('column') || walletLinkError.code === '42703') {
-      console.log('   ⚠️  wallet_address column not in personas table yet');
-      console.log('   📝 You may want to add it with:');
-      console.log('      ALTER TABLE personas ADD COLUMN wallet_address TEXT;');
-    } else {
-      console.error('   ❌ Failed:', walletLinkError.message);
-    }
+    console.error('   ❌ Failed:', walletLinkError.message);
   } else {
     console.log('   ✅ Wallet associated with persona');
   }

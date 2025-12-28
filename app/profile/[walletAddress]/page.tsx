@@ -58,8 +58,33 @@ export default function UserProfilePage() {
       try {
         console.log('Loading profile for identifier:', identifier);
 
+        // First, check if identifier is a persona username and get linked wallet
+        let walletFromPersona: string | null = null;
+        if (!identifier.startsWith('SP') && !identifier.startsWith('ST')) {
+          // Might be a persona username - check personas table
+          const { data: personaData } = await supabase
+            .from('personas')
+            .select('account_id, username, wallet_address')
+            .eq('username', identifier)
+            .single();
+
+          if (personaData) {
+            console.log('Found persona:', personaData.username, 'wallet:', personaData.wallet_address);
+            setLinkedAccountId(personaData.account_id);
+
+            // Use the wallet_address directly from the persona
+            if (personaData.wallet_address) {
+              walletFromPersona = personaData.wallet_address;
+              console.log('Using persona wallet:', walletFromPersona);
+            }
+          }
+        }
+
+        // Use linked wallet if found, otherwise use identifier
+        const lookupIdentifier = walletFromPersona || identifier;
+
         // Use the new method that handles both username and wallet
-        const data = await UserProfileService.getProfileByIdentifier(identifier);
+        const data = await UserProfileService.getProfileByIdentifier(lookupIdentifier);
         console.log('Profile data received:', data);
 
         if (data.profile) {
