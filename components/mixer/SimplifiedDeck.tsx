@@ -107,6 +107,7 @@ export default function SimplifiedDeck({
   }), [currentTrack, deck, isPlaying]);
 
   // Fetch username for the track's primary uploader wallet
+  // Priority: persona username > user_profiles username
   useEffect(() => {
     const fetchUsername = async () => {
       if (!currentTrack?.primary_uploader_wallet) {
@@ -114,6 +115,20 @@ export default function SimplifiedDeck({
         return;
       }
 
+      // First check if there's a persona with this wallet
+      const { data: personaData } = await supabase
+        .from('personas')
+        .select('username')
+        .eq('wallet_address', currentTrack.primary_uploader_wallet)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (personaData?.username) {
+        setUsername(personaData.username);
+        return;
+      }
+
+      // Fall back to user_profiles
       const { data } = await supabase
         .from('user_profiles')
         .select('username')

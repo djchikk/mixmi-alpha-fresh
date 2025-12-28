@@ -92,10 +92,25 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   const [videoTimeout, setVideoTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Fetch username for the track's primary uploader wallet
+  // Priority: persona username > user_profiles username
   useEffect(() => {
     const fetchUsername = async () => {
       if (!track.primary_uploader_wallet) return;
 
+      // First check if there's a persona with this wallet
+      const { data: personaData } = await supabase
+        .from('personas')
+        .select('username')
+        .eq('wallet_address', track.primary_uploader_wallet)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (personaData?.username) {
+        setUsername(personaData.username);
+        return;
+      }
+
+      // Fall back to user_profiles
       const { data } = await supabase
         .from('user_profiles')
         .select('username')

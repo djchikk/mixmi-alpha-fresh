@@ -165,6 +165,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   }, []);
 
   // Fetch username for Deck A track
+  // Priority: persona username > user_profiles username
   useEffect(() => {
     const fetchUsername = async () => {
       if (!mixerState.deckA.track?.primary_uploader_wallet) {
@@ -172,6 +173,20 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         return;
       }
 
+      // First check personas
+      const { data: personaData } = await supabase
+        .from('personas')
+        .select('username')
+        .eq('wallet_address', mixerState.deckA.track.primary_uploader_wallet)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (personaData?.username) {
+        setDeckAUsername(personaData.username);
+        return;
+      }
+
+      // Fall back to user_profiles
       const { data } = await supabase
         .from('user_profiles')
         .select('username')
@@ -185,6 +200,7 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
   }, [mixerState.deckA.track?.primary_uploader_wallet]);
 
   // Fetch username for Deck B track
+  // Priority: persona username > user_profiles username
   useEffect(() => {
     const fetchUsername = async () => {
       if (!mixerState.deckB.track?.primary_uploader_wallet) {
@@ -192,6 +208,20 @@ export default function SimplifiedMixer({ className = "" }: SimplifiedMixerProps
         return;
       }
 
+      // First check personas
+      const { data: personaData } = await supabase
+        .from('personas')
+        .select('username')
+        .eq('wallet_address', mixerState.deckB.track.primary_uploader_wallet)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (personaData?.username) {
+        setDeckBUsername(personaData.username);
+        return;
+      }
+
+      // Fall back to user_profiles
       const { data } = await supabase
         .from('user_profiles')
         .select('username')

@@ -132,12 +132,28 @@ export default function CompactTrackCardWithFlip({
   const audioTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch username and display_name for the track's primary uploader wallet
+  // Priority: persona username > user_profiles username
   const [uploaderDisplayName, setUploaderDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsername = async () => {
       if (!track.primary_uploader_wallet) return;
 
+      // First check if there's a persona with this wallet
+      const { data: personaData } = await supabase
+        .from('personas')
+        .select('username, display_name')
+        .eq('wallet_address', track.primary_uploader_wallet)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (personaData?.username) {
+        setUsername(personaData.username);
+        setUploaderDisplayName(personaData.display_name || null);
+        return;
+      }
+
+      // Fall back to user_profiles
       const { data } = await supabase
         .from('user_profiles')
         .select('username, display_name')
