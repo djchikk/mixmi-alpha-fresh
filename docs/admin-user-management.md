@@ -108,7 +108,7 @@ Navigate to `/admin/users` and enter the admin access code when prompted.
 **Fields:**
 | Field | Required | Description |
 |-------|----------|-------------|
-| Select Account | Yes | Dropdown of existing accounts (shows default persona username) |
+| Select Account | Yes | Dropdown showing: @username + SUI wallet (first 8 chars...last 4) |
 | Persona Username | Yes | The @username for this persona (can be any available name) |
 | Display Name | No | Friendly name (defaults to username) |
 | Wallet Address | No | Optional wallet to link to this persona |
