@@ -48,6 +48,16 @@ export default function AdminUsersPage() {
   const [transferPersona, setTransferPersona] = useState('');
   const [copyProfileData, setCopyProfileData] = useState(true);
 
+  // Form 4: Add Persona to Account
+  const [addPersonaAccount, setAddPersonaAccount] = useState('');
+  const [addPersonaUsername, setAddPersonaUsername] = useState('');
+  const [addPersonaDisplayName, setAddPersonaDisplayName] = useState('');
+  const [addPersonaWallet, setAddPersonaWallet] = useState('');
+  const [addPersonaCopyProfile, setAddPersonaCopyProfile] = useState(true);
+
+  // Unique accounts for dropdown
+  const uniqueAccounts = [...new Map(personas.map(p => [p.account_id, p])).values()];
+
   // Fetch data
   const fetchData = async () => {
     // Fetch personas
@@ -225,6 +235,45 @@ export default function AdminUsersPage() {
     setLoading(false);
   };
 
+  // Form 4: Add Persona to Account
+  const handleAddPersonaToAccount = async () => {
+    if (!addPersonaAccount || !addPersonaUsername) {
+      showMessage('Account and username are required', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/add-persona-to-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: addPersonaAccount,
+          username: addPersonaUsername.toLowerCase().trim(),
+          displayName: addPersonaDisplayName.trim() || null,
+          walletAddress: addPersonaWallet.trim() || null,
+          copyProfileData: addPersonaCopyProfile,
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to add persona', true);
+      } else {
+        showMessage(`${data.message}${data.data.trackCount ? ` (${data.data.trackCount} tracks)` : ''}`, false);
+        setAddPersonaUsername('');
+        setAddPersonaDisplayName('');
+        setAddPersonaWallet('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0f1a] to-[#1a1f2e] flex items-center justify-center p-4">
@@ -268,7 +317,7 @@ export default function AdminUsersPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Form 1: Create zkLogin User */}
           <div className="bg-slate-800 rounded-xl p-6">
             <h2 className="text-xl font-semibold text-[#81E4F2] mb-4">1. Create zkLogin User</h2>
@@ -413,6 +462,82 @@ export default function AdminUsersPage() {
                 className="w-full py-2 bg-[#A084F9] text-white font-semibold rounded-lg hover:bg-[#9074e9] disabled:opacity-50"
               >
                 {loading ? 'Transferring...' : 'Transfer Wallet'}
+              </button>
+            </div>
+          </div>
+
+          {/* Form 4: Add Persona to Account */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-[#FFC044] mb-4">4. Add Persona to Account</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Add a new persona to an existing account. Use original usernames!
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Account *</label>
+                <select
+                  value={addPersonaAccount}
+                  onChange={(e) => setAddPersonaAccount(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                >
+                  <option value="">Select account...</option>
+                  {uniqueAccounts.map((p) => (
+                    <option key={p.account_id} value={p.account_id}>
+                      {p.display_name || p.username}'s account
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Persona Username *</label>
+                <input
+                  type="text"
+                  value={addPersonaUsername}
+                  onChange={(e) => setAddPersonaUsername(e.target.value)}
+                  placeholder="e.g., radiocity"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Display Name</label>
+                <input
+                  type="text"
+                  value={addPersonaDisplayName}
+                  onChange={(e) => setAddPersonaDisplayName(e.target.value)}
+                  placeholder="e.g., Radio City"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Wallet Address (optional)</label>
+                <input
+                  type="text"
+                  value={addPersonaWallet}
+                  onChange={(e) => setAddPersonaWallet(e.target.value)}
+                  placeholder="SP... - links wallet content"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono"
+                />
+              </div>
+              {addPersonaWallet && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="addPersonaCopyProfile"
+                    checked={addPersonaCopyProfile}
+                    onChange={(e) => setAddPersonaCopyProfile(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="addPersonaCopyProfile" className="text-gray-300 text-sm">
+                    Copy profile data from wallet
+                  </label>
+                </div>
+              )}
+              <button
+                onClick={handleAddPersonaToAccount}
+                disabled={loading}
+                className="w-full py-2 bg-[#FFC044] text-slate-900 font-semibold rounded-lg hover:bg-[#efb034] disabled:opacity-50"
+              >
+                {loading ? 'Adding...' : 'Add Persona'}
               </button>
             </div>
           </div>
