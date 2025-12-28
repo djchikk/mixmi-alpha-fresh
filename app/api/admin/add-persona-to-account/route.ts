@@ -23,13 +23,20 @@ export async function POST(request: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if username already exists in personas
-    const { data: existingPersona } = await supabase
+    const { data: existingPersonas, error: checkError } = await supabase
       .from('personas')
       .select('username')
-      .eq('username', username.toLowerCase())
-      .single();
+      .eq('username', username.toLowerCase());
 
-    if (existingPersona) {
+    if (checkError) {
+      console.error('Error checking username:', checkError);
+      return NextResponse.json(
+        { error: 'Failed to check username: ' + checkError.message },
+        { status: 500 }
+      );
+    }
+
+    if (existingPersonas && existingPersonas.length > 0) {
       return NextResponse.json(
         { error: `Username "@${username}" is already taken in personas` },
         { status: 400 }
@@ -41,11 +48,19 @@ export async function POST(request: NextRequest) {
       .from('accounts')
       .select('id')
       .eq('id', accountId)
-      .single();
+      .maybeSingle();
 
-    if (accountError || !account) {
+    if (accountError) {
+      console.error('Error checking account:', accountError);
       return NextResponse.json(
-        { error: 'Account not found' },
+        { error: 'Failed to verify account: ' + accountError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!account) {
+      return NextResponse.json(
+        { error: `Account not found: ${accountId}` },
         { status: 404 }
       );
     }
@@ -152,8 +167,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in add-persona-to-account:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error: ' + errorMessage },
       { status: 500 }
     );
   }
