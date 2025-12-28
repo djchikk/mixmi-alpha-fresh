@@ -61,7 +61,7 @@ export default function AccountPage() {
   // This allows zkLogin users to access data from their linked wallet
   const effectiveWallet = activePersona?.wallet_address || walletAddress;
 
-  const [activeTab, setActiveTab] = useState<Tab>("uploads");
+  const [activeTab, setActiveTab] = useState<Tab>("settings");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
   const [activeFilter, setActiveFilter] = useState<ContentFilter>({ type: 'all' });
@@ -438,6 +438,19 @@ export default function AccountPage() {
           <div className="border-b border-[#1E293B] mb-8">
             <div className="flex gap-6">
               <button
+                onClick={() => setActiveTab("settings")}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === "settings"
+                    ? "text-[#81E4F2]"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
+              >
+                Settings
+                {activeTab === "settings" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab("uploads")}
                 className={`pb-3 px-2 font-medium transition-colors relative ${
                   activeTab === "uploads"
@@ -476,19 +489,6 @@ export default function AccountPage() {
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
                 )}
               </button>
-              <button
-                onClick={() => setActiveTab("settings")}
-                className={`pb-3 px-2 font-medium transition-colors relative ${
-                  activeTab === "settings"
-                    ? "text-[#81E4F2]"
-                    : "text-gray-400 hover:text-gray-300"
-                }`}
-              >
-                Settings
-                {activeTab === "settings" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
-                )}
-              </button>
             </div>
           </div>
 
@@ -499,15 +499,6 @@ export default function AccountPage() {
             </div>
           ) : (
             <>
-              {activeTab === "uploads" && (
-                <MyUploadsTab tracks={filteredTracks} onRefresh={fetchTracks} />
-              )}
-              {activeTab === "library" && (
-                <LibraryTab walletAddress={effectiveWallet} />
-              )}
-              {activeTab === "history" && (
-                <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
-              )}
               {activeTab === "settings" && (
                 <SettingsTab
                   walletAddress={walletAddress}
@@ -521,6 +512,15 @@ export default function AccountPage() {
                     setProfileThumb96Url(thumbUrl);
                   }}
                 />
+              )}
+              {activeTab === "uploads" && (
+                <MyUploadsTab tracks={filteredTracks} onRefresh={fetchTracks} />
+              )}
+              {activeTab === "library" && (
+                <LibraryTab walletAddress={effectiveWallet} />
+              )}
+              {activeTab === "history" && (
+                <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
               )}
             </>
           )}
