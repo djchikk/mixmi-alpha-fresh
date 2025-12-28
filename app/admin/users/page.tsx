@@ -19,7 +19,15 @@ interface WalletInfo {
   display_name: string | null;
   username: string | null;
   account_id: string | null;
+  sui_address: string | null;
   track_count: number;
+}
+
+interface AccountInfo {
+  account_id: string;
+  default_username: string;
+  display_name: string | null;
+  sui_address: string | null;
 }
 
 export default function AdminUsersPage() {
@@ -32,6 +40,7 @@ export default function AdminUsersPage() {
   // Data lists
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
+  const [accounts, setAccounts] = useState<AccountInfo[]>([]);
 
   // Form 1: Create zkLogin User
   const [newUsername, setNewUsername] = useState('');
@@ -55,8 +64,6 @@ export default function AdminUsersPage() {
   const [addPersonaWallet, setAddPersonaWallet] = useState('');
   const [addPersonaCopyProfile, setAddPersonaCopyProfile] = useState(true);
 
-  // Unique accounts for dropdown
-  const uniqueAccounts = [...new Map(personas.map(p => [p.account_id, p])).values()];
 
   // Fetch data
   const fetchData = async () => {
@@ -69,10 +76,10 @@ export default function AdminUsersPage() {
 
     setPersonas(personasData || []);
 
-    // Fetch wallets with track counts
+    // Fetch wallets with track counts and sui_address
     const { data: profilesData } = await supabase
       .from('user_profiles')
-      .select('wallet_address, display_name, username, account_id')
+      .select('wallet_address, display_name, username, account_id, sui_address')
       .order('created_at', { ascending: false });
 
     if (profilesData) {
@@ -87,12 +94,43 @@ export default function AdminUsersPage() {
 
           return {
             ...profile,
+            sui_address: profile.sui_address || null,
             track_count: count || 0
           };
         })
       );
 
       setWallets(walletsWithCounts);
+
+      // Build accounts list with SUI addresses
+      // Group by account_id and find the SUI address for each
+      if (personasData) {
+        const accountMap = new Map<string, AccountInfo>();
+
+        personasData.forEach((persona) => {
+          if (!accountMap.has(persona.account_id)) {
+            // Find SUI address for this account from profiles
+            const matchingProfile = walletsWithCounts.find(
+              w => w.account_id === persona.account_id && w.sui_address
+            );
+
+            accountMap.set(persona.account_id, {
+              account_id: persona.account_id,
+              default_username: persona.is_default ? persona.username : persona.username,
+              display_name: persona.display_name,
+              sui_address: matchingProfile?.sui_address || null
+            });
+          }
+          // Update with default persona info if this is the default
+          if (persona.is_default) {
+            const existing = accountMap.get(persona.account_id)!;
+            existing.default_username = persona.username;
+            existing.display_name = persona.display_name;
+          }
+        });
+
+        setAccounts(Array.from(accountMap.values()));
+      }
     }
   };
 
@@ -481,9 +519,9 @@ export default function AdminUsersPage() {
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
                 >
                   <option value="">Select account...</option>
-                  {uniqueAccounts.map((p) => (
-                    <option key={p.account_id} value={p.account_id}>
-                      {p.display_name || p.username}'s account
+                  {accounts.map((acc) => (
+                    <option key={acc.account_id} value={acc.account_id}>
+                      @{acc.default_username} {acc.sui_address ? `(${acc.sui_address.slice(0, 8)}...${acc.sui_address.slice(-4)})` : '(no SUI wallet)'}
                     </option>
                   ))}
                 </select>
