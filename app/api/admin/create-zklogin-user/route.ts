@@ -73,8 +73,9 @@ export async function POST(request: NextRequest) {
       .from('alpha_users')
       .insert({
         invite_code: inviteCode,
-        name: displayName || username,
-        wallet_address: placeholderWallet
+        artist_name: displayName || username,
+        wallet_address: placeholderWallet,
+        approved: true
       });
 
     if (alphaError) {

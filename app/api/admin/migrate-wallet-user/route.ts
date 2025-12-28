@@ -101,8 +101,9 @@ export async function POST(request: NextRequest) {
           .from('alpha_users')
           .insert({
             invite_code: inviteCode,
-            name: existingProfile?.display_name || personaUsername,
-            wallet_address: walletAddress
+            artist_name: existingProfile?.display_name || personaUsername,
+            wallet_address: walletAddress,
+            approved: true
           });
       }
     }
