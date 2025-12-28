@@ -304,7 +304,7 @@ export default function Header() {
 
                   {/* Persona List (expandable) */}
                   {showPersonaList && personas.length > 0 && (
-                    <div className="py-2 border-b border-[#1E293B]">
+                    <div className="py-2 border-b border-[#1E293B] max-h-64 overflow-y-auto">
                       {personas.map((persona) => (
                         <button
                           key={persona.id}
@@ -317,11 +317,22 @@ export default function Header() {
                           }`}
                         >
                           <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-600 flex-shrink-0">
-                            <img
-                              src={persona.avatar_url || generateAvatar(persona.username || '')}
-                              alt={persona.username || 'Persona'}
-                              className="w-full h-full object-cover"
-                            />
+                            {persona.avatar_url && (persona.avatar_url.includes('.mp4') || persona.avatar_url.includes('.webm') || persona.avatar_url.includes('video/')) ? (
+                              <video
+                                src={persona.avatar_url}
+                                className="w-full h-full object-cover"
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <img
+                                src={persona.avatar_url || generateAvatar(persona.username || '')}
+                                alt={persona.username || 'Persona'}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0 text-left">
                             <div className="text-sm text-white truncate">
