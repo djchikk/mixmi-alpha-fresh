@@ -64,6 +64,9 @@ export default function AdminUsersPage() {
   const [addPersonaWallet, setAddPersonaWallet] = useState('');
   const [addPersonaCopyProfile, setAddPersonaCopyProfile] = useState(true);
 
+  // Form 5: Delete Persona
+  const [deletePersonaUsername, setDeletePersonaUsername] = useState('');
+
 
   // Fetch data
   const fetchData = async () => {
@@ -304,6 +307,44 @@ export default function AdminUsersPage() {
         setAddPersonaUsername('');
         setAddPersonaDisplayName('');
         setAddPersonaWallet('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Form 5: Delete Persona
+  const handleDeletePersona = async () => {
+    if (!deletePersonaUsername) {
+      showMessage('Username is required', true);
+      return;
+    }
+
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete @${deletePersonaUsername}? This cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/delete-persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: deletePersonaUsername.toLowerCase().trim(),
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to delete persona', true);
+      } else {
+        showMessage(data.message, false);
+        setDeletePersonaUsername('');
         fetchData();
       }
     } catch (err) {
@@ -576,6 +617,40 @@ export default function AdminUsersPage() {
                 className="w-full py-2 bg-[#FFC044] text-slate-900 font-semibold rounded-lg hover:bg-[#efb034] disabled:opacity-50"
               >
                 {loading ? 'Adding...' : 'Add Persona'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Form 5: Delete Persona */}
+        <div className="mb-8">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md">
+            <h2 className="text-xl font-semibold text-red-400 mb-4">5. Delete Persona</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Delete a persona. If it's the only persona on an account, deletes the account too.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Username to Delete *</label>
+                <select
+                  value={deletePersonaUsername}
+                  onChange={(e) => setDeletePersonaUsername(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                >
+                  <option value="">Select persona to delete...</option>
+                  {personas.map((p) => (
+                    <option key={p.id} value={p.username}>
+                      @{p.username} {p.display_name ? `(${p.display_name})` : ''} {p.is_default ? '⚠️ default' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleDeletePersona}
+                disabled={loading || !deletePersonaUsername}
+                className="w-full py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {loading ? 'Deleting...' : 'Delete Persona'}
               </button>
             </div>
           </div>
