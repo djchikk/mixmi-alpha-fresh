@@ -17,6 +17,7 @@ import RadioStationModal from '@/components/modals/RadioStationModal';
 import CartWidget from '@/components/CartWidget';
 import SimpleRadioPlayer from '@/components/SimpleRadioPlayer';
 import SimplePlaylistPlayer from '@/components/SimplePlaylistPlayer';
+import { useMemo } from 'react';
 
 interface ContentFilter {
   type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'video_clip' | 'hidden';
@@ -27,7 +28,7 @@ export default function CreatorStorePage() {
   const params = useParams();
   const router = useRouter();
   const { showToast } = useToast();
-  const { isAuthenticated, walletAddress } = useAuth();
+  const { isAuthenticated, walletAddress, personas, activePersona } = useAuth();
   const walletOrUsername = params.walletAddress as string; // This will be either wallet address or username
 
   const [tracks, setTracks] = useState<IPTrack[]>([]);
@@ -57,9 +58,30 @@ export default function CreatorStorePage() {
   const [visibleCards, setVisibleCards] = useState(0);
   const [waveLoadingActive, setWaveLoadingActive] = useState(false);
   const [failedRemixCount, setFailedRemixCount] = useState(0);
+  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
 
-  // Check if viewing own store
-  const isOwnStore = isAuthenticated && walletAddress === actualWalletAddress;
+  // Check if viewing own store:
+  // 1. Wallet matches directly
+  // 2. Profile's account_id matches the user's active persona's account_id
+  // 3. The identifier is a username that matches one of the user's personas
+  const isOwnStore = useMemo(() => {
+    // Direct wallet match
+    if (isAuthenticated && walletAddress && walletAddress === actualWalletAddress) {
+      return true;
+    }
+
+    // Check if profile is linked to user's account via account_id
+    if (linkedAccountId && activePersona?.account_id === linkedAccountId) {
+      return true;
+    }
+
+    // Check if identifier matches one of user's persona usernames
+    if (personas.some(p => p.username === walletOrUsername)) {
+      return true;
+    }
+
+    return false;
+  }, [isAuthenticated, walletAddress, actualWalletAddress, linkedAccountId, activePersona, personas, walletOrUsername]);
 
   // Helper: Check if a track is a child item inside a pack/EP (should be hidden)
   // Child items have pack_id AND pack_position >= 1
@@ -83,11 +105,16 @@ export default function CreatorStorePage() {
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            .select('display_name, username, avatar_url, avatar_thumb_96_url, store_label')
+            .select('display_name, username, avatar_url, avatar_thumb_96_url, store_label, account_id')
             .eq('wallet_address', walletOrUsername)
             .single();
 
           if (!profileError && profileData) {
+            // Store account_id for ownership check
+            if (profileData.account_id) {
+              setLinkedAccountId(profileData.account_id);
+            }
+
             // Only use profile data if it's been customized (not "New User")
             if (profileData.display_name && profileData.display_name !== 'New User') {
               setCreatorName(profileData.display_name);
@@ -116,35 +143,92 @@ export default function CreatorStorePage() {
         setCreatorName(walletOrUsername);
 
         try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('wallet_address, display_name, username, avatar_url, avatar_thumb_96_url, store_label')
+          // First, check if it's a persona username and get wallet from persona
+          let walletFromPersona: string | null = null;
+          const { data: personaData } = await supabase
+            .from('personas')
+            .select('account_id, username, wallet_address, display_name, avatar_url, bio')
             .eq('username', walletOrUsername)
             .single();
 
-          if (!profileError && profileData) {
-            setActualWalletAddress(profileData.wallet_address);
+          if (personaData) {
+            console.log('Found persona:', personaData.username, 'wallet:', personaData.wallet_address);
+            setLinkedAccountId(personaData.account_id);
 
-            // Only use profile data if it's been customized
-            if (profileData.display_name && profileData.display_name !== 'New User') {
-              setCreatorName(profileData.display_name);
-            } else if (profileData.username) {
-              setCreatorName(profileData.username);
+            // Use wallet_address from persona if available
+            if (personaData.wallet_address) {
+              walletFromPersona = personaData.wallet_address;
+              setActualWalletAddress(walletFromPersona);
             }
 
-            // Set profile image from avatar_url if customized
-            if (profileData.avatar_url) {
-              setProfileImage(profileData.avatar_url);
-              setProfileThumb96Url(profileData.avatar_thumb_96_url || null);
+            // Use persona's display_name and avatar if available
+            if (personaData.display_name && personaData.display_name !== 'New User') {
+              setCreatorName(personaData.display_name);
             }
+            if (personaData.avatar_url) {
+              setProfileImage(personaData.avatar_url);
+            }
+          }
 
-            // Set store label from profile if customized
-            if (profileData.store_label) {
-              setStoreLabel(profileData.store_label);
+          // If no wallet from persona, try user_profiles table
+          if (!walletFromPersona) {
+            const { data: profileData, error: profileError } = await supabase
+              .from('user_profiles')
+              .select('wallet_address, display_name, username, avatar_url, avatar_thumb_96_url, store_label, account_id')
+              .eq('username', walletOrUsername)
+              .single();
+
+            if (!profileError && profileData) {
+              setActualWalletAddress(profileData.wallet_address);
+              if (profileData.account_id) {
+                setLinkedAccountId(profileData.account_id);
+              }
+
+              // Only use profile data if it's been customized
+              if (profileData.display_name && profileData.display_name !== 'New User') {
+                setCreatorName(profileData.display_name);
+              } else if (profileData.username) {
+                setCreatorName(profileData.username);
+              }
+
+              // Set profile image from avatar_url if customized
+              if (profileData.avatar_url) {
+                setProfileImage(profileData.avatar_url);
+                setProfileThumb96Url(profileData.avatar_thumb_96_url || null);
+              }
+
+              // Set store label from profile if customized
+              if (profileData.store_label) {
+                setStoreLabel(profileData.store_label);
+              }
+            } else {
+              // Username not found in either table, treat as wallet address
+              setActualWalletAddress(walletOrUsername);
             }
           } else {
-            // Username not found, treat as wallet address
-            setActualWalletAddress(walletOrUsername);
+            // We have wallet from persona, now fetch profile data for store_label etc.
+            const { data: profileData } = await supabase
+              .from('user_profiles')
+              .select('display_name, avatar_url, avatar_thumb_96_url, store_label, account_id')
+              .eq('wallet_address', walletFromPersona)
+              .single();
+
+            if (profileData) {
+              if (profileData.account_id) {
+                setLinkedAccountId(profileData.account_id);
+              }
+              // Only override with profile data if persona didn't have it and profile is customized
+              if (!personaData?.display_name && profileData.display_name && profileData.display_name !== 'New User') {
+                setCreatorName(profileData.display_name);
+              }
+              if (!personaData?.avatar_url && profileData.avatar_url) {
+                setProfileImage(profileData.avatar_url);
+                setProfileThumb96Url(profileData.avatar_thumb_96_url || null);
+              }
+              if (profileData.store_label) {
+                setStoreLabel(profileData.store_label);
+              }
+            }
           }
         } catch (error) {
           console.error('Error resolving username:', error);

@@ -56,6 +56,11 @@ interface ContentFilter {
 export default function AccountPage() {
   const router = useRouter();
   const { isAuthenticated, walletAddress, suiAddress, personas, activePersona, setActivePersona, refreshPersonas } = useAuth();
+
+  // For data lookup, use persona's wallet if available, otherwise use direct wallet
+  // This allows zkLogin users to access data from their linked wallet
+  const effectiveWallet = activePersona?.wallet_address || walletAddress;
+
   const [activeTab, setActiveTab] = useState<Tab>("uploads");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
@@ -82,18 +87,18 @@ export default function AccountPage() {
 
   // Fetch user's tracks function
   const fetchTracks = async () => {
-    if (!walletAddress) {
-      console.log('[Account] No wallet address yet');
+    if (!effectiveWallet) {
+      console.log('[Account] No effective wallet address yet');
       return;
     }
 
-    console.log('[Account] Fetching tracks for wallet:', walletAddress);
+    console.log('[Account] Fetching tracks for wallet:', effectiveWallet);
     setLoading(true);
 
     const { data, error } = await supabase
       .from("ip_tracks")
       .select("*")
-      .eq("primary_uploader_wallet", walletAddress)
+      .eq("primary_uploader_wallet", effectiveWallet)
       .order("created_at", { ascending: false });
 
     console.log('[Account] Query result:', { data, error, count: data?.length });
@@ -106,16 +111,31 @@ export default function AccountPage() {
     setLoading(false);
   };
 
-  // Fetch profile data
+  // Fetch profile data - use persona data if available, otherwise from wallet profile
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!walletAddress) return;
+      // If we have an active persona, use its data directly
+      if (activePersona) {
+        if (activePersona.display_name && activePersona.display_name !== 'New User') {
+          setDisplayName(activePersona.display_name);
+        } else {
+          setDisplayName(activePersona.username);
+        }
+        if (activePersona.avatar_url) {
+          setProfileImage(activePersona.avatar_url);
+          setProfileThumb96Url(null); // Personas don't have thumbnails yet
+        }
+        return;
+      }
+
+      // Fall back to profile data from wallet
+      if (!effectiveWallet) return;
 
       try {
         const { data: profileData, error: profileError } = await supabase
           .from('user_profiles')
           .select('display_name, username, avatar_url, avatar_thumb_96_url')
-          .eq('wallet_address', walletAddress)
+          .eq('wallet_address', effectiveWallet)
           .single();
 
         if (!profileError && profileData) {
@@ -125,7 +145,7 @@ export default function AccountPage() {
           } else if (profileData.username) {
             setDisplayName(profileData.username);
           } else {
-            setDisplayName(walletAddress.slice(0, 8) + '...');
+            setDisplayName(effectiveWallet.slice(0, 8) + '...');
           }
 
           // Set profile image (with thumbnail for small displays)
@@ -140,14 +160,14 @@ export default function AccountPage() {
     };
 
     fetchProfile();
-  }, [walletAddress]);
+  }, [effectiveWallet, activePersona]);
 
-  // Fetch tracks on mount
+  // Fetch tracks on mount and when effective wallet changes
   useEffect(() => {
-    if (walletAddress) {
+    if (effectiveWallet) {
       fetchTracks();
     }
-  }, [walletAddress]);
+  }, [effectiveWallet]);
 
   // Helper: Check if a track is a child item inside a pack/EP (should be hidden from dashboard)
   // Child items have pack_id AND pack_position >= 1
@@ -238,7 +258,7 @@ export default function AccountPage() {
           {/* Page Header */}
           <div className="flex items-center gap-4 mb-8">
             <button
-              onClick={() => router.push(`/profile/${walletAddress}`)}
+              onClick={() => router.push(`/profile/${activePersona?.username || walletAddress}`)}
               className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:border-[#a3f3ff] transition-colors cursor-pointer"
               title="View your profile"
             >
@@ -483,7 +503,7 @@ export default function AccountPage() {
                 <MyUploadsTab tracks={filteredTracks} onRefresh={fetchTracks} />
               )}
               {activeTab === "library" && (
-                <LibraryTab walletAddress={walletAddress} />
+                <LibraryTab walletAddress={effectiveWallet} />
               )}
               {activeTab === "history" && (
                 <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
@@ -1195,6 +1215,9 @@ function SettingsTab({
   refreshPersonas: () => Promise<void>;
   onProfileImageUpdate?: (url: string | null, thumbUrl: string | null) => void;
 }) {
+  // For data lookup, use persona's wallet if available, otherwise use direct wallet
+  const effectiveWallet = activePersona?.wallet_address || walletAddress;
+
   const [loading, setLoading] = useState(true);
   const [agentSearching, setAgentSearching] = useState(false);
   const [agentResults, setAgentResults] = useState<{ count: number; message: string } | null>(null);
@@ -1223,53 +1246,29 @@ function SettingsTab({
 
   // Fetch profile data
   const fetchProfileData = async () => {
-    if (!walletAddress && !suiAddress) return;
+    if (!effectiveWallet) return;
 
     setLoading(true);
     try {
-      let profileWallet = walletAddress;
-
-      // For zkLogin users without walletAddress, try to find linked wallet via account
-      if (!walletAddress && suiAddress) {
-        // Look up via zklogin_users -> alpha_users to find linked wallet
-        const { data: zkUser } = await supabase
-          .from('zklogin_users')
-          .select('invite_code')
-          .eq('sui_address', suiAddress)
-          .single();
-
-        if (zkUser?.invite_code) {
-          const { data: alphaUser } = await supabase
-            .from('alpha_users')
-            .select('wallet_address')
-            .eq('invite_code', zkUser.invite_code)
-            .single();
-
-          profileWallet = alphaUser?.wallet_address || null;
-        }
-      }
-
-      // Fetch profile if we have a wallet address
-      if (profileWallet) {
-        const { data: profileData, error: profileError } = await supabase
+      // Fetch profile using the effective wallet (from persona or direct wallet)
+      const { data: profileData, error: profileError } = await supabase
           .from('user_profiles')
           .select('*')
-          .eq('wallet_address', profileWallet)
+          .eq('wallet_address', effectiveWallet)
           .single();
 
-        if (!profileError && profileData) {
-          setProfile(profileData);
-        }
+      if (!profileError && profileData) {
+        setProfile(profileData);
+      }
 
-        // Fetch links
-        const { data: linksData, error: linksError } = await supabase
-          .from('profile_links')
-          .select('platform, url')
-          .eq('wallet_address', profileWallet);
+      // Fetch links
+      const { data: linksData, error: linksError } = await supabase
+        .from('profile_links')
+        .select('platform, url')
+        .eq('wallet_address', effectiveWallet);
 
-        if (!linksError && linksData) {
-          setLinks(linksData);
-        }
+      if (!linksError && linksData) {
+        setLinks(linksData);
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -1279,7 +1278,7 @@ function SettingsTab({
 
   useEffect(() => {
     fetchProfileData();
-  }, [walletAddress, suiAddress]);
+  }, [effectiveWallet]);
 
   // Load agent name from localStorage
   useEffect(() => {
@@ -1295,7 +1294,7 @@ function SettingsTab({
       const { data } = await supabase
         .from('user_profiles')
         .select('avatar_url, avatar_thumb_96_url')
-        .eq('wallet_address', walletAddress)
+        .eq('wallet_address', effectiveWallet)
         .single();
       if (data) {
         onProfileImageUpdate(data.avatar_url, data.avatar_thumb_96_url);
@@ -1868,7 +1867,7 @@ function SettingsTab({
         isOpen={isImageModalOpen}
         onClose={() => setIsImageModalOpen(false)}
         currentImage={profile.avatar_url || undefined}
-        targetWallet={walletAddress || ''}
+        targetWallet={effectiveWallet || ''}
         onUpdate={handleProfileUpdate}
       />
 
@@ -1877,7 +1876,7 @@ function SettingsTab({
         onClose={() => setIsInfoModalOpen(false)}
         profile={profile}
         links={links}
-        targetWallet={walletAddress || ''}
+        targetWallet={effectiveWallet || ''}
         onUpdate={handleProfileUpdate}
       />
 
