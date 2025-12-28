@@ -67,6 +67,11 @@ export default function AdminUsersPage() {
   // Form 5: Delete Persona
   const [deletePersonaUsername, setDeletePersonaUsername] = useState('');
 
+  // Form 6: Edit Persona
+  const [editPersonaCurrent, setEditPersonaCurrent] = useState('');
+  const [editPersonaNewUsername, setEditPersonaNewUsername] = useState('');
+  const [editPersonaNewDisplayName, setEditPersonaNewDisplayName] = useState('');
+
 
   // Fetch data
   const fetchData = async () => {
@@ -353,6 +358,48 @@ export default function AdminUsersPage() {
     setLoading(false);
   };
 
+  // Form 6: Edit Persona
+  const handleEditPersona = async () => {
+    if (!editPersonaCurrent) {
+      showMessage('Select a persona to edit', true);
+      return;
+    }
+
+    if (!editPersonaNewUsername && !editPersonaNewDisplayName) {
+      showMessage('Enter a new username or display name', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/edit-persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentUsername: editPersonaCurrent,
+          newUsername: editPersonaNewUsername.trim() || null,
+          newDisplayName: editPersonaNewDisplayName.trim() || null,
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to edit persona', true);
+      } else {
+        showMessage(data.message, false);
+        setEditPersonaCurrent('');
+        setEditPersonaNewUsername('');
+        setEditPersonaNewDisplayName('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0f1a] to-[#1a1f2e] flex items-center justify-center p-4">
@@ -622,9 +669,10 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {/* Form 5: Delete Persona */}
-        <div className="mb-8">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md">
+        {/* Forms 5 & 6 Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Form 5: Delete Persona */}
+          <div className="bg-slate-800 rounded-xl p-6">
             <h2 className="text-xl font-semibold text-red-400 mb-4">5. Delete Persona</h2>
             <p className="text-gray-400 text-sm mb-4">
               Delete a persona. If it's the only persona on an account, deletes the account too.
@@ -651,6 +699,58 @@ export default function AdminUsersPage() {
                 className="w-full py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
                 {loading ? 'Deleting...' : 'Delete Persona'}
+              </button>
+            </div>
+          </div>
+
+          {/* Form 6: Edit Persona */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-[#81E4F2] mb-4">6. Edit Persona</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Change a persona's username or display name.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Select Persona *</label>
+                <select
+                  value={editPersonaCurrent}
+                  onChange={(e) => setEditPersonaCurrent(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                >
+                  <option value="">Select persona to edit...</option>
+                  {personas.map((p) => (
+                    <option key={p.id} value={p.username}>
+                      @{p.username} {p.display_name ? `(${p.display_name})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">New Username</label>
+                <input
+                  type="text"
+                  value={editPersonaNewUsername}
+                  onChange={(e) => setEditPersonaNewUsername(e.target.value)}
+                  placeholder="Leave blank to keep current"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">New Display Name</label>
+                <input
+                  type="text"
+                  value={editPersonaNewDisplayName}
+                  onChange={(e) => setEditPersonaNewDisplayName(e.target.value)}
+                  placeholder="Leave blank to keep current"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                />
+              </div>
+              <button
+                onClick={handleEditPersona}
+                disabled={loading || !editPersonaCurrent}
+                className="w-full py-2 bg-[#81E4F2] text-slate-900 font-semibold rounded-lg hover:bg-[#6dd4e2] disabled:opacity-50"
+              >
+                {loading ? 'Updating...' : 'Update Persona'}
               </button>
             </div>
           </div>
