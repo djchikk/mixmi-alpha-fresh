@@ -62,6 +62,17 @@ export async function POST(request: NextRequest) {
     const isOnlyPersona = accountPersonas?.length === 1;
     const accountId = persona.account_id;
 
+    // First, unlink any tracks that reference this persona
+    const { error: unlinkTracksError } = await supabase
+      .from('ip_tracks')
+      .update({ persona_id: null })
+      .eq('persona_id', persona.id);
+
+    if (unlinkTracksError) {
+      console.error('Error unlinking tracks:', unlinkTracksError);
+      // Continue anyway - might not have any tracks
+    }
+
     // Delete the persona
     const { error: deletePersonaError } = await supabase
       .from('personas')
