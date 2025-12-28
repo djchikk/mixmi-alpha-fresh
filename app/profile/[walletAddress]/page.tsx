@@ -278,7 +278,7 @@ export default function UserProfilePage() {
                   profile={profile}
                   links={links}
                   targetWallet={targetWallet}
-                  username={profileData?.profile?.username}
+                  username={(!identifier.startsWith('SP') && !identifier.startsWith('ST')) ? identifier : profileData?.profile?.username}
                   hasUploadedTracks={hasUploadedTracks}
                   isOwnProfile={isOwnProfile}
                   onUpdate={refreshProfile}

@@ -1449,13 +1449,13 @@ function SettingsTab({
               {/* Quick Links */}
               <div className="flex gap-3 mt-4">
                 <a
-                  href={`/profile/${profile.username || walletAddress}`}
+                  href={`/profile/${activePersona?.username || profile.username || walletAddress}`}
                   className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
                 >
                   View Profile
                 </a>
                 <a
-                  href={`/profile/${profile.username || walletAddress}`}
+                  href={`/profile/${activePersona?.username || profile.username || walletAddress}`}
                   className="px-4 py-2 text-sm text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-700/30 transition-colors"
                 >
                   Customize Profile
