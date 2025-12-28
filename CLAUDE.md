@@ -244,6 +244,120 @@ See `docs/sui-accounting-system.md` for detailed database schemas.
 
 ---
 
+## Persona System (December 2025)
+
+### Overview
+Users can have multiple identities (personas) under one account. Each persona has its own username, display name, avatar, bio, and linked wallet address. Content is uploaded under a specific persona.
+
+### Database Structure
+
+**accounts** - Parent container for auth methods
+- `id` (uuid) - Primary key
+- `sui_address` - zkLogin SUI address (primary identifier)
+- `stx_address` - Legacy Stacks wallet (optional link)
+- `created_at`, `updated_at`
+
+**personas** - Individual identities (up to 5 per account)
+- `id` (uuid) - Primary key
+- `account_id` (uuid) - FK to accounts
+- `username` - Unique, URL-safe identifier
+- `display_name` - Human-readable name
+- `avatar_url` - Profile image (supports video)
+- `bio` - Profile description
+- `wallet_address` - STX wallet linked to this persona
+- `is_active` (boolean) - Soft delete flag
+- `usdc_balance` - Earnings balance
+- `created_at`, `updated_at`
+
+### Username Lookup Pattern
+When displaying usernames (profile/store links), always check personas first:
+```typescript
+// Priority: personas.username → user_profiles.username
+const { data: personaData } = await supabase
+  .from('personas')
+  .select('username, display_name')
+  .eq('wallet_address', walletAddress)
+  .eq('is_active', true)
+  .maybeSingle();
+
+if (personaData?.username) {
+  return personaData.username;
+}
+
+// Fall back to user_profiles
+const { data } = await supabase
+  .from('user_profiles')
+  .select('username')
+  .eq('wallet_address', walletAddress)
+  .single();
+```
+
+**Components using this pattern:**
+- `CompactTrackCardWithFlip.tsx` - Track cards on globe
+- `TrackDetailsModal.tsx` - Track detail popup
+- `SimplifiedMixer.tsx` - Mixer deck info (A & B)
+- `SimplifiedDeck.tsx` - Standalone deck component
+
+### Admin Page (`/admin/users`)
+Access-code protected interface for managing accounts and personas.
+
+**Forms:**
+1. **Search User** - Find by wallet, username, or invite code
+2. **Create Account** - New account from SUI address
+3. **Add Persona** - Create persona under existing account
+4. **Link STX Wallet** - Connect Stacks wallet to account
+5. **Delete Persona** - Remove persona (unlinks tracks first)
+6. **Edit Persona** - Change username or display name
+
+**Key behaviors:**
+- Admin-created personas bypass the 5-persona limit trigger
+- Deleting the only persona on an account deletes the account too
+- Tracks are unlinked (persona_id set to null) before persona deletion
+
+### API Routes
+```
+POST /api/admin/create-account      - Create account from SUI address
+POST /api/admin/add-persona-to-account - Add persona to existing account
+POST /api/admin/link-stx-wallet     - Link STX wallet to account
+POST /api/admin/delete-persona      - Delete persona (unlinks tracks)
+POST /api/admin/edit-persona        - Edit username/display_name
+```
+
+### Header Persona Switcher
+`components/layout/Header.tsx` shows persona dropdown for zkLogin users:
+- Lists all personas for current account
+- Shows avatar (supports video), username, display name
+- Click to switch active persona
+- Scrollable list (`max-h-64 overflow-y-auto`)
+
+### Profile/Store URL Resolution
+URLs can use either persona username or wallet address:
+- `/profile/tokyo-denpa` - Persona username (preferred)
+- `/profile/SP123...` - Wallet address (fallback)
+- `/store/tokyo-denpa` - Store by persona username
+
+Profile pages check if URL identifier is a username vs wallet:
+```typescript
+const isUsername = !identifier.startsWith('SP') && !identifier.startsWith('ST');
+```
+
+### Key Files
+- `app/admin/users/page.tsx` - Admin management UI
+- `app/api/admin/*.ts` - Admin API routes
+- `components/layout/Header.tsx` - Persona switcher dropdown
+- `contexts/AuthContext.tsx` - Auth state with personas array
+- `app/profile/[walletAddress]/page.tsx` - Profile page routing
+- `scripts/backup-tables.js` - Database backup utility
+
+### Backup Script
+Before major changes, run database backup:
+```bash
+node scripts/backup-tables.js
+```
+Creates JSON exports of ip_tracks, user_profiles, personas, accounts, alpha_users in `/backups/YYYY-MM-DD/`.
+
+---
+
 ## Project Info
 
 **Stack:** Next.js 14.2.33, TypeScript, Tailwind, Supabase, SUI blockchain (zkLogin), Stacks wallet (legacy)
