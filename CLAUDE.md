@@ -358,6 +358,64 @@ Creates JSON exports of ip_tracks, user_profiles, personas, accounts, alpha_user
 
 ---
 
+## Agent System (Bestie) - December 2025
+
+### Overview
+"Bestie" is the in-app search agent that helps users find content by vibe/description. Accessible via robot emoji button next to Crate on the globe page.
+
+### Key Files
+- `components/AgentWidget.tsx` - Pop-out widget UI
+- `components/agent/AgentVibeMatcher.tsx` - Search input component
+- `lib/agent/vibeMatch.ts` - Core search logic with synonym expansion
+- `app/api/agent/vibe-match/route.ts` - API endpoint (logs searches)
+
+### How Search Works
+1. User enters description (e.g., "chill japanese loops")
+2. `parseDescription()` extracts: content types, BPM, energy, texture
+3. `extractSearchKeywords()` pulls meaningful words (filters stop words)
+4. `expandKeywordsWithSynonyms()` adds related terms from DB
+5. `inferTermsFromScripts()` detects Japanese/Chinese/Korean/Arabic characters
+6. Query filters by content type, BPM range
+7. Tracks scored by keyword matches (weighted by synonym strength)
+8. Top 5 results added to user's Crate
+
+### Database Tables
+
+**search_synonyms** - Maps search terms to related terms
+| Column | Type | Description |
+|--------|------|-------------|
+| search_term | text | What user might search |
+| matches_term | text | What it should also match |
+| category | text | location, genre, mood, language, content_type |
+| weight | decimal | 1.0 = exact, 0.5-0.9 = related |
+
+**agent_search_logs** - Analytics for improving metadata
+| Column | Type | Description |
+|--------|------|-------------|
+| query | text | Raw search input |
+| mode | text | 'hunt' (text) or 'vibe' (track-based) |
+| parsed_criteria | jsonb | Extracted BPM, content types, etc. |
+| results_count | integer | How many tracks returned |
+
+### Adding Synonyms
+```sql
+INSERT INTO search_synonyms (search_term, matches_term, category, weight)
+VALUES ('trap', 'hiphop', 'genre', 0.6);
+```
+
+### Script Detection
+Non-Latin characters automatically infer location context:
+- Japanese (hiragana/katakana/kanji) → "japanese", "japan", "tokyo"
+- Korean (hangul) → "korean", "korea", "seoul"
+- Chinese → "chinese", "china"
+- Arabic → "arabic", "middle east"
+
+Works both directions: search terms AND track metadata.
+
+See `docs/agent-synonym-system.md` for detailed documentation.
+
+---
+
 ## Project Info
 
 **Stack:** Next.js 14.2.33, TypeScript, Tailwind, Supabase, SUI blockchain (zkLogin), Stacks wallet (legacy)
@@ -365,3 +423,5 @@ Creates JSON exports of ip_tracks, user_profiles, personas, accounts, alpha_user
 **Fresh migration:** December 21, 2025 - Migrated to `mixmi-alpha-fresh-11` for clean build environment.
 
 **SUI Transition:** December 26, 2025 - Added USDC pricing, persona accounting system, zkLogin support.
+
+**Agent System:** December 29, 2025 - Added Bestie agent with synonym expansion and search logging.
