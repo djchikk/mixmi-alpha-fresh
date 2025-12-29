@@ -74,10 +74,19 @@ export function parseDescription(description: string): Partial<VibeMatchCriteria
 
   // Detect content types
   const types: string[] = [];
-  if (lowerDesc.includes('loop')) types.push('loop');
-  if (lowerDesc.includes('song') || lowerDesc.includes('track')) types.push('full_song');
+  if (lowerDesc.includes('loop')) {
+    types.push('loop');
+    types.push('loop_pack'); // Include loop packs when searching for loops
+  }
+  if (lowerDesc.includes('song') || lowerDesc.includes('track')) {
+    types.push('full_song');
+    types.push('ep'); // Include EPs when searching for songs
+  }
   if (lowerDesc.includes('video')) types.push('video_clip');
-  if (lowerDesc.includes('radio')) types.push('radio_station');
+  if (lowerDesc.includes('radio') || lowerDesc.includes('station')) {
+    types.push('radio_station');
+    types.push('station_pack'); // Include station packs when searching for radio
+  }
   if (types.length > 0) criteria.contentTypes = types;
 
   return criteria;
