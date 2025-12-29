@@ -16,9 +16,7 @@ import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFli
 import ProfileImageModal from "@/components/profile/ProfileImageModal";
 import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
 import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star } from 'lucide-react';
-import AgentVibeMatcher from '@/components/agent/AgentVibeMatcher';
 import { Track } from '@/components/mixer/types';
-import { useMixer } from '@/contexts/MixerContext';
 import Crate from '@/components/shared/Crate';
 import { PRICING } from '@/config/pricing';
 import { generateAvatar } from '@/lib/avatarUtils';
@@ -1219,12 +1217,8 @@ function SettingsTab({
   const effectiveWallet = activePersona?.wallet_address || walletAddress;
 
   const [loading, setLoading] = useState(true);
-  const [agentSearching, setAgentSearching] = useState(false);
-  const [agentResults, setAgentResults] = useState<{ count: number; message: string } | null>(null);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const mixerContext = useMixer();
-  const addTrackToCollection = mixerContext?.addTrackToCollection;
   const router = useRouter();
   const [agentName, setAgentName] = useState('');
   const [profile, setProfile] = useState<{
@@ -1280,10 +1274,10 @@ function SettingsTab({
     fetchProfileData();
   }, [effectiveWallet]);
 
-  // Load agent name from localStorage
+  // Load agent name from localStorage (default to "Bestie")
   useEffect(() => {
     const savedName = localStorage.getItem('agent-name');
-    if (savedName) setAgentName(savedName);
+    setAgentName(savedName || 'Bestie');
   }, []);
 
   const handleProfileUpdate = async () => {
@@ -1584,17 +1578,16 @@ function SettingsTab({
           </div>
         </div>
 
-        {/* Agent Section */}
+        {/* Agent Settings */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl">🤖</span>
-            <h3 className="text-white font-semibold">
-              {agentName || 'Your Agent'}
-            </h3>
+            <h3 className="text-white font-semibold">Agent Settings</h3>
           </div>
 
           {/* Agent Name */}
           <div className="mb-4">
+            <label className="block text-sm text-gray-400 mb-2">Agent Name</label>
             <div className="flex items-center gap-3">
               <input
                 type="text"
@@ -1606,103 +1599,12 @@ function SettingsTab({
                 }}
                 className="flex-1 bg-[#0a0f1a] border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm focus:border-[#81E4F2] focus:outline-none transition-colors"
               />
-              <span className="text-gray-500 text-sm">🤖</span>
             </div>
-            <p className="text-gray-500 text-xs mt-1">
-              Give your AI bestie a name
-            </p>
           </div>
 
-          <p className="text-gray-400 text-sm mb-4">
-            Describe a vibe or drop a track — I'll find 5 matching tracks and add them to your crate.
+          <p className="text-gray-500 text-sm">
+            Use {agentName || 'your agent'} on the globe page — click the 🤖 next to Crate.
           </p>
-
-          <AgentVibeMatcher
-            onWakeUp={async (mode, input) => {
-              setAgentSearching(true);
-              setAgentResults(null);
-              console.log('[Agent] Waking up in mode:', mode);
-              console.log('[Agent] Input:', typeof input === 'string' ? input : input.title);
-
-              try {
-                const response = await fetch('/api/agent/vibe-match', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ mode, input }),
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.tracks && data.tracks.length > 0) {
-                  console.log('[Agent] Found', data.tracks.length, 'tracks');
-
-                  // Add each track to the Crate with foundByAgent flag
-                  if (addTrackToCollection) {
-                    for (const track of data.tracks) {
-                      // Convert to IPTrack format for addTrackToCollection
-                      const ipTrack = {
-                        id: track.id,
-                        title: track.title,
-                        artist: track.artist,
-                        cover_image_url: track.cover_image_url || track.imageUrl,
-                        audio_url: track.audioUrl,
-                        bpm: track.bpm,
-                        content_type: track.content_type,
-                        stream_url: track.stream_url,
-                        video_url: track.video_url,
-                        price_stx: track.price_stx,
-                        download_price_stx: track.download_price_stx,
-                        allow_downloads: track.allow_downloads,
-                        primary_uploader_wallet: track.primary_uploader_wallet,
-                        foundByAgent: true, // Mark as found by agent
-                      };
-                      addTrackToCollection(ipTrack as any);
-                    }
-                  }
-
-                  const name = agentName || 'Your agent';
-                  setAgentResults({
-                    count: data.tracks.length,
-                    message: `${name} found ${data.tracks.length} track${data.tracks.length > 1 ? 's' : ''} and added to your Crate!`,
-                  });
-                } else {
-                  setAgentResults({
-                    count: 0,
-                    message: 'No matching tracks found. Try different criteria.',
-                  });
-                }
-              } catch (error) {
-                console.error('[Agent] Search error:', error);
-                setAgentResults({
-                  count: 0,
-                  message: 'Search failed. Please try again.',
-                });
-              }
-
-              setAgentSearching(false);
-            }}
-            isSearching={agentSearching}
-          />
-
-          {/* Results message */}
-          {agentResults && (
-            <div className={`mt-4 p-3 rounded-lg text-sm ${
-              agentResults.count > 0
-                ? 'bg-green-900/30 border border-green-700 text-green-300'
-                : 'bg-gray-800 border border-gray-700 text-gray-400'
-            }`}>
-              <div className="flex items-center gap-2">
-                <span>{agentResults.count > 0 ? '🤖' : '🔍'}</span>
-                <span>{agentResults.message}</span>
-              </div>
-              {agentResults.count > 0 && (
-                <p className="mt-1 text-xs text-gray-500">
-                  Check your Crate to see the tracks your agent found!
-                </p>
-              )}
-            </div>
-          )}
-
         </div>
 
         {/* Wallet Settings */}

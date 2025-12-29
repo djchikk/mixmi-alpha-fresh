@@ -14,10 +14,10 @@ export default function AgentWidget() {
   const mixerContext = useMixer();
   const addTrackToCollection = mixerContext?.addTrackToCollection;
 
-  // Load agent name from localStorage
+  // Load agent name from localStorage (default to "Bestie")
   useEffect(() => {
     const savedName = localStorage.getItem('agent-name');
-    if (savedName) setAgentName(savedName);
+    setAgentName(savedName || 'Bestie');
   }, []);
 
   // Expose openAgentWidget to window for Crate access
@@ -122,20 +122,6 @@ export default function AgentWidget() {
           >
             <X className="w-4 h-4 text-gray-400 hover:text-white" />
           </button>
-        </div>
-
-        {/* Agent Name Input */}
-        <div className="mb-3">
-          <input
-            type="text"
-            placeholder="Name your agent..."
-            value={agentName}
-            onChange={(e) => {
-              setAgentName(e.target.value);
-              localStorage.setItem('agent-name', e.target.value);
-            }}
-            className="w-full bg-[#0a0f1a] border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-xs focus:border-[#81E4F2] focus:outline-none transition-colors"
-          />
         </div>
 
         {/* Description */}
