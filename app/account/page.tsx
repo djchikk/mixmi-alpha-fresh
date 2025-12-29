@@ -1614,7 +1614,7 @@ function SettingsTab({
           </div>
 
           <p className="text-gray-400 text-sm mb-4">
-            Drop a track below or describe what you're looking for.
+            Describe a vibe or drop a track — I'll find 5 matching tracks and add them to your crate.
           </p>
 
           <AgentVibeMatcher
