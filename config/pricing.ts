@@ -49,9 +49,9 @@ export const PRICING = {
     saveableUnitBars: 8,          // Pay per 8-bar section saved
   },
 
-  // Account limits
+  // Account limits (high limit for alpha testing)
   account: {
-    maxPersonas: 5,
+    maxPersonas: 999,  // Effectively unlimited during alpha
     maxTbdWallets: 5,
   },
 } as const;
