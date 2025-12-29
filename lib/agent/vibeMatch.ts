@@ -181,20 +181,34 @@ export function parseDescription(description: string): Partial<VibeMatchCriteria
   }
 
   // Detect content types
+  // Check for specific pack/EP searches first (more specific = higher priority)
   const types: string[] = [];
-  if (lowerDesc.includes('loop')) {
+
+  // Explicit pack searches - ONLY return packs
+  if (lowerDesc.includes('loop pack') || lowerDesc.includes('loop packs')) {
+    types.push('loop_pack');
+  } else if (lowerDesc.includes('loop')) {
+    // Generic "loop" includes both
     types.push('loop');
-    types.push('loop_pack'); // Include loop packs when searching for loops
+    types.push('loop_pack');
   }
-  if (lowerDesc.includes('song') || lowerDesc.includes('track')) {
+
+  // Explicit EP searches - ONLY return EPs
+  if (lowerDesc.includes(' ep ') || lowerDesc.includes(' eps ') || lowerDesc.endsWith(' ep') || lowerDesc.endsWith(' eps')) {
+    types.push('ep');
+  } else if (lowerDesc.includes('song') || lowerDesc.includes('track')) {
+    // Generic "song/track" includes both
     types.push('full_song');
-    types.push('ep'); // Include EPs when searching for songs
+    types.push('ep');
   }
+
   if (lowerDesc.includes('video')) types.push('video_clip');
+
   if (lowerDesc.includes('radio') || lowerDesc.includes('station')) {
     types.push('radio_station');
-    types.push('station_pack'); // Include station packs when searching for radio
+    types.push('station_pack');
   }
+
   if (types.length > 0) criteria.contentTypes = types;
 
   return criteria;
@@ -207,6 +221,7 @@ function extractSearchKeywords(description: string): string[] {
   const stopWords = new Set([
     'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
     'bpm', 'loop', 'loops', 'song', 'songs', 'track', 'tracks', 'video', 'radio',
+    'pack', 'packs', 'station', 'stations', 'clip', 'clips',
     'find', 'get', 'want', 'like', 'something', 'stuff', 'vibes', 'vibe', 'feel', 'feeling',
     'i', 'me', 'my', 'some', 'any', 'that', 'this', 'from', 'about'
   ]);
