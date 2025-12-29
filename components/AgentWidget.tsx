@@ -60,9 +60,11 @@ export default function AgentWidget() {
               id: track.id,
               title: track.title,
               artist: track.artist,
-              imageUrl: track.cover_image_url,
+              imageUrl: track.imageUrl || track.cover_image_url,
               cover_image_url: track.cover_image_url,
-              audioUrl: track.audio_url || track.stream_url,
+              audioUrl: track.audioUrl || track.stream_url, // API returns audioUrl (camelCase)
+              audio_url: track.audioUrl || track.stream_url, // Some components expect snake_case
+              stream_url: track.stream_url,
               bpm: track.bpm,
               content_type: track.content_type,
               video_url: track.video_url,
