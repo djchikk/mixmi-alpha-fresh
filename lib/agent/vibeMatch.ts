@@ -77,16 +77,47 @@ export function parseDescription(description: string): Partial<VibeMatchCriteria
   if (lowerDesc.includes('loop')) types.push('loop');
   if (lowerDesc.includes('song') || lowerDesc.includes('track')) types.push('full_song');
   if (lowerDesc.includes('video')) types.push('video_clip');
+  if (lowerDesc.includes('radio')) types.push('radio_station');
   if (types.length > 0) criteria.contentTypes = types;
 
   return criteria;
 }
 
 /**
+ * Extract search keywords from description (excluding BPM patterns and common words)
+ */
+function extractSearchKeywords(description: string): string[] {
+  const stopWords = new Set([
+    'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
+    'bpm', 'loop', 'loops', 'song', 'songs', 'track', 'tracks', 'video', 'radio',
+    'find', 'get', 'want', 'like', 'something', 'stuff', 'vibes', 'vibe', 'feel', 'feeling',
+    'i', 'me', 'my', 'some', 'any', 'that', 'this', 'from', 'about'
+  ]);
+
+  // Remove BPM patterns first
+  const cleanedDesc = description.toLowerCase()
+    .replace(/\d{2,3}\s*[-–to]+\s*\d{2,3}\s*bpm/gi, '')
+    .replace(/\d{2,3}\s*bpm/gi, '');
+
+  // Extract words, filter out stop words and short words
+  const words = cleanedDesc
+    .split(/[\s,.-]+/)
+    .map(w => w.trim())
+    .filter(w => w.length >= 3 && !stopWords.has(w));
+
+  return [...new Set(words)]; // Remove duplicates
+}
+
+/**
  * Search for tracks matching the vibe criteria
+ * Searches across: tags, notes, description, tell_us_more, locations, title, artist
  */
 export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<VibeMatchResult> {
   const maxResults = criteria.maxResults || 5;
+
+  // Extract search keywords from the description
+  const keywords = criteria.description ? extractSearchKeywords(criteria.description) : [];
+  console.log('[VibeMatch] Search keywords:', keywords);
 
   // Start building the query
   let query = supabase
@@ -120,8 +151,8 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
     query = query.eq('content_type', criteria.referenceContentType);
   }
 
-  // Limit results
-  query = query.limit(maxResults * 2); // Get more than needed for randomization
+  // Get more results for text filtering (we'll filter client-side for flexibility)
+  query = query.limit(100);
 
   const { data, error } = await query;
 
@@ -135,37 +166,90 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
     return { tracks: [], criteria, matchCount: 0 };
   }
 
-  // Convert to Track format and mark as found by agent
-  const tracks: Track[] = data
-    .sort(() => Math.random() - 0.5) // Shuffle results
-    .slice(0, maxResults)
-    .map(ipTrack => ({
-      id: ipTrack.id,
-      title: ipTrack.title || 'Untitled',
-      artist: ipTrack.artist || 'Unknown',
-      imageUrl: ipTrack.cover_image_url || '',
-      cover_image_url: ipTrack.cover_image_url || '',
-      bpm: ipTrack.bpm || 120,
-      audioUrl: ipTrack.audio_url || undefined,
-      content_type: ipTrack.content_type || 'loop',
-      stream_url: ipTrack.stream_url || undefined,
-      video_url: ipTrack.video_url || undefined,
-      notes: ipTrack.notes || undefined,
-      price_stx: ipTrack.price_stx || undefined,
-      download_price_stx: ipTrack.download_price_stx || undefined,
-      allow_downloads: ipTrack.allow_downloads ?? true,
-      primary_uploader_wallet: ipTrack.primary_uploader_wallet,
-      created_at: ipTrack.created_at,
-      updated_at: ipTrack.updated_at,
-      foundByAgent: true, // Mark as found by agent
-    }));
+  // Score and filter tracks based on keyword matches
+  let scoredTracks = data.map(track => {
+    let score = 0;
+    const searchableText = [
+      track.title || '',
+      track.artist || '',
+      track.notes || '',
+      track.description || '',
+      track.tell_us_more || '',
+      // Convert tags array to string for searching
+      Array.isArray(track.tags) ? track.tags.join(' ') : '',
+      // Convert locations array to searchable text
+      Array.isArray(track.locations) ? track.locations.map((loc: any) =>
+        typeof loc === 'string' ? loc : `${loc.city || ''} ${loc.country || ''} ${loc.name || ''}`
+      ).join(' ') : '',
+    ].join(' ').toLowerCase();
 
-  console.log(`[VibeMatch] Found ${tracks.length} matching tracks`);
+    // Score each keyword match
+    for (const keyword of keywords) {
+      if (searchableText.includes(keyword)) {
+        score += 1;
+        // Bonus for tag matches (more intentional metadata)
+        if (Array.isArray(track.tags) && track.tags.some((t: string) =>
+          t.toLowerCase().includes(keyword)
+        )) {
+          score += 2;
+        }
+        // Bonus for title/artist matches
+        if ((track.title || '').toLowerCase().includes(keyword)) {
+          score += 1;
+        }
+      }
+    }
+
+    return { track, score };
+  });
+
+  // If we have keywords, prioritize tracks with matches
+  if (keywords.length > 0) {
+    // Sort by score (highest first), then shuffle within same score
+    scoredTracks.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return Math.random() - 0.5;
+    });
+
+    // Log what we found
+    const matchedCount = scoredTracks.filter(t => t.score > 0).length;
+    console.log(`[VibeMatch] ${matchedCount} tracks matched keywords`);
+  } else {
+    // No keywords, just shuffle
+    scoredTracks = scoredTracks.sort(() => Math.random() - 0.5);
+  }
+
+  // Take top results
+  const selectedTracks = scoredTracks.slice(0, maxResults);
+
+  // Convert to Track format
+  const tracks: Track[] = selectedTracks.map(({ track: ipTrack }) => ({
+    id: ipTrack.id,
+    title: ipTrack.title || 'Untitled',
+    artist: ipTrack.artist || 'Unknown',
+    imageUrl: ipTrack.cover_image_url || '',
+    cover_image_url: ipTrack.cover_image_url || '',
+    bpm: ipTrack.bpm || 120,
+    audioUrl: ipTrack.audio_url || undefined,
+    content_type: ipTrack.content_type || 'loop',
+    stream_url: ipTrack.stream_url || undefined,
+    video_url: ipTrack.video_url || undefined,
+    notes: ipTrack.notes || undefined,
+    price_stx: ipTrack.price_stx || undefined,
+    download_price_stx: ipTrack.download_price_stx || undefined,
+    allow_downloads: ipTrack.allow_downloads ?? true,
+    primary_uploader_wallet: ipTrack.primary_uploader_wallet,
+    created_at: ipTrack.created_at,
+    updated_at: ipTrack.updated_at,
+    foundByAgent: true,
+  }));
+
+  console.log(`[VibeMatch] Returning ${tracks.length} tracks`);
 
   return {
     tracks,
     criteria,
-    matchCount: data.length, // Total matches before limit
+    matchCount: scoredTracks.filter(t => t.score > 0).length || data.length,
   };
 }
 
