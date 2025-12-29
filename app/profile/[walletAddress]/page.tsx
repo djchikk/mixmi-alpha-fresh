@@ -203,7 +203,16 @@ export default function UserProfilePage() {
   }, [identifier, currentUserWallet]);
 
   const refreshProfile = async () => {
-    const data = await UserProfileService.getProfileByIdentifier(identifier);
+    // Use targetWallet for refresh if we have it (handles persona profiles correctly)
+    // Otherwise fall back to identifier for initial load case
+    const lookupWallet = targetWallet || identifier;
+
+    // For personas, we need to use the wallet directly since the RPC function
+    // doesn't search the personas table
+    const data = lookupWallet.startsWith('SP') || lookupWallet.startsWith('ST')
+      ? await UserProfileService.getProfile(lookupWallet)
+      : await UserProfileService.getProfileByIdentifier(lookupWallet);
+
     if (data.profile) {
       setTargetWallet(data.profile.wallet_address);
     }
