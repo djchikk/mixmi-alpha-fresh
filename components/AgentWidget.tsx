@@ -128,7 +128,7 @@ export default function AgentWidget() {
 
         {/* Description */}
         <p className="text-gray-400 text-xs mb-3">
-          Describe a vibe — I'll find matching tracks and add them to your crate.
+          I'm still learning! Try simple searches like "chill loops" or "radio stations". I'll find matches and add them to your crate.
         </p>
 
         {/* Vibe Matcher */}
