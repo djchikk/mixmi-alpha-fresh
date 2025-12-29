@@ -19,7 +19,8 @@ import ProfileSticker from '@/components/profile/ProfileSticker';
 export default function UserProfilePage() {
   const params = useParams();
   const { walletAddress: currentUserWallet, suiAddress, personas, activePersona } = useAuth();
-  const identifier = params.walletAddress as string; // Can be username or wallet
+  // Decode URL-encoded characters (supports international usernames like Korean, Japanese, etc.)
+  const identifier = decodeURIComponent(params.walletAddress as string);
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);

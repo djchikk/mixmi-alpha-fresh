@@ -29,7 +29,8 @@ export default function CreatorStorePage() {
   const router = useRouter();
   const { showToast } = useToast();
   const { isAuthenticated, walletAddress, personas, activePersona } = useAuth();
-  const walletOrUsername = params.walletAddress as string; // This will be either wallet address or username
+  // Decode URL-encoded characters (supports international usernames like Korean, Japanese, etc.)
+  const walletOrUsername = decodeURIComponent(params.walletAddress as string);
 
   const [tracks, setTracks] = useState<IPTrack[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<IPTrack[]>([]);
