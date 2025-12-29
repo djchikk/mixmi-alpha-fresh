@@ -210,3 +210,57 @@ Based on the documentation, the limitations mentioned were:
 - **Persona System:** See `docs/2025-12-28-persona-system.md`
 - **Pricing Config:** `config/pricing.ts` has all USDC prices
 - **Accounting Tables:** `personas.usdc_balance`, `tbd_wallets`, `earnings`
+
+---
+
+## Future Feature: Investor/Scout Agent
+
+**Concept:** An autonomous agent with its own wallet that buys content it predicts will succeed, earning royalties from its purchases.
+
+### How It Would Work
+
+1. **Agent Wallet:** Generate a SUI wallet for the agent
+2. **Allowance System:** User funds the agent with testnet (or mainnet) tokens
+3. **Buying Logic:** Agent autonomously purchases tracks based on criteria
+4. **Portfolio Tracking:** Dashboard shows what the agent bought and ROI from royalties
+
+### Separate from Vibe Matcher
+
+The current "vibe matcher" agent helps users find music they'll personally enjoy (taste-based). An investor agent would predict what *others* will like (market-based). These are conceptually different:
+
+| Vibe Matcher | Investor Agent |
+|--------------|----------------|
+| "Find music I'll like" | "Find music that will sell" |
+| Personal taste | Market prediction |
+| Immediate gratification | Long-term ROI |
+| No wallet needed | Needs its own wallet |
+
+### Decision Logic Options
+
+The hard part is: how does the agent decide what to buy?
+
+- **Trending tags/genres:** Buy from popular categories
+- **Location diversity:** Explore underrepresented regions
+- **Price arbitrage:** Buy underpriced content
+- **Random exploration:** Fun chaos mode for testnet
+- **ML-based:** Would require audio analysis infrastructure
+
+### Testnet Fun
+
+For alpha/testnet, a simple "random scout" could be entertaining:
+- Gets 100 testnet SUI allowance
+- Buys random tracks under X price from unexplored locations
+- User sees what it found in their dashboard
+- Track "portfolio" performance over time
+
+### Technical Requirements
+
+- Agent wallet generation and storage
+- Allowance/budget management
+- Purchase execution logic
+- Royalty tracking per agent
+- Dashboard for agent activity and ROI
+
+### Status
+
+**Idea captured for future implementation.** Would be a fun testnet experiment once SUI payment system is solid. Could evolve into a real feature if the prediction logic proves interesting.
