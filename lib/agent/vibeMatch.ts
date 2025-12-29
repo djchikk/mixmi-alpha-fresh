@@ -1,6 +1,114 @@
 import { supabase } from '@/lib/supabase';
 import { Track } from '@/components/mixer/types';
 
+// Cache synonyms to avoid repeated DB calls (refreshes every 5 minutes)
+let synonymCache: Map<string, { term: string; weight: number }[]> | null = null;
+let synonymCacheTime = 0;
+const SYNONYM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Load all synonyms from database into a lookup map
+ */
+async function loadSynonyms(): Promise<Map<string, { term: string; weight: number }[]>> {
+  const now = Date.now();
+  if (synonymCache && (now - synonymCacheTime) < SYNONYM_CACHE_TTL) {
+    return synonymCache;
+  }
+
+  const { data, error } = await supabase
+    .from('search_synonyms')
+    .select('search_term, matches_term, weight');
+
+  if (error || !data) {
+    console.error('[VibeMatch] Failed to load synonyms:', error?.message);
+    return new Map();
+  }
+
+  const map = new Map<string, { term: string; weight: number }[]>();
+  for (const row of data) {
+    const key = row.search_term.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key)!.push({ term: row.matches_term.toLowerCase(), weight: row.weight });
+  }
+
+  synonymCache = map;
+  synonymCacheTime = now;
+  console.log(`[VibeMatch] Loaded ${data.length} synonyms`);
+  return map;
+}
+
+/**
+ * Expand keywords with their synonyms
+ * Returns array of { keyword, weight } where weight affects scoring
+ */
+async function expandKeywordsWithSynonyms(
+  keywords: string[]
+): Promise<{ keyword: string; weight: number }[]> {
+  const synonyms = await loadSynonyms();
+  const expanded: { keyword: string; weight: number }[] = [];
+
+  for (const kw of keywords) {
+    // Original keyword gets full weight
+    expanded.push({ keyword: kw, weight: 1.0 });
+
+    // Add synonyms with their weights
+    const matches = synonyms.get(kw.toLowerCase());
+    if (matches) {
+      for (const match of matches) {
+        // Avoid duplicates
+        if (!expanded.some(e => e.keyword === match.term)) {
+          expanded.push({ keyword: match.term, weight: match.weight });
+        }
+      }
+    }
+  }
+
+  return expanded;
+}
+
+/**
+ * Detect if text contains non-Latin scripts (Japanese, Chinese, Korean, etc.)
+ * Returns detected scripts for context inference
+ */
+function detectScripts(text: string): { hasJapanese: boolean; hasChinese: boolean; hasKorean: boolean; hasArabic: boolean } {
+  return {
+    // Hiragana, Katakana, or common Kanji
+    hasJapanese: /[\u3040-\u30FF\u4E00-\u9FAF]/.test(text),
+    // Chinese characters (broader range)
+    hasChinese: /[\u4E00-\u9FFF]/.test(text),
+    // Korean Hangul
+    hasKorean: /[\uAC00-\uD7AF\u1100-\u11FF]/.test(text),
+    // Arabic script
+    hasArabic: /[\u0600-\u06FF]/.test(text),
+  };
+}
+
+/**
+ * Infer additional search terms from detected scripts
+ */
+function inferTermsFromScripts(text: string): string[] {
+  const scripts = detectScripts(text);
+  const inferred: string[] = [];
+
+  if (scripts.hasJapanese) {
+    inferred.push('japanese', 'japan', 'tokyo');
+  }
+  if (scripts.hasKorean) {
+    inferred.push('korean', 'korea', 'seoul');
+  }
+  if (scripts.hasChinese && !scripts.hasJapanese) {
+    // Chinese but not Japanese (since they share some characters)
+    inferred.push('chinese', 'china');
+  }
+  if (scripts.hasArabic) {
+    inferred.push('arabic', 'middle east');
+  }
+
+  return inferred;
+}
+
 export interface VibeMatchCriteria {
   // From dropped track
   referenceBpm?: number;
@@ -125,8 +233,21 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
   const maxResults = criteria.maxResults || 5;
 
   // Extract search keywords from the description
-  const keywords = criteria.description ? extractSearchKeywords(criteria.description) : [];
+  let keywords = criteria.description ? extractSearchKeywords(criteria.description) : [];
+
+  // Infer additional terms from non-Latin scripts in the search
+  if (criteria.description) {
+    const inferredTerms = inferTermsFromScripts(criteria.description);
+    if (inferredTerms.length > 0) {
+      console.log('[VibeMatch] Inferred from script:', inferredTerms);
+      keywords = [...keywords, ...inferredTerms];
+    }
+  }
+
+  // Expand keywords with synonyms (includes weights)
+  const expandedKeywords = await expandKeywordsWithSynonyms(keywords);
   console.log('[VibeMatch] Search keywords:', keywords);
+  console.log('[VibeMatch] Expanded with synonyms:', expandedKeywords.map(e => `${e.keyword}(${e.weight})`).join(', '));
 
   // Start building the query
   let query = supabase
@@ -184,7 +305,8 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
     // This ensures radio searches return radio stations even without keyword matches
     let score = hasContentTypeFilter ? 1 : 0;
 
-    const searchableText = [
+    // Build searchable text from track metadata
+    const rawText = [
       track.title || '',
       track.artist || '',
       track.notes || '',
@@ -196,21 +318,27 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
       Array.isArray(track.locations) ? track.locations.map((loc: any) =>
         typeof loc === 'string' ? loc : `${loc.city || ''} ${loc.country || ''} ${loc.name || ''}`
       ).join(' ') : '',
-    ].join(' ').toLowerCase();
+    ].join(' ');
+
+    // Infer language terms from track metadata scripts
+    // (e.g., if title has Japanese characters, add "japanese" to searchable text)
+    const trackScriptTerms = inferTermsFromScripts(rawText);
+    const searchableText = (rawText + ' ' + trackScriptTerms.join(' ')).toLowerCase();
 
     // Score each keyword match (bonus points on top of baseline)
-    for (const keyword of keywords) {
+    // Use expanded keywords with their weights
+    for (const { keyword, weight } of expandedKeywords) {
       if (searchableText.includes(keyword)) {
-        score += 1;
+        score += weight; // Weighted score based on synonym relationship
         // Bonus for tag matches (more intentional metadata)
         if (Array.isArray(track.tags) && track.tags.some((t: string) =>
           t.toLowerCase().includes(keyword)
         )) {
-          score += 2;
+          score += 2 * weight;
         }
         // Bonus for title/artist matches
         if ((track.title || '').toLowerCase().includes(keyword)) {
-          score += 1;
+          score += weight;
         }
       }
     }
@@ -228,12 +356,12 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
       return Math.random() - 0.5;
     });
     console.log(`[VibeMatch] ${scoredTracks.length} tracks matched content type filter`);
-  } else if (keywords.length > 0) {
+  } else if (expandedKeywords.length > 0) {
     // No content type filter, only keywords - require actual keyword matches
     const matchedTracks = scoredTracks.filter(t => t.score > 0);
 
     if (matchedTracks.length === 0) {
-      console.log(`[VibeMatch] Keywords ${keywords.join(', ')} matched 0 tracks - returning empty`);
+      console.log(`[VibeMatch] Keywords ${expandedKeywords.map(e => e.keyword).join(', ')} matched 0 tracks - returning empty`);
       return { tracks: [], criteria, matchCount: 0 };
     }
 
@@ -243,7 +371,7 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
       return Math.random() - 0.5;
     });
 
-    console.log(`[VibeMatch] ${matchedTracks.length} tracks matched keywords`);
+    console.log(`[VibeMatch] ${matchedTracks.length} tracks matched keywords (including synonyms)`);
     scoredTracks = matchedTracks;
   } else {
     // No content type filter and no keywords - just shuffle
