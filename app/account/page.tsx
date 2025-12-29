@@ -1553,15 +1553,6 @@ function SettingsTab({
                           Switch
                         </button>
                       )}
-                      <button
-                        onClick={() => {
-                          // TODO: Open account edit modal
-                          console.log('Edit account:', persona.id);
-                        }}
-                        className="px-3 py-1.5 text-xs text-gray-400 border border-gray-600 rounded hover:bg-gray-700/30 transition-colors"
-                      >
-                        Edit
-                      </button>
                     </div>
                   </div>
                 ))}
