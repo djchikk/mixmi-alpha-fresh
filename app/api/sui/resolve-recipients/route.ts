@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const results: TrackSplits[] = [];
 
     for (const trackId of trackIds) {
-      // Get track details with all splits
+      // Get track details with all splits (including new SUI address columns)
       const { data: track, error: trackError } = await supabase
         .from('ip_tracks')
         .select(`
@@ -56,20 +56,20 @@ export async function POST(request: NextRequest) {
           title,
           primary_uploader_wallet,
           persona_id,
-          composition_split_1_wallet, composition_split_1_name, composition_split_1_percentage,
-          composition_split_2_wallet, composition_split_2_name, composition_split_2_percentage,
-          composition_split_3_wallet, composition_split_3_name, composition_split_3_percentage,
-          composition_split_4_wallet, composition_split_4_name, composition_split_4_percentage,
-          composition_split_5_wallet, composition_split_5_name, composition_split_5_percentage,
-          composition_split_6_wallet, composition_split_6_name, composition_split_6_percentage,
-          composition_split_7_wallet, composition_split_7_name, composition_split_7_percentage,
-          production_split_1_wallet, production_split_1_name, production_split_1_percentage,
-          production_split_2_wallet, production_split_2_name, production_split_2_percentage,
-          production_split_3_wallet, production_split_3_name, production_split_3_percentage,
-          production_split_4_wallet, production_split_4_name, production_split_4_percentage,
-          production_split_5_wallet, production_split_5_name, production_split_5_percentage,
-          production_split_6_wallet, production_split_6_name, production_split_6_percentage,
-          production_split_7_wallet, production_split_7_name, production_split_7_percentage
+          composition_split_1_wallet, composition_split_1_sui_address, composition_split_1_percentage,
+          composition_split_2_wallet, composition_split_2_sui_address, composition_split_2_percentage,
+          composition_split_3_wallet, composition_split_3_sui_address, composition_split_3_percentage,
+          composition_split_4_wallet, composition_split_4_sui_address, composition_split_4_percentage,
+          composition_split_5_wallet, composition_split_5_sui_address, composition_split_5_percentage,
+          composition_split_6_wallet, composition_split_6_sui_address, composition_split_6_percentage,
+          composition_split_7_wallet, composition_split_7_sui_address, composition_split_7_percentage,
+          production_split_1_wallet, production_split_1_sui_address, production_split_1_percentage,
+          production_split_2_wallet, production_split_2_sui_address, production_split_2_percentage,
+          production_split_3_wallet, production_split_3_sui_address, production_split_3_percentage,
+          production_split_4_wallet, production_split_4_sui_address, production_split_4_percentage,
+          production_split_5_wallet, production_split_5_sui_address, production_split_5_percentage,
+          production_split_6_wallet, production_split_6_sui_address, production_split_6_percentage,
+          production_split_7_wallet, production_split_7_sui_address, production_split_7_percentage
         `)
         .eq('id', trackId)
         .single();
@@ -126,13 +126,22 @@ export async function POST(request: NextRequest) {
       const compositionSplits: Split[] = [];
       for (let i = 1; i <= 7; i++) {
         const wallet = track[`composition_split_${i}_wallet` as keyof typeof track] as string | null;
-        const name = track[`composition_split_${i}_name` as keyof typeof track] as string | null;
+        const suiAddressColumn = track[`composition_split_${i}_sui_address` as keyof typeof track] as string | null;
         const percentage = track[`composition_split_${i}_percentage` as keyof typeof track] as number | null;
 
         if (percentage && percentage > 0) {
-          const resolved = await resolveSuiAddress(wallet);
+          // Extract name from "pending:Name" format if applicable
+          const isPending = wallet?.startsWith('pending:');
+          const name = isPending ? wallet.substring(8) : null;
+          const actualWallet = isPending ? null : wallet;
+
+          // Check for SUI address: column first, then lookup from wallet
+          const resolved = suiAddressColumn
+            ? { suiAddress: suiAddressColumn, personaId: null }
+            : await resolveSuiAddress(actualWallet);
+
           compositionSplits.push({
-            wallet,
+            wallet: actualWallet,
             name,
             percentage,
             suiAddress: resolved.suiAddress,
@@ -146,13 +155,22 @@ export async function POST(request: NextRequest) {
       const productionSplits: Split[] = [];
       for (let i = 1; i <= 7; i++) {
         const wallet = track[`production_split_${i}_wallet` as keyof typeof track] as string | null;
-        const name = track[`production_split_${i}_name` as keyof typeof track] as string | null;
+        const suiAddressColumn = track[`production_split_${i}_sui_address` as keyof typeof track] as string | null;
         const percentage = track[`production_split_${i}_percentage` as keyof typeof track] as number | null;
 
         if (percentage && percentage > 0) {
-          const resolved = await resolveSuiAddress(wallet);
+          // Extract name from "pending:Name" format if applicable
+          const isPending = wallet?.startsWith('pending:');
+          const name = isPending ? wallet.substring(8) : null;
+          const actualWallet = isPending ? null : wallet;
+
+          // Check for SUI address: column first, then lookup from wallet
+          const resolved = suiAddressColumn
+            ? { suiAddress: suiAddressColumn, personaId: null }
+            : await resolveSuiAddress(actualWallet);
+
           productionSplits.push({
-            wallet,
+            wallet: actualWallet,
             name,
             percentage,
             suiAddress: resolved.suiAddress,

@@ -1,35 +1,40 @@
 -- Migration: SUI Treasury System
--- Adds support for collaborator names without wallet addresses
+-- Adds SUI address support for dual-chain payments (STX + SUI)
 -- Enhances earnings tracking for the hybrid payment model
 -- Created: 2025-12-29
+--
+-- NOTE: The existing _wallet columns store either:
+--   - STX wallet address (SP1234...)
+--   - Pending collaborator name (pending:Kwame)
+-- We're adding _sui_address columns for SUI payments while keeping STX support.
 
 -- ============================================================================
--- PART 1: Add Collaborator Name Fields to ip_tracks
+-- PART 1: Add SUI Address Fields to ip_tracks
 -- ============================================================================
--- Allow users to enter just names for collaborators without accounts
--- The wallet field can be null while name holds the attribution
+-- Each split can now have both STX (_wallet) and SUI (_sui_address) addresses
+-- Payment logic will check: SUI address first, then look up from wallet, then pending:name
 
--- Composition split names (1-7)
+-- Composition split SUI addresses (1-7)
 ALTER TABLE ip_tracks
-ADD COLUMN IF NOT EXISTS composition_split_1_name TEXT,
-ADD COLUMN IF NOT EXISTS composition_split_2_name TEXT,
-ADD COLUMN IF NOT EXISTS composition_split_3_name TEXT,
-ADD COLUMN IF NOT EXISTS composition_split_4_name TEXT,
-ADD COLUMN IF NOT EXISTS composition_split_5_name TEXT,
-ADD COLUMN IF NOT EXISTS composition_split_6_name TEXT,
-ADD COLUMN IF NOT EXISTS composition_split_7_name TEXT;
+ADD COLUMN IF NOT EXISTS composition_split_1_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS composition_split_2_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS composition_split_3_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS composition_split_4_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS composition_split_5_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS composition_split_6_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS composition_split_7_sui_address TEXT;
 
--- Production split names (1-7)
+-- Production split SUI addresses (1-7)
 ALTER TABLE ip_tracks
-ADD COLUMN IF NOT EXISTS production_split_1_name TEXT,
-ADD COLUMN IF NOT EXISTS production_split_2_name TEXT,
-ADD COLUMN IF NOT EXISTS production_split_3_name TEXT,
-ADD COLUMN IF NOT EXISTS production_split_4_name TEXT,
-ADD COLUMN IF NOT EXISTS production_split_5_name TEXT,
-ADD COLUMN IF NOT EXISTS production_split_6_name TEXT,
-ADD COLUMN IF NOT EXISTS production_split_7_name TEXT;
+ADD COLUMN IF NOT EXISTS production_split_1_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS production_split_2_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS production_split_3_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS production_split_4_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS production_split_5_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS production_split_6_sui_address TEXT,
+ADD COLUMN IF NOT EXISTS production_split_7_sui_address TEXT;
 
-COMMENT ON COLUMN ip_tracks.composition_split_1_name IS 'Display name for collaborator (used when no wallet address available)';
+COMMENT ON COLUMN ip_tracks.composition_split_1_sui_address IS 'SUI address for this collaborator (used for SUI/USDC payments)';
 
 -- ============================================================================
 -- PART 2: Add Treasury Balance to Accounts
@@ -170,300 +175,18 @@ COMMENT ON VIEW v_earnings_detail IS 'Detailed earnings view for the dashboard E
 CREATE OR REPLACE VIEW v_treasury_summary AS
 SELECT
   a.id as account_id,
+  a.sui_address,
   a.treasury_balance_usdc,
-  COUNT(DISTINCT t.id) as pending_collaborators,
-  COALESCE(SUM(t.balance_usdc), 0) as total_pending_usdc,
-  json_agg(json_build_object(
-    'id', t.id,
-    'label', t.label,
-    'balance', t.balance_usdc,
-    'track_title', tr.title
-  )) FILTER (WHERE t.id IS NOT NULL AND t.claimed_at IS NULL) as pending_collaborator_details
+  COUNT(DISTINCT t.id) FILTER (WHERE t.claimed_at IS NULL) as pending_collaborators,
+  COALESCE(SUM(t.balance_usdc) FILTER (WHERE t.claimed_at IS NULL), 0) as total_pending_usdc
 FROM accounts a
-LEFT JOIN tbd_wallets t ON t.owner_account_id = a.id AND t.claimed_at IS NULL
-LEFT JOIN ip_tracks tr ON t.track_id = tr.id
-GROUP BY a.id, a.treasury_balance_usdc;
+LEFT JOIN tbd_wallets t ON t.owner_account_id = a.id
+GROUP BY a.id, a.sui_address, a.treasury_balance_usdc;
 
 COMMENT ON VIEW v_treasury_summary IS 'Summary of funds held in treasury for unnamed collaborators';
 
 -- ============================================================================
--- PART 8: Function to Process Track Purchase
--- ============================================================================
--- Called after a purchase to record earnings for all split recipients
-
-CREATE OR REPLACE FUNCTION process_track_purchase(
-  p_track_id UUID,
-  p_buyer_address TEXT,
-  p_amount_usdc DECIMAL(18,6),
-  p_tx_hash TEXT,
-  p_uploader_account_id UUID
-)
-RETURNS TABLE (
-  recipient_type TEXT,
-  recipient_id UUID,
-  recipient_name TEXT,
-  amount DECIMAL(18,6),
-  status TEXT
-) AS $$
-DECLARE
-  v_track ip_tracks%ROWTYPE;
-  v_comp_pool DECIMAL(18,6);
-  v_prod_pool DECIMAL(18,6);
-  v_split RECORD;
-  v_amount DECIMAL(18,6);
-  v_persona_id UUID;
-  v_tbd_wallet_id UUID;
-  v_status TEXT;
-BEGIN
-  -- Get track details
-  SELECT * INTO v_track FROM ip_tracks WHERE id = p_track_id;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Track not found: %', p_track_id;
-  END IF;
-
-  -- Calculate pools (50/50 split)
-  v_comp_pool := p_amount_usdc / 2;
-  v_prod_pool := p_amount_usdc / 2;
-
-  -- Process composition splits
-  FOR v_split IN
-    SELECT
-      unnest(ARRAY[1,2,3,4,5,6,7]) as slot,
-      unnest(ARRAY[
-        v_track.composition_split_1_wallet,
-        v_track.composition_split_2_wallet,
-        v_track.composition_split_3_wallet,
-        v_track.composition_split_4_wallet,
-        v_track.composition_split_5_wallet,
-        v_track.composition_split_6_wallet,
-        v_track.composition_split_7_wallet
-      ]) as wallet,
-      unnest(ARRAY[
-        v_track.composition_split_1_name,
-        v_track.composition_split_2_name,
-        v_track.composition_split_3_name,
-        v_track.composition_split_4_name,
-        v_track.composition_split_5_name,
-        v_track.composition_split_6_name,
-        v_track.composition_split_7_name
-      ]) as name,
-      unnest(ARRAY[
-        v_track.composition_split_1_percentage,
-        v_track.composition_split_2_percentage,
-        v_track.composition_split_3_percentage,
-        v_track.composition_split_4_percentage,
-        v_track.composition_split_5_percentage,
-        v_track.composition_split_6_percentage,
-        v_track.composition_split_7_percentage
-      ]) as pct
-  LOOP
-    IF v_split.pct IS NOT NULL AND v_split.pct > 0 THEN
-      v_amount := (v_comp_pool * v_split.pct) / 100;
-
-      IF v_split.wallet IS NOT NULL THEN
-        -- Has wallet - try to find persona with SUI address
-        SELECT p.id INTO v_persona_id
-        FROM personas p
-        JOIN accounts a ON p.account_id = a.id
-        WHERE p.wallet_address = v_split.wallet
-          AND a.sui_address IS NOT NULL
-        LIMIT 1;
-
-        IF v_persona_id IS NOT NULL THEN
-          -- Pay directly
-          PERFORM credit_persona_earnings(v_persona_id, v_amount, 'track_sale', p_track_id, p_buyer_address, p_tx_hash);
-          v_status := 'paid';
-
-          recipient_type := 'persona';
-          recipient_id := v_persona_id;
-          recipient_name := v_split.name;
-          amount := v_amount;
-          status := v_status;
-          RETURN NEXT;
-        ELSE
-          -- No SUI address, hold in treasury
-          v_status := 'held_in_treasury';
-
-          -- Create or update TBD wallet
-          SELECT id INTO v_tbd_wallet_id FROM tbd_wallets
-          WHERE owner_account_id = p_uploader_account_id
-            AND label = COALESCE(v_split.name, v_split.wallet)
-            AND track_id = p_track_id;
-
-          IF v_tbd_wallet_id IS NULL THEN
-            INSERT INTO tbd_wallets (owner_account_id, label, track_id, split_type, split_percentage, balance_usdc)
-            VALUES (p_uploader_account_id, COALESCE(v_split.name, v_split.wallet), p_track_id, 'composition', v_split.pct, v_amount)
-            RETURNING id INTO v_tbd_wallet_id;
-          ELSE
-            UPDATE tbd_wallets SET balance_usdc = balance_usdc + v_amount WHERE id = v_tbd_wallet_id;
-          END IF;
-
-          -- Record earning
-          INSERT INTO earnings (tbd_wallet_id, amount_usdc, source_type, source_id, buyer_address, tx_hash, status, held_by_account_id)
-          VALUES (v_tbd_wallet_id, v_amount, 'track_sale', p_track_id, p_buyer_address, p_tx_hash, 'held_in_treasury', p_uploader_account_id);
-
-          -- Update treasury balance
-          UPDATE accounts SET treasury_balance_usdc = treasury_balance_usdc + v_amount WHERE id = p_uploader_account_id;
-
-          recipient_type := 'tbd_wallet';
-          recipient_id := v_tbd_wallet_id;
-          recipient_name := COALESCE(v_split.name, v_split.wallet);
-          amount := v_amount;
-          status := v_status;
-          RETURN NEXT;
-        END IF;
-      ELSIF v_split.name IS NOT NULL THEN
-        -- Name only - hold in treasury
-        v_status := 'held_in_treasury';
-
-        SELECT id INTO v_tbd_wallet_id FROM tbd_wallets
-        WHERE owner_account_id = p_uploader_account_id
-          AND label = v_split.name
-          AND track_id = p_track_id;
-
-        IF v_tbd_wallet_id IS NULL THEN
-          INSERT INTO tbd_wallets (owner_account_id, label, track_id, split_type, split_percentage, balance_usdc)
-          VALUES (p_uploader_account_id, v_split.name, p_track_id, 'composition', v_split.pct, v_amount)
-          RETURNING id INTO v_tbd_wallet_id;
-        ELSE
-          UPDATE tbd_wallets SET balance_usdc = balance_usdc + v_amount WHERE id = v_tbd_wallet_id;
-        END IF;
-
-        INSERT INTO earnings (tbd_wallet_id, amount_usdc, source_type, source_id, buyer_address, tx_hash, status, held_by_account_id)
-        VALUES (v_tbd_wallet_id, v_amount, 'track_sale', p_track_id, p_buyer_address, p_tx_hash, 'held_in_treasury', p_uploader_account_id);
-
-        UPDATE accounts SET treasury_balance_usdc = treasury_balance_usdc + v_amount WHERE id = p_uploader_account_id;
-
-        recipient_type := 'tbd_wallet';
-        recipient_id := v_tbd_wallet_id;
-        recipient_name := v_split.name;
-        amount := v_amount;
-        status := v_status;
-        RETURN NEXT;
-      END IF;
-    END IF;
-  END LOOP;
-
-  -- Process production splits (same logic)
-  FOR v_split IN
-    SELECT
-      unnest(ARRAY[1,2,3,4,5,6,7]) as slot,
-      unnest(ARRAY[
-        v_track.production_split_1_wallet,
-        v_track.production_split_2_wallet,
-        v_track.production_split_3_wallet,
-        v_track.production_split_4_wallet,
-        v_track.production_split_5_wallet,
-        v_track.production_split_6_wallet,
-        v_track.production_split_7_wallet
-      ]) as wallet,
-      unnest(ARRAY[
-        v_track.production_split_1_name,
-        v_track.production_split_2_name,
-        v_track.production_split_3_name,
-        v_track.production_split_4_name,
-        v_track.production_split_5_name,
-        v_track.production_split_6_name,
-        v_track.production_split_7_name
-      ]) as name,
-      unnest(ARRAY[
-        v_track.production_split_1_percentage,
-        v_track.production_split_2_percentage,
-        v_track.production_split_3_percentage,
-        v_track.production_split_4_percentage,
-        v_track.production_split_5_percentage,
-        v_track.production_split_6_percentage,
-        v_track.production_split_7_percentage
-      ]) as pct
-  LOOP
-    IF v_split.pct IS NOT NULL AND v_split.pct > 0 THEN
-      v_amount := (v_prod_pool * v_split.pct) / 100;
-
-      IF v_split.wallet IS NOT NULL THEN
-        SELECT p.id INTO v_persona_id
-        FROM personas p
-        JOIN accounts a ON p.account_id = a.id
-        WHERE p.wallet_address = v_split.wallet
-          AND a.sui_address IS NOT NULL
-        LIMIT 1;
-
-        IF v_persona_id IS NOT NULL THEN
-          PERFORM credit_persona_earnings(v_persona_id, v_amount, 'track_sale', p_track_id, p_buyer_address, p_tx_hash);
-          v_status := 'paid';
-
-          recipient_type := 'persona';
-          recipient_id := v_persona_id;
-          recipient_name := v_split.name;
-          amount := v_amount;
-          status := v_status;
-          RETURN NEXT;
-        ELSE
-          v_status := 'held_in_treasury';
-
-          SELECT id INTO v_tbd_wallet_id FROM tbd_wallets
-          WHERE owner_account_id = p_uploader_account_id
-            AND label = COALESCE(v_split.name, v_split.wallet)
-            AND track_id = p_track_id;
-
-          IF v_tbd_wallet_id IS NULL THEN
-            INSERT INTO tbd_wallets (owner_account_id, label, track_id, split_type, split_percentage, balance_usdc)
-            VALUES (p_uploader_account_id, COALESCE(v_split.name, v_split.wallet), p_track_id, 'production', v_split.pct, v_amount)
-            RETURNING id INTO v_tbd_wallet_id;
-          ELSE
-            UPDATE tbd_wallets SET balance_usdc = balance_usdc + v_amount WHERE id = v_tbd_wallet_id;
-          END IF;
-
-          INSERT INTO earnings (tbd_wallet_id, amount_usdc, source_type, source_id, buyer_address, tx_hash, status, held_by_account_id)
-          VALUES (v_tbd_wallet_id, v_amount, 'track_sale', p_track_id, p_buyer_address, p_tx_hash, 'held_in_treasury', p_uploader_account_id);
-
-          UPDATE accounts SET treasury_balance_usdc = treasury_balance_usdc + v_amount WHERE id = p_uploader_account_id;
-
-          recipient_type := 'tbd_wallet';
-          recipient_id := v_tbd_wallet_id;
-          recipient_name := COALESCE(v_split.name, v_split.wallet);
-          amount := v_amount;
-          status := v_status;
-          RETURN NEXT;
-        END IF;
-      ELSIF v_split.name IS NOT NULL THEN
-        v_status := 'held_in_treasury';
-
-        SELECT id INTO v_tbd_wallet_id FROM tbd_wallets
-        WHERE owner_account_id = p_uploader_account_id
-          AND label = v_split.name
-          AND track_id = p_track_id;
-
-        IF v_tbd_wallet_id IS NULL THEN
-          INSERT INTO tbd_wallets (owner_account_id, label, track_id, split_type, split_percentage, balance_usdc)
-          VALUES (p_uploader_account_id, v_split.name, p_track_id, 'production', v_split.pct, v_amount)
-          RETURNING id INTO v_tbd_wallet_id;
-        ELSE
-          UPDATE tbd_wallets SET balance_usdc = balance_usdc + v_amount WHERE id = v_tbd_wallet_id;
-        END IF;
-
-        INSERT INTO earnings (tbd_wallet_id, amount_usdc, source_type, source_id, buyer_address, tx_hash, status, held_by_account_id)
-        VALUES (v_tbd_wallet_id, v_amount, 'track_sale', p_track_id, p_buyer_address, p_tx_hash, 'held_in_treasury', p_uploader_account_id);
-
-        UPDATE accounts SET treasury_balance_usdc = treasury_balance_usdc + v_amount WHERE id = p_uploader_account_id;
-
-        recipient_type := 'tbd_wallet';
-        recipient_id := v_tbd_wallet_id;
-        recipient_name := v_split.name;
-        amount := v_amount;
-        status := v_status;
-        RETURN NEXT;
-      END IF;
-    END IF;
-  END LOOP;
-
-  RETURN;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-COMMENT ON FUNCTION process_track_purchase IS 'Records earnings for all split recipients after a purchase. Returns list of who received what.';
-
--- ============================================================================
--- PART 9: Grants
+-- PART 8: Grants
 -- ============================================================================
 
 GRANT SELECT ON v_earnings_detail TO authenticated;
@@ -476,11 +199,13 @@ GRANT ALL ON purchases TO service_role;
 -- ============================================================================
 
 -- Summary:
--- ✅ Added collaborator name fields to ip_tracks (composition_split_*_name, production_split_*_name)
+-- ✅ Added SUI address columns to ip_tracks (composition_split_*_sui_address, production_split_*_sui_address)
 -- ✅ Added treasury_balance_usdc to accounts
 -- ✅ Enhanced earnings table with status and held_by_account_id
 -- ✅ Enhanced tbd_wallets with track_id, split_type, split_percentage
 -- ✅ Created purchases table for transaction history
 -- ✅ Created v_earnings_detail view for Earnings tab
 -- ✅ Created v_treasury_summary view for treasury overview
--- ✅ Created process_track_purchase function for recording earnings
+--
+-- Payment logic is handled in application code (lib/sui/payment-splitter.ts)
+-- which checks: SUI address → STX wallet lookup → pending:name → treasury
