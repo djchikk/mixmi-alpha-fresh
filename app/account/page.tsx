@@ -1469,7 +1469,6 @@ function SettingsTab({
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-semibold">Your Accounts</h3>
-            <span className="text-xs text-gray-500">{PRICING.account.maxPersonas} max</span>
           </div>
 
           <div className="space-y-3">
