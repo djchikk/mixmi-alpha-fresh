@@ -192,8 +192,22 @@ export default function ProfileInfo({
       )}
 
       {/* Wallet addresses */}
-      {((profile.show_wallet_address && targetWallet) || (profile.show_btc_address && profile.btc_address)) && (
+      {((profile.show_wallet_address && targetWallet) || (profile.show_btc_address && profile.btc_address) || (profile.show_sui_address && suiAddress)) && (
         <div className="flex flex-col items-center gap-2 mb-8 max-w-[350px]">
+          {profile.show_sui_address && suiAddress && (
+            <div className="bg-[#0f172a] py-2 px-4 rounded-md w-full border border-[#1e293b] flex items-center">
+              <span className="text-xs text-gray-500 shrink-0 font-medium">SUI:</span>
+              <span className="text-xs text-gray-400 ml-2 truncate flex-1">{`${suiAddress.slice(0, 8)}...${suiAddress.slice(-8)}`}</span>
+              <button
+                className="text-gray-400 hover:text-[#81E4F2] ml-1 p-1 shrink-0 transition-colors"
+                onClick={() => copyToClipboard(suiAddress)}
+                title="Copy address"
+              >
+                <Clipboard size={14} />
+              </button>
+            </div>
+          )}
+
           {profile.show_wallet_address && targetWallet && (
             <div className="bg-[#0f172a] py-2 px-4 rounded-md w-full border border-[#1e293b] flex items-center">
               <span className="text-xs text-gray-500 shrink-0 font-medium">STX:</span>
