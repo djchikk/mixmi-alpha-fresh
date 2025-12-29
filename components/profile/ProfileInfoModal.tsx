@@ -500,27 +500,36 @@ export default function ProfileInfoModal({
               <input
                 type="text"
                 value={formData.username}
-                onChange={(e) => handleInputChange('username', e.target.value.toLowerCase())}
+                onChange={(e) => !suiAddress && handleInputChange('username', e.target.value.toLowerCase())}
                 placeholder="Defaults to wallet address"
                 maxLength={30}
+                disabled={!!suiAddress}
                 className={`w-full px-3 py-2 pr-10 bg-slate-800 text-white rounded-lg border ${
+                  suiAddress ? 'border-slate-700 opacity-60 cursor-not-allowed' :
                   usernameStatus === 'available' ? 'border-green-500' :
                   usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-500' :
                   'border-slate-600'
                 } focus:outline-none transition-colors`}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                {usernameStatus === 'checking' && (
+                {!suiAddress && usernameStatus === 'checking' && (
                   <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
                 )}
-                {usernameStatus === 'available' && (
+                {!suiAddress && usernameStatus === 'available' && (
                   <CheckCircle className="w-5 h-5 text-green-500" />
                 )}
-                {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                {!suiAddress && (usernameStatus === 'taken' || usernameStatus === 'invalid') && (
                   <XCircle className="w-5 h-5 text-red-500" />
                 )}
               </div>
             </div>
+          )}
+
+          {/* zkLogin username notice */}
+          {suiAddress && (
+            <p className="text-xs text-amber-400 mt-2">
+              Username changes require admin support during alpha. Contact support if you need to change your username.
+            </p>
           )}
 
           {/* BNS Field (hidden while BNS is disabled) */}
