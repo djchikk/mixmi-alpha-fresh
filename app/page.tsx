@@ -58,6 +58,11 @@ const SimpleRadioPlayer = dynamic(() => import('@/components/SimpleRadioPlayer')
   ssr: false
 });
 
+// Dynamically import AgentWidget - agent helper widget
+const AgentWidget = dynamic(() => import('@/components/AgentWidget'), {
+  ssr: false
+});
+
 // Dynamically import SimplePlaylistPlayer - simplified playlist UI
 const SimplePlaylistPlayer = dynamic(() => import('@/components/SimplePlaylistPlayer'), {
   ssr: false
@@ -2011,6 +2016,9 @@ export default function HomePage() {
 
       {/* Help Widget - Fixed position, right side */}
       <HelpWidget />
+
+      {/* Agent Widget - Fixed position, left side (triggered by crate robot button) */}
+      <AgentWidget />
 
       {/* Cart Widget - Fixed position, top-right corner */}
       <CartWidget />

@@ -559,12 +559,12 @@ export default function Crate({ className = '' }: CrateProps) {
           gap: '12px',
           flex: 1
         }}>
-          <div style={{ 
+          <div style={{
             color: '#E8E5FF',
             fontSize: '14px',
             fontWeight: '600'
           }}>
-            Crate ({trackCount})
+            Crate
           </div>
           <button
             style={{
@@ -594,6 +594,26 @@ export default function Crate({ className = '' }: CrateProps) {
                 strokeLinejoin="round"
               />
             </svg>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if ((window as any).openAgentWidget) {
+                (window as any).openAgentWidget();
+              }
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '16px',
+              cursor: 'pointer',
+              padding: '4px',
+              transition: 'transform 0.2s'
+            }}
+            className="hover:scale-110"
+            title="Open agent"
+          >
+            🤖
           </button>
         </div>
       </div>
@@ -631,13 +651,13 @@ export default function Crate({ className = '' }: CrateProps) {
         width: '200px',
         flexShrink: 0
       }}>
-        <div style={{ 
+        <div style={{
           color: '#E8E5FF',
           fontSize: '16px',
           fontWeight: '600',
           whiteSpace: 'nowrap'
         }}>
-          Crate ({trackCount})
+          Crate
         </div>
         <button
           onClick={() => setIsCollapsed(true)}
@@ -670,7 +690,25 @@ export default function Crate({ className = '' }: CrateProps) {
             />
           </svg>
         </button>
-
+        <button
+          onClick={() => {
+            if ((window as any).openAgentWidget) {
+              (window as any).openAgentWidget();
+            }
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '16px',
+            cursor: 'pointer',
+            padding: '4px',
+            transition: 'transform 0.2s'
+          }}
+          className="hover:scale-110"
+          title="Open agent"
+        >
+          🤖
+        </button>
       </div>
 
       {/* Center: Scrollable track list or empty state */}
