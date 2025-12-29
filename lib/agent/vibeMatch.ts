@@ -250,10 +250,11 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
   console.log('[VibeMatch] Expanded with synonyms:', expandedKeywords.map(e => `${e.keyword}(${e.weight})`).join(', '));
 
   // Start building the query
+  // Note: is_deleted can be false OR null, so we use neq(true) instead of eq(false)
   let query = supabase
     .from('ip_tracks')
     .select('*')
-    .eq('is_deleted', false)
+    .neq('is_deleted', true)
     .is('pack_id', null); // Only standalone tracks, not pack children
 
   // Exclude the reference track if provided
