@@ -175,9 +175,15 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
     return { tracks: [], criteria, matchCount: 0 };
   }
 
+  // Check if we have an explicit content type filter (meaning user asked for specific type)
+  const hasContentTypeFilter = (criteria.contentTypes && criteria.contentTypes.length > 0) || !!criteria.referenceContentType;
+
   // Score and filter tracks based on keyword matches
   let scoredTracks = data.map(track => {
-    let score = 0;
+    // If content type was explicitly requested, give baseline score of 1
+    // This ensures radio searches return radio stations even without keyword matches
+    let score = hasContentTypeFilter ? 1 : 0;
+
     const searchableText = [
       track.title || '',
       track.artist || '',
@@ -192,7 +198,7 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
       ).join(' ') : '',
     ].join(' ').toLowerCase();
 
-    // Score each keyword match
+    // Score each keyword match (bonus points on top of baseline)
     for (const keyword of keywords) {
       if (searchableText.includes(keyword)) {
         score += 1;
@@ -212,19 +218,35 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
     return { track, score };
   });
 
-  // If we have keywords, prioritize tracks with matches
-  if (keywords.length > 0) {
-    // Sort by score (highest first), then shuffle within same score
+  // Filtering logic depends on whether we have content type filter or just keywords
+  if (hasContentTypeFilter) {
+    // Content type was specified (e.g., "radio", "loops", "songs")
+    // All tracks already match via DB query, keywords are bonus
+    // Sort by score (highest first for keyword matches), then shuffle within same score
     scoredTracks.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return Math.random() - 0.5;
     });
+    console.log(`[VibeMatch] ${scoredTracks.length} tracks matched content type filter`);
+  } else if (keywords.length > 0) {
+    // No content type filter, only keywords - require actual keyword matches
+    const matchedTracks = scoredTracks.filter(t => t.score > 0);
 
-    // Log what we found
-    const matchedCount = scoredTracks.filter(t => t.score > 0).length;
-    console.log(`[VibeMatch] ${matchedCount} tracks matched keywords`);
+    if (matchedTracks.length === 0) {
+      console.log(`[VibeMatch] Keywords ${keywords.join(', ')} matched 0 tracks - returning empty`);
+      return { tracks: [], criteria, matchCount: 0 };
+    }
+
+    // Sort by score (highest first), then shuffle within same score
+    matchedTracks.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return Math.random() - 0.5;
+    });
+
+    console.log(`[VibeMatch] ${matchedTracks.length} tracks matched keywords`);
+    scoredTracks = matchedTracks;
   } else {
-    // No keywords, just shuffle
+    // No content type filter and no keywords - just shuffle
     scoredTracks = scoredTracks.sort(() => Math.random() - 0.5);
   }
 
