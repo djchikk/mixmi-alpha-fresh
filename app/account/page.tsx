@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
 import CertificateViewer from "@/components/account/CertificateViewer";
+import EarningsTab from "@/components/account/EarningsTab";
 import IPTrackModal from "@/components/modals/IPTrackModal";
 import RadioStationModal from "@/components/modals/RadioStationModal";
 import TrackDetailsModal from "@/components/modals/TrackDetailsModal";
@@ -22,7 +23,7 @@ import { PRICING } from '@/config/pricing';
 import { generateAvatar } from '@/lib/avatarUtils';
 import AddPersonaModal from '@/components/modals/AddPersonaModal';
 
-type Tab = "uploads" | "library" | "history" | "settings";
+type Tab = "uploads" | "library" | "history" | "settings" | "earnings";
 
 interface Track {
   id: string;
@@ -487,6 +488,19 @@ export default function AccountPage() {
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab("earnings")}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === "earnings"
+                    ? "text-[#81E4F2]"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
+              >
+                Earnings
+                {activeTab === "earnings" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                )}
+              </button>
             </div>
           </div>
 
@@ -519,6 +533,14 @@ export default function AccountPage() {
               )}
               {activeTab === "history" && (
                 <UploadHistoryTab tracks={filteredTracks} onViewCertificate={setSelectedTrack} />
+              )}
+              {activeTab === "earnings" && (
+                <EarningsTab
+                  accountId={activePersona?.account_id || personas[0]?.account_id || null}
+                  personas={personas}
+                  activePersona={activePersona}
+                  suiAddress={suiAddress}
+                />
               )}
             </>
           )}
