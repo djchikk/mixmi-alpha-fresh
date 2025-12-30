@@ -288,7 +288,7 @@ export default function UserProfilePage() {
                   profile={profile}
                   links={links}
                   targetWallet={targetWallet}
-                  suiAddress={isOwnProfile ? suiAddress : null}
+                  suiAddress={isOwnProfile ? (activePersona?.sui_address || suiAddress) : null}
                   username={(!identifier.startsWith('SP') && !identifier.startsWith('ST')) ? identifier : profileData?.profile?.username}
                   hasUploadedTracks={hasUploadedTracks}
                   isOwnProfile={isOwnProfile}
