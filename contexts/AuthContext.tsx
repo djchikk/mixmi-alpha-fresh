@@ -17,6 +17,7 @@ export type Persona = {
   avatar_url: string | null;
   bio: string | null;
   wallet_address: string | null;  // Links persona to a specific wallet for data lookup
+  sui_address: string | null;     // Generated SUI wallet for this persona (receives payments)
   balance_usdc: number;
   is_default: boolean;
   is_active: boolean;

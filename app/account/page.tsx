@@ -1636,12 +1636,53 @@ function SettingsTab({
             Your wallet addresses for transactions and receiving payments.
           </p>
           <div className="space-y-3">
-            {/* SUI Address (zkLogin) */}
+            {/* Persona Payment Wallet */}
+            {activePersona?.sui_address && (
+              <div className="bg-[#0a0f1a] p-4 rounded border border-[#A8E66B]/30">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-white">Payment Wallet</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-[#A8E66B]/20 text-[#A8E66B] rounded">@{activePersona.username}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">
+                  Payments for this persona go to this address
+                </p>
+                {/* Full address with copy */}
+                <div className="flex items-center gap-2 bg-[#1E293B] rounded p-2">
+                  <code className="text-xs text-[#A8E66B] font-mono break-all flex-1">
+                    {activePersona.sui_address}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(activePersona.sui_address!);
+                      alert('Address copied!');
+                    }}
+                    className="flex-shrink-0 px-2 py-1 text-xs bg-[#A8E66B]/20 hover:bg-[#A8E66B]/30 text-[#A8E66B] rounded transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+                {/* Explorer link */}
+                <div className="mt-2">
+                  <a
+                    href={`https://suiscan.xyz/testnet/account/${activePersona.sui_address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-gray-400 hover:text-[#A8E66B] transition-colors"
+                  >
+                    View on Explorer
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* SUI Address (zkLogin) - Manager Account */}
             {suiAddress && (
               <div className="bg-[#0a0f1a] p-4 rounded border border-[#1E293B]">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white">SUI Wallet</span>
+                    <span className="text-sm font-medium text-white">Manager Account</span>
                     <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">zkLogin</span>
                   </div>
                   {!showDisconnectConfirm ? (
