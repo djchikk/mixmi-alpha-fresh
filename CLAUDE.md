@@ -181,9 +181,12 @@ useEffect(() => {
 ### User Search API
 ```typescript
 // GET /api/profile/search-users?q=searchterm
+// Searches both user_profiles and personas tables
 const response = await fetch(`/api/profile/search-users?q=${encodeURIComponent(query)}`);
 const { users } = await response.json();
-// Returns: [{ walletAddress, username, displayName, avatarUrl }]
+// Returns: [{ walletAddress, username, displayName, avatarUrl, suiAddress, isPersona }]
+// - suiAddress: SUI payment address (for personas with wallets)
+// - isPersona: true if from personas table (new system)
 ```
 
 ---

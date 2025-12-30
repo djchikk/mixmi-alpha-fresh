@@ -8,10 +8,12 @@ import { v4 as uuidv4 } from "uuid";
 import { Users, X } from "lucide-react";
 
 interface MixmiUser {
-  walletAddress: string;
+  walletAddress: string | null;
   username: string | null;
-  displayName: string;
+  displayName: string | null;
   avatarUrl: string | null;
+  suiAddress?: string | null;
+  isPersona?: boolean;
 }
 
 interface SpotlightItemModalProps {
