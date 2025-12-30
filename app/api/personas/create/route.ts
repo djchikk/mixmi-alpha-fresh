@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { generateEncryptedKeypair } from '@/lib/sui/keypair-manager';
 
 // Use service role for creating personas
 const supabaseAdmin = createClient(
@@ -75,6 +76,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get the account's zkLogin salt for keypair encryption
+    const { data: account, error: accountError } = await supabaseAdmin
+      .from('accounts')
+      .select('zklogin_salt, sui_address')
+      .eq('id', accountId)
+      .single();
+
+    let zkloginSalt = account?.zklogin_salt;
+
+    // If account doesn't have salt yet, try to get it from zklogin_users via the chain:
+    // account -> user_profiles.account_id -> user_profiles.wallet_address
+    // -> alpha_users.wallet_address -> alpha_users.invite_code -> zklogin_users.invite_code
+    if (!zkloginSalt && account?.sui_address) {
+      console.log('[Persona Create] Account has no salt, trying to fetch from zklogin_users...');
+      const { data: zkUser } = await supabaseAdmin
+        .from('zklogin_users')
+        .select('salt')
+        .eq('sui_address', account.sui_address)
+        .single();
+
+      if (zkUser?.salt) {
+        zkloginSalt = zkUser.salt;
+        // Also update the account for future use
+        await supabaseAdmin
+          .from('accounts')
+          .update({ zklogin_salt: zkUser.salt })
+          .eq('id', accountId);
+        console.log('[Persona Create] Backfilled zklogin_salt from zklogin_users');
+      }
+    }
+
+    // Generate encrypted keypair for this persona (if we have a salt)
+    let walletData: { sui_address?: string; sui_keypair_encrypted?: string; sui_keypair_nonce?: string } = {};
+
+    if (zkloginSalt) {
+      try {
+        const encryptedKeypair = generateEncryptedKeypair(zkloginSalt);
+        walletData = {
+          sui_address: encryptedKeypair.suiAddress,
+          sui_keypair_encrypted: encryptedKeypair.encryptedKey,
+          sui_keypair_nonce: encryptedKeypair.nonce,
+        };
+        console.log('[Persona Create] Generated wallet:', walletData.sui_address);
+      } catch (walletError) {
+        console.error('[Persona Create] Failed to generate wallet:', walletError);
+        // Continue without wallet - can be added later
+      }
+    } else {
+      console.log('[Persona Create] No zkLogin salt found, skipping wallet generation');
+    }
+
     // Create the new persona
     const { data: newPersona, error: createError } = await supabaseAdmin
       .from('personas')
@@ -84,7 +136,8 @@ export async function POST(request: NextRequest) {
         display_name: displayName || username,
         is_default: false,
         is_active: true,
-        balance_usdc: 0
+        balance_usdc: 0,
+        ...walletData
       })
       .select()
       .single();

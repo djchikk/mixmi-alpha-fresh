@@ -2,6 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { randomBytes } from 'crypto';
 import { jwtToAddress } from '@mysten/sui/zklogin';
+import { generateEncryptedKeypair } from '@/lib/sui/keypair-manager';
+
+/**
+ * Generate wallets for personas that don't have them yet
+ */
+async function generateWalletsForPersonas(supabase: any, accountId: string, salt: string) {
+  try {
+    // Get all personas without wallets
+    const { data: personas } = await supabase
+      .from('personas')
+      .select('id, username, sui_address')
+      .eq('account_id', accountId)
+      .eq('is_active', true);
+
+    if (!personas) return;
+
+    const needWallets = personas.filter((p: any) => !p.sui_address);
+    for (const persona of needWallets) {
+      try {
+        const encryptedKeypair = generateEncryptedKeypair(salt);
+        await supabase
+          .from('personas')
+          .update({
+            sui_address: encryptedKeypair.suiAddress,
+            sui_keypair_encrypted: encryptedKeypair.encryptedKey,
+            sui_keypair_nonce: encryptedKeypair.nonce,
+          })
+          .eq('id', persona.id);
+        console.log(`✅ Generated wallet for persona ${persona.username}:`, encryptedKeypair.suiAddress);
+      } catch (e) {
+        console.error(`Failed to generate wallet for persona ${persona.username}:`, e);
+      }
+    }
+  } catch (e) {
+    console.error('Error generating persona wallets:', e);
+  }
+}
 
 /**
  * Salt Management API for zkLogin
@@ -54,6 +91,48 @@ export async function POST(request: NextRequest) {
     // Returning user - return existing salt
     if (existingUser) {
       console.log('✅ Returning user found:', email);
+
+      // Ensure account has zklogin_salt (may not if they logged in before this update)
+      if (existingUser.invite_code) {
+        const { data: alphaData } = await supabase
+          .from('alpha_users')
+          .select('wallet_address')
+          .eq('invite_code', existingUser.invite_code)
+          .single();
+
+        if (alphaData?.wallet_address) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('account_id')
+            .eq('wallet_address', alphaData.wallet_address)
+            .single();
+
+          if (profile?.account_id) {
+            // Check if account already has salt
+            const { data: account } = await supabase
+              .from('accounts')
+              .select('zklogin_salt')
+              .eq('id', profile.account_id)
+              .single();
+
+            if (!account?.zklogin_salt) {
+              // Backfill the salt
+              await supabase
+                .from('accounts')
+                .update({
+                  zklogin_salt: existingUser.salt,
+                  sui_address: existingUser.sui_address
+                })
+                .eq('id', profile.account_id);
+              console.log('✅ Backfilled zklogin_salt for returning user');
+
+              // Also generate wallets for personas that don't have them
+              await generateWalletsForPersonas(supabase, profile.account_id, existingUser.salt);
+            }
+          }
+        }
+      }
+
       return NextResponse.json({
         salt: existingUser.salt,
         suiAddress: existingUser.sui_address,
@@ -143,6 +222,36 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ New zkLogin user registered:', email, 'SUI:', suiAddress.substring(0, 10) + '...');
+
+    // Also store salt in accounts table for persona wallet encryption
+    // Find the account via: invite_code → alpha_users → user_profiles → account_id
+    if (alphaUser.wallet_address) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('account_id')
+        .eq('wallet_address', alphaUser.wallet_address)
+        .single();
+
+      if (profile?.account_id) {
+        const { error: updateError } = await supabase
+          .from('accounts')
+          .update({
+            zklogin_salt: salt,
+            sui_address: suiAddress  // Also store the SUI address for reference
+          })
+          .eq('id', profile.account_id);
+
+        if (updateError) {
+          console.error('Failed to update account with zklogin_salt:', updateError);
+          // Non-fatal - persona wallets can still be generated later
+        } else {
+          console.log('✅ Stored zklogin_salt in account:', profile.account_id);
+
+          // Also generate wallets for personas that don't have them
+          await generateWalletsForPersonas(supabase, profile.account_id, salt);
+        }
+      }
+    }
 
     return NextResponse.json({
       salt,

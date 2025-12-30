@@ -464,6 +464,9 @@ payout_address TEXT,           -- Optional external payout address
 ### Key Files
 - `docs/manager-wallet-system.md` - Detailed architecture documentation
 - `lib/sui/keypair-manager.ts` - Keypair generation and encryption
+- `app/api/personas/create/route.ts` - Creates persona with wallet
+- `app/api/personas/generate-wallets/route.ts` - Generates wallets for existing personas
+- `app/api/auth/zklogin/salt/route.ts` - Stores salt in accounts, triggers wallet generation
 - `components/account/EarningsTab.tsx` - Balance display and withdrawal UI
 
 ### Use Case: Kenya Example

@@ -42,3 +42,15 @@ export {
   type SponsorshipResult,
   type ExecutionResult,
 } from './gas-sponsor';
+
+// Keypair management for persona wallets
+export {
+  generateKeypair,
+  getAddressFromKeypair,
+  encryptKeypair,
+  decryptKeypair,
+  generateEncryptedKeypair,
+  verifyKeypairAddress,
+  signWithKeypair,
+  type EncryptedKeypair,
+} from './keypair-manager';

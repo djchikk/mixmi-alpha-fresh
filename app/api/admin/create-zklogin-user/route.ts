@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Create default persona
+    // Note: Wallet will be generated when user first logs in via zkLogin and salt is available
     const { error: personaError } = await supabase
       .from('personas')
       .insert({
@@ -125,6 +126,8 @@ export async function POST(request: NextRequest) {
         is_default: true,
         is_active: true,
         balance_usdc: 0
+        // sui_address, sui_keypair_encrypted, sui_keypair_nonce will be added
+        // when the user logs in and we have their zkLogin salt
       });
 
     if (personaError) {
