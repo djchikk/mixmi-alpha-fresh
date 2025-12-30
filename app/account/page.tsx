@@ -1633,27 +1633,26 @@ function SettingsTab({
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <h3 className="text-white font-semibold mb-4">Connected Wallets</h3>
           <p className="text-gray-400 text-sm mb-4">
-            Your connected wallet addresses for transactions and identity.
+            Your wallet addresses for transactions and receiving payments.
           </p>
           <div className="space-y-3">
             {/* SUI Address (zkLogin) */}
             {suiAddress && (
-              <div className="bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs font-mono min-w-0">
-                    <span className="text-gray-400 flex-shrink-0">SUI:</span>
-                    <span className="text-[#81E4F2] truncate">{suiAddress}</span>
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded flex-shrink-0">zkLogin</span>
+              <div className="bg-[#0a0f1a] p-4 rounded border border-[#1E293B]">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-white">SUI Wallet</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">zkLogin</span>
                   </div>
                   {!showDisconnectConfirm ? (
                     <button
                       onClick={() => setShowDisconnectConfirm(true)}
-                      className="text-xs text-gray-500 hover:text-red-400 transition-colors flex-shrink-0"
+                      className="text-xs text-gray-500 hover:text-red-400 transition-colors"
                     >
                       Disconnect
                     </button>
                   ) : (
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">Sure?</span>
                       <button
                         onClick={handleDisconnectZkLogin}
@@ -1670,6 +1669,40 @@ function SettingsTab({
                       </button>
                     </div>
                   )}
+                </div>
+                {/* Full address with copy */}
+                <div className="flex items-center gap-2 bg-[#1E293B] rounded p-2">
+                  <code className="text-xs text-[#81E4F2] font-mono break-all flex-1">
+                    {suiAddress}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(suiAddress);
+                      alert('Address copied!');
+                    }}
+                    className="flex-shrink-0 px-2 py-1 text-xs bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 text-[#81E4F2] rounded transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+                {/* Explorer link */}
+                <div className="mt-2 flex gap-3">
+                  <a
+                    href={`https://suiscan.xyz/testnet/account/${suiAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-gray-400 hover:text-[#81E4F2] transition-colors"
+                  >
+                    View on Explorer
+                  </a>
+                  <a
+                    href="https://faucet.circle.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-gray-400 hover:text-[#81E4F2] transition-colors"
+                  >
+                    Get Testnet USDC
+                  </a>
                 </div>
                 {showDisconnectConfirm && (
                   <p className="text-xs text-amber-400/80 mt-2">
