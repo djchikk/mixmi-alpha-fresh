@@ -10,6 +10,7 @@ interface Persona {
   username: string;
   display_name: string | null;
   wallet_address: string | null;
+  sui_address: string | null;
   account_id: string;
   is_default: boolean;
 }
@@ -72,13 +73,15 @@ export default function AdminUsersPage() {
   const [editPersonaNewUsername, setEditPersonaNewUsername] = useState('');
   const [editPersonaNewDisplayName, setEditPersonaNewDisplayName] = useState('');
 
+  // Form 7: Generate Wallet
+  const [generateWalletPersona, setGenerateWalletPersona] = useState('');
 
   // Fetch data
   const fetchData = async () => {
     // Fetch personas
     const { data: personasData } = await supabase
       .from('personas')
-      .select('id, username, display_name, wallet_address, account_id, is_default')
+      .select('id, username, display_name, wallet_address, sui_address, account_id, is_default')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -400,6 +403,39 @@ export default function AdminUsersPage() {
     setLoading(false);
   };
 
+  // Form 7: Generate Wallet
+  const handleGenerateWallet = async () => {
+    if (!generateWalletPersona) {
+      showMessage('Select a persona', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/generate-persona-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personaUsername: generateWalletPersona,
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to generate wallet', true);
+      } else {
+        showMessage(`${data.message}: ${data.data.suiAddress.slice(0, 20)}...`, false);
+        setGenerateWalletPersona('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0f1a] to-[#1a1f2e] flex items-center justify-center p-4">
@@ -669,8 +705,8 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {/* Forms 5 & 6 Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Forms 5, 6 & 7 Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Form 5: Delete Persona */}
           <div className="bg-slate-800 rounded-xl p-6">
             <h2 className="text-xl font-semibold text-red-400 mb-4">5. Delete Persona</h2>
@@ -754,20 +790,60 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </div>
+
+          {/* Form 7: Generate Wallet */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-[#A8E66B] mb-4">7. Generate Wallet</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Generate a SUI wallet for a persona. Account must have logged in via zkLogin first.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Select Persona *</label>
+                <select
+                  value={generateWalletPersona}
+                  onChange={(e) => setGenerateWalletPersona(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                >
+                  <option value="">Select persona...</option>
+                  {personas.filter(p => !p.sui_address).map((p) => (
+                    <option key={p.id} value={p.username}>
+                      @{p.username} {p.display_name ? `(${p.display_name})` : ''} - no wallet
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="text-xs text-gray-500">
+                Showing {personas.filter(p => !p.sui_address).length} personas without wallets
+              </div>
+              <button
+                onClick={handleGenerateWallet}
+                disabled={loading || !generateWalletPersona}
+                className="w-full py-2 bg-[#A8E66B] text-slate-900 font-semibold rounded-lg hover:bg-[#98d65b] disabled:opacity-50"
+              >
+                {loading ? 'Generating...' : 'Generate Wallet'}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Data Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Personas List */}
           <div className="bg-slate-800 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Personas ({personas.length})</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">
+              Personas ({personas.length})
+              <span className="text-sm font-normal text-gray-400 ml-2">
+                {personas.filter(p => p.sui_address).length} with wallets
+              </span>
+            </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-gray-400 border-b border-slate-700">
                     <th className="text-left py-2">Username</th>
                     <th className="text-left py-2">Display Name</th>
-                    <th className="text-left py-2">Wallet</th>
+                    <th className="text-left py-2">SUI Wallet</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -778,8 +854,12 @@ export default function AdminUsersPage() {
                         {p.is_default && <span className="ml-1 text-xs text-gray-500">(default)</span>}
                       </td>
                       <td className="py-2 text-white">{p.display_name || '-'}</td>
-                      <td className="py-2 text-gray-400 font-mono text-xs">
-                        {p.wallet_address ? p.wallet_address.slice(0, 10) + '...' : '-'}
+                      <td className="py-2 font-mono text-xs">
+                        {p.sui_address ? (
+                          <span className="text-[#A8E66B]">{p.sui_address.slice(0, 10)}...{p.sui_address.slice(-4)}</span>
+                        ) : (
+                          <span className="text-yellow-500">No wallet</span>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -6,13 +6,26 @@ import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from 
 import { aggregateCartPayments } from '@/lib/batch-payment-aggregator';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { getZkLoginSession } from '@/lib/zklogin/session';
+import { getZkLoginSignature } from '@mysten/sui/zklogin';
+import { Transaction } from '@mysten/sui/transactions';
+import {
+  getSuiClient,
+  getCurrentNetwork,
+  getUsdcType,
+  usdcToUnits,
+  getUsdcCoins,
+  buildSplitPaymentForSponsorship,
+  type PaymentRecipient,
+} from '@/lib/sui';
 
 // Cart item interface
 export interface CartItem {
   id: string;
   title: string;
   artist: string;
-  price_stx: string; // Download price (uses download_price_stx from track, legacy price_stx as fallback)
+  price_usdc: number;  // USDC price (primary)
+  price_stx?: string;  // STX price (legacy fallback)
   license?: string;
   primary_uploader_wallet?: string;
 }
@@ -39,7 +52,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [purchaseStatus, setPurchaseStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const { walletAddress, isAuthenticated } = useAuth();
+  const { walletAddress, suiAddress, authType, isAuthenticated } = useAuth();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -75,20 +88,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Check if already in cart
     const exists = cart.some(item => item.id === track.id);
     if (!exists) {
-      // Use download_price_stx (new model) or fallback to price_stx (legacy)
-      const downloadPrice = track.download_price_stx ?? track.price_stx ?? 2.5;
+      // Use USDC price (new model) or convert from STX (legacy)
+      const downloadPriceUsdc = track.download_price_usdc ?? track.price_usdc ?? 2.00;
+      const downloadPriceStx = track.download_price_stx ?? track.price_stx ?? 2.5;
+
       console.log('🛒 Adding to cart:', {
         id: track.id,
         title: track.title,
-        download_price_stx: track.download_price_stx,
-        price_stx: track.price_stx,
-        finalPrice: downloadPrice
+        download_price_usdc: track.download_price_usdc,
+        price_usdc: track.price_usdc,
+        finalPriceUsdc: downloadPriceUsdc
       });
+
       const cartItem: CartItem = {
         id: track.id,
         title: track.title || track.name,
         artist: track.artist || 'Unknown Artist',
-        price_stx: downloadPrice.toString(),
+        price_usdc: downloadPriceUsdc,
+        price_stx: downloadPriceStx.toString(),
         license: track.license || 'Standard',
         primary_uploader_wallet: track.primary_uploader_wallet
       };
@@ -106,83 +123,313 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('mixmi-cart');
   };
 
-  const purchaseAll = async () => {
-    console.log('🛒 Purchase All clicked!', { isAuthenticated, walletAddress, cartLength: cart.length });
-
-    if (!isAuthenticated || !walletAddress) {
-      console.log('❌ Wallet not connected');
-      setPurchaseError('Please connect your wallet first');
-      setPurchaseStatus('error');
-      setShowPurchaseModal(true);
-      return;
+  /**
+   * Purchase with SUI (zkLogin users)
+   */
+  const purchaseWithSUI = async () => {
+    if (!suiAddress) {
+      throw new Error('SUI address not available');
     }
 
-    if (cart.length === 0) {
-      console.log('❌ Cart is empty');
-      return;
+    const zkSession = getZkLoginSession();
+    if (!zkSession) {
+      throw new Error('zkLogin session expired. Please sign in again.');
     }
 
-    console.log('✅ Starting purchase flow with smart contract...');
-    try {
-      setPurchaseStatus('pending');
-      setShowPurchaseModal(true);
+    console.log('💎 [SUI] Starting SUI purchase flow...');
+    console.log('💎 [SUI] Buyer address:', suiAddress);
+    console.log('💎 [SUI] Cart items:', cart.length);
 
-      // Fetch payment splits for all tracks in cart
-      const tracksWithSplits = await Promise.all(
-        cart.map(async (item) => {
-          const response = await fetch(`/api/calculate-payment-splits?trackId=${item.id}`);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch splits for track ${item.title}`);
+    // 1. Resolve payment recipients for all tracks
+    const trackIds = cart.map(item => item.id);
+    console.log('💎 [SUI] Resolving recipients for tracks:', trackIds);
+
+    const resolveResponse = await fetch('/api/sui/resolve-recipients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trackIds }),
+    });
+
+    if (!resolveResponse.ok) {
+      const error = await resolveResponse.json();
+      throw new Error(error.error || 'Failed to resolve payment recipients');
+    }
+
+    const { tracks } = await resolveResponse.json();
+    console.log('💎 [SUI] Resolved tracks:', tracks);
+
+    // 2. Build aggregated payment recipients
+    const recipients: PaymentRecipient[] = [];
+    const treasuryAmounts: { accountId: string; amount: number }[] = [];
+    let platformTotal = 0;
+
+    for (const track of tracks) {
+      const cartItem = cart.find(item => item.id === track.trackId);
+      if (!cartItem) continue;
+
+      const trackPrice = cartItem.price_usdc;
+
+      // Split: 50% composition, 50% production
+      const compositionPool = trackPrice * 0.5;
+      const productionPool = trackPrice * 0.5;
+
+      // Process composition splits
+      for (const split of track.compositionSplits) {
+        const amount = compositionPool * (split.percentage / 100);
+        if (split.suiAddress) {
+          // Direct payment
+          const existing = recipients.find(r => r.address === split.suiAddress);
+          if (existing) {
+            existing.amount += amount;
+          } else {
+            recipients.push({
+              address: split.suiAddress,
+              amount,
+              label: split.name || split.wallet || 'Collaborator',
+            });
           }
-          const data = await response.json();
-          return {
-            trackId: item.id,
+        } else {
+          // Treasury hold - goes to uploader
+          if (track.uploaderAccountId) {
+            const existing = treasuryAmounts.find(t => t.accountId === track.uploaderAccountId);
+            if (existing) {
+              existing.amount += amount;
+            } else {
+              treasuryAmounts.push({ accountId: track.uploaderAccountId, amount });
+            }
+          }
+          // If no uploader account, add to platform
+          platformTotal += amount;
+        }
+      }
+
+      // Process production splits
+      for (const split of track.productionSplits) {
+        const amount = productionPool * (split.percentage / 100);
+        if (split.suiAddress) {
+          // Direct payment
+          const existing = recipients.find(r => r.address === split.suiAddress);
+          if (existing) {
+            existing.amount += amount;
+          } else {
+            recipients.push({
+              address: split.suiAddress,
+              amount,
+              label: split.name || split.wallet || 'Collaborator',
+            });
+          }
+        } else {
+          // Treasury hold - goes to uploader
+          if (track.uploaderAccountId) {
+            const existing = treasuryAmounts.find(t => t.accountId === track.uploaderAccountId);
+            if (existing) {
+              existing.amount += amount;
+            } else {
+              treasuryAmounts.push({ accountId: track.uploaderAccountId, amount });
+            }
+          }
+          // If no uploader account, add to platform
+          platformTotal += amount;
+        }
+      }
+
+      // Treasury holds go to uploader's SUI address
+      if (track.uploaderSuiAddress) {
+        for (const treasury of treasuryAmounts.filter(t => t.accountId === track.uploaderAccountId)) {
+          const existing = recipients.find(r => r.address === track.uploaderSuiAddress);
+          if (existing) {
+            existing.amount += treasury.amount;
+          } else {
+            recipients.push({
+              address: track.uploaderSuiAddress,
+              amount: treasury.amount,
+              label: 'Treasury (held for collaborators)',
+            });
+          }
+        }
+      }
+    }
+
+    // Add platform fee if any unattributed funds
+    if (platformTotal > 0) {
+      const platformAddress = process.env.NEXT_PUBLIC_SUI_PLATFORM_ADDRESS;
+      if (platformAddress) {
+        recipients.push({
+          address: platformAddress,
+          amount: platformTotal,
+          label: 'Platform',
+        });
+      }
+    }
+
+    console.log('💎 [SUI] Payment recipients:', recipients);
+
+    if (recipients.length === 0) {
+      throw new Error('No valid payment recipients found');
+    }
+
+    // 3. Check USDC balance
+    const network = getCurrentNetwork();
+    const client = getSuiClient(network);
+    const coins = await getUsdcCoins(client, suiAddress, network);
+
+    const totalUsdc = cart.reduce((sum, item) => sum + item.price_usdc, 0);
+    const totalUnits = usdcToUnits(totalUsdc);
+    const availableBalance = coins.reduce((sum, coin) => sum + BigInt(coin.balance), BigInt(0));
+
+    if (availableBalance < totalUnits) {
+      const available = Number(availableBalance) / 1_000_000;
+      throw new Error(`Insufficient USDC balance. Need $${totalUsdc.toFixed(2)}, have $${available.toFixed(2)}`);
+    }
+
+    console.log('💎 [SUI] Balance check passed:', {
+      needed: totalUnits.toString(),
+      available: availableBalance.toString(),
+    });
+
+    // 4. Build transaction for sponsorship
+    const { tx, kindBytes } = await buildSplitPaymentForSponsorship({
+      senderAddress: suiAddress,
+      recipients,
+      network,
+    });
+
+    console.log('💎 [SUI] Built transaction, requesting sponsorship...');
+
+    // 5. Request gas sponsorship
+    const sponsorResponse = await fetch('/api/sui/sponsor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kindBytes: Buffer.from(kindBytes).toString('base64'),
+        senderAddress: suiAddress,
+      }),
+    });
+
+    if (!sponsorResponse.ok) {
+      const error = await sponsorResponse.json();
+      throw new Error(error.error || 'Failed to sponsor transaction');
+    }
+
+    const { txBytes, sponsorSignature } = await sponsorResponse.json();
+    console.log('💎 [SUI] Got sponsorship, signing with zkLogin...');
+
+    // 6. Sign with zkLogin
+    const txBytesBuffer = Buffer.from(txBytes, 'base64');
+
+    // Sign with ephemeral keypair
+    const ephemeralSignature = await zkSession.ephemeralKeyPair.signTransaction(
+      new Uint8Array(txBytesBuffer)
+    );
+
+    // Combine with zkProof to create zkLogin signature
+    const userSignature = getZkLoginSignature({
+      inputs: {
+        ...zkSession.zkProof,
+        addressSeed: zkSession.salt,
+      },
+      maxEpoch: zkSession.maxEpoch,
+      userSignature: ephemeralSignature.signature,
+    });
+
+    console.log('💎 [SUI] Signed, executing transaction...');
+
+    // 7. Execute the sponsored transaction
+    const executeResponse = await fetch('/api/sui/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        txBytes,
+        userSignature,
+        sponsorSignature,
+        purchaseData: {
+          cartItems: cart.map(item => ({
+            id: item.id,
             title: item.title,
-            totalPriceMicroSTX: Math.floor(parseFloat(item.price_stx) * 1000000),
-            compositionSplits: data.compositionSplits,
-            productionSplits: data.productionSplits
-          };
+            price_usdc: item.price_usdc,
+          })),
+          buyerAddress: suiAddress,
+          // Note: buyerPersonaId could be added if we track active persona
+        },
+      }),
+    });
+
+    if (!executeResponse.ok) {
+      const error = await executeResponse.json();
+      throw new Error(error.error || 'Transaction failed');
+    }
+
+    const result = await executeResponse.json();
+    console.log('💎 [SUI] Transaction successful:', result);
+
+    return result;
+  };
+
+  /**
+   * Purchase with Stacks (legacy wallet users)
+   */
+  const purchaseWithStacks = async () => {
+    if (!walletAddress) {
+      throw new Error('Wallet not connected');
+    }
+
+    console.log('⚡ [STX] Starting Stacks purchase flow...');
+
+    // Fetch payment splits for all tracks in cart
+    const tracksWithSplits = await Promise.all(
+      cart.map(async (item) => {
+        const response = await fetch(`/api/calculate-payment-splits?trackId=${item.id}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch splits for track ${item.title}`);
+        }
+        const data = await response.json();
+        return {
+          trackId: item.id,
+          title: item.title,
+          totalPriceMicroSTX: Math.floor(parseFloat(item.price_stx || '2.5') * 1000000),
+          compositionSplits: data.compositionSplits,
+          productionSplits: data.productionSplits
+        };
+      })
+    );
+
+    console.log('💰 Tracks with splits:', tracksWithSplits);
+
+    // Aggregate all cart payments into single contract call
+    const aggregated = aggregateCartPayments(tracksWithSplits);
+
+    console.log('📊 Aggregated payment:', aggregated);
+
+    // Format splits for smart contract
+    const compositionCV = listCV(
+      aggregated.compositionSplits.map(split =>
+        tupleCV({
+          wallet: standardPrincipalCV(split.wallet),
+          percentage: uintCV(split.percentage)
         })
-      );
+      )
+    );
 
-      console.log('💰 Tracks with splits:', tracksWithSplits);
+    const productionCV = listCV(
+      aggregated.productionSplits.map(split =>
+        tupleCV({
+          wallet: standardPrincipalCV(split.wallet),
+          percentage: uintCV(split.percentage)
+        })
+      )
+    );
 
-      // Aggregate all cart payments into single contract call
-      const aggregated = aggregateCartPayments(tracksWithSplits);
+    const contractAddress = process.env.NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT || 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN';
 
-      console.log('📊 Aggregated payment:', aggregated);
+    console.log('🔗 Calling contract:', {
+      contractAddress,
+      totalMicroSTX: aggregated.totalPriceMicroSTX,
+      compositionSplits: aggregated.compositionSplits,
+      productionSplits: aggregated.productionSplits
+    });
 
-      // Format splits for smart contract
-      const compositionCV = listCV(
-        aggregated.compositionSplits.map(split =>
-          tupleCV({
-            wallet: standardPrincipalCV(split.wallet),
-            percentage: uintCV(split.percentage)
-          })
-        )
-      );
-
-      const productionCV = listCV(
-        aggregated.productionSplits.map(split =>
-          tupleCV({
-            wallet: standardPrincipalCV(split.wallet),
-            percentage: uintCV(split.percentage)
-          })
-        )
-      );
-
-      const contractAddress = process.env.NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT || 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN';
-      const network = process.env.NEXT_PUBLIC_STACKS_NETWORK || 'mainnet';
-
-      console.log('🔗 Calling contract:', {
-        contractAddress,
-        network,
-        totalMicroSTX: aggregated.totalPriceMicroSTX,
-        compositionSplits: aggregated.compositionSplits,
-        productionSplits: aggregated.productionSplits
-      });
-
-      await openContractCall({
+    return new Promise<void>((resolve, reject) => {
+      openContractCall({
         contractAddress,
         contractName: 'music-payment-splitter-v3',
         functionName: 'split-track-payment',
@@ -194,7 +441,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         postConditionMode: PostConditionMode.Allow,
         onFinish: async (data) => {
           console.log('✅ Payment split transaction submitted:', data);
-          setPurchaseStatus('success');
 
           // Record purchases in Supabase
           try {
@@ -202,7 +448,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               supabase.from('purchases').insert({
                 buyer_wallet: walletAddress,
                 track_id: item.id,
-                price_stx: parseFloat(item.price_stx),
+                price_stx: parseFloat(item.price_stx || '2.5'),
                 tx_id: data.txId || null
               })
             );
@@ -217,22 +463,65 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (error) {
             console.error('⚠️ Failed to record purchases:', error);
-            // Don't fail the overall purchase - blockchain transaction succeeded
           }
 
-          // Clear cart after successful transaction
-          setTimeout(() => {
-            clearCart();
-            setShowPurchaseModal(false);
-            setPurchaseStatus('idle');
-          }, 3000);
+          resolve();
         },
         onCancel: () => {
           console.log('❌ Transaction cancelled');
-          setPurchaseStatus('idle');
-          setShowPurchaseModal(false);
+          reject(new Error('Transaction cancelled by user'));
         }
       });
+    });
+  };
+
+  const purchaseAll = async () => {
+    console.log('🛒 Purchase All clicked!', {
+      isAuthenticated,
+      walletAddress,
+      suiAddress,
+      authType,
+      cartLength: cart.length
+    });
+
+    if (!isAuthenticated) {
+      console.log('❌ Not authenticated');
+      setPurchaseError('Please sign in first');
+      setPurchaseStatus('error');
+      setShowPurchaseModal(true);
+      return;
+    }
+
+    if (cart.length === 0) {
+      console.log('❌ Cart is empty');
+      return;
+    }
+
+    try {
+      setPurchaseStatus('pending');
+      setShowPurchaseModal(true);
+      setPurchaseError(null);
+
+      // Route to appropriate payment flow based on auth type
+      if (authType === 'zklogin' && suiAddress) {
+        console.log('🔷 Using SUI payment flow (zkLogin)');
+        await purchaseWithSUI();
+      } else if (walletAddress) {
+        console.log('🟠 Using Stacks payment flow (wallet)');
+        await purchaseWithStacks();
+      } else {
+        throw new Error('No valid payment method available');
+      }
+
+      setPurchaseStatus('success');
+
+      // Clear cart after successful transaction
+      setTimeout(() => {
+        clearCart();
+        setShowPurchaseModal(false);
+        setPurchaseStatus('idle');
+      }, 3000);
+
     } catch (error) {
       console.error('💥 Purchase error:', error);
       setPurchaseError(error instanceof Error ? error.message : 'Transaction failed');
@@ -244,9 +533,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return cart.some(item => item.id === trackId);
   };
 
+  // Cart total in USDC
   const cartTotal = cart.reduce((sum, item) => {
-    const price = parseFloat(item.price_stx) || 0;
-    return sum + price;
+    return sum + (item.price_usdc || 0);
   }, 0);
 
   // Expose addToCart globally

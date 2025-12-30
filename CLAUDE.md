@@ -425,3 +425,51 @@ See `docs/agent-synonym-system.md` for detailed documentation.
 **SUI Transition:** December 26, 2025 - Added USDC pricing, persona accounting system, zkLogin support.
 
 **Agent System:** December 29, 2025 - Added Bestie agent with synonym expansion and search logging.
+
+**Manager Wallet System:** December 29, 2025 - Each persona gets its own SUI wallet for real on-chain accounting.
+
+---
+
+## Manager Wallet System (December 2025)
+
+### Overview
+Each persona under an account gets its own **real SUI wallet address**. The zkLogin account holder acts as the **custodian/manager** of all persona wallets. This enables:
+- Labels managing artist rosters
+- Family members managing relatives' accounts
+- Community leaders handling accounts for people with limited tech access
+
+### Architecture
+```
+Account (zkLogin = Manager)
+├── Persona "Artist A" → generated SUI address 0xabc...
+├── Persona "Artist B" → generated SUI address 0xdef...
+└── TBD Wallet "Kwame" → generated SUI address 0x123...
+```
+
+### Key Points
+- **Real on-chain accounting**: Each persona has a verifiable SUI address with actual USDC
+- **Manager controls all**: zkLogin holder can view balances and withdraw from any persona
+- **Encrypted storage**: Private keys encrypted with user's zkLogin credentials + server secret
+- **Platform can't access**: Only authenticated user can decrypt persona keys
+
+### Database Fields
+```sql
+-- personas table
+sui_address TEXT,              -- Generated SUI address
+sui_keypair_encrypted TEXT,    -- Encrypted private key
+sui_keypair_nonce TEXT,        -- Encryption nonce
+payout_address TEXT,           -- Optional external payout address
+```
+
+### Key Files
+- `docs/manager-wallet-system.md` - Detailed architecture documentation
+- `lib/sui/keypair-manager.ts` - Keypair generation and encryption
+- `app/api/personas/create/route.ts` - Creates persona with wallet
+- `app/api/personas/generate-wallets/route.ts` - Generates wallets for existing personas
+- `app/api/auth/zklogin/salt/route.ts` - Stores salt in accounts, triggers wallet generation
+- `components/account/EarningsTab.tsx` - Balance display and withdrawal UI
+
+### Use Case: Kenya Example
+John in Nairobi manages accounts for his cousin Mary (musician) and friend Peter (producer). Each has their own wallet, John handles technical side, sends payouts via M-Pesa.
+
+See `docs/manager-wallet-system.md` for full documentation.
