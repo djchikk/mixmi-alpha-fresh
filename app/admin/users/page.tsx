@@ -76,6 +76,10 @@ export default function AdminUsersPage() {
   // Form 7: Generate Wallet
   const [generateWalletPersona, setGenerateWalletPersona] = useState('');
 
+  // Form 8: Link STX Wallet to Persona
+  const [linkStxPersona, setLinkStxPersona] = useState('');
+  const [linkStxAddress, setLinkStxAddress] = useState('');
+
   // Fetch data
   const fetchData = async () => {
     // Fetch personas
@@ -428,6 +432,41 @@ export default function AdminUsersPage() {
       } else {
         showMessage(`${data.message}: ${data.data.suiAddress.slice(0, 20)}...`, false);
         setGenerateWalletPersona('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Form 8: Link STX Wallet to Persona
+  const handleLinkStxToPersona = async () => {
+    if (!linkStxPersona || !linkStxAddress) {
+      showMessage('Both persona and STX address are required', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/link-stx-to-persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personaUsername: linkStxPersona,
+          stxAddress: linkStxAddress.trim(),
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to link STX wallet', true);
+      } else {
+        showMessage(data.message, false);
+        setLinkStxPersona('');
+        setLinkStxAddress('');
         fetchData();
       }
     } catch (err) {
@@ -822,6 +861,50 @@ export default function AdminUsersPage() {
                 className="w-full py-2 bg-[#A8E66B] text-slate-900 font-semibold rounded-lg hover:bg-[#98d65b] disabled:opacity-50"
               >
                 {loading ? 'Generating...' : 'Generate Wallet'}
+              </button>
+            </div>
+          </div>
+
+          {/* Form 8: Link STX Wallet to Persona */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-amber-400 mb-4">8. Link STX Wallet to Persona</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Connect an old STX wallet address to an existing persona for split matching.
+              This only updates the wallet_address field - nothing else is changed.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Select Persona *</label>
+                <select
+                  value={linkStxPersona}
+                  onChange={(e) => setLinkStxPersona(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                >
+                  <option value="">-- Select Persona --</option>
+                  {personas.map((p) => (
+                    <option key={p.id} value={p.username}>
+                      @{p.username} {p.display_name ? `(${p.display_name})` : ''}
+                      {p.wallet_address ? ' [has STX]' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">STX Wallet Address *</label>
+                <input
+                  type="text"
+                  value={linkStxAddress}
+                  onChange={(e) => setLinkStxAddress(e.target.value)}
+                  placeholder="SP... or ST..."
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono"
+                />
+              </div>
+              <button
+                onClick={handleLinkStxToPersona}
+                disabled={loading || !linkStxPersona || !linkStxAddress}
+                className="w-full py-2 bg-amber-500 text-slate-900 font-semibold rounded-lg hover:bg-amber-400 disabled:opacity-50"
+              >
+                {loading ? 'Linking...' : 'Link STX Wallet'}
               </button>
             </div>
           </div>
