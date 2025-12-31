@@ -124,6 +124,10 @@ export default function AdminUsersPage() {
   const [newAlphaNotes, setNewAlphaNotes] = useState('');
   const [lastCreatedCode, setLastCreatedCode] = useState('');
 
+  // Form 10: Set Profile Username
+  const [setUsernameWallet, setSetUsernameWallet] = useState('');
+  const [setUsernameValue, setSetUsernameValue] = useState('');
+
   // Fetch data
   const fetchData = async () => {
     // Fetch personas
@@ -571,6 +575,41 @@ export default function AdminUsersPage() {
         setNewAlphaArtist('');
         setNewAlphaEmail('');
         setNewAlphaNotes('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Form 10: Set Profile Username
+  const handleSetProfileUsername = async () => {
+    if (!setUsernameWallet || !setUsernameValue) {
+      showMessage('Both wallet address and username are required', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/set-profile-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: setUsernameWallet.trim(),
+          username: setUsernameValue.toLowerCase().trim(),
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to set username', true);
+      } else {
+        showMessage(data.message, false);
+        setSetUsernameWallet('');
+        setSetUsernameValue('');
         fetchData();
       }
     } catch (err) {
@@ -1229,6 +1268,47 @@ export default function AdminUsersPage() {
                   <p className="text-green-200 font-mono text-lg font-bold">{lastCreatedCode}</p>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Form 10: Set Profile Username */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-pink-400 mb-4">10. Set Profile Username</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Set username on a user_profiles entry that doesn't have one set.
+              For legacy wallet accounts without usernames.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Wallet Address *</label>
+                <input
+                  type="text"
+                  value={setUsernameWallet}
+                  onChange={(e) => setSetUsernameWallet(e.target.value)}
+                  placeholder="SP... or ST..."
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">New Username *</label>
+                <input
+                  type="text"
+                  value={setUsernameValue}
+                  onChange={(e) => setSetUsernameValue(e.target.value)}
+                  placeholder="e.g., tokyo-denpa"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                />
+                <p className="text-gray-500 text-xs mt-1">
+                  Will be lowercased. Only letters, numbers, dashes, underscores.
+                </p>
+              </div>
+              <button
+                onClick={handleSetProfileUsername}
+                disabled={loading || !setUsernameWallet || !setUsernameValue}
+                className="w-full py-2 bg-pink-500 text-white font-semibold rounded-lg hover:bg-pink-400 disabled:opacity-50"
+              >
+                {loading ? 'Setting...' : 'Set Username'}
+              </button>
             </div>
           </div>
         </div>
