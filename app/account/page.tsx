@@ -1275,6 +1275,9 @@ function SettingsTab({
 
       if (!profileError && profileData) {
         setProfile(profileData);
+      } else {
+        // Reset profile state if no profile found for this persona
+        setProfile({});
       }
 
       // Fetch links
@@ -1285,6 +1288,8 @@ function SettingsTab({
 
       if (!linksError && linksData) {
         setLinks(linksData);
+      } else {
+        setLinks([]);
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
