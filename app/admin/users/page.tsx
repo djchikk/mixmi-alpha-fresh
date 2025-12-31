@@ -31,6 +31,14 @@ interface AccountInfo {
   sui_address: string | null;
 }
 
+interface AlphaUser {
+  id: string;
+  invite_code: string;
+  wallet_address: string | null;
+  sui_migration_notes: string | null;
+  created_at: string;
+}
+
 export default function AdminUsersPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [codeInput, setCodeInput] = useState('');
@@ -42,6 +50,11 @@ export default function AdminUsersPage() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
+  const [alphaUsers, setAlphaUsers] = useState<AlphaUser[]>([]);
+
+  // Alpha Users editing state
+  const [editingAlphaId, setEditingAlphaId] = useState<string | null>(null);
+  const [editingAlphaNotes, setEditingAlphaNotes] = useState('');
 
   // Form 1: Create zkLogin User
   const [newUsername, setNewUsername] = useState('');
@@ -147,6 +160,14 @@ export default function AdminUsersPage() {
         setAccounts(Array.from(accountMap.values()));
       }
     }
+
+    // Fetch alpha_users
+    const { data: alphaData } = await supabase
+      .from('alpha_users')
+      .select('id, invite_code, wallet_address, sui_migration_notes, created_at')
+      .order('created_at', { ascending: false });
+
+    setAlphaUsers(alphaData || []);
   };
 
   useEffect(() => {
@@ -467,6 +488,54 @@ export default function AdminUsersPage() {
         showMessage(data.message, false);
         setLinkStxPersona('');
         setLinkStxAddress('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Alpha Users: Update notes
+  const handleUpdateAlphaNotes = async (id: string, notes: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('alpha_users')
+        .update({ sui_migration_notes: notes || null })
+        .eq('id', id);
+
+      if (error) {
+        showMessage('Failed to update notes', true);
+      } else {
+        showMessage('Notes updated', false);
+        setEditingAlphaId(null);
+        setEditingAlphaNotes('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Alpha Users: Delete
+  const handleDeleteAlphaUser = async (id: string, inviteCode: string) => {
+    if (!confirm(`Delete alpha user with invite code "${inviteCode}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('alpha_users')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        showMessage('Failed to delete: ' + error.message, true);
+      } else {
+        showMessage('Alpha user deleted', false);
         fetchData();
       }
     } catch (err) {
@@ -985,6 +1054,101 @@ export default function AdminUsersPage() {
               </table>
             </div>
           </div>
+        </div>
+
+        {/* Alpha Users Table - Full Width */}
+        <div className="bg-slate-800 rounded-xl p-6 mt-6">
+          <h2 className="text-xl font-semibold text-amber-400 mb-4">
+            Alpha Users ({alphaUsers.length})
+            <span className="text-sm font-normal text-gray-400 ml-2">
+              Invite codes & migration tracking
+            </span>
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-400 border-b border-slate-700">
+                  <th className="text-left py-2">Invite Code</th>
+                  <th className="text-left py-2">STX Wallet</th>
+                  <th className="text-left py-2 min-w-[300px]">Migration Notes</th>
+                  <th className="text-left py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alphaUsers.map((au) => (
+                  <tr key={au.id} className="border-b border-slate-700/50">
+                    <td className="py-2 text-[#81E4F2] font-mono">{au.invite_code}</td>
+                    <td className="py-2 text-gray-400 font-mono text-xs">
+                      {au.wallet_address ? (
+                        <span title={au.wallet_address}>
+                          {au.wallet_address.slice(0, 12)}...
+                        </span>
+                      ) : (
+                        <span className="text-gray-600">-</span>
+                      )}
+                    </td>
+                    <td className="py-2">
+                      {editingAlphaId === au.id ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editingAlphaNotes}
+                            onChange={(e) => setEditingAlphaNotes(e.target.value)}
+                            className="flex-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm"
+                            placeholder="Add notes..."
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleUpdateAlphaNotes(au.id, editingAlphaNotes)}
+                            disabled={loading}
+                            className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-500"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingAlphaId(null);
+                              setEditingAlphaNotes('');
+                            }}
+                            className="px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-500"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => {
+                            setEditingAlphaId(au.id);
+                            setEditingAlphaNotes(au.sui_migration_notes || '');
+                          }}
+                          className="cursor-pointer hover:bg-slate-700/50 px-2 py-1 rounded min-h-[28px]"
+                          title="Click to edit"
+                        >
+                          {au.sui_migration_notes ? (
+                            <span className="text-white">{au.sui_migration_notes}</span>
+                          ) : (
+                            <span className="text-gray-600 italic">Click to add notes...</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-2">
+                      <button
+                        onClick={() => handleDeleteAlphaUser(au.id, au.invite_code)}
+                        disabled={loading}
+                        className="px-2 py-1 bg-red-600/20 text-red-400 rounded text-xs hover:bg-red-600/40"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {alphaUsers.length === 0 && (
+            <p className="text-gray-500 text-center py-4">No alpha users found</p>
+          )}
         </div>
       </div>
     </div>
