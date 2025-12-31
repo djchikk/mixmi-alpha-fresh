@@ -114,6 +114,12 @@ export default function AdminUsersPage() {
   const [linkStxPersona, setLinkStxPersona] = useState('');
   const [linkStxAddress, setLinkStxAddress] = useState('');
 
+  // Form 9: Create Alpha User
+  const [newAlphaArtist, setNewAlphaArtist] = useState('');
+  const [newAlphaEmail, setNewAlphaEmail] = useState('');
+  const [newAlphaNotes, setNewAlphaNotes] = useState('');
+  const [lastCreatedCode, setLastCreatedCode] = useState('');
+
   // Fetch data
   const fetchData = async () => {
     // Fetch personas
@@ -527,6 +533,40 @@ export default function AdminUsersPage() {
         showMessage(data.message, false);
         setLinkStxPersona('');
         setLinkStxAddress('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Form 9: Create Alpha User
+  const handleCreateAlphaUser = async () => {
+    setLoading(true);
+    setLastCreatedCode('');
+    try {
+      const res = await fetch('/api/admin/alpha-users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artist_name: newAlphaArtist.trim() || null,
+          email: newAlphaEmail.trim() || null,
+          notes: newAlphaNotes.trim() || null,
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to create alpha user', true);
+      } else {
+        setLastCreatedCode(data.invite_code);
+        showMessage(`Created invite code: ${data.invite_code}`, false);
+        setNewAlphaArtist('');
+        setNewAlphaEmail('');
+        setNewAlphaNotes('');
         fetchData();
       }
     } catch (err) {
@@ -1098,6 +1138,59 @@ export default function AdminUsersPage() {
               >
                 {loading ? 'Linking...' : 'Link STX Wallet'}
               </button>
+            </div>
+          </div>
+
+          {/* Form 9: Create Alpha User */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-[#A084F9] mb-4">9. Create Alpha User</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Generate a new invite code for an alpha user. All fields optional.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Artist Name</label>
+                <input
+                  type="text"
+                  value={newAlphaArtist}
+                  onChange={(e) => setNewAlphaArtist(e.target.value)}
+                  placeholder="e.g., DJ Cool"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Email</label>
+                <input
+                  type="email"
+                  value={newAlphaEmail}
+                  onChange={(e) => setNewAlphaEmail(e.target.value)}
+                  placeholder="e.g., artist@email.com"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Notes</label>
+                <input
+                  type="text"
+                  value={newAlphaNotes}
+                  onChange={(e) => setNewAlphaNotes(e.target.value)}
+                  placeholder="e.g., Referred by..."
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                />
+              </div>
+              <button
+                onClick={handleCreateAlphaUser}
+                disabled={loading}
+                className="w-full py-2 bg-[#A084F9] text-white font-semibold rounded-lg hover:bg-[#9074e9] disabled:opacity-50"
+              >
+                {loading ? 'Creating...' : 'Generate Invite Code'}
+              </button>
+              {lastCreatedCode && (
+                <div className="mt-3 p-3 bg-green-900/30 border border-green-500 rounded-lg">
+                  <p className="text-green-300 text-sm">New invite code:</p>
+                  <p className="text-green-200 font-mono text-lg font-bold">{lastCreatedCode}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

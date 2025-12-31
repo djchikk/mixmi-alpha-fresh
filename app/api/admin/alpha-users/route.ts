@@ -71,6 +71,62 @@ export async function PUT(request: NextRequest) {
 }
 
 /**
+ * POST /api/admin/alpha-users
+ * Create a new alpha user with auto-generated invite code
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const { artist_name, email, notes, adminCode } = await request.json();
+
+    if (adminCode !== ADMIN_CODE) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Generate invite code: MIXMI- + 6 random alphanumeric chars
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'MIXMI-';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    // Check if code already exists (unlikely but safe)
+    const { data: existing } = await supabaseAdmin
+      .from('alpha_users')
+      .select('invite_code')
+      .eq('invite_code', code)
+      .single();
+
+    if (existing) {
+      // Regenerate if collision (very rare)
+      code = 'MIXMI-';
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    }
+
+    const { error } = await supabaseAdmin
+      .from('alpha_users')
+      .insert({
+        invite_code: code,
+        artist_name: artist_name || null,
+        email: email || null,
+        notes: notes || null,
+        approved: true
+      });
+
+    if (error) {
+      console.error('Error creating alpha_user:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, invite_code: code });
+  } catch (err) {
+    console.error('Error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+/**
  * DELETE /api/admin/alpha-users
  * Delete an alpha user
  */
