@@ -41,6 +41,17 @@ interface AlphaUser {
   notes: string | null;
 }
 
+interface IPTrack {
+  id: string;
+  title: string;
+  artist: string | null;
+  content_type: string | null;
+  primary_uploader_wallet: string | null;
+  created_at: string;
+  is_deleted: boolean | null;
+  deleted_at: string | null;
+}
+
 export default function AdminUsersPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [codeInput, setCodeInput] = useState('');
@@ -53,6 +64,10 @@ export default function AdminUsersPage() {
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
   const [alphaUsers, setAlphaUsers] = useState<AlphaUser[]>([]);
+  const [ipTracks, setIpTracks] = useState<IPTrack[]>([]);
+
+  // IP Tracks filter
+  const [showDeletedTracks, setShowDeletedTracks] = useState(false);
 
   // Alpha Users editing state
   const [editingAlphaInviteCode, setEditingAlphaInviteCode] = useState<string | null>(null);
@@ -174,6 +189,19 @@ export default function AdminUsersPage() {
       }
     } catch (err) {
       console.error('Error fetching alpha_users:', err);
+    }
+
+    // Fetch ip_tracks via API (bypasses RLS)
+    try {
+      const tracksRes = await fetch('/api/admin/ip-tracks', {
+        headers: { 'x-admin-code': ADMIN_CODE }
+      });
+      if (tracksRes.ok) {
+        const tracksJson = await tracksRes.json();
+        setIpTracks(tracksJson.tracks || []);
+      }
+    } catch (err) {
+      console.error('Error fetching ip_tracks:', err);
     }
   };
 
@@ -554,6 +582,86 @@ export default function AdminUsersPage() {
     }
     setLoading(false);
   };
+
+  // IP Tracks: Soft delete (hide from globe)
+  const handleSoftDeleteTrack = async (id: string, title: string) => {
+    if (!confirm(`Soft delete "${title}"? It will be hidden but can be restored.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/ip-tracks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, is_deleted: true, adminCode: ADMIN_CODE })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        showMessage('Failed to delete: ' + (data.error || 'Unknown error'), true);
+      } else {
+        showMessage('Track soft deleted', false);
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // IP Tracks: Restore
+  const handleRestoreTrack = async (id: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/ip-tracks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, is_deleted: false, adminCode: ADMIN_CODE })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        showMessage('Failed to restore: ' + (data.error || 'Unknown error'), true);
+      } else {
+        showMessage('Track restored', false);
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // IP Tracks: Hard delete (permanent)
+  const handleHardDeleteTrack = async (id: string, title: string) => {
+    if (!confirm(`PERMANENTLY delete "${title}"? This cannot be undone!`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/ip-tracks', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, adminCode: ADMIN_CODE })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        showMessage('Failed to delete: ' + (data.error || 'Unknown error'), true);
+      } else {
+        showMessage('Track permanently deleted', false);
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Filter tracks based on showDeletedTracks toggle
+  const filteredTracks = ipTracks.filter(t => showDeletedTracks ? t.is_deleted : !t.is_deleted);
 
   if (!isAuthorized) {
     return (
@@ -1163,6 +1271,106 @@ export default function AdminUsersPage() {
           </div>
           {alphaUsers.length === 0 && (
             <p className="text-gray-500 text-center py-4">No alpha users found</p>
+          )}
+        </div>
+
+        {/* IP Tracks Table - Full Width */}
+        <div className="bg-slate-800 rounded-xl p-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-[#A8E66B]">
+              IP Tracks ({filteredTracks.length})
+              <span className="text-sm font-normal text-gray-400 ml-2">
+                {showDeletedTracks ? 'Showing deleted tracks' : 'Showing active tracks'}
+              </span>
+            </h2>
+            <button
+              onClick={() => setShowDeletedTracks(!showDeletedTracks)}
+              className={`px-3 py-1 rounded text-sm ${
+                showDeletedTracks
+                  ? 'bg-red-600/30 text-red-300 hover:bg-red-600/50'
+                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+              }`}
+            >
+              {showDeletedTracks ? 'Show Active' : 'Show Deleted'}
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-400 border-b border-slate-700">
+                  <th className="text-left py-2">Title</th>
+                  <th className="text-left py-2">Artist</th>
+                  <th className="text-left py-2">Type</th>
+                  <th className="text-left py-2">Uploader</th>
+                  <th className="text-left py-2">Created</th>
+                  <th className="text-left py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTracks.map((track) => (
+                  <tr key={track.id} className="border-b border-slate-700/50">
+                    <td className="py-2 text-white max-w-[200px] truncate" title={track.title}>
+                      {track.title}
+                    </td>
+                    <td className="py-2 text-gray-300">{track.artist || '-'}</td>
+                    <td className="py-2">
+                      <span className={`px-2 py-0.5 rounded text-xs ${
+                        track.content_type === 'loop' ? 'bg-[#A084F9]/20 text-[#A084F9]' :
+                        track.content_type === 'full_song' ? 'bg-[#A8E66B]/20 text-[#A8E66B]' :
+                        track.content_type === 'video_clip' ? 'bg-[#5BB5F9]/20 text-[#5BB5F9]' :
+                        track.content_type === 'radio_station' ? 'bg-[#FFC044]/20 text-[#FFC044]' :
+                        'bg-gray-600/20 text-gray-400'
+                      }`}>
+                        {track.content_type || 'unknown'}
+                      </span>
+                    </td>
+                    <td className="py-2 text-gray-400 font-mono text-xs">
+                      {track.primary_uploader_wallet ? (
+                        <span title={track.primary_uploader_wallet}>
+                          {track.primary_uploader_wallet.slice(0, 8)}...
+                        </span>
+                      ) : '-'}
+                    </td>
+                    <td className="py-2 text-gray-400 text-xs">
+                      {new Date(track.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-2 space-x-2">
+                      {showDeletedTracks ? (
+                        <>
+                          <button
+                            onClick={() => handleRestoreTrack(track.id)}
+                            disabled={loading}
+                            className="px-2 py-1 bg-green-600/20 text-green-400 rounded text-xs hover:bg-green-600/40"
+                          >
+                            Restore
+                          </button>
+                          <button
+                            onClick={() => handleHardDeleteTrack(track.id, track.title)}
+                            disabled={loading}
+                            className="px-2 py-1 bg-red-600/20 text-red-400 rounded text-xs hover:bg-red-600/40"
+                          >
+                            Delete Forever
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleSoftDeleteTrack(track.id, track.title)}
+                          disabled={loading}
+                          className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs hover:bg-yellow-600/40"
+                        >
+                          Soft Delete
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {filteredTracks.length === 0 && (
+            <p className="text-gray-500 text-center py-4">
+              {showDeletedTracks ? 'No deleted tracks' : 'No active tracks found'}
+            </p>
           )}
         </div>
       </div>
