@@ -128,6 +128,9 @@ export default function AdminUsersPage() {
   const [setUsernameWallet, setSetUsernameWallet] = useState('');
   const [setUsernameValue, setSetUsernameValue] = useState('');
 
+  // Form 11: Bootstrap Account from User Profile
+  const [bootstrapSuiAddress, setBootstrapSuiAddress] = useState('');
+
   // Fetch data
   const fetchData = async () => {
     // Fetch personas
@@ -575,6 +578,39 @@ export default function AdminUsersPage() {
         setNewAlphaArtist('');
         setNewAlphaEmail('');
         setNewAlphaNotes('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Form 11: Bootstrap Account from User Profile
+  const handleBootstrapAccount = async () => {
+    if (!bootstrapSuiAddress) {
+      showMessage('SUI address is required', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/bootstrap-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          suiAddress: bootstrapSuiAddress.trim(),
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to bootstrap account', true);
+      } else {
+        showMessage(data.message, false);
+        setBootstrapSuiAddress('');
         fetchData();
       }
     } catch (err) {
@@ -1308,6 +1344,37 @@ export default function AdminUsersPage() {
                 className="w-full py-2 bg-pink-500 text-white font-semibold rounded-lg hover:bg-pink-400 disabled:opacity-50"
               >
                 {loading ? 'Setting...' : 'Set Username'}
+              </button>
+            </div>
+          </div>
+
+          {/* Form 11: Bootstrap Account from User Profile */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-emerald-400 mb-4">11. Bootstrap Account</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Create account + persona from a user_profiles entry.
+              Use when zkLogin created user_profiles but not account/persona.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">SUI Address *</label>
+                <input
+                  type="text"
+                  value={bootstrapSuiAddress}
+                  onChange={(e) => setBootstrapSuiAddress(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono"
+                />
+                <p className="text-gray-500 text-xs mt-1">
+                  Find the SUI address in user_profiles table.
+                </p>
+              </div>
+              <button
+                onClick={handleBootstrapAccount}
+                disabled={loading || !bootstrapSuiAddress}
+                className="w-full py-2 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-400 disabled:opacity-50"
+              >
+                {loading ? 'Creating...' : 'Bootstrap Account + Persona'}
               </button>
             </div>
           </div>
