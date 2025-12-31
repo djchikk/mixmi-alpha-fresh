@@ -228,11 +228,12 @@ export async function POST(request: NextRequest) {
     if (alphaUser.wallet_address) {
       const { data: profile } = await supabase
         .from('user_profiles')
-        .select('account_id')
+        .select('account_id, username, display_name, avatar_url, bio')
         .eq('wallet_address', alphaUser.wallet_address)
         .single();
 
       if (profile?.account_id) {
+        // Account exists - just update it with zklogin_salt
         const { error: updateError } = await supabase
           .from('accounts')
           .update({
@@ -250,6 +251,174 @@ export async function POST(request: NextRequest) {
           // Also generate wallets for personas that don't have them
           await generateWalletsForPersonas(supabase, profile.account_id, salt);
         }
+      } else if (profile) {
+        // Profile exists but no account_id - CREATE the account and persona chain
+        console.log('🔧 Creating account/persona chain for existing profile...');
+
+        // 1. Create the account
+        const { data: newAccount, error: accountError } = await supabase
+          .from('accounts')
+          .insert({
+            wallet_address: alphaUser.wallet_address,
+            sui_address: suiAddress,
+            zklogin_salt: salt,
+            account_type: 'human'
+          })
+          .select('id')
+          .single();
+
+        if (accountError || !newAccount) {
+          console.error('Failed to create account:', accountError);
+        } else {
+          console.log('✅ Created account:', newAccount.id);
+
+          // 2. Create default persona from profile data
+          const personaUsername = profile.username || 'user_' + alphaUser.wallet_address.slice(0, 8).toLowerCase();
+          const { data: newPersona, error: personaError } = await supabase
+            .from('personas')
+            .insert({
+              account_id: newAccount.id,
+              username: personaUsername,
+              display_name: profile.display_name || personaUsername,
+              avatar_url: profile.avatar_url || null,
+              bio: profile.bio || null,
+              wallet_address: alphaUser.wallet_address,
+              is_default: true,
+              is_active: true
+            })
+            .select('id')
+            .single();
+
+          if (personaError) {
+            console.error('Failed to create persona:', personaError);
+          } else {
+            console.log('✅ Created default persona:', personaUsername);
+
+            // Generate wallet for the new persona
+            try {
+              const encryptedKeypair = generateEncryptedKeypair(salt);
+              await supabase
+                .from('personas')
+                .update({
+                  sui_address: encryptedKeypair.suiAddress,
+                  sui_keypair_encrypted: encryptedKeypair.encryptedKey,
+                  sui_keypair_nonce: encryptedKeypair.nonce,
+                })
+                .eq('id', newPersona.id);
+              console.log('✅ Generated wallet for persona:', encryptedKeypair.suiAddress);
+            } catch (e) {
+              console.error('Failed to generate persona wallet:', e);
+            }
+          }
+
+          // 3. Link user_profiles to the new account
+          const { error: linkError } = await supabase
+            .from('user_profiles')
+            .update({
+              account_id: newAccount.id,
+              sui_address: suiAddress
+            })
+            .eq('wallet_address', alphaUser.wallet_address);
+
+          if (linkError) {
+            console.error('Failed to link profile to account:', linkError);
+          } else {
+            console.log('✅ Linked user_profiles to account');
+          }
+        }
+      }
+    } else {
+      // No wallet_address in alpha_users - pure zkLogin user (no prior Stacks wallet)
+      // Create account and persona from scratch
+      console.log('🔧 Creating account/persona for pure zkLogin user...');
+
+      // 1. Create the account
+      const { data: newAccount, error: accountError } = await supabase
+        .from('accounts')
+        .insert({
+          sui_address: suiAddress,
+          zklogin_salt: salt,
+          account_type: 'human'
+        })
+        .select('id')
+        .single();
+
+      if (accountError || !newAccount) {
+        console.error('Failed to create account for zkLogin user:', accountError);
+      } else {
+        console.log('✅ Created account for zkLogin user:', newAccount.id);
+
+        // 2. Create default persona from email
+        const emailUsername = (email || 'user').split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        const personaUsername = emailUsername || 'user_' + suiAddress.slice(2, 10).toLowerCase();
+
+        // Check if username already exists
+        const { data: existingPersona } = await supabase
+          .from('personas')
+          .select('username')
+          .eq('username', personaUsername)
+          .maybeSingle();
+
+        const finalUsername = existingPersona
+          ? personaUsername + '_' + Math.random().toString(36).slice(2, 6)
+          : personaUsername;
+
+        const { data: newPersona, error: personaError } = await supabase
+          .from('personas')
+          .insert({
+            account_id: newAccount.id,
+            username: finalUsername,
+            display_name: alphaUser.artist_name || email?.split('@')[0] || finalUsername,
+            is_default: true,
+            is_active: true
+          })
+          .select('id')
+          .single();
+
+        if (personaError) {
+          console.error('Failed to create persona for zkLogin user:', personaError);
+        } else {
+          console.log('✅ Created persona for zkLogin user:', finalUsername);
+
+          // Generate wallet for the new persona
+          try {
+            const encryptedKeypair = generateEncryptedKeypair(salt);
+            await supabase
+              .from('personas')
+              .update({
+                sui_address: encryptedKeypair.suiAddress,
+                sui_keypair_encrypted: encryptedKeypair.encryptedKey,
+                sui_keypair_nonce: encryptedKeypair.nonce,
+              })
+              .eq('id', newPersona.id);
+            console.log('✅ Generated wallet for zkLogin persona:', encryptedKeypair.suiAddress);
+          } catch (e) {
+            console.error('Failed to generate zkLogin persona wallet:', e);
+          }
+        }
+
+        // 3. Create user_profiles entry for zkLogin user
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            wallet_address: suiAddress, // Use SUI address as the "wallet" identifier
+            sui_address: suiAddress,
+            account_id: newAccount.id,
+            username: finalUsername,
+            display_name: alphaUser.artist_name || email?.split('@')[0] || finalUsername
+          });
+
+        if (profileError) {
+          // Might already exist, try update instead
+          await supabase
+            .from('user_profiles')
+            .update({
+              account_id: newAccount.id,
+              sui_address: suiAddress
+            })
+            .eq('sui_address', suiAddress);
+        }
+        console.log('✅ Created/updated user_profiles for zkLogin user');
       }
     }
 
