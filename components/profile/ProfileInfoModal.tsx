@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Modal from "../ui/Modal";
 import { UserProfileService } from "@/lib/userProfileService";
+import { supabase } from "@/lib/supabase";
 import { Instagram, Youtube, Music, Github, Twitch, Plus, X, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { FaSoundcloud, FaMixcloud, FaTiktok, FaXTwitter } from "react-icons/fa6";
 import ConfirmDialog from "../ui/ConfirmDialog";
@@ -27,6 +28,7 @@ interface ProfileInfoModalProps {
   }>;
   targetWallet: string;
   suiAddress?: string | null;  // SUI address from zkLogin (null if not zkLogin user)
+  personaId?: string | null;   // Active persona ID (for syncing to personas table)
   onUpdate: () => Promise<void>;
 }
 
@@ -49,6 +51,7 @@ export default function ProfileInfoModal({
   links,
   targetWallet,
   suiAddress,
+  personaId,
   onUpdate
 }: ProfileInfoModalProps) {
   const [formData, setFormData] = useState({
@@ -396,6 +399,29 @@ export default function ProfileInfoModal({
       const validLinks = socialLinks.filter(link => link.url);
       const linksResult = await UserProfileService.updateLinks(targetWallet, validLinks);
       console.log('Links update result:', linksResult);
+
+      // Also update the personas table if we have a personaId
+      // This syncs display_name, bio, etc. to the persona record
+      if (personaId) {
+        console.log('Syncing to personas table, personaId:', personaId);
+        const personaUpdate = {
+          display_name: formData.display_name || null,
+          bio: formData.bio || null,
+          // Note: username updates for personas require admin support
+        };
+
+        const { error: personaError } = await supabase
+          .from('personas')
+          .update(personaUpdate)
+          .eq('id', personaId);
+
+        if (personaError) {
+          console.error('Error updating persona:', personaError);
+          // Don't fail the whole save, just log it
+        } else {
+          console.log('Persona update successful');
+        }
+      }
 
       // Refresh the parent component
       await onUpdate();

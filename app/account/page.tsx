@@ -1800,6 +1800,7 @@ function SettingsTab({
         links={links}
         targetWallet={effectiveWallet || ''}
         suiAddress={suiAddress}
+        personaId={activePersona?.id}
         onUpdate={handleProfileUpdate}
       />
 

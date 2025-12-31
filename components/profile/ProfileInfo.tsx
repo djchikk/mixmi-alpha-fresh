@@ -31,6 +31,7 @@ interface ProfileInfoProps {
   }>;
   targetWallet: string;
   suiAddress?: string | null;  // SUI address from zkLogin
+  personaId?: string | null;   // Active persona ID (for syncing to personas table)
   username?: string;
   hasUploadedTracks: boolean;
   isOwnProfile: boolean;
@@ -44,6 +45,7 @@ export default function ProfileInfo({
   links,
   targetWallet,
   suiAddress,
+  personaId,
   username,
   hasUploadedTracks,
   isOwnProfile,
@@ -311,6 +313,7 @@ export default function ProfileInfo({
         links={links}
         targetWallet={targetWallet}
         suiAddress={suiAddress}
+        personaId={personaId}
         onUpdate={onUpdate}
       />
     </>
