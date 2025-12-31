@@ -68,6 +68,7 @@ export default function AdminUsersPage() {
 
   // IP Tracks filter
   const [showDeletedTracks, setShowDeletedTracks] = useState(false);
+  const [trackSearch, setTrackSearch] = useState('');
 
   // Table collapse state
   const [alphaUsersExpanded, setAlphaUsersExpanded] = useState(true);
@@ -707,8 +708,19 @@ export default function AdminUsersPage() {
     setLoading(false);
   };
 
-  // Filter tracks based on showDeletedTracks toggle
-  const filteredTracks = ipTracks.filter(t => showDeletedTracks ? t.is_deleted : !t.is_deleted);
+  // Filter tracks based on showDeletedTracks toggle and search
+  const filteredTracks = ipTracks.filter(t => {
+    const matchesDeleted = showDeletedTracks ? t.is_deleted : !t.is_deleted;
+    if (!matchesDeleted) return false;
+    if (!trackSearch.trim()) return true;
+    const search = trackSearch.toLowerCase();
+    return (
+      t.title?.toLowerCase().includes(search) ||
+      t.artist?.toLowerCase().includes(search) ||
+      t.content_type?.toLowerCase().includes(search) ||
+      t.primary_uploader_wallet?.toLowerCase().includes(search)
+    );
+  });
 
   // Filter alpha users based on search
   const filteredAlphaUsers = alphaUsers.filter(au => {
@@ -1449,23 +1461,32 @@ export default function AdminUsersPage() {
                 ▼
               </span>
               <h2 className="text-xl font-semibold text-[#A8E66B]">
-                IP Tracks ({filteredTracks.length})
+                IP Tracks ({filteredTracks.length}{trackSearch ? ` of ${ipTracks.filter(t => showDeletedTracks ? t.is_deleted : !t.is_deleted).length}` : ''})
                 <span className="text-sm font-normal text-gray-400 ml-2">
-                  {showDeletedTracks ? 'Showing deleted tracks' : 'Showing active tracks'}
+                  {showDeletedTracks ? 'Showing deleted' : 'Showing active'}
                 </span>
               </h2>
             </button>
             {ipTracksExpanded && (
-              <button
-                onClick={() => setShowDeletedTracks(!showDeletedTracks)}
-                className={`px-3 py-1 rounded text-sm ${
-                  showDeletedTracks
-                    ? 'bg-red-600/30 text-red-300 hover:bg-red-600/50'
-                    : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-                }`}
-              >
-                {showDeletedTracks ? 'Show Active' : 'Show Deleted'}
-              </button>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={trackSearch}
+                  onChange={(e) => setTrackSearch(e.target.value)}
+                  placeholder="Search title, artist, wallet..."
+                  className="px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm w-56"
+                />
+                <button
+                  onClick={() => setShowDeletedTracks(!showDeletedTracks)}
+                  className={`px-3 py-1.5 rounded text-sm ${
+                    showDeletedTracks
+                      ? 'bg-red-600/30 text-red-300 hover:bg-red-600/50'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {showDeletedTracks ? 'Show Active' : 'Show Deleted'}
+                </button>
+              </div>
             )}
           </div>
           {ipTracksExpanded && <div className="overflow-x-auto mt-4">
@@ -1498,12 +1519,21 @@ export default function AdminUsersPage() {
                         {track.content_type || 'unknown'}
                       </span>
                     </td>
-                    <td className="py-2 text-gray-400 font-mono text-xs">
+                    <td className="py-2">
                       {track.primary_uploader_wallet ? (
-                        <span title={track.primary_uploader_wallet}>
-                          {track.primary_uploader_wallet.slice(0, 8)}...
-                        </span>
-                      ) : '-'}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400 font-mono text-xs" title={track.primary_uploader_wallet}>
+                            {track.primary_uploader_wallet.slice(0, 8)}...
+                          </span>
+                          <button
+                            onClick={() => copyToClipboard(track.primary_uploader_wallet!)}
+                            className="text-gray-500 hover:text-white text-xs"
+                            title="Copy wallet address"
+                          >
+                            📋
+                          </button>
+                        </div>
+                      ) : <span className="text-gray-600">-</span>}
                     </td>
                     <td className="py-2 text-gray-400 text-xs">
                       {new Date(track.created_at).toLocaleDateString()}
@@ -1542,7 +1572,9 @@ export default function AdminUsersPage() {
             </table>
             {filteredTracks.length === 0 && (
               <p className="text-gray-500 text-center py-4">
-                {showDeletedTracks ? 'No deleted tracks' : 'No active tracks found'}
+                {trackSearch
+                  ? `No results for "${trackSearch}"`
+                  : (showDeletedTracks ? 'No deleted tracks' : 'No active tracks found')}
               </p>
             )}
           </div>}
