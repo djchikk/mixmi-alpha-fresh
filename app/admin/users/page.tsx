@@ -131,6 +131,9 @@ export default function AdminUsersPage() {
   // Form 11: Bootstrap Account from User Profile
   const [bootstrapSuiAddress, setBootstrapSuiAddress] = useState('');
 
+  // Form 12: Create Persona Profile
+  const [createProfilePersonaId, setCreateProfilePersonaId] = useState('');
+
   // Fetch data
   const fetchData = async () => {
     // Fetch personas
@@ -611,6 +614,39 @@ export default function AdminUsersPage() {
       } else {
         showMessage(data.message, false);
         setBootstrapSuiAddress('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Form 12: Create Persona Profile
+  const handleCreatePersonaProfile = async () => {
+    if (!createProfilePersonaId) {
+      showMessage('Persona ID is required', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/create-persona-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personaId: createProfilePersonaId.trim(),
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to create persona profile', true);
+      } else {
+        showMessage(data.message, false);
+        setCreateProfilePersonaId('');
         fetchData();
       }
     } catch (err) {
@@ -1375,6 +1411,34 @@ export default function AdminUsersPage() {
                 className="w-full py-2 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-400 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Bootstrap Account + Persona'}
+              </button>
+            </div>
+          </div>
+
+          {/* Form 12: Create Persona Profile */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-amber-400 mb-4">12. Create Persona Profile</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Create user_profiles and store sections for a persona that's missing them.
+              Find persona ID in the Personas table below.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Persona ID *</label>
+                <input
+                  type="text"
+                  value={createProfilePersonaId}
+                  onChange={(e) => setCreateProfilePersonaId(e.target.value)}
+                  placeholder="UUID from Personas table"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono"
+                />
+              </div>
+              <button
+                onClick={handleCreatePersonaProfile}
+                disabled={loading || !createProfilePersonaId}
+                className="w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-400 disabled:opacity-50"
+              >
+                {loading ? 'Creating...' : 'Create Profile + Store'}
               </button>
             </div>
           </div>

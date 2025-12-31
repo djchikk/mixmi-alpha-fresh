@@ -152,6 +152,52 @@ export async function POST(request: NextRequest) {
 
     console.log('[Persona Create] Successfully created persona:', newPersona.id);
 
+    // Create user_profiles entry for this persona
+    // Use the persona's SUI address as the wallet_address identifier
+    const profileWalletAddress = walletData.sui_address || `persona_${newPersona.id}`;
+
+    console.log('[Persona Create] Creating user_profiles entry with wallet:', profileWalletAddress);
+
+    const { error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .insert({
+        wallet_address: profileWalletAddress,
+        account_id: accountId,
+        username: username,
+        display_name: displayName || username,
+        sui_address: walletData.sui_address || null,
+        sticker_id: 'daisy-blue',
+        sticker_visible: true,
+        show_wallet_address: false,
+        show_btc_address: false,
+        show_sui_address: true
+      });
+
+    if (profileError) {
+      console.error('[Persona Create] Error creating user_profiles:', profileError);
+      // Don't fail the whole request - persona was created successfully
+    } else {
+      console.log('[Persona Create] Created user_profiles for persona');
+
+      // Initialize profile sections (spotlight, media, shop, gallery)
+      const defaultSections = [
+        { wallet_address: profileWalletAddress, section_type: 'spotlight', title: 'Spotlight', display_order: 0, is_visible: true, config: [] },
+        { wallet_address: profileWalletAddress, section_type: 'media', title: 'Media', display_order: 1, is_visible: true, config: [] },
+        { wallet_address: profileWalletAddress, section_type: 'shop', title: 'Shop', display_order: 2, is_visible: true, config: [] },
+        { wallet_address: profileWalletAddress, section_type: 'gallery', title: 'Gallery', display_order: 3, is_visible: true, config: [] }
+      ];
+
+      const { error: sectionsError } = await supabaseAdmin
+        .from('user_profile_sections')
+        .insert(defaultSections);
+
+      if (sectionsError) {
+        console.error('[Persona Create] Error creating profile sections:', sectionsError);
+      } else {
+        console.log('[Persona Create] Created profile sections for persona');
+      }
+    }
+
     return NextResponse.json({
       success: true,
       persona: newPersona
