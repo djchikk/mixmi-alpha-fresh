@@ -69,6 +69,10 @@ export default function AdminUsersPage() {
   // IP Tracks filter
   const [showDeletedTracks, setShowDeletedTracks] = useState(false);
 
+  // Table collapse state
+  const [alphaUsersExpanded, setAlphaUsersExpanded] = useState(true);
+  const [ipTracksExpanded, setIpTracksExpanded] = useState(true);
+
   // Alpha Users editing state
   const [editingAlphaInviteCode, setEditingAlphaInviteCode] = useState<string | null>(null);
   const [editingAlphaNotes, setEditingAlphaNotes] = useState('');
@@ -1177,13 +1181,21 @@ export default function AdminUsersPage() {
 
         {/* Alpha Users Table - Full Width */}
         <div className="bg-slate-800 rounded-xl p-6 mt-6">
-          <h2 className="text-xl font-semibold text-amber-400 mb-4">
-            Alpha Users ({alphaUsers.length})
-            <span className="text-sm font-normal text-gray-400 ml-2">
-              Invite codes & migration tracking
+          <button
+            onClick={() => setAlphaUsersExpanded(!alphaUsersExpanded)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <h2 className="text-xl font-semibold text-amber-400">
+              Alpha Users ({alphaUsers.length})
+              <span className="text-sm font-normal text-gray-400 ml-2">
+                Invite codes & migration tracking
+              </span>
+            </h2>
+            <span className={`text-gray-400 transition-transform duration-200 ${alphaUsersExpanded ? 'rotate-180' : ''}`}>
+              ▼
             </span>
-          </h2>
-          <div className="overflow-x-auto">
+          </button>
+          {alphaUsersExpanded && <div className="overflow-x-auto mt-4">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-gray-400 border-b border-slate-700">
@@ -1268,33 +1280,43 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-          {alphaUsers.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No alpha users found</p>
-          )}
+            {alphaUsers.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No alpha users found</p>
+            )}
+          </div>}
         </div>
 
         {/* IP Tracks Table - Full Width */}
         <div className="bg-slate-800 rounded-xl p-6 mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-[#A8E66B]">
-              IP Tracks ({filteredTracks.length})
-              <span className="text-sm font-normal text-gray-400 ml-2">
-                {showDeletedTracks ? 'Showing deleted tracks' : 'Showing active tracks'}
-              </span>
-            </h2>
+          <div className="flex items-center justify-between">
             <button
-              onClick={() => setShowDeletedTracks(!showDeletedTracks)}
-              className={`px-3 py-1 rounded text-sm ${
-                showDeletedTracks
-                  ? 'bg-red-600/30 text-red-300 hover:bg-red-600/50'
-                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-              }`}
+              onClick={() => setIpTracksExpanded(!ipTracksExpanded)}
+              className="flex items-center gap-3 text-left"
             >
-              {showDeletedTracks ? 'Show Active' : 'Show Deleted'}
+              <span className={`text-gray-400 transition-transform duration-200 ${ipTracksExpanded ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+              <h2 className="text-xl font-semibold text-[#A8E66B]">
+                IP Tracks ({filteredTracks.length})
+                <span className="text-sm font-normal text-gray-400 ml-2">
+                  {showDeletedTracks ? 'Showing deleted tracks' : 'Showing active tracks'}
+                </span>
+              </h2>
             </button>
+            {ipTracksExpanded && (
+              <button
+                onClick={() => setShowDeletedTracks(!showDeletedTracks)}
+                className={`px-3 py-1 rounded text-sm ${
+                  showDeletedTracks
+                    ? 'bg-red-600/30 text-red-300 hover:bg-red-600/50'
+                    : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                }`}
+              >
+                {showDeletedTracks ? 'Show Active' : 'Show Deleted'}
+              </button>
+            )}
           </div>
-          <div className="overflow-x-auto">
+          {ipTracksExpanded && <div className="overflow-x-auto mt-4">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-gray-400 border-b border-slate-700">
@@ -1366,12 +1388,12 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-          {filteredTracks.length === 0 && (
-            <p className="text-gray-500 text-center py-4">
-              {showDeletedTracks ? 'No deleted tracks' : 'No active tracks found'}
-            </p>
-          )}
+            {filteredTracks.length === 0 && (
+              <p className="text-gray-500 text-center py-4">
+                {showDeletedTracks ? 'No deleted tracks' : 'No active tracks found'}
+              </p>
+            )}
+          </div>}
         </div>
       </div>
     </div>
