@@ -161,13 +161,18 @@ export default function AdminUsersPage() {
       }
     }
 
-    // Fetch alpha_users
-    const { data: alphaData } = await supabase
-      .from('alpha_users')
-      .select('id, invite_code, wallet_address, sui_migration_notes, created_at')
-      .order('created_at', { ascending: false });
-
-    setAlphaUsers(alphaData || []);
+    // Fetch alpha_users via API (bypasses RLS)
+    try {
+      const alphaRes = await fetch('/api/admin/alpha-users', {
+        headers: { 'x-admin-code': ADMIN_CODE }
+      });
+      if (alphaRes.ok) {
+        const alphaJson = await alphaRes.json();
+        setAlphaUsers(alphaJson.users || []);
+      }
+    } catch (err) {
+      console.error('Error fetching alpha_users:', err);
+    }
   };
 
   useEffect(() => {
@@ -500,13 +505,15 @@ export default function AdminUsersPage() {
   const handleUpdateAlphaNotes = async (id: string, notes: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('alpha_users')
-        .update({ sui_migration_notes: notes || null })
-        .eq('id', id);
+      const res = await fetch('/api/admin/alpha-users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, sui_migration_notes: notes, adminCode: ADMIN_CODE })
+      });
 
-      if (error) {
-        showMessage('Failed to update notes', true);
+      if (!res.ok) {
+        const data = await res.json();
+        showMessage(data.error || 'Failed to update notes', true);
       } else {
         showMessage('Notes updated', false);
         setEditingAlphaId(null);
@@ -527,13 +534,15 @@ export default function AdminUsersPage() {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('alpha_users')
-        .delete()
-        .eq('id', id);
+      const res = await fetch('/api/admin/alpha-users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, adminCode: ADMIN_CODE })
+      });
 
-      if (error) {
-        showMessage('Failed to delete: ' + error.message, true);
+      if (!res.ok) {
+        const data = await res.json();
+        showMessage('Failed to delete: ' + (data.error || 'Unknown error'), true);
       } else {
         showMessage('Alpha user deleted', false);
         fetchData();
