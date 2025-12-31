@@ -239,22 +239,30 @@ export default function Header() {
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
                 <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-accent/50">
-                  {avatarUrl && (avatarUrl.includes('.mp4') || avatarUrl.includes('.webm') || avatarUrl.includes('video/')) ? (
-                    <video
-                      src={avatarUrl}
-                      className="w-full h-full object-cover"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      src={avatarThumb48Url || avatarUrl || generateAvatar(effectiveAddress || '')}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  )}
+                  {(() => {
+                    const displayAvatar = activePersona?.avatar_url || avatarUrl;
+                    const isVideo = displayAvatar && (displayAvatar.includes('.mp4') || displayAvatar.includes('.webm') || displayAvatar.includes('video/'));
+
+                    if (isVideo) {
+                      return (
+                        <video
+                          src={displayAvatar}
+                          className="w-full h-full object-cover"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                        />
+                      );
+                    }
+                    return (
+                      <img
+                        src={activePersona?.avatar_url || avatarThumb48Url || avatarUrl || generateAvatar(effectiveAddress || '')}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    );
+                  })()}
                 </div>
               </button>
 
@@ -508,22 +516,30 @@ export default function Header() {
                   {/* User Info */}
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-accent/50">
-                      {avatarUrl && (avatarUrl.includes('.mp4') || avatarUrl.includes('.webm') || avatarUrl.includes('video/')) ? (
-                        <video
-                          src={avatarUrl}
-                          className="w-full h-full object-cover"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                        />
-                      ) : (
-                        <img
-                          src={avatarThumb48Url || avatarUrl || generateAvatar(effectiveAddress || '')}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      )}
+                      {(() => {
+                        const displayAvatar = activePersona?.avatar_url || avatarUrl;
+                        const isVideo = displayAvatar && (displayAvatar.includes('.mp4') || displayAvatar.includes('.webm') || displayAvatar.includes('video/'));
+
+                        if (isVideo) {
+                          return (
+                            <video
+                              src={displayAvatar}
+                              className="w-full h-full object-cover"
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                            />
+                          );
+                        }
+                        return (
+                          <img
+                            src={activePersona?.avatar_url || avatarThumb48Url || avatarUrl || generateAvatar(effectiveAddress || '')}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        );
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white truncate">
