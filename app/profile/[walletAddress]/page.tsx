@@ -279,6 +279,7 @@ export default function UserProfilePage() {
                 profile={profile}
                 isOwnProfile={isOwnProfile}
                 targetWallet={targetWallet}
+                personaId={isOwnProfile ? activePersona?.id : null}
                 onUpdate={refreshProfile}
               />
             </div>
@@ -289,6 +290,7 @@ export default function UserProfilePage() {
                   links={links}
                   targetWallet={targetWallet}
                   suiAddress={isOwnProfile ? (activePersona?.sui_address || suiAddress) : null}
+                  personaId={isOwnProfile ? activePersona?.id : null}
                   username={(!identifier.startsWith('SP') && !identifier.startsWith('ST')) ? identifier : profileData?.profile?.username}
                   hasUploadedTracks={hasUploadedTracks}
                   isOwnProfile={isOwnProfile}

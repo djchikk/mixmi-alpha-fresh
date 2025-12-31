@@ -11,10 +11,11 @@ interface ProfileImageProps {
   };
   isOwnProfile: boolean;
   targetWallet: string;
+  personaId?: string | null;  // Active persona ID (for syncing to personas table)
   onUpdate: () => Promise<void>;
 }
 
-export default function ProfileImage({ profile, isOwnProfile, targetWallet, onUpdate }: ProfileImageProps) {
+export default function ProfileImage({ profile, isOwnProfile, targetWallet, personaId, onUpdate }: ProfileImageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Handle clicks on the profile image or edit button
@@ -92,6 +93,7 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, onUp
         onClose={() => setIsModalOpen(false)}
         currentImage={profile.avatar_url || undefined}
         targetWallet={targetWallet}
+        personaId={personaId}
         onUpdate={onUpdate}
       />
     </>

@@ -5,12 +5,14 @@ import Modal from "../ui/Modal";
 import ImageUploader from "../shared/ImageUploader";
 import { UserProfileService } from "@/lib/userProfileService";
 import { processAndUploadProfileImage } from "@/lib/profileImageUpload";
+import { supabase } from "@/lib/supabase";
 
 interface ProfileImageModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentImage?: string;
   targetWallet: string;
+  personaId?: string | null;  // Active persona ID (for syncing to personas table)
   onUpdate: () => Promise<void>;
 }
 
@@ -19,6 +21,7 @@ export default function ProfileImageModal({
   onClose,
   currentImage,
   targetWallet,
+  personaId,
   onUpdate
 }: ProfileImageModalProps) {
   const [currentImageData, setCurrentImageData] = useState<string>(currentImage || "");
@@ -76,6 +79,21 @@ export default function ProfileImageModal({
       await UserProfileService.updateProfile(targetWallet, {
         avatar_url: imageUrl
       });
+
+      // Also update the personas table if we have a personaId
+      if (personaId) {
+        console.log('📸 Syncing avatar to personas table, personaId:', personaId);
+        const { error: personaError } = await supabase
+          .from('personas')
+          .update({ avatar_url: imageUrl })
+          .eq('id', personaId);
+
+        if (personaError) {
+          console.error('⚠️ Failed to sync avatar to persona:', personaError);
+        } else {
+          console.log('✅ Avatar synced to persona');
+        }
+      }
 
       // Generate thumbnails in the background (for header/store/dashboard displays)
       // This is fire-and-forget since we don't need thumbnails immediately on profile page

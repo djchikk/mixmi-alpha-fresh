@@ -19,6 +19,7 @@ export interface UserProfile {
   show_wallet_address: boolean;
   show_btc_address: boolean;
   show_sui_address: boolean;
+  sui_address?: string;
   store_label?: StoreLabel;
   created_at: string;
   updated_at: string;

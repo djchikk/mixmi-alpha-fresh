@@ -1790,6 +1790,7 @@ function SettingsTab({
         onClose={() => setIsImageModalOpen(false)}
         currentImage={profile.avatar_url || undefined}
         targetWallet={effectiveWallet || ''}
+        personaId={activePersona?.id}
         onUpdate={handleProfileUpdate}
       />
 
