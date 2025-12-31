@@ -1318,11 +1318,16 @@ function SettingsTab({
     }
   };
 
+  // IMPORTANT: Prefer activePersona data over user_profiles data for display
+  const displayAvatar = activePersona?.avatar_url || profile.avatar_url;
+  const displayNameValue = activePersona?.display_name || profile.display_name;
+  const displayUsername = activePersona?.username || profile.username;
+
   // Check if video
-  const isVideo = profile.avatar_url && (
-    profile.avatar_url.includes('.mp4') ||
-    profile.avatar_url.includes('.webm') ||
-    profile.avatar_url.includes('video/')
+  const isVideo = displayAvatar && (
+    displayAvatar.includes('.mp4') ||
+    displayAvatar.includes('.webm') ||
+    displayAvatar.includes('video/')
   );
 
   // Handle zkLogin disconnect
@@ -1380,11 +1385,11 @@ function SettingsTab({
                       onClick={() => setIsImageModalOpen(true)}
                       className="relative w-48 h-48 rounded-2xl overflow-hidden bg-[#1E293B] group cursor-pointer"
                     >
-                      {profile.avatar_url ? (
+                      {displayAvatar ? (
                         <>
                           {isVideo ? (
                             <video
-                              src={profile.avatar_url}
+                              src={displayAvatar}
                               className="w-full h-full object-cover"
                               autoPlay
                               loop
@@ -1393,7 +1398,7 @@ function SettingsTab({
                             />
                           ) : (
                             <img
-                              src={profile.avatar_url}
+                              src={displayAvatar}
                               alt="Profile"
                               className="w-full h-full object-cover"
                             />
@@ -1416,12 +1421,12 @@ function SettingsTab({
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     {/* Display Name */}
                     <h2 className="text-xl font-semibold text-white truncate mb-1">
-                      {profile.display_name || <span className="text-gray-500 italic font-normal">No display name</span>}
+                      {displayNameValue || <span className="text-gray-500 italic font-normal">No display name</span>}
                     </h2>
 
                     {/* Username */}
-                    {profile.username && (
-                      <p className="text-[#81E4F2] text-sm mb-2">@{profile.username}</p>
+                    {displayUsername && (
+                      <p className="text-[#81E4F2] text-sm mb-2">@{displayUsername}</p>
                     )}
 
                     {/* Tagline */}
@@ -1465,13 +1470,13 @@ function SettingsTab({
               {/* Quick Links */}
               <div className="flex gap-3 mt-4">
                 <a
-                  href={`/profile/${activePersona?.username || profile.username || walletAddress}`}
+                  href={`/profile/${displayUsername || walletAddress}`}
                   className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
                 >
                   View Profile
                 </a>
                 <a
-                  href={`/profile/${activePersona?.username || profile.username || walletAddress}`}
+                  href={`/profile/${displayUsername || walletAddress}`}
                   className="px-4 py-2 text-sm text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-700/30 transition-colors"
                 >
                   Customize Profile
