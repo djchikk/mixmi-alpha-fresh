@@ -1304,6 +1304,8 @@ function SettingsTab({
 
   const handleProfileUpdate = async () => {
     await fetchProfileData();
+    // Refresh personas to get updated avatar from personas table
+    await refreshPersonas();
     // Notify parent to update the profile image in the header
     if (onProfileImageUpdate && profile.avatar_url !== undefined) {
       // Re-fetch to get the latest avatar_url and thumbnail
