@@ -73,6 +73,9 @@ export default function AdminUsersPage() {
   const [alphaUsersExpanded, setAlphaUsersExpanded] = useState(true);
   const [ipTracksExpanded, setIpTracksExpanded] = useState(true);
 
+  // Alpha Users search/filter
+  const [alphaSearch, setAlphaSearch] = useState('');
+
   // Alpha Users editing state
   const [editingAlphaInviteCode, setEditingAlphaInviteCode] = useState<string | null>(null);
   const [editingAlphaNotes, setEditingAlphaNotes] = useState('');
@@ -707,6 +710,29 @@ export default function AdminUsersPage() {
   // Filter tracks based on showDeletedTracks toggle
   const filteredTracks = ipTracks.filter(t => showDeletedTracks ? t.is_deleted : !t.is_deleted);
 
+  // Filter alpha users based on search
+  const filteredAlphaUsers = alphaUsers.filter(au => {
+    if (!alphaSearch.trim()) return true;
+    const search = alphaSearch.toLowerCase();
+    return (
+      au.invite_code?.toLowerCase().includes(search) ||
+      au.wallet_address?.toLowerCase().includes(search) ||
+      au.artist_name?.toLowerCase().includes(search) ||
+      au.email?.toLowerCase().includes(search) ||
+      au.sui_migration_notes?.toLowerCase().includes(search)
+    );
+  });
+
+  // Copy to clipboard helper
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showMessage(`Copied: ${text.slice(0, 20)}...`, false);
+    } catch (err) {
+      showMessage('Failed to copy', true);
+    }
+  };
+
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0f1a] to-[#1a1f2e] flex items-center justify-center p-4">
@@ -1274,20 +1300,31 @@ export default function AdminUsersPage() {
 
         {/* Alpha Users Table - Full Width */}
         <div className="bg-slate-800 rounded-xl p-6 mt-6">
-          <button
-            onClick={() => setAlphaUsersExpanded(!alphaUsersExpanded)}
-            className="w-full flex items-center justify-between text-left"
-          >
-            <h2 className="text-xl font-semibold text-amber-400">
-              Alpha Users ({alphaUsers.length})
-              <span className="text-sm font-normal text-gray-400 ml-2">
-                Invite codes & migration tracking
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setAlphaUsersExpanded(!alphaUsersExpanded)}
+              className="flex items-center gap-3 text-left"
+            >
+              <span className={`text-gray-400 transition-transform duration-200 ${alphaUsersExpanded ? 'rotate-180' : ''}`}>
+                ▼
               </span>
-            </h2>
-            <span className={`text-gray-400 transition-transform duration-200 ${alphaUsersExpanded ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </button>
+              <h2 className="text-xl font-semibold text-amber-400">
+                Alpha Users ({filteredAlphaUsers.length}{alphaSearch ? ` of ${alphaUsers.length}` : ''})
+                <span className="text-sm font-normal text-gray-400 ml-2">
+                  Invite codes & migration tracking
+                </span>
+              </h2>
+            </button>
+            {alphaUsersExpanded && (
+              <input
+                type="text"
+                value={alphaSearch}
+                onChange={(e) => setAlphaSearch(e.target.value)}
+                placeholder="Search wallet, invite code, artist..."
+                className="px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm w-64"
+              />
+            )}
+          </div>
           {alphaUsersExpanded && <div className="overflow-x-auto mt-4">
             <table className="w-full text-sm">
               <thead>
@@ -1300,14 +1337,34 @@ export default function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {alphaUsers.map((au) => (
+                {filteredAlphaUsers.map((au) => (
                   <tr key={au.invite_code} className="border-b border-slate-700/50">
-                    <td className="py-2 text-[#81E4F2] font-mono">{au.invite_code}</td>
-                    <td className="py-2 text-gray-400 font-mono text-xs">
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#81E4F2] font-mono">{au.invite_code}</span>
+                        <button
+                          onClick={() => copyToClipboard(au.invite_code)}
+                          className="text-gray-500 hover:text-white text-xs"
+                          title="Copy invite code"
+                        >
+                          📋
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-2">
                       {au.wallet_address ? (
-                        <span title={au.wallet_address}>
-                          {au.wallet_address.slice(0, 12)}...
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400 font-mono text-xs" title={au.wallet_address}>
+                            {au.wallet_address.slice(0, 12)}...
+                          </span>
+                          <button
+                            onClick={() => copyToClipboard(au.wallet_address!)}
+                            className="text-gray-500 hover:text-white text-xs"
+                            title="Copy wallet address"
+                          >
+                            📋
+                          </button>
+                        </div>
                       ) : (
                         <span className="text-gray-600">-</span>
                       )}
@@ -1373,8 +1430,10 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
-            {alphaUsers.length === 0 && (
-              <p className="text-gray-500 text-center py-4">No alpha users found</p>
+            {filteredAlphaUsers.length === 0 && (
+              <p className="text-gray-500 text-center py-4">
+                {alphaSearch ? `No results for "${alphaSearch}"` : 'No alpha users found'}
+              </p>
             )}
           </div>}
         </div>
