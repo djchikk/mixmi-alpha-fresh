@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       .from('accounts')
       .insert({
         sui_address: suiAddress,
-        stx_address: profile.wallet_address || null
+        wallet_address: profile.wallet_address || null
       })
       .select('id')
       .single();
