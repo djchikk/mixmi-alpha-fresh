@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     const { data, error } = await supabaseAdmin
       .from('alpha_users')
-      .select('id, invite_code, wallet_address, sui_migration_notes, created_at')
+      .select('invite_code, wallet_address, sui_migration_notes, created_at, artist_name, email, notes')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -43,20 +43,20 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const { id, sui_migration_notes, adminCode } = await request.json();
+    const { invite_code, sui_migration_notes, adminCode } = await request.json();
 
     if (adminCode !== ADMIN_CODE) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!id) {
-      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    if (!invite_code) {
+      return NextResponse.json({ error: 'invite_code is required' }, { status: 400 });
     }
 
     const { error } = await supabaseAdmin
       .from('alpha_users')
       .update({ sui_migration_notes: sui_migration_notes || null })
-      .eq('id', id);
+      .eq('invite_code', invite_code);
 
     if (error) {
       console.error('Error updating alpha_user:', error);
@@ -76,20 +76,20 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const { id, adminCode } = await request.json();
+    const { invite_code, adminCode } = await request.json();
 
     if (adminCode !== ADMIN_CODE) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!id) {
-      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    if (!invite_code) {
+      return NextResponse.json({ error: 'invite_code is required' }, { status: 400 });
     }
 
     const { error } = await supabaseAdmin
       .from('alpha_users')
       .delete()
-      .eq('id', id);
+      .eq('invite_code', invite_code);
 
     if (error) {
       console.error('Error deleting alpha_user:', error);

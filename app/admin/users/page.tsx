@@ -32,11 +32,13 @@ interface AccountInfo {
 }
 
 interface AlphaUser {
-  id: string;
   invite_code: string;
   wallet_address: string | null;
   sui_migration_notes: string | null;
   created_at: string;
+  artist_name: string | null;
+  email: string | null;
+  notes: string | null;
 }
 
 export default function AdminUsersPage() {
@@ -53,7 +55,7 @@ export default function AdminUsersPage() {
   const [alphaUsers, setAlphaUsers] = useState<AlphaUser[]>([]);
 
   // Alpha Users editing state
-  const [editingAlphaId, setEditingAlphaId] = useState<string | null>(null);
+  const [editingAlphaInviteCode, setEditingAlphaInviteCode] = useState<string | null>(null);
   const [editingAlphaNotes, setEditingAlphaNotes] = useState('');
 
   // Form 1: Create zkLogin User
@@ -502,13 +504,13 @@ export default function AdminUsersPage() {
   };
 
   // Alpha Users: Update notes
-  const handleUpdateAlphaNotes = async (id: string, notes: string) => {
+  const handleUpdateAlphaNotes = async (invite_code: string, notes: string) => {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/alpha-users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, sui_migration_notes: notes, adminCode: ADMIN_CODE })
+        body: JSON.stringify({ invite_code, sui_migration_notes: notes, adminCode: ADMIN_CODE })
       });
 
       if (!res.ok) {
@@ -516,7 +518,7 @@ export default function AdminUsersPage() {
         showMessage(data.error || 'Failed to update notes', true);
       } else {
         showMessage('Notes updated', false);
-        setEditingAlphaId(null);
+        setEditingAlphaInviteCode(null);
         setEditingAlphaNotes('');
         fetchData();
       }
@@ -527,7 +529,7 @@ export default function AdminUsersPage() {
   };
 
   // Alpha Users: Delete
-  const handleDeleteAlphaUser = async (id: string, inviteCode: string) => {
+  const handleDeleteAlphaUser = async (inviteCode: string) => {
     if (!confirm(`Delete alpha user with invite code "${inviteCode}"? This cannot be undone.`)) {
       return;
     }
@@ -537,7 +539,7 @@ export default function AdminUsersPage() {
       const res = await fetch('/api/admin/alpha-users', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, adminCode: ADMIN_CODE })
+        body: JSON.stringify({ invite_code: inviteCode, adminCode: ADMIN_CODE })
       });
 
       if (!res.ok) {
@@ -1079,13 +1081,14 @@ export default function AdminUsersPage() {
                 <tr className="text-gray-400 border-b border-slate-700">
                   <th className="text-left py-2">Invite Code</th>
                   <th className="text-left py-2">STX Wallet</th>
+                  <th className="text-left py-2">Artist/Email</th>
                   <th className="text-left py-2 min-w-[300px]">Migration Notes</th>
                   <th className="text-left py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {alphaUsers.map((au) => (
-                  <tr key={au.id} className="border-b border-slate-700/50">
+                  <tr key={au.invite_code} className="border-b border-slate-700/50">
                     <td className="py-2 text-[#81E4F2] font-mono">{au.invite_code}</td>
                     <td className="py-2 text-gray-400 font-mono text-xs">
                       {au.wallet_address ? (
@@ -1096,8 +1099,11 @@ export default function AdminUsersPage() {
                         <span className="text-gray-600">-</span>
                       )}
                     </td>
+                    <td className="py-2 text-gray-300 text-xs">
+                      {au.artist_name || au.email || '-'}
+                    </td>
                     <td className="py-2">
-                      {editingAlphaId === au.id ? (
+                      {editingAlphaInviteCode === au.invite_code ? (
                         <div className="flex gap-2">
                           <input
                             type="text"
@@ -1108,7 +1114,7 @@ export default function AdminUsersPage() {
                             autoFocus
                           />
                           <button
-                            onClick={() => handleUpdateAlphaNotes(au.id, editingAlphaNotes)}
+                            onClick={() => handleUpdateAlphaNotes(au.invite_code, editingAlphaNotes)}
                             disabled={loading}
                             className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-500"
                           >
@@ -1116,7 +1122,7 @@ export default function AdminUsersPage() {
                           </button>
                           <button
                             onClick={() => {
-                              setEditingAlphaId(null);
+                              setEditingAlphaInviteCode(null);
                               setEditingAlphaNotes('');
                             }}
                             className="px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-500"
@@ -1127,7 +1133,7 @@ export default function AdminUsersPage() {
                       ) : (
                         <div
                           onClick={() => {
-                            setEditingAlphaId(au.id);
+                            setEditingAlphaInviteCode(au.invite_code);
                             setEditingAlphaNotes(au.sui_migration_notes || '');
                           }}
                           className="cursor-pointer hover:bg-slate-700/50 px-2 py-1 rounded min-h-[28px]"
@@ -1143,7 +1149,7 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="py-2">
                       <button
-                        onClick={() => handleDeleteAlphaUser(au.id, au.invite_code)}
+                        onClick={() => handleDeleteAlphaUser(au.invite_code)}
                         disabled={loading}
                         className="px-2 py-1 bg-red-600/20 text-red-400 rounded text-xs hover:bg-red-600/40"
                       >
