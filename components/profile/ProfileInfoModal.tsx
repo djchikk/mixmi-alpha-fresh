@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Modal from "../ui/Modal";
 import { UserProfileService } from "@/lib/userProfileService";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { Instagram, Youtube, Music, Github, Twitch, Plus, X, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { FaSoundcloud, FaMixcloud, FaTiktok, FaXTwitter } from "react-icons/fa6";
 import ConfirmDialog from "../ui/ConfirmDialog";
@@ -54,6 +55,7 @@ export default function ProfileInfoModal({
   personaId,
   onUpdate
 }: ProfileInfoModalProps) {
+  const { activePersona, refreshPersonas } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     bns_name: '',
@@ -401,25 +403,32 @@ export default function ProfileInfoModal({
       console.log('Links update result:', linksResult);
 
       // Also update the personas table if we have a personaId
-      // This syncs display_name, bio, etc. to the persona record
-      if (personaId) {
-        console.log('Syncing to personas table, personaId:', personaId);
-        const personaUpdate = {
-          display_name: formData.display_name || null,
-          bio: formData.bio || null,
-          // Note: username updates for personas require admin support
-        };
+      // Use API route to bypass RLS restrictions on personas table
+      if (personaId && activePersona?.account_id) {
+        try {
+          const response = await fetch('/api/persona/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              personaId,
+              accountId: activePersona.account_id,
+              updates: {
+                display_name: formData.display_name || null,
+                bio: formData.bio || null
+              }
+            })
+          });
 
-        const { error: personaError } = await supabase
-          .from('personas')
-          .update(personaUpdate)
-          .eq('id', personaId);
+          const result = await response.json();
 
-        if (personaError) {
-          console.error('Error updating persona:', personaError);
-          // Don't fail the whole save, just log it
-        } else {
-          console.log('Persona update successful');
+          if (!response.ok) {
+            console.error('Failed to sync profile info to persona:', result.error);
+          } else {
+            // Refresh AuthContext personas so Header picks up changes
+            await refreshPersonas();
+          }
+        } catch (apiError) {
+          console.error('API call failed for persona sync:', apiError);
         }
       }
 
