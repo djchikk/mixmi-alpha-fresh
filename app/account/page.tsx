@@ -1262,32 +1262,60 @@ function SettingsTab({
 
   // Fetch profile data
   const fetchProfileData = async () => {
-    if (!effectiveWallet) return;
-
     setLoading(true);
     try {
-      // Fetch profile using the effective wallet (from persona or direct wallet)
-      const { data: profileData, error: profileError } = await supabase
+      let profileData = null;
+      let profileWallet = effectiveWallet;
+
+      // If we have an active persona with a username, try to find profile by username first
+      // This handles the case where persona.wallet_address is null but user_profiles exists
+      if (activePersona?.username) {
+        const { data: profileByUsername } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('username', activePersona.username)
+          .single();
+
+        if (profileByUsername) {
+          profileData = profileByUsername;
+          profileWallet = profileByUsername.wallet_address;
+          console.log('Found profile by username:', activePersona.username);
+        }
+      }
+
+      // Fall back to wallet lookup if no profile found by username
+      if (!profileData && effectiveWallet) {
+        const { data: profileByWallet, error: profileError } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('wallet_address', effectiveWallet)
           .single();
 
-      if (!profileError && profileData) {
+        if (!profileError && profileByWallet) {
+          profileData = profileByWallet;
+          profileWallet = effectiveWallet;
+        }
+      }
+
+      if (profileData) {
         setProfile(profileData);
       } else {
         // Reset profile state if no profile found for this persona
         setProfile({});
       }
 
-      // Fetch links
-      const { data: linksData, error: linksError } = await supabase
-        .from('profile_links')
-        .select('platform, url')
-        .eq('wallet_address', effectiveWallet);
+      // Fetch links using the profile's wallet (may be different from effectiveWallet)
+      if (profileWallet) {
+        const { data: linksData, error: linksError } = await supabase
+          .from('profile_links')
+          .select('platform, url')
+          .eq('wallet_address', profileWallet);
 
-      if (!linksError && linksData) {
-        setLinks(linksData);
+        if (!linksError && linksData) {
+          setLinks(linksData);
+        } else {
+          setLinks([]);
+        }
       } else {
         setLinks([]);
       }
@@ -1299,7 +1327,7 @@ function SettingsTab({
 
   useEffect(() => {
     fetchProfileData();
-  }, [effectiveWallet]);
+  }, [effectiveWallet, activePersona?.username]);
 
   // Load agent name from localStorage (default to "Bestie")
   useEffect(() => {
