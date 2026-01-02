@@ -63,7 +63,10 @@ export default function UserProfilePage() {
         // First, check if identifier is a persona username and get linked wallet
         let walletFromPersona: string | null = null;
         let foundPersonaId: string | null = null; // Track locally since state updates are async
-        if (!identifier.startsWith('SP') && !identifier.startsWith('ST')) {
+        const isStacksAddress = identifier.startsWith('SP') || identifier.startsWith('ST');
+        const isSuiAddress = identifier.startsWith('0x') && identifier.length >= 40;
+
+        if (!isStacksAddress && !isSuiAddress) {
           // Might be a persona username - check personas table
           const { data: personaData } = await supabase
             .from('personas')
@@ -82,6 +85,23 @@ export default function UserProfilePage() {
               walletFromPersona = personaData.wallet_address;
               console.log('Using persona wallet:', walletFromPersona);
             }
+          }
+        } else if (isSuiAddress) {
+          // For SUI addresses, look up persona by wallet_address (pure zkLogin users store their login SUI here)
+          console.log('Looking up persona by SUI wallet_address:', identifier);
+          const { data: personaData } = await supabase
+            .from('personas')
+            .select('id, account_id, username, wallet_address')
+            .eq('wallet_address', identifier)
+            .eq('is_active', true)
+            .single();
+
+          if (personaData) {
+            console.log('Found persona for SUI address:', personaData.username, 'id:', personaData.id);
+            setLinkedAccountId(personaData.account_id);
+            setProfilePersonaId(personaData.id);
+            foundPersonaId = personaData.id;
+            walletFromPersona = personaData.wallet_address;
           }
         }
 
@@ -121,8 +141,8 @@ export default function UserProfilePage() {
             }
           }
         } else {
-          // If not found by identifier, try by wallet if it looks like a wallet
-          if (identifier.startsWith('SP') || identifier.startsWith('ST')) {
+          // If not found by identifier, try by wallet if it looks like a wallet address
+          if (isStacksAddress || isSuiAddress) {
             console.log('Trying direct wallet lookup for:', identifier);
             const walletData = await UserProfileService.getProfile(identifier);
             if (walletData.profile) {
@@ -161,7 +181,9 @@ export default function UserProfilePage() {
         // Fetch artist name and cover image from first track as fallback
         // Use for profiles that don't exist OR haven't been customized yet
         const walletToCheck = data.profile?.wallet_address || identifier;
-        if (walletToCheck.startsWith('SP') || walletToCheck.startsWith('ST')) {
+        const isWalletCheckable = walletToCheck.startsWith('SP') || walletToCheck.startsWith('ST') ||
+                                  (walletToCheck.startsWith('0x') && walletToCheck.length >= 40);
+        if (isWalletCheckable) {
           const { data: tracks } = await supabase
             .from('ip_tracks')
             .select('artist, cover_image_url')
@@ -255,6 +277,10 @@ export default function UserProfilePage() {
   }
 
   // Instead of showing error, create a graceful default experience
+  // Helper to check if identifier is a wallet address
+  const isWalletAddress = identifier.startsWith('SP') || identifier.startsWith('ST') ||
+                          (identifier.startsWith('0x') && identifier.length >= 40);
+
   const profile = profileData?.profile ? {
     ...profileData.profile,
     // Use "..." placeholder if tagline is empty
@@ -262,7 +288,7 @@ export default function UserProfilePage() {
     // Ensure store_label is passed through
     store_label: profileData.profile.store_label || 'Store'
   } : {
-    wallet_address: identifier.startsWith('SP') || identifier.startsWith('ST') ? identifier : '',
+    wallet_address: isWalletAddress ? identifier : '',
     display_name: artistName, // Use fetched artist name instead of 'New User'
     tagline: '...', // Minimal, universal placeholder
     bio: '',
@@ -309,7 +335,7 @@ export default function UserProfilePage() {
                   targetWallet={targetWallet}
                   suiAddress={isOwnProfile ? (activePersona?.sui_address || suiAddress) : null}
                   personaId={isOwnProfile ? profilePersonaId : null}
-                  username={(!identifier.startsWith('SP') && !identifier.startsWith('ST')) ? identifier : profileData?.profile?.username}
+                  username={!isWalletAddress ? identifier : profileData?.profile?.username}
                   hasUploadedTracks={hasUploadedTracks}
                   isOwnProfile={isOwnProfile}
                   onUpdate={refreshProfile}

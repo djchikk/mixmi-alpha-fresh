@@ -379,6 +379,7 @@ export async function POST(request: NextRequest) {
             account_id: newAccount.id,
             username: finalUsername,
             display_name: alphaUser.artist_name || email?.split('@')[0] || finalUsername,
+            wallet_address: suiAddress, // Use login SUI address as wallet_address for lookups
             is_default: true,
             is_active: true
           })
