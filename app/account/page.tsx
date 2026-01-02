@@ -1254,6 +1254,7 @@ function SettingsTab({
     show_btc_address?: boolean;
   }>({});
   const [links, setLinks] = useState<Array<{ platform: string; url: string }>>([]);
+  const [profileWalletAddress, setProfileWalletAddress] = useState<string | null>(null); // Actual wallet from user_profiles lookup
 
   // Modal states
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -1299,9 +1300,11 @@ function SettingsTab({
 
       if (profileData) {
         setProfile(profileData);
+        setProfileWalletAddress(profileWallet);
       } else {
         // Reset profile state if no profile found for this persona
         setProfile({});
+        setProfileWalletAddress(null);
       }
 
       // Fetch links using the profile's wallet (may be different from effectiveWallet)
@@ -1841,7 +1844,7 @@ function SettingsTab({
         isOpen={isImageModalOpen}
         onClose={() => setIsImageModalOpen(false)}
         currentImage={profile.avatar_url || undefined}
-        targetWallet={effectiveWallet || ''}
+        targetWallet={profileWalletAddress || effectiveWallet || ''}
         personaId={activePersona?.id}
         onUpdate={handleProfileUpdate}
       />
@@ -1851,7 +1854,7 @@ function SettingsTab({
         onClose={() => setIsInfoModalOpen(false)}
         profile={profile}
         links={links}
-        targetWallet={effectiveWallet || ''}
+        targetWallet={profileWalletAddress || effectiveWallet || ''}
         suiAddress={suiAddress}
         personaId={activePersona?.id}
         onUpdate={handleProfileUpdate}
