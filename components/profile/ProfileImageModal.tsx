@@ -8,8 +8,6 @@ import { processAndUploadProfileImage } from "@/lib/profileImageUpload";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Note: We pass accountId to the API for ownership verification
-
 interface ProfileImageModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,8 +67,7 @@ export default function ProfileImageModal({
       setIsSaving(true);
       setSaveStatus('saving');
 
-      console.log('🔧 About to update profile image...');
-      console.log('🔧 ProfileImageModal.handleSave - personaId:', personaId, 'targetWallet:', targetWallet);
+      console.log('🔧 Saving profile image...');
 
       // ImageUploader already uploaded the image and gave us a URL
       // Just save the URL directly to the database
@@ -88,7 +85,6 @@ export default function ProfileImageModal({
       // Also update the personas table if we have a personaId
       // Use API route to bypass RLS restrictions on personas table
       if (personaId) {
-        console.log('📸 Syncing avatar to personas table via API, personaId:', personaId, 'imageUrl:', imageUrl);
         try {
           const response = await fetch('/api/persona/update-avatar', {
             method: 'POST',
@@ -103,15 +99,13 @@ export default function ProfileImageModal({
           const result = await response.json();
 
           if (!response.ok) {
-            console.error('⚠️ Failed to sync avatar to persona:', result.error);
+            console.error('Failed to sync avatar to persona:', result.error);
           } else {
-            console.log('✅ Avatar synced to persona via API:', result.persona);
             // Refresh AuthContext personas so Header picks up the new avatar
             await refreshPersonas();
-            console.log('✅ AuthContext personas refreshed');
           }
         } catch (apiError) {
-          console.error('⚠️ API call failed for persona avatar sync:', apiError);
+          console.error('API call failed for persona avatar sync:', apiError);
         }
       }
 

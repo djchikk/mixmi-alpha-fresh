@@ -18,9 +18,6 @@ interface ProfileImageProps {
 export default function ProfileImage({ profile, isOwnProfile, targetWallet, personaId, onUpdate }: ProfileImageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Debug: log personaId when component renders
-  console.log('🔧 ProfileImage render - personaId:', personaId, 'isOwnProfile:', isOwnProfile);
-
   // Handle clicks on the profile image or edit button
   const handleEditClick = () => {
     if (!isOwnProfile) return;

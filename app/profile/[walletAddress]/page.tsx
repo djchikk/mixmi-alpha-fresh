@@ -293,8 +293,6 @@ export default function UserProfilePage() {
         <div className="mb-16 border border-white/10 rounded-lg shadow-lg p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-center md:gap-16">
             <div className="self-center md:self-auto">
-              {/* Debug log */}
-              {console.log('🔧 Profile page render - profilePersonaId:', profilePersonaId, 'isOwnProfile:', isOwnProfile, 'passing:', isOwnProfile ? profilePersonaId : null)}
               <ProfileImage
                 profile={profile}
                 isOwnProfile={isOwnProfile}

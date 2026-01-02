@@ -1280,7 +1280,6 @@ function SettingsTab({
         if (profileByUsername) {
           profileData = profileByUsername;
           profileWallet = profileByUsername.wallet_address;
-          console.log('Found profile by username:', activePersona.username);
         }
       }
 
