@@ -66,6 +66,7 @@ export default function ProfileImageModal({
       setSaveStatus('saving');
 
       console.log('🔧 About to update profile image...');
+      console.log('🔧 ProfileImageModal.handleSave - personaId:', personaId, 'targetWallet:', targetWallet);
 
       // ImageUploader already uploaded the image and gave us a URL
       // Just save the URL directly to the database
