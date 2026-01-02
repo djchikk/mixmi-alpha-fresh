@@ -6,6 +6,7 @@ import ImageUploader from "../shared/ImageUploader";
 import { UserProfileService } from "@/lib/userProfileService";
 import { processAndUploadProfileImage } from "@/lib/profileImageUpload";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProfileImageModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function ProfileImageModal({
   personaId,
   onUpdate
 }: ProfileImageModalProps) {
+  const { refreshPersonas } = useAuth();
   const [currentImageData, setCurrentImageData] = useState<string>(currentImage || "");
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
@@ -93,6 +95,9 @@ export default function ProfileImageModal({
           console.error('⚠️ Failed to sync avatar to persona:', personaError);
         } else {
           console.log('✅ Avatar synced to persona');
+          // Refresh AuthContext personas so Header picks up the new avatar
+          await refreshPersonas();
+          console.log('✅ AuthContext personas refreshed');
         }
       }
 
