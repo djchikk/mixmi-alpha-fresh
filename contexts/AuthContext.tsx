@@ -96,30 +96,43 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         }
         accountId = profileData.account_id;
       }
-      // For zkLogin users: get account_id from zklogin_users via invite_code -> alpha_users
+      // For zkLogin users: try multiple lookup paths
       else if (suiAddr) {
-        // First try to find via zklogin_users -> alpha_users -> user_profiles
-        const { data: zkUser } = await supabase
-          .from('zklogin_users')
-          .select('invite_code')
+        // Path 1: Direct lookup by sui_address in user_profiles (pure zkLogin users)
+        const { data: directProfile } = await supabase
+          .from('user_profiles')
+          .select('account_id')
           .eq('sui_address', suiAddr)
-          .single();
+          .maybeSingle();
 
-        if (zkUser?.invite_code) {
-          const { data: alphaUser } = await supabase
-            .from('alpha_users')
-            .select('wallet_address')
-            .eq('invite_code', zkUser.invite_code)
+        if (directProfile?.account_id) {
+          accountId = directProfile.account_id;
+        }
+
+        // Path 2: If not found, try zklogin_users -> alpha_users -> user_profiles (linked users)
+        if (!accountId) {
+          const { data: zkUser } = await supabase
+            .from('zklogin_users')
+            .select('invite_code')
+            .eq('sui_address', suiAddr)
             .single();
 
-          if (alphaUser?.wallet_address) {
-            const { data: profileData } = await supabase
-              .from('user_profiles')
-              .select('account_id')
-              .eq('wallet_address', alphaUser.wallet_address)
+          if (zkUser?.invite_code) {
+            const { data: alphaUser } = await supabase
+              .from('alpha_users')
+              .select('wallet_address')
+              .eq('invite_code', zkUser.invite_code)
               .single();
 
-            accountId = profileData?.account_id || null;
+            if (alphaUser?.wallet_address) {
+              const { data: profileData } = await supabase
+                .from('user_profiles')
+                .select('account_id')
+                .eq('wallet_address', alphaUser.wallet_address)
+                .single();
+
+              accountId = profileData?.account_id || null;
+            }
           }
         }
 
