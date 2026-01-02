@@ -85,16 +85,19 @@ export default function ProfileImageModal({
 
       // Also update the personas table if we have a personaId
       if (personaId) {
-        console.log('📸 Syncing avatar to personas table, personaId:', personaId);
-        const { error: personaError } = await supabase
+        console.log('📸 Syncing avatar to personas table, personaId:', personaId, 'imageUrl:', imageUrl);
+        const { data: updateResult, error: personaError } = await supabase
           .from('personas')
           .update({ avatar_url: imageUrl })
-          .eq('id', personaId);
+          .eq('id', personaId)
+          .select();
 
         if (personaError) {
           console.error('⚠️ Failed to sync avatar to persona:', personaError);
+        } else if (!updateResult || updateResult.length === 0) {
+          console.error('⚠️ Persona update returned 0 rows - personaId may be wrong or RLS blocking:', personaId);
         } else {
-          console.log('✅ Avatar synced to persona');
+          console.log('✅ Avatar synced to persona, result:', updateResult);
           // Refresh AuthContext personas so Header picks up the new avatar
           await refreshPersonas();
           console.log('✅ AuthContext personas refreshed');
