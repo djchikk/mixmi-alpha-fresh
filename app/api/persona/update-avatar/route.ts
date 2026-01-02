@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { personaId, avatarUrl } = await request.json();
+    const { personaId, avatarUrl, accountId } = await request.json();
 
     if (!personaId || !avatarUrl) {
       return NextResponse.json(
@@ -18,7 +18,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🔧 API: Updating persona avatar, personaId:', personaId, 'avatarUrl:', avatarUrl);
+    // Security: Verify the persona belongs to the claimed account
+    // This prevents users from updating other people's personas
+    const { data: persona, error: lookupError } = await supabase
+      .from('personas')
+      .select('id, account_id, username')
+      .eq('id', personaId)
+      .single();
+
+    if (lookupError || !persona) {
+      console.error('❌ API: Persona not found for validation:', personaId);
+      return NextResponse.json(
+        { error: 'Persona not found' },
+        { status: 404 }
+      );
+    }
+
+    // If accountId provided, verify it matches
+    if (accountId && persona.account_id !== accountId) {
+      console.error('❌ API: Account mismatch - user does not own this persona');
+      return NextResponse.json(
+        { error: 'Unauthorized - you do not own this persona' },
+        { status: 403 }
+      );
+    }
+
+    console.log('🔧 API: Updating persona avatar, personaId:', personaId, 'username:', persona.username);
 
     const { data, error } = await supabase
       .from('personas')

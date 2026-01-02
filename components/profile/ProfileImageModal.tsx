@@ -8,6 +8,8 @@ import { processAndUploadProfileImage } from "@/lib/profileImageUpload";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Note: We pass accountId to the API for ownership verification
+
 interface ProfileImageModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,7 +27,7 @@ export default function ProfileImageModal({
   personaId,
   onUpdate
 }: ProfileImageModalProps) {
-  const { refreshPersonas } = useAuth();
+  const { refreshPersonas, activePersona } = useAuth();
   const [currentImageData, setCurrentImageData] = useState<string>(currentImage || "");
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
@@ -91,7 +93,11 @@ export default function ProfileImageModal({
           const response = await fetch('/api/persona/update-avatar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ personaId, avatarUrl: imageUrl })
+            body: JSON.stringify({
+              personaId,
+              avatarUrl: imageUrl,
+              accountId: activePersona?.account_id // For ownership verification
+            })
           });
 
           const result = await response.json();
