@@ -169,6 +169,7 @@ export default function MyPeopleSection({
         }}
         item={editingItem}
         onSave={handleSaveItem}
+        sectionType="mypeople"
       />
     </section>
   );

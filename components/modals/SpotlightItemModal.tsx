@@ -21,6 +21,7 @@ interface SpotlightItemModalProps {
   onClose: () => void;
   item?: SpotlightItem; // Existing item when editing, undefined when adding new
   onSave: (item: SpotlightItem) => void;
+  sectionType?: 'spotlight' | 'mypeople'; // Controls title and layout
 }
 
 export default function SpotlightItemModal({
@@ -28,7 +29,9 @@ export default function SpotlightItemModal({
   onClose,
   item,
   onSave,
+  sectionType = 'spotlight',
 }: SpotlightItemModalProps) {
+  const isMyPeople = sectionType === 'mypeople';
   const [formData, setFormData] = useState<SpotlightItem>({
     id: uuidv4(),
     title: "",
@@ -253,15 +256,153 @@ export default function SpotlightItemModal({
     <Modal
       isOpen={isOpen}
       onClose={handleModalClose}
-      title={item ? "Edit Spotlight Item" : "Add Spotlight Item"}
+      title={item
+        ? (isMyPeople ? "Edit Person" : "Edit Spotlight Item")
+        : (isMyPeople ? "Add to My People" : "Add Spotlight Item")
+      }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* For My People: Show user search FIRST */}
+        {isMyPeople && !selectedUser && (
+          <>
+            <div className="p-4 bg-slate-800/50 rounded-lg border border-[#81E4F2]/20">
+              <label className="block text-sm font-medium text-[#81E4F2] mb-2">
+                <Users size={14} className="inline mr-2" />
+                Link to mixmi User
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  placeholder="Search by name or username..."
+                  className="input-field"
+                  autoFocus
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-[#81E4F2] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+
+                {/* Search Results Dropdown */}
+                {userSearchResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {userSearchResults.map((user) => (
+                      <button
+                        key={user.walletAddress}
+                        type="button"
+                        onClick={() => handleSelectUser(user)}
+                        className="w-full px-3 py-2 flex items-center gap-3 hover:bg-slate-700 transition-colors text-left"
+                      >
+                        {user.avatarUrl ? (
+                          <img
+                            src={user.avatarUrl}
+                            alt={user.displayName || ''}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center">
+                            <Users size={14} className="text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-white text-sm">{user.displayName}</div>
+                          {user.username && (
+                            <div className="text-gray-400 text-xs">@{user.username}</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* No Results */}
+                {userSearchQuery.length >= 2 && !isSearching && userSearchResults.length === 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg p-3 text-center text-gray-400 text-sm">
+                    No users found
+                  </div>
+                )}
+              </div>
+              <p className="text-gray-500 text-xs mt-2">Auto-fills name, photo, and link from their profile</p>
+            </div>
+
+            {/* OR Divider */}
+            <div className="flex items-center gap-3 py-2">
+              <div className="flex-1 h-px bg-gray-600"></div>
+              <span className="text-gray-500 text-sm font-medium">OR</span>
+              <div className="flex-1 h-px bg-gray-600"></div>
+            </div>
+          </>
+        )}
+
+        {/* Selected User Display (for My People) */}
+        {isMyPeople && selectedUser && (
+          <div className="p-3 bg-slate-800 rounded-lg border border-[#81E4F2]/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {selectedUser.avatarUrl ? (
+                  <img
+                    src={selectedUser.avatarUrl}
+                    alt={selectedUser.displayName || ''}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
+                    <Users size={16} className="text-gray-400" />
+                  </div>
+                )}
+                <div>
+                  <div className="text-white font-medium">{selectedUser.displayName}</div>
+                  {selectedUser.username && (
+                    <div className="text-gray-400 text-xs">@{selectedUser.username}</div>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearSelectedUser}
+                className="p-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Profile/Store Toggle */}
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleDestinationChange('profile')}
+                className={`flex-1 py-1.5 px-3 text-xs rounded-md transition-colors ${
+                  linkDestination === 'profile'
+                    ? 'bg-[#81E4F2] text-slate-900 font-semibold'
+                    : 'bg-slate-700 text-gray-400 hover:text-white'
+                }`}
+              >
+                Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDestinationChange('store')}
+                className={`flex-1 py-1.5 px-3 text-xs rounded-md transition-colors ${
+                  linkDestination === 'store'
+                    ? 'bg-[#81E4F2] text-slate-900 font-semibold'
+                    : 'bg-slate-700 text-gray-400 hover:text-white'
+                }`}
+              >
+                Creator Store
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Manual Form Fields */}
         <div>
           <label
             htmlFor="title"
             className="block text-sm font-medium text-gray-300 mb-1"
           >
-            Title*
+            {isMyPeople ? "Name" : "Title"}*
           </label>
           <input
             type="text"
@@ -269,7 +410,7 @@ export default function SpotlightItemModal({
             name="title"
             value={formData.title}
             onChange={handleChange}
-            placeholder="Enter title"
+            placeholder={isMyPeople ? "Enter name" : "Enter title"}
             className="input-field"
             required
           />
@@ -295,7 +436,7 @@ export default function SpotlightItemModal({
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
-            Image*
+            {isMyPeople ? "Photo" : "Image"}*
           </label>
           <ImageUploader
             initialImage={formData.image}
@@ -306,160 +447,183 @@ export default function SpotlightItemModal({
           />
         </div>
 
-        {/* Link Section - with user linking option */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
+        {/* Link Section - different for Spotlight vs My People */}
+        {!isMyPeople && (
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label
+                htmlFor="link"
+                className="block text-sm font-medium text-gray-300"
+              >
+                Link (optional)
+              </label>
+              {!selectedUser && (
+                <button
+                  type="button"
+                  onClick={() => setIsUserLinkMode(!isUserLinkMode)}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all ${
+                    isUserLinkMode
+                      ? 'bg-[#81E4F2]/20 text-[#81E4F2] border border-[#81E4F2] shadow-[0_0_8px_rgba(129,228,242,0.3)]'
+                      : 'bg-slate-700/80 text-[#81E4F2] border border-[#81E4F2]/40 hover:border-[#81E4F2]/70 hover:shadow-[0_0_8px_rgba(129,228,242,0.2)]'
+                  }`}
+                >
+                  <Users size={12} />
+                  <span>Link to mixmi user</span>
+                </button>
+              )}
+            </div>
+
+            {/* Selected User Display (for Spotlight) */}
+            {selectedUser && (
+              <div className="mb-2 p-3 bg-slate-800 rounded-lg border border-[#81E4F2]/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {selectedUser.avatarUrl ? (
+                      <img
+                        src={selectedUser.avatarUrl}
+                        alt={selectedUser.displayName || ''}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
+                        <Users size={16} className="text-gray-400" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-white font-medium">{selectedUser.displayName}</div>
+                      {selectedUser.username && (
+                        <div className="text-gray-400 text-xs">@{selectedUser.username}</div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearSelectedUser}
+                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Profile/Store Toggle */}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDestinationChange('profile')}
+                    className={`flex-1 py-1.5 px-3 text-xs rounded-md transition-colors ${
+                      linkDestination === 'profile'
+                        ? 'bg-[#81E4F2] text-slate-900 font-semibold'
+                        : 'bg-slate-700 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDestinationChange('store')}
+                    className={`flex-1 py-1.5 px-3 text-xs rounded-md transition-colors ${
+                      linkDestination === 'store'
+                        ? 'bg-[#81E4F2] text-slate-900 font-semibold'
+                        : 'bg-slate-700 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Creator Store
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* User Search Mode (for Spotlight) */}
+            {isUserLinkMode && !selectedUser && (
+              <div className="mb-2 relative">
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  placeholder="Search by name or username..."
+                  className="input-field"
+                  autoFocus
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-[#81E4F2] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+
+                {/* Search Results Dropdown */}
+                {userSearchResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {userSearchResults.map((user) => (
+                      <button
+                        key={user.walletAddress}
+                        type="button"
+                        onClick={() => handleSelectUser(user)}
+                        className="w-full px-3 py-2 flex items-center gap-3 hover:bg-slate-700 transition-colors text-left"
+                      >
+                        {user.avatarUrl ? (
+                          <img
+                            src={user.avatarUrl}
+                            alt={user.displayName || ''}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center">
+                            <Users size={14} className="text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-white text-sm">{user.displayName}</div>
+                          {user.username && (
+                            <div className="text-gray-400 text-xs">@{user.username}</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* No Results */}
+                {userSearchQuery.length >= 2 && !isSearching && userSearchResults.length === 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg p-3 text-center text-gray-400 text-sm">
+                    No users found
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Manual URL Input */}
+            <input
+              type="text"
+              id="link"
+              name="link"
+              value={formData.link}
+              onChange={handleChange}
+              placeholder={isUserLinkMode ? "Or enter URL manually..." : "https://example.com"}
+              className="input-field"
+            />
+          </div>
+        )}
+
+        {/* Link field for My People (simpler, at the bottom) */}
+        {isMyPeople && !selectedUser && (
+          <div>
             <label
               htmlFor="link"
-              className="block text-sm font-medium text-gray-300"
+              className="block text-sm font-medium text-gray-300 mb-1"
             >
               Link (optional)
             </label>
-            {!selectedUser && (
-              <button
-                type="button"
-                onClick={() => setIsUserLinkMode(!isUserLinkMode)}
-                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all ${
-                  isUserLinkMode
-                    ? 'bg-[#81E4F2]/20 text-[#81E4F2] border border-[#81E4F2] shadow-[0_0_8px_rgba(129,228,242,0.3)]'
-                    : 'bg-slate-700/80 text-[#81E4F2] border border-[#81E4F2]/40 hover:border-[#81E4F2]/70 hover:shadow-[0_0_8px_rgba(129,228,242,0.2)]'
-                }`}
-              >
-                <Users size={12} />
-                <span>Link to mixmi user</span>
-              </button>
-            )}
+            <input
+              type="text"
+              id="link"
+              name="link"
+              value={formData.link}
+              onChange={handleChange}
+              placeholder="https://example.com"
+              className="input-field"
+            />
           </div>
-
-          {/* Selected User Display */}
-          {selectedUser && (
-            <div className="mb-2 p-3 bg-slate-800 rounded-lg border border-[#81E4F2]/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {selectedUser.avatarUrl ? (
-                    <img
-                      src={selectedUser.avatarUrl}
-                      alt={selectedUser.displayName}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
-                      <Users size={16} className="text-gray-400" />
-                    </div>
-                  )}
-                  <div>
-                    <div className="text-white font-medium">{selectedUser.displayName}</div>
-                    {selectedUser.username && (
-                      <div className="text-gray-400 text-xs">@{selectedUser.username}</div>
-                    )}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleClearSelectedUser}
-                  className="p-1 text-gray-400 hover:text-white transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Profile/Store Toggle */}
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleDestinationChange('profile')}
-                  className={`flex-1 py-1.5 px-3 text-xs rounded-md transition-colors ${
-                    linkDestination === 'profile'
-                      ? 'bg-[#81E4F2] text-slate-900 font-semibold'
-                      : 'bg-slate-700 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Profile
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDestinationChange('store')}
-                  className={`flex-1 py-1.5 px-3 text-xs rounded-md transition-colors ${
-                    linkDestination === 'store'
-                      ? 'bg-[#81E4F2] text-slate-900 font-semibold'
-                      : 'bg-slate-700 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Creator Store
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* User Search Mode */}
-          {isUserLinkMode && !selectedUser && (
-            <div className="mb-2 relative">
-              <input
-                type="text"
-                value={userSearchQuery}
-                onChange={(e) => setUserSearchQuery(e.target.value)}
-                placeholder="Search by name or username..."
-                className="input-field"
-                autoFocus
-              />
-              {isSearching && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <div className="w-4 h-4 border-2 border-[#81E4F2] border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-
-              {/* Search Results Dropdown */}
-              {userSearchResults.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {userSearchResults.map((user) => (
-                    <button
-                      key={user.walletAddress}
-                      type="button"
-                      onClick={() => handleSelectUser(user)}
-                      className="w-full px-3 py-2 flex items-center gap-3 hover:bg-slate-700 transition-colors text-left"
-                    >
-                      {user.avatarUrl ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt={user.displayName}
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center">
-                          <Users size={14} className="text-gray-400" />
-                        </div>
-                      )}
-                      <div>
-                        <div className="text-white text-sm">{user.displayName}</div>
-                        {user.username && (
-                          <div className="text-gray-400 text-xs">@{user.username}</div>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* No Results */}
-              {userSearchQuery.length >= 2 && !isSearching && userSearchResults.length === 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg p-3 text-center text-gray-400 text-sm">
-                  No users found
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Manual URL Input (when not in user link mode or after selection for override) */}
-          <input
-            type="text"
-            id="link"
-            name="link"
-            value={formData.link}
-            onChange={handleChange}
-            placeholder={isUserLinkMode ? "Or enter URL manually..." : "https://example.com"}
-            className="input-field"
-          />
-        </div>
+        )}
 
         {/* Save Status Indicator */}
         {isSaving && (
