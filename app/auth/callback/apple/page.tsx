@@ -70,6 +70,7 @@ export default function AppleAuthCallbackPage() {
             googleSub: appleSub, // Using same field name for compatibility
             email: appleEmail || `apple_${appleSub.substring(0, 10)}@privaterelay.appleid.com`,
             inviteCode: pending.inviteCode,
+            chosenUsername: pending.chosenUsername, // User-chosen username for new accounts
             jwt, // Needed for first-time users to derive address
             provider: 'apple',
           }),

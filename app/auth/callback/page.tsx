@@ -70,6 +70,7 @@ export default function AuthCallbackPage() {
             googleSub,
             email: googleEmail,
             inviteCode: pending.inviteCode,
+            chosenUsername: pending.chosenUsername, // User-chosen username for new accounts
             jwt, // Needed for first-time users to derive address
           }),
         });

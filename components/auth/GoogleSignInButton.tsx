@@ -11,12 +11,14 @@ import { storePendingZkLogin } from '@/lib/zklogin/session';
 
 interface GoogleSignInButtonProps {
   inviteCode: string;
+  chosenUsername?: string;
   disabled?: boolean;
   className?: string;
 }
 
 export default function GoogleSignInButton({
   inviteCode,
+  chosenUsername,
   disabled = false,
   className = '',
 }: GoogleSignInButtonProps) {
@@ -38,7 +40,7 @@ export default function GoogleSignInButton({
       const { nonce, randomness } = await generateNonce(ephemeralKeyPair, maxEpoch);
 
       // Step 4: Store pending state before redirect
-      storePendingZkLogin(ephemeralKeyPair, maxEpoch, randomness, inviteCode);
+      storePendingZkLogin(ephemeralKeyPair, maxEpoch, randomness, inviteCode, chosenUsername);
 
       // Step 5: Build Google OAuth URL
       const redirectUri = `${window.location.origin}/auth/callback`;

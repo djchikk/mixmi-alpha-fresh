@@ -11,12 +11,14 @@ import { storePendingZkLogin } from '@/lib/zklogin/session';
 
 interface AppleSignInButtonProps {
   inviteCode: string;
+  chosenUsername?: string;
   disabled?: boolean;
   className?: string;
 }
 
 export default function AppleSignInButton({
   inviteCode,
+  chosenUsername,
   disabled = false,
   className = '',
 }: AppleSignInButtonProps) {
@@ -38,7 +40,7 @@ export default function AppleSignInButton({
       const { nonce, randomness } = await generateNonce(ephemeralKeyPair, maxEpoch);
 
       // Step 4: Store pending state before redirect
-      storePendingZkLogin(ephemeralKeyPair, maxEpoch, randomness, inviteCode);
+      storePendingZkLogin(ephemeralKeyPair, maxEpoch, randomness, inviteCode, chosenUsername);
 
       // Step 5: Build Apple OAuth URL
       // Note: Apple requires exact redirect URI match - using /auth/callback/apple as configured in Apple Developer Console

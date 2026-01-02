@@ -55,7 +55,7 @@ async function generateWalletsForPersonas(supabase: any, accountId: string, salt
  */
 export async function POST(request: NextRequest) {
   try {
-    const { googleSub, email, inviteCode, jwt } = await request.json();
+    const { googleSub, email, inviteCode, chosenUsername, jwt } = await request.json();
 
     if (!googleSub) {
       return NextResponse.json(
@@ -348,20 +348,30 @@ export async function POST(request: NextRequest) {
       } else {
         console.log('✅ Created account for zkLogin user:', newAccount.id);
 
-        // 2. Create default persona from email
-        const emailUsername = (email || 'user').split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
-        const personaUsername = emailUsername || 'user_' + suiAddress.slice(2, 10).toLowerCase();
+        // 2. Create default persona - use chosen username if provided, otherwise generate from email
+        let finalUsername: string;
 
-        // Check if username already exists
-        const { data: existingPersona } = await supabase
-          .from('personas')
-          .select('username')
-          .eq('username', personaUsername)
-          .maybeSingle();
+        if (chosenUsername && chosenUsername.length >= 3) {
+          // User chose their username during signup - use it directly
+          // (availability was already checked in SignInModal)
+          finalUsername = chosenUsername.toLowerCase();
+          console.log('✅ Using user-chosen username:', finalUsername);
+        } else {
+          // Fallback: generate from email
+          const emailUsername = (email || 'user').split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+          const personaUsername = emailUsername || 'user_' + suiAddress.slice(2, 10).toLowerCase();
 
-        const finalUsername = existingPersona
-          ? personaUsername + '_' + Math.random().toString(36).slice(2, 6)
-          : personaUsername;
+          // Check if username already exists
+          const { data: existingPersona } = await supabase
+            .from('personas')
+            .select('username')
+            .eq('username', personaUsername)
+            .maybeSingle();
+
+          finalUsername = existingPersona
+            ? personaUsername + '_' + Math.random().toString(36).slice(2, 6)
+            : personaUsername;
+        }
 
         const { data: newPersona, error: personaError } = await supabase
           .from('personas')

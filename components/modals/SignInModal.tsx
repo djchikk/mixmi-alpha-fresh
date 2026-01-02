@@ -15,6 +15,8 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const { connectWallet } = useAuth();
   const [inviteCode, setInviteCode] = useState('');
   const [validatedInviteCode, setValidatedInviteCode] = useState<string | null>(null);
+  const [chosenUsername, setChosenUsername] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const [isValidating, setIsValidating] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState('');
@@ -106,9 +108,53 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
     setInviteCode(value);
     if (validatedInviteCode && value.trim().toUpperCase() !== validatedInviteCode) {
       setValidatedInviteCode(null);
+      setChosenUsername('');
+      setUsernameStatus('idle');
     }
     setError('');
   };
+
+  // Validate username format and availability
+  const validateUsername = (username: string): boolean => {
+    // Must be 3-30 characters, lowercase letters, numbers, underscores, hyphens
+    const usernameRegex = /^[a-z0-9_-]{3,30}$/;
+    return usernameRegex.test(username);
+  };
+
+  const handleUsernameChange = async (value: string) => {
+    const lowercaseValue = value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    setChosenUsername(lowercaseValue);
+    setError('');
+
+    if (!lowercaseValue || lowercaseValue.length < 3) {
+      setUsernameStatus('idle');
+      return;
+    }
+
+    if (!validateUsername(lowercaseValue)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+
+    // Check availability
+    setUsernameStatus('checking');
+    try {
+      const response = await fetch(`/api/profile/check-username?username=${encodeURIComponent(lowercaseValue)}`);
+      const result = await response.json();
+
+      if (result.available) {
+        setUsernameStatus('available');
+      } else {
+        setUsernameStatus('taken');
+      }
+    } catch (err) {
+      console.error('Username check failed:', err);
+      setUsernameStatus('idle');
+    }
+  };
+
+  // Check if sign-in buttons should be enabled
+  const canSignIn = validatedInviteCode && chosenUsername.length >= 3 && usernameStatus === 'available';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="">
@@ -204,7 +250,54 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Invite code verified! Choose your sign-in method:
+                Invite code verified!
+              </p>
+            </div>
+          )}
+
+          {/* Username Selection (shown after invite validation) */}
+          {validatedInviteCode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Choose Your Username
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">@</span>
+                <input
+                  type="text"
+                  value={chosenUsername}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
+                  placeholder="your-username"
+                  disabled={isAuthenticating}
+                  className="w-full pl-8 pr-10 py-3 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#81E4F2] transition-colors"
+                />
+                {/* Status indicator */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {usernameStatus === 'checking' && (
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  )}
+                  {usernameStatus === 'available' && (
+                    <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {usernameStatus === 'taken' && (
+                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {usernameStatus === 'taken' && <span className="text-red-400">Username already taken</span>}
+                {usernameStatus === 'invalid' && <span className="text-red-400">3-30 characters, letters, numbers, _ or -</span>}
+                {usernameStatus === 'available' && <span className="text-green-400">Username available!</span>}
+                {usernameStatus === 'idle' && chosenUsername.length > 0 && chosenUsername.length < 3 &&
+                  <span className="text-gray-400">At least 3 characters</span>
+                }
+                {usernameStatus === 'idle' && chosenUsername.length === 0 &&
+                  <span className="text-gray-400">This will be your profile URL: mixmi.com/profile/username</span>
+                }
               </p>
             </div>
           )}
@@ -216,18 +309,20 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
             </div>
           )}
 
-          {/* Sign-in Options (shown after validation) */}
-          {validatedInviteCode && (
+          {/* Sign-in Options (shown after username chosen) */}
+          {validatedInviteCode && canSignIn && (
             <div className="space-y-3">
               {/* Google Sign-In */}
               <GoogleSignInButton
                 inviteCode={validatedInviteCode}
+                chosenUsername={chosenUsername}
                 disabled={isAuthenticating}
               />
 
               {/* Apple Sign-In */}
               <AppleSignInButton
                 inviteCode={validatedInviteCode}
+                chosenUsername={chosenUsername}
                 disabled={isAuthenticating}
               />
 

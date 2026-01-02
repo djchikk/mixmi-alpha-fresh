@@ -73,6 +73,7 @@ export interface PendingZkLogin {
   maxEpoch: number;
   randomness: string;
   inviteCode: string;
+  chosenUsername?: string;  // User-chosen username for new accounts
   createdAt: number;
 }
 
@@ -83,7 +84,8 @@ export function storePendingZkLogin(
   ephemeralKeyPair: Ed25519Keypair,
   maxEpoch: number,
   randomness: string,
-  inviteCode: string
+  inviteCode: string,
+  chosenUsername?: string
 ): void {
   if (typeof window === 'undefined') return;
 
@@ -92,6 +94,7 @@ export function storePendingZkLogin(
     maxEpoch,
     randomness,
     inviteCode,
+    chosenUsername,
     createdAt: Date.now(),
   };
 
