@@ -15,6 +15,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const { connectWallet } = useAuth();
   const [inviteCode, setInviteCode] = useState('');
   const [validatedInviteCode, setValidatedInviteCode] = useState<string | null>(null);
+  const [isReturningUser, setIsReturningUser] = useState(false); // Has existing zkLogin account
   const [chosenUsername, setChosenUsername] = useState('');
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const [isValidating, setIsValidating] = useState(false);
@@ -53,6 +54,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
       if (result.success && result.user) {
         // Code is valid - enable Google sign-in
         setValidatedInviteCode(inviteCode.trim().toUpperCase());
+        setIsReturningUser(result.hasZkLogin === true); // Returning user has existing account
         setError('');
       } else {
         setError(result.error || 'Invalid invite code. Please check and try again.');
@@ -108,6 +110,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
     setInviteCode(value);
     if (validatedInviteCode && value.trim().toUpperCase() !== validatedInviteCode) {
       setValidatedInviteCode(null);
+      setIsReturningUser(false);
       setChosenUsername('');
       setUsernameStatus('idle');
     }
@@ -154,7 +157,8 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
   };
 
   // Check if sign-in buttons should be enabled
-  const canSignIn = validatedInviteCode && chosenUsername.length >= 3 && usernameStatus === 'available';
+  // Returning users don't need to choose username, new users do
+  const canSignIn = validatedInviteCode && (isReturningUser || (chosenUsername.length >= 3 && usernameStatus === 'available'));
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="">
@@ -250,13 +254,16 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Invite code verified!
+                {isReturningUser
+                  ? 'Welcome back! Sign in to continue.'
+                  : 'Invite code verified!'
+                }
               </p>
             </div>
           )}
 
-          {/* Username Selection (shown after invite validation) */}
-          {validatedInviteCode && (
+          {/* Username Selection (only for NEW users, not returning users) */}
+          {validatedInviteCode && !isReturningUser && (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Choose Your Username
@@ -309,20 +316,20 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
             </div>
           )}
 
-          {/* Sign-in Options (shown after username chosen) */}
+          {/* Sign-in Options (shown after username chosen OR for returning users) */}
           {validatedInviteCode && canSignIn && (
             <div className="space-y-3">
               {/* Google Sign-In */}
               <GoogleSignInButton
                 inviteCode={validatedInviteCode}
-                chosenUsername={chosenUsername}
+                chosenUsername={isReturningUser ? undefined : chosenUsername}
                 disabled={isAuthenticating}
               />
 
               {/* Apple Sign-In */}
               <AppleSignInButton
                 inviteCode={validatedInviteCode}
-                chosenUsername={chosenUsername}
+                chosenUsername={isReturningUser ? undefined : chosenUsername}
                 disabled={isAuthenticating}
               />
 
