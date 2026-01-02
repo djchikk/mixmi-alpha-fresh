@@ -1325,8 +1325,12 @@ function SettingsTab({
     }
   };
 
-  // IMPORTANT: Prefer activePersona data over user_profiles data for display
-  const displayAvatar = activePersona?.avatar_url || profile.avatar_url;
+  // IMPORTANT: When activePersona exists, use its avatar OR dicebear for that persona
+  // Don't fall back to profile.avatar_url - that might be from a different persona's user_profiles
+  const displayAvatar = activePersona
+    ? activePersona.avatar_url  // Use persona's avatar (may be null)
+    : profile.avatar_url;        // Only fall back to profile if no activePersona
+  const dicebearSeed = activePersona?.username || activePersona?.id || effectiveWallet || '';
   const displayNameValue = activePersona?.display_name || profile.display_name;
   const displayUsername = activePersona?.username || profile.username;
 
@@ -1415,8 +1419,21 @@ function SettingsTab({
                             <Image className="w-10 h-10 text-white" />
                           </div>
                         </>
+                      ) : activePersona ? (
+                        /* Show dicebear for persona without avatar */
+                        <>
+                          <img
+                            src={generateAvatar(dicebearSeed)}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Overlay for dicebear */}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Image className="w-10 h-10 text-white" />
+                          </div>
+                        </>
                       ) : (
-                        /* Empty state with plus */
+                        /* Empty state with plus (no persona) */
                         <div className="w-full h-full flex items-center justify-center text-gray-500 group-hover:text-gray-400 transition-colors">
                           <Plus className="w-12 h-12" />
                         </div>

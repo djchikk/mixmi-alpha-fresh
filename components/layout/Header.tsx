@@ -240,7 +240,12 @@ export default function Header() {
               >
                 <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-accent/50">
                   {(() => {
-                    const displayAvatar = activePersona?.avatar_url || avatarUrl;
+                    // If activePersona exists, use its avatar or dicebear for that persona
+                    // Don't fall back to main profile's avatar - that would show wrong persona's image
+                    const displayAvatar = activePersona
+                      ? activePersona.avatar_url
+                      : (avatarUrl || null);
+                    const dicebearSeed = activePersona?.username || activePersona?.id || effectiveAddress || '';
                     const isVideo = displayAvatar && (displayAvatar.includes('.mp4') || displayAvatar.includes('.webm') || displayAvatar.includes('video/'));
 
                     if (isVideo) {
@@ -257,7 +262,7 @@ export default function Header() {
                     }
                     return (
                       <img
-                        src={activePersona?.avatar_url || avatarThumb48Url || avatarUrl || generateAvatar(effectiveAddress || '')}
+                        src={displayAvatar || generateAvatar(dicebearSeed)}
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
@@ -276,22 +281,34 @@ export default function Header() {
                       className="w-full flex items-center gap-3 hover:opacity-80 transition-opacity"
                     >
                       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent/50 flex-shrink-0">
-                        {(activePersona?.avatar_url || avatarUrl) && ((activePersona?.avatar_url || avatarUrl || '').includes('.mp4') || (activePersona?.avatar_url || avatarUrl || '').includes('.webm') || (activePersona?.avatar_url || avatarUrl || '').includes('video/')) ? (
-                          <video
-                            src={activePersona?.avatar_url || avatarUrl || ''}
-                            className="w-full h-full object-cover"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                          />
-                        ) : (
-                          <img
-                            src={activePersona?.avatar_url || avatarUrl || generateAvatar(effectiveAddress || '')}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                          />
-                        )}
+                        {(() => {
+                          // Same logic as header button - don't fall back to main profile's avatar
+                          const displayAvatar = activePersona
+                            ? activePersona.avatar_url
+                            : (avatarUrl || null);
+                          const dicebearSeed = activePersona?.username || activePersona?.id || effectiveAddress || '';
+                          const isVideo = displayAvatar && (displayAvatar.includes('.mp4') || displayAvatar.includes('.webm') || displayAvatar.includes('video/'));
+
+                          if (isVideo) {
+                            return (
+                              <video
+                                src={displayAvatar}
+                                className="w-full h-full object-cover"
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                              />
+                            );
+                          }
+                          return (
+                            <img
+                              src={displayAvatar || generateAvatar(dicebearSeed)}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                          );
+                        })()}
                       </div>
                       <div className="flex-1 min-w-0 text-left">
                         <div className="text-sm font-medium text-white truncate">
@@ -517,7 +534,11 @@ export default function Header() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-accent/50">
                       {(() => {
-                        const displayAvatar = activePersona?.avatar_url || avatarUrl;
+                        // Same logic - don't fall back to main profile's avatar
+                        const displayAvatar = activePersona
+                          ? activePersona.avatar_url
+                          : (avatarUrl || null);
+                        const dicebearSeed = activePersona?.username || activePersona?.id || effectiveAddress || '';
                         const isVideo = displayAvatar && (displayAvatar.includes('.mp4') || displayAvatar.includes('.webm') || displayAvatar.includes('video/'));
 
                         if (isVideo) {
@@ -534,7 +555,7 @@ export default function Header() {
                         }
                         return (
                           <img
-                            src={activePersona?.avatar_url || avatarThumb48Url || avatarUrl || generateAvatar(effectiveAddress || '')}
+                            src={displayAvatar || generateAvatar(dicebearSeed)}
                             alt="Profile"
                             className="w-full h-full object-cover"
                           />
