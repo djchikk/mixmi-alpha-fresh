@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserProfileService } from '@/lib/userProfileService';
+import { createClient } from '@supabase/supabase-js';
+
+// Use service role to check all tables
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // GET handler for simple availability checks (used by SignInModal)
 export async function GET(request: NextRequest) {
@@ -14,9 +21,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = await UserProfileService.checkUsernameAvailability(username);
+    const lowerUsername = username.toLowerCase();
 
-    return NextResponse.json(result);
+    // Check BOTH user_profiles AND personas tables
+    const [profileCheck, personaCheck] = await Promise.all([
+      supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('username', lowerUsername)
+        .maybeSingle(),
+      supabase
+        .from('personas')
+        .select('username')
+        .eq('username', lowerUsername)
+        .maybeSingle()
+    ]);
+
+    const existsInProfiles = !!profileCheck.data;
+    const existsInPersonas = !!personaCheck.data;
+
+    if (existsInProfiles || existsInPersonas) {
+      return NextResponse.json({ available: false, message: 'Username already taken' });
+    }
+
+    return NextResponse.json({ available: true });
   } catch (error) {
     console.error('Error checking username:', error);
     return NextResponse.json(
