@@ -268,7 +268,7 @@ export default function SpotlightItemModal({
             <div className="p-4 bg-slate-800/50 rounded-lg border border-[#81E4F2]/20">
               <label className="block text-sm font-medium text-[#81E4F2] mb-2">
                 <Users size={14} className="inline mr-2" />
-                Link to mixmi User
+                Link to mixmi Creator
               </label>
               <div className="relative">
                 <input
@@ -468,7 +468,7 @@ export default function SpotlightItemModal({
                   }`}
                 >
                   <Users size={12} />
-                  <span>Link to mixmi user</span>
+                  <span>Link to mixmi Creator</span>
                 </button>
               )}
             </div>
