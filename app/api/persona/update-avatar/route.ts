@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
   try {
     const { personaId, avatarUrl, accountId } = await request.json();
 
-    if (!personaId || !avatarUrl) {
+    if (!personaId || !avatarUrl || !accountId) {
       return NextResponse.json(
-        { error: 'personaId and avatarUrl are required' },
+        { error: 'personaId, avatarUrl, and accountId are required' },
         { status: 400 }
       );
     }
@@ -27,23 +27,21 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (lookupError || !persona) {
-      console.error('❌ API: Persona not found for validation:', personaId);
+      console.error('API: Persona not found for validation:', personaId);
       return NextResponse.json(
         { error: 'Persona not found' },
         { status: 404 }
       );
     }
 
-    // If accountId provided, verify it matches
-    if (accountId && persona.account_id !== accountId) {
-      console.error('❌ API: Account mismatch - user does not own this persona');
+    // ALWAYS verify ownership - accountId is required
+    if (persona.account_id !== accountId) {
+      console.error('API: Account mismatch - user does not own this persona');
       return NextResponse.json(
         { error: 'Unauthorized - you do not own this persona' },
         { status: 403 }
       );
     }
-
-    console.log('🔧 API: Updating persona avatar, personaId:', personaId, 'username:', persona.username);
 
     const { data, error } = await supabase
       .from('personas')
@@ -52,7 +50,7 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('❌ API: Failed to update persona avatar:', error);
+      console.error('API: Failed to update persona avatar:', error.message);
       return NextResponse.json(
         { error: 'Failed to update persona avatar', details: error.message },
         { status: 500 }
@@ -60,14 +58,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data || data.length === 0) {
-      console.error('❌ API: Persona not found:', personaId);
+      console.error('API: Persona not found after update:', personaId);
       return NextResponse.json(
         { error: 'Persona not found', personaId },
         { status: 404 }
       );
     }
-
-    console.log('✅ API: Persona avatar updated successfully:', data[0]);
 
     return NextResponse.json({
       success: true,
