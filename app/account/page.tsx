@@ -88,6 +88,7 @@ export default function AccountPage() {
   const fetchTracks = async () => {
     if (!effectiveWallet) {
       console.log('[Account] No effective wallet address yet');
+      setLoading(false); // Don't spin forever for pure zkLogin users
       return;
     }
 
@@ -163,9 +164,8 @@ export default function AccountPage() {
 
   // Fetch tracks on mount and when effective wallet changes
   useEffect(() => {
-    if (effectiveWallet) {
-      fetchTracks();
-    }
+    // Always call fetchTracks - it handles the no-wallet case internally
+    fetchTracks();
   }, [effectiveWallet]);
 
   // Helper: Check if a track is a child item inside a pack/EP (should be hidden from dashboard)
