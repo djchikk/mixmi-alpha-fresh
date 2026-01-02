@@ -213,6 +213,28 @@ Three auth types in `AuthContext`:
 | `invite` | ✅ From alpha_users | ❌ null | Invite code only |
 | `zklogin` | ⚠️ Linked if exists | ✅ Real SUI | Google OAuth + invite |
 
+### zkLogin Signup Flow (January 2026)
+New users signing up with Google/Apple OAuth:
+
+1. **SignInModal** - User enters invite code, chooses username (3-30 chars)
+2. **Username check** - Validates against BOTH `user_profiles` AND `personas` tables
+3. **OAuth redirect** - Stores pending state in sessionStorage with `chosenUsername`
+4. **Callback** - Extracts JWT, calls salt API with invite code and username
+5. **Salt API** creates:
+   - `zklogin_users` record (google_sub, salt, sui_address, invite_code)
+   - `accounts` record (sui_address, zklogin_salt)
+   - `personas` record (username, wallet_address = sui_address)
+   - `user_profiles` record (wallet_address = sui_address, username)
+
+**Returning user detection**: Salt API checks `google_sub` first. If found, returns existing salt (same SUI address) and skips record creation.
+
+**Important for testing**: To re-register a Google account, delete from `zklogin_users`:
+```sql
+DELETE FROM zklogin_users WHERE email = 'user@gmail.com';
+```
+
+**Profile page SUI handling**: URLs can contain SUI addresses (`/profile/0x123...`). Profile page detects `0x` prefix and looks up persona by `wallet_address`.
+
 ### USDC Pricing Model
 All prices now in USDC (centralized in `config/pricing.ts`):
 ```typescript
@@ -267,7 +289,8 @@ Users can have multiple identities (personas) under one account. Each persona ha
 - `display_name` - Human-readable name
 - `avatar_url` - Profile image (supports video)
 - `bio` - Profile description
-- `wallet_address` - STX wallet linked to this persona
+- `wallet_address` - STX wallet OR SUI login address (for pure zkLogin users)
+- `sui_address` - Generated SUI wallet for receiving payments (different from login address)
 - `is_active` (boolean) - Soft delete flag
 - `usdc_balance` - Earnings balance
 - `created_at`, `updated_at`
