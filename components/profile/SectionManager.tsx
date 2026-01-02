@@ -61,6 +61,7 @@ export default function SectionManager({ sections, targetWallet, stickerVisible 
   const getSectionName = (type: string) => {
     switch(type) {
       case 'spotlight': return 'Spotlight';
+      case 'mypeople': return 'My People';
       case 'media': return 'Streams';
       case 'shop': return 'Shop';
       case 'gallery': return 'Gallery';
@@ -75,7 +76,7 @@ export default function SectionManager({ sections, targetWallet, stickerVisible 
     return section?.is_visible ?? false;
   };
 
-  const allSections = ['spotlight', 'media', 'shop', 'gallery', 'sticker'];
+  const allSections = ['spotlight', 'mypeople', 'media', 'shop', 'gallery', 'sticker'];
 
   return (
     <div className="mb-8 flex justify-center">

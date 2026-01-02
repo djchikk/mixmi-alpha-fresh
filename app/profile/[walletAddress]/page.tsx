@@ -11,6 +11,7 @@ import ProfileInfo from '@/components/profile/ProfileInfo';
 import ProfileImage from '@/components/profile/ProfileImage';
 import SectionManager from '@/components/profile/SectionManager';
 import SpotlightSection from '@/components/sections/SpotlightSection';
+import MyPeopleSection from '@/components/sections/MyPeopleSection';
 import MediaSection from '@/components/sections/MediaSection';
 import ShopSection from '@/components/sections/ShopSection';
 import GallerySection from '@/components/sections/GallerySection';
@@ -307,6 +308,7 @@ export default function UserProfilePage() {
   const links = profileData?.links || [];
 
   const spotlightSection = sections.find(s => s.section_type === 'spotlight');
+  const mypeopleSection = sections.find(s => s.section_type === 'mypeople');
   const mediaSection = sections.find(s => s.section_type === 'media');
   const shopSection = sections.find(s => s.section_type === 'shop');
   const gallerySection = sections.find(s => s.section_type === 'gallery');
@@ -357,6 +359,15 @@ export default function UserProfilePage() {
         {spotlightSection?.is_visible && (
           <SpotlightSection
             config={spotlightSection.config}
+            isOwnProfile={isOwnProfile}
+            targetWallet={targetWallet}
+            onUpdate={refreshProfile}
+          />
+        )}
+
+        {mypeopleSection?.is_visible && (
+          <MyPeopleSection
+            config={mypeopleSection.config}
             isOwnProfile={isOwnProfile}
             targetWallet={targetWallet}
             onUpdate={refreshProfile}
