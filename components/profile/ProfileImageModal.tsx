@@ -84,23 +84,28 @@ export default function ProfileImageModal({
       });
 
       // Also update the personas table if we have a personaId
+      // Use API route to bypass RLS restrictions on personas table
       if (personaId) {
-        console.log('📸 Syncing avatar to personas table, personaId:', personaId, 'imageUrl:', imageUrl);
-        const { data: updateResult, error: personaError } = await supabase
-          .from('personas')
-          .update({ avatar_url: imageUrl })
-          .eq('id', personaId)
-          .select();
+        console.log('📸 Syncing avatar to personas table via API, personaId:', personaId, 'imageUrl:', imageUrl);
+        try {
+          const response = await fetch('/api/persona/update-avatar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ personaId, avatarUrl: imageUrl })
+          });
 
-        if (personaError) {
-          console.error('⚠️ Failed to sync avatar to persona:', personaError);
-        } else if (!updateResult || updateResult.length === 0) {
-          console.error('⚠️ Persona update returned 0 rows - personaId may be wrong or RLS blocking:', personaId);
-        } else {
-          console.log('✅ Avatar synced to persona, result:', updateResult);
-          // Refresh AuthContext personas so Header picks up the new avatar
-          await refreshPersonas();
-          console.log('✅ AuthContext personas refreshed');
+          const result = await response.json();
+
+          if (!response.ok) {
+            console.error('⚠️ Failed to sync avatar to persona:', result.error);
+          } else {
+            console.log('✅ Avatar synced to persona via API:', result.persona);
+            // Refresh AuthContext personas so Header picks up the new avatar
+            await refreshPersonas();
+            console.log('✅ AuthContext personas refreshed');
+          }
+        } catch (apiError) {
+          console.error('⚠️ API call failed for persona avatar sync:', apiError);
         }
       }
 
