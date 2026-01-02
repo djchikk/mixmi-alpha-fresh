@@ -29,6 +29,7 @@ export default function UserProfilePage() {
   const [artistName, setArtistName] = useState<string>('New User');
   const [hasUploadedTracks, setHasUploadedTracks] = useState(false);
   const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
+  const [profilePersonaId, setProfilePersonaId] = useState<string | null>(null); // The persona ID for this profile (not activePersona)
 
   // Check if this is the user's own profile:
   // 1. Wallet matches directly
@@ -61,17 +62,20 @@ export default function UserProfilePage() {
 
         // First, check if identifier is a persona username and get linked wallet
         let walletFromPersona: string | null = null;
+        let foundPersonaId: string | null = null; // Track locally since state updates are async
         if (!identifier.startsWith('SP') && !identifier.startsWith('ST')) {
           // Might be a persona username - check personas table
           const { data: personaData } = await supabase
             .from('personas')
-            .select('account_id, username, wallet_address')
+            .select('id, account_id, username, wallet_address')
             .eq('username', identifier)
             .single();
 
           if (personaData) {
-            console.log('Found persona:', personaData.username, 'wallet:', personaData.wallet_address);
+            console.log('Found persona:', personaData.username, 'id:', personaData.id, 'wallet:', personaData.wallet_address);
             setLinkedAccountId(personaData.account_id);
+            setProfilePersonaId(personaData.id); // Store the persona ID for this profile
+            foundPersonaId = personaData.id;
 
             // Use the wallet_address directly from the persona
             if (personaData.wallet_address) {
@@ -101,6 +105,20 @@ export default function UserProfilePage() {
             .single();
           if (accountData?.account_id) {
             setLinkedAccountId(accountData.account_id);
+          }
+
+          // If we didn't get persona ID from username lookup, try to get it by wallet_address
+          if (!foundPersonaId && data.profile.wallet_address) {
+            const { data: personaByWallet } = await supabase
+              .from('personas')
+              .select('id')
+              .eq('wallet_address', data.profile.wallet_address)
+              .eq('is_active', true)
+              .single();
+            if (personaByWallet?.id) {
+              setProfilePersonaId(personaByWallet.id);
+              console.log('Found persona by wallet:', personaByWallet.id);
+            }
           }
         } else {
           // If not found by identifier, try by wallet if it looks like a wallet
@@ -279,7 +297,7 @@ export default function UserProfilePage() {
                 profile={profile}
                 isOwnProfile={isOwnProfile}
                 targetWallet={targetWallet}
-                personaId={isOwnProfile ? activePersona?.id : null}
+                personaId={isOwnProfile ? profilePersonaId : null}
                 onUpdate={refreshProfile}
               />
             </div>
@@ -290,7 +308,7 @@ export default function UserProfilePage() {
                   links={links}
                   targetWallet={targetWallet}
                   suiAddress={isOwnProfile ? (activePersona?.sui_address || suiAddress) : null}
-                  personaId={isOwnProfile ? activePersona?.id : null}
+                  personaId={isOwnProfile ? profilePersonaId : null}
                   username={(!identifier.startsWith('SP') && !identifier.startsWith('ST')) ? identifier : profileData?.profile?.username}
                   hasUploadedTracks={hasUploadedTracks}
                   isOwnProfile={isOwnProfile}
