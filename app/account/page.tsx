@@ -78,35 +78,6 @@ export default function AccountPage() {
   const [isRadioUploadModalOpen, setIsRadioUploadModalOpen] = useState(false);
   const [isVideoUploadModalOpen, setIsVideoUploadModalOpen] = useState(false);
 
-  // Fetch on-chain wallet balances
-  const fetchWalletBalances = async () => {
-    if (!activePersona?.account_id) return;
-
-    setLoadingBalances(true);
-    try {
-      const response = await fetch(`/api/personas/balances?accountId=${activePersona.account_id}`);
-      const data = await response.json();
-
-      if (data.success && data.balances) {
-        const balanceMap: Record<string, { usdc: number; sui: number }> = {};
-        data.balances.forEach((b: any) => {
-          balanceMap[b.suiAddress] = { usdc: b.balances.usdc, sui: b.balances.sui };
-        });
-        setWalletBalances(balanceMap);
-      }
-    } catch (error) {
-      console.error('Error fetching wallet balances:', error);
-    }
-    setLoadingBalances(false);
-  };
-
-  // Fetch balances when settings tab is active
-  useEffect(() => {
-    if (activeTab === 'settings' && activePersona?.account_id) {
-      fetchWalletBalances();
-    }
-  }, [activeTab, activePersona?.account_id]);
-
   // Redirect to home if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
@@ -1276,6 +1247,36 @@ function SettingsTab({
   // On-chain wallet balances
   const [walletBalances, setWalletBalances] = useState<Record<string, { usdc: number; sui: number }>>({});
   const [loadingBalances, setLoadingBalances] = useState(false);
+
+  // Fetch on-chain wallet balances
+  const fetchWalletBalances = async () => {
+    if (!activePersona?.account_id) return;
+
+    setLoadingBalances(true);
+    try {
+      const response = await fetch(`/api/personas/balances?accountId=${activePersona.account_id}`);
+      const data = await response.json();
+
+      if (data.success && data.balances) {
+        const balanceMap: Record<string, { usdc: number; sui: number }> = {};
+        data.balances.forEach((b: any) => {
+          balanceMap[b.suiAddress] = { usdc: b.balances.usdc, sui: b.balances.sui };
+        });
+        setWalletBalances(balanceMap);
+      }
+    } catch (error) {
+      console.error('Error fetching wallet balances:', error);
+    }
+    setLoadingBalances(false);
+  };
+
+  // Fetch balances on mount
+  useEffect(() => {
+    if (activePersona?.account_id) {
+      fetchWalletBalances();
+    }
+  }, [activePersona?.account_id]);
+
   const router = useRouter();
   const [agentName, setAgentName] = useState('');
   const [profile, setProfile] = useState<{
