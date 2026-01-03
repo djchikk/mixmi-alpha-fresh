@@ -757,21 +757,6 @@ export default function ProfileInfoModal({
             Display Settings
           </label>
 
-          {/* STX Wallet Toggle - greyed out if no STX wallet linked */}
-          <label className={`flex items-center space-x-3 ${targetWallet ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
-            <input
-              type="checkbox"
-              checked={formData.show_wallet_address}
-              onChange={(e) => handleInputChange('show_wallet_address', e.target.checked)}
-              disabled={!targetWallet}
-              className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-[#81E4F2] focus:ring-[#81E4F2] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <span className="text-sm text-gray-400">
-              Show STX wallet address
-              {!targetWallet && <span className="text-xs text-gray-500 ml-2">(No STX wallet linked)</span>}
-            </span>
-          </label>
-
           {/* SUI Wallet Toggle - greyed out if no zkLogin */}
           <label className={`flex items-center space-x-3 ${suiAddress ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
             <input
