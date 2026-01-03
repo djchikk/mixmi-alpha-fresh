@@ -16,7 +16,7 @@ import InfoIcon from "@/components/shared/InfoIcon";
 import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFlip";
 import ProfileImageModal from "@/components/profile/ProfileImageModal";
 import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
-import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star, QrCode } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star, QrCode, RefreshCw } from 'lucide-react';
 import QRCodeModal from '@/components/shared/QRCodeModal';
 import { Track } from '@/components/mixer/types';
 import Crate from '@/components/shared/Crate';
@@ -77,6 +77,35 @@ export default function AccountPage() {
   const [isMusicUploadModalOpen, setIsMusicUploadModalOpen] = useState(false);
   const [isRadioUploadModalOpen, setIsRadioUploadModalOpen] = useState(false);
   const [isVideoUploadModalOpen, setIsVideoUploadModalOpen] = useState(false);
+
+  // Fetch on-chain wallet balances
+  const fetchWalletBalances = async () => {
+    if (!activePersona?.account_id) return;
+
+    setLoadingBalances(true);
+    try {
+      const response = await fetch(`/api/personas/balances?accountId=${activePersona.account_id}`);
+      const data = await response.json();
+
+      if (data.success && data.balances) {
+        const balanceMap: Record<string, { usdc: number; sui: number }> = {};
+        data.balances.forEach((b: any) => {
+          balanceMap[b.suiAddress] = { usdc: b.balances.usdc, sui: b.balances.sui };
+        });
+        setWalletBalances(balanceMap);
+      }
+    } catch (error) {
+      console.error('Error fetching wallet balances:', error);
+    }
+    setLoadingBalances(false);
+  };
+
+  // Fetch balances when settings tab is active
+  useEffect(() => {
+    if (activeTab === 'settings' && activePersona?.account_id) {
+      fetchWalletBalances();
+    }
+  }, [activeTab, activePersona?.account_id]);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -1243,6 +1272,10 @@ function SettingsTab({
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [qrModal, setQrModal] = useState<{ address: string; label: string; username?: string } | null>(null);
+
+  // On-chain wallet balances
+  const [walletBalances, setWalletBalances] = useState<Record<string, { usdc: number; sui: number }>>({});
+  const [loadingBalances, setLoadingBalances] = useState(false);
   const router = useRouter();
   const [agentName, setAgentName] = useState('');
   const [profile, setProfile] = useState<{
@@ -1612,10 +1645,13 @@ function SettingsTab({
                       )}
                     </div>
 
-                    {/* Balance */}
+                    {/* Balance - use on-chain balance if available, otherwise database value */}
                     <div className="text-right flex-shrink-0">
                       <div className="text-[#81E4F2] font-mono font-medium">
-                        ${persona.balance_usdc?.toFixed(2) || '0.00'} USDC
+                        ${(persona.sui_address && walletBalances[persona.sui_address]?.usdc !== undefined
+                          ? walletBalances[persona.sui_address].usdc
+                          : persona.balance_usdc || 0
+                        ).toFixed(2)} USDC
                       </div>
                     </div>
 
@@ -1692,7 +1728,17 @@ function SettingsTab({
 
         {/* Wallet Settings */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
-          <h3 className="text-white font-semibold mb-4">Connected Wallets</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-semibold">Connected Wallets</h3>
+            <button
+              onClick={fetchWalletBalances}
+              disabled={loadingBalances}
+              className="flex items-center gap-1.5 px-2 py-1 text-xs bg-slate-800 text-gray-300 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={loadingBalances ? 'animate-spin' : ''} />
+              {loadingBalances ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
           <p className="text-gray-400 text-sm mb-4">
             Your wallet addresses for transactions and receiving payments.
           </p>
@@ -1704,6 +1750,21 @@ function SettingsTab({
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-white">Payment Wallet</span>
                     <span className="text-xs px-1.5 py-0.5 bg-[#A8E66B]/20 text-[#A8E66B] rounded">@{activePersona.username}</span>
+                  </div>
+                </div>
+                {/* Balance Display */}
+                <div className="flex gap-4 mb-3">
+                  <div>
+                    <span className="text-xs text-gray-500">USDC</span>
+                    <div className="text-lg font-bold text-[#A8E66B]">
+                      ${walletBalances[activePersona.sui_address]?.usdc?.toFixed(2) || '0.00'}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">SUI (gas)</span>
+                    <div className="text-lg font-bold text-[#81E4F2]">
+                      {walletBalances[activePersona.sui_address]?.sui?.toFixed(4) || '0.0000'}
+                    </div>
                   </div>
                 </div>
                 <p className="text-xs text-gray-400 mb-2">
@@ -1782,6 +1843,21 @@ function SettingsTab({
                       </button>
                     </div>
                   )}
+                </div>
+                {/* Balance Display */}
+                <div className="flex gap-4 mb-3">
+                  <div>
+                    <span className="text-xs text-gray-500">USDC</span>
+                    <div className="text-lg font-bold text-[#A8E66B]">
+                      ${walletBalances[suiAddress]?.usdc?.toFixed(2) || '0.00'}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">SUI (gas)</span>
+                    <div className="text-lg font-bold text-[#81E4F2]">
+                      {walletBalances[suiAddress]?.sui?.toFixed(4) || '0.0000'}
+                    </div>
+                  </div>
                 </div>
                 {/* Full address with copy */}
                 <div className="flex items-center gap-2 bg-[#1E293B] rounded p-2">
