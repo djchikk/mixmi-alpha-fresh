@@ -16,7 +16,8 @@ import InfoIcon from "@/components/shared/InfoIcon";
 import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFlip";
 import ProfileImageModal from "@/components/profile/ProfileImageModal";
 import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
-import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star, QrCode } from 'lucide-react';
+import QRCodeModal from '@/components/shared/QRCodeModal';
 import { Track } from '@/components/mixer/types';
 import Crate from '@/components/shared/Crate';
 import { PRICING } from '@/config/pricing';
@@ -1241,6 +1242,7 @@ function SettingsTab({
   const [loading, setLoading] = useState(true);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [qrModal, setQrModal] = useState<{ address: string; label: string; username?: string } | null>(null);
   const router = useRouter();
   const [agentName, setAgentName] = useState('');
   const [profile, setProfile] = useState<{
@@ -1722,8 +1724,8 @@ function SettingsTab({
                     Copy
                   </button>
                 </div>
-                {/* Explorer link */}
-                <div className="mt-2">
+                {/* Explorer link and QR */}
+                <div className="mt-2 flex gap-3">
                   <a
                     href={`https://suiscan.xyz/testnet/account/${activePersona.sui_address}`}
                     target="_blank"
@@ -1732,6 +1734,17 @@ function SettingsTab({
                   >
                     View on Explorer
                   </a>
+                  <button
+                    onClick={() => setQrModal({
+                      address: activePersona.sui_address!,
+                      label: 'Payment Wallet',
+                      username: activePersona.username
+                    })}
+                    className="text-xs text-gray-400 hover:text-[#A8E66B] transition-colors flex items-center gap-1"
+                  >
+                    <QrCode size={12} />
+                    QR Code
+                  </button>
                 </div>
               </div>
             )}
@@ -1803,6 +1816,16 @@ function SettingsTab({
                   >
                     Get Testnet USDC
                   </a>
+                  <button
+                    onClick={() => setQrModal({
+                      address: suiAddress,
+                      label: 'Manager Account'
+                    })}
+                    className="text-xs text-gray-400 hover:text-[#81E4F2] transition-colors flex items-center gap-1"
+                  >
+                    <QrCode size={12} />
+                    QR Code
+                  </button>
                 </div>
                 {showDisconnectConfirm && (
                   <p className="text-xs text-amber-400/80 mt-2">
@@ -1869,6 +1892,15 @@ function SettingsTab({
         accountId={activePersona?.account_id || personas[0]?.account_id || ''}
         currentPersonaCount={personas.length}
         maxPersonas={PRICING.account.maxPersonas}
+      />
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        isOpen={!!qrModal}
+        onClose={() => setQrModal(null)}
+        address={qrModal?.address || ''}
+        label={qrModal?.label}
+        username={qrModal?.username}
       />
     </div>
   );

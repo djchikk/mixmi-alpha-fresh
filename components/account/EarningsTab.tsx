@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Persona } from '@/contexts/AuthContext';
-import { DollarSign, ArrowUpRight, Clock, Users, ExternalLink, Wallet, Send, RefreshCw, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { DollarSign, ArrowUpRight, Clock, Users, ExternalLink, Wallet, Send, RefreshCw, Copy, Check, ChevronDown, ChevronUp, QrCode } from 'lucide-react';
+import QRCodeModal from '@/components/shared/QRCodeModal';
 
 interface Earning {
   id: string;
@@ -74,6 +75,7 @@ export default function EarningsTab({
   const [withdrawSuccess, setWithdrawSuccess] = useState('');
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [showAccountsDropdown, setShowAccountsDropdown] = useState(false);
+  const [qrModal, setQrModal] = useState<{ address: string; label: string; username?: string } | null>(null);
 
   // Get personas with wallets
   const personasWithWallets = personas.filter(p => p.sui_address);
@@ -451,6 +453,19 @@ export default function EarningsTab({
                       >
                         <ExternalLink className="w-3 h-3" />
                       </a>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQrModal({
+                            address: persona.sui_address!,
+                            label: 'Payment Wallet',
+                            username: persona.username
+                          });
+                        }}
+                        className="text-gray-500 hover:text-[#A8E66B] transition-colors"
+                      >
+                        <QrCode className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
 
@@ -572,6 +587,16 @@ export default function EarningsTab({
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
+                        <button
+                          onClick={() => setQrModal({
+                            address: wallet.suiAddress,
+                            label: 'Payment Wallet',
+                            username: wallet.username
+                          })}
+                          className="text-gray-500 hover:text-[#A8E66B] transition-colors"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -872,6 +897,15 @@ export default function EarningsTab({
           </div>
         </div>
       )}
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        isOpen={!!qrModal}
+        onClose={() => setQrModal(null)}
+        address={qrModal?.address || ''}
+        label={qrModal?.label}
+        username={qrModal?.username}
+      />
     </div>
   );
 }
