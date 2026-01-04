@@ -42,18 +42,21 @@ export default function IPTrackModal({
   contentCategory,
 }: IPTrackModalProps) {
   // Global wallet auth state from header
-  const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress, suiAddress } = useAuth();
-  
-  // 🎯 UPDATED AUTH: Global wallet OR alpha verification
-  const [alphaWallet, setAlphaWallet] = useState<string>(''); // For alpha verification fallback
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [inputWallet, setInputWallet] = useState(''); // For auth input
-  const [useVerificationWallet, setUseVerificationWallet] = useState(true); // For wallet checkbox
+  const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress, suiAddress, authType } = useAuth();
+
+  // 🎯 SUI-ONLY UPLOADS: Require zkLogin (SUI address) for uploading
+  const [alphaWallet, setAlphaWallet] = useState<string>(''); // Legacy - kept for compatibility
+  const [isAuthenticating, setIsAuthenticating] = useState(false); // Legacy - kept for compatibility
+  const [inputWallet, setInputWallet] = useState(''); // Legacy - kept for compatibility
+  const [useVerificationWallet, setUseVerificationWallet] = useState(true);
   const { showToast } = useToast();
-  
-  // Combined authentication state - prefer SUI address for zkLogin users
-  const isAuthenticated = globalWalletConnected || !!alphaWallet;
-  const walletToUse = suiAddress || globalWalletAddress || alphaWallet;
+
+  // For uploads, we REQUIRE a SUI address (zkLogin users only)
+  const canUpload = !!suiAddress;
+  const walletToUse = suiAddress || ''; // Only use SUI address for uploads
+
+  // Check if user is logged in with Stacks but needs to migrate
+  const needsSuiMigration = globalWalletConnected && !suiAddress;
   
   // Use custom hooks
   const {
@@ -3251,8 +3254,50 @@ export default function IPTrackModal({
   };
 
   const renderStep = () => {
-    // Check if user is authenticated (via wallet or invite code)
-    if (!isAuthenticated) {
+    // Check if user needs to migrate from Stacks to SUI
+    if (needsSuiMigration) {
+      return (
+        <div className="text-center py-12">
+          <div className="mb-6">
+            <div
+              className="inline-flex items-center justify-center mb-4"
+              style={{
+                width: '56px',
+                height: '56px',
+                background: 'linear-gradient(135deg, rgba(129, 228, 242, 0.15) 0%, rgba(129, 228, 242, 0.05) 100%)',
+                borderRadius: '14px',
+                fontSize: '24px'
+              }}
+            >
+              🔄
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Time to upgrade your account!</h3>
+            <p className="text-gray-400 max-w-md mx-auto mb-4">
+              Uploads now use <span className="text-[#81E4F2] font-medium">SUI blockchain</span> for faster, cheaper payments to you and your collaborators.
+            </p>
+            <p className="text-gray-400 max-w-md mx-auto text-sm mb-6">
+              Sign out and sign back in with <span className="text-white font-medium">Google</span> to continue uploading.
+            </p>
+            <div className="p-4 bg-slate-800/50 rounded-lg max-w-md mx-auto mb-6">
+              <p className="text-gray-300 text-sm">
+                ✅ Your existing tracks stay linked to your account<br/>
+                ✅ Same invite code, new payment rails
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="px-6 py-3 text-gray-300 font-medium rounded-lg border border-white/40 hover:border-[#81E4F2] hover:shadow-[0_0_12px_rgba(129,228,242,0.3)] transition-all hover:bg-white/5"
+            style={{ backgroundColor: '#061F3C' }}
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
+
+    // Check if user is authenticated with SUI (zkLogin)
+    if (!canUpload) {
       return (
         <div className="text-center py-12">
           <div className="mb-6">
@@ -3270,10 +3315,10 @@ export default function IPTrackModal({
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">Hey! You'll need to sign in first</h3>
             <p className="text-gray-400 max-w-md mx-auto mb-4">
-              To upload your music, just click the <span className="text-white font-medium">Sign In</span> button at the top of the page.
+              To upload your music, click <span className="text-white font-medium">Sign In</span> at the top and use <span className="text-[#81E4F2] font-medium">Google</span>.
             </p>
             <p className="text-gray-400 max-w-md mx-auto text-sm">
-              You can sign in with your Stacks wallet or alpha invite code.
+              You'll need an invite code to complete sign-up.
             </p>
             <div className="mt-6 pt-6 border-t border-gray-700">
               <p className="text-gray-500 text-sm mb-2">Need an invite code?</p>
@@ -3342,7 +3387,7 @@ export default function IPTrackModal({
     >
       <div className="space-y-6">
         {/* Mode Toggle - Show for both new and existing tracks after authentication */}
-        {isAuthenticated && (
+        {canUpload && (
           <div>
             <div className="flex justify-center mb-2">
               <div className="inline-flex p-1 rounded-xl" style={{
@@ -3385,7 +3430,7 @@ export default function IPTrackModal({
         )}
 
         {/* Info Banner - show for both Quick Upload and Advanced Options */}
-        {!track && currentStep === 0 && isAuthenticated && (
+        {!track && currentStep === 0 && canUpload && (
           <div className="text-center mb-4">
             <div 
               className="p-3 rounded-lg border"
@@ -3403,7 +3448,7 @@ export default function IPTrackModal({
         )}
 
         {/* Step Indicator - Hide during authentication */}
-        {isAuthenticated && (
+        {canUpload && (
           <div className="flex items-center justify-between">
             {getStepsArray.map((step, index) => (
             <div
@@ -3430,7 +3475,7 @@ export default function IPTrackModal({
         )}
 
         {/* Only show step title when authenticated */}
-        {isAuthenticated && (
+        {canUpload && (
           <div className="text-center">
             <h3 className="text-2xl font-semibold text-white">
               {getStepsArray[currentStep]}
@@ -3472,7 +3517,7 @@ export default function IPTrackModal({
         </div>
 
         {/* Navigation - Hide during authentication */}
-        {isAuthenticated && (
+        {canUpload && (
           <div className="flex justify-center pt-8 border-t border-slate-700">
           <div className="flex gap-6">
             <button
