@@ -41,7 +41,7 @@ export default function IPTrackModal({
   contentCategory,
 }: IPTrackModalProps) {
   // Global wallet auth state from header
-  const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress } = useAuth();
+  const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress, suiAddress } = useAuth();
   
   // 🎯 UPDATED AUTH: Global wallet OR alpha verification
   const [alphaWallet, setAlphaWallet] = useState<string>(''); // For alpha verification fallback
@@ -50,9 +50,9 @@ export default function IPTrackModal({
   const [useVerificationWallet, setUseVerificationWallet] = useState(true); // For wallet checkbox
   const { showToast } = useToast();
   
-  // Combined authentication state
+  // Combined authentication state - prefer SUI address for zkLogin users
   const isAuthenticated = globalWalletConnected || !!alphaWallet;
-  const walletToUse = globalWalletAddress || alphaWallet;
+  const walletToUse = suiAddress || globalWalletAddress || alphaWallet;
   
   // Use custom hooks
   const {
@@ -419,37 +419,46 @@ export default function IPTrackModal({
     // Remove dependencies that might cause re-renders
   }, [isOpen, track?.id]); // Only depend on track.id, not the whole track object
   
-  // Smart default behavior for wallet checkbox - convert alpha codes to wallet addresses
+  // Smart default behavior for wallet checkbox - prefer SUI address, fallback to resolving STX/alpha
   useEffect(() => {
-    const authWallet = globalWalletAddress || alphaWallet;
-    if (authWallet && useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
-      // Convert alpha code to actual wallet address for blockchain operations
-      const convertAndFill = async () => {
-        try {
-          const response = await fetch('/api/auth/resolve-wallet', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ authIdentity: authWallet })
-          });
-          
-          const result = await response.json();
-          
-          if (result.success && result.walletAddress) {
-            console.log(`🔄 Converting auth identity: ${authWallet} → ${result.walletAddress}`);
-            handleInputChange('wallet_address', result.walletAddress);
-          } else {
-            console.error('Could not resolve wallet address for auth identity:', authWallet);
-            showToast('❌ Could not resolve wallet address for your account', 'error');
+    if (useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
+      // For zkLogin users, use SUI address directly
+      if (suiAddress) {
+        console.log(`🔷 Using SUI address for ownership: ${suiAddress}`);
+        handleInputChange('wallet_address', suiAddress);
+        return;
+      }
+
+      // For legacy STX/alpha users, resolve the wallet address
+      const authWallet = globalWalletAddress || alphaWallet;
+      if (authWallet) {
+        const convertAndFill = async () => {
+          try {
+            const response = await fetch('/api/auth/resolve-wallet', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ authIdentity: authWallet })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.walletAddress) {
+              console.log(`🔄 Converting auth identity: ${authWallet} → ${result.walletAddress}`);
+              handleInputChange('wallet_address', result.walletAddress);
+            } else {
+              console.error('Could not resolve wallet address for auth identity:', authWallet);
+              showToast('❌ Could not resolve wallet address for your account', 'error');
+            }
+          } catch (error) {
+            console.error('Error converting auth identity to wallet:', error);
+            showToast('❌ Authentication service temporarily unavailable', 'error');
           }
-        } catch (error) {
-          console.error('Error converting auth identity to wallet:', error);
-          showToast('❌ Authentication service temporarily unavailable', 'error');
-        }
-      };
-      
-      convertAndFill();
+        };
+
+        convertAndFill();
+      }
     }
-  }, [globalWalletAddress, alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
+  }, [suiAddress, globalWalletAddress, alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
   
   // Show dropdown when suggestions are available
   useEffect(() => {
@@ -1173,38 +1182,37 @@ export default function IPTrackModal({
           type="text"
           value={formData.wallet_address || ''}
           onChange={(e) => handleInputChange('wallet_address', e.target.value)}
-          readOnly={useVerificationWallet && (globalWalletAddress || alphaWallet)}
+          readOnly={useVerificationWallet && !!walletToUse}
           title="Upload for different wallets: Useful for managers, labels, or multiple creative identities"
           className={`w-full px-3 py-3 rounded-md text-white placeholder-gray-500 border focus:outline-none transition-all duration-200 ${
-            useVerificationWallet && (globalWalletAddress || alphaWallet)
-              ? 'bg-gray-700/50 cursor-not-allowed text-gray-300' 
+            useVerificationWallet && walletToUse
+              ? 'bg-gray-700/50 cursor-not-allowed text-gray-300'
               : 'bg-black/25 cursor-text text-white'
           }`}
           style={{
-            borderColor: useVerificationWallet && (globalWalletAddress || alphaWallet)
-              ? 'rgba(129, 228, 242, 0.3)' 
+            borderColor: useVerificationWallet && walletToUse
+              ? 'rgba(129, 228, 242, 0.3)'
               : 'rgba(255, 255, 255, 0.08)',
             borderRadius: '10px',
-            placeholderColor: useVerificationWallet && (globalWalletAddress || alphaWallet) ? '#9ca3af' : '#4a5264'
+            placeholderColor: useVerificationWallet && walletToUse ? '#9ca3af' : '#4a5264'
           }}
           placeholder={
-            useVerificationWallet && (globalWalletAddress || alphaWallet)
-              ? "Using authenticated wallet (read-only)" 
-              : "SP1234... (Wallet for this content)"
+            useVerificationWallet && walletToUse
+              ? "Using authenticated wallet (read-only)"
+              : "0x... or SP... (Wallet for this content)"
           }
         />
-        
+
         {/* Attribution Checkbox - Essential for business use cases */}
-        {(globalWalletAddress || alphaWallet) && (
+        {walletToUse && (
           <label className="flex items-center gap-3 cursor-pointer mt-3">
             <input
               type="checkbox"
               checked={useVerificationWallet}
               onChange={(e) => {
                 setUseVerificationWallet(e.target.checked);
-                const authWallet = globalWalletAddress || alphaWallet;
                 if (e.target.checked) {
-                  handleInputChange('wallet_address', authWallet);
+                  handleInputChange('wallet_address', walletToUse);
                 } else {
                   handleInputChange('wallet_address', '');
                 }
@@ -1216,7 +1224,7 @@ export default function IPTrackModal({
               }}
             />
             <span className="text-white text-sm">
-              Use authenticated account for creative ownership ({(globalWalletAddress || alphaWallet).substring(0, 8)}...)
+              Use authenticated account for creative ownership ({walletToUse.substring(0, 10)}...)
             </span>
           </label>
         )}
