@@ -101,7 +101,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                       className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
                       placeholder="2"
                       min="0"
-                      step="1"
+                      step="0.01"
                     />
                     <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                   </div>
@@ -282,7 +282,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                       className="w-20 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
                       placeholder="2"
                       min="0"
-                      step="1"
+                      step="0.01"
                     />
                     <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                   </div>
@@ -471,7 +471,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                       className="w-20 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
                       placeholder="1"
                       min="0"
-                      step="1"
+                      step="0.01"
                     />
                     <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                   </div>
@@ -597,7 +597,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                     className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
                     placeholder="1"
                     min="0"
-                    step="1"
+                    step="0.01"
                   />
                   <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
                 </div>
@@ -720,7 +720,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                   className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
                   placeholder="1"
                   min="0"
-                  step="1"
+                  step="0.01"
                 />
                 <span className="p-2 bg-slate-700 border border-slate-600 border-l-0 rounded-r text-gray-400 text-sm">USDC</span>
               </div>
