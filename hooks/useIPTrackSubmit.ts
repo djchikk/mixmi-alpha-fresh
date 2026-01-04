@@ -7,8 +7,15 @@ import { getWalletFromAuthIdentity, isValidStacksAddress } from '@/lib/auth/wall
 import { PRICING } from '@/config/pricing';
 
 /**
+ * Check if a string is a valid SUI address (0x + 64 hex chars)
+ */
+function isValidSuiAddress(value: string): boolean {
+  return value.startsWith('0x') && /^0x[a-fA-F0-9]{64}$/.test(value);
+}
+
+/**
  * Format a split wallet value for storage.
- * - If it's a valid Stacks address, keep as-is
+ * - If it's a valid SUI or Stacks address, keep as-is
  * - If it's already prefixed with 'pending:', keep as-is
  * - If it's a name (not a wallet), prefix with 'pending:'
  */
@@ -19,6 +26,9 @@ function formatSplitWallet(value: string | null | undefined): string | null {
 
   // Already has pending prefix
   if (trimmed.startsWith('pending:')) return trimmed;
+
+  // Valid SUI address - keep as-is
+  if (isValidSuiAddress(trimmed)) return trimmed;
 
   // Valid Stacks wallet address - keep as-is
   if (isValidStacksAddress(trimmed)) return trimmed;

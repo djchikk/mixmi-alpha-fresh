@@ -78,6 +78,9 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     status: string;
   }>>([]);
 
+  // Collaborator usernames lookup (wallet address → username/display name)
+  const [collaboratorNames, setCollaboratorNames] = useState<Record<string, string>>({});
+
   // Derived-from track state (provenance - where this content came from)
   const [derivedFromTrack, setDerivedFromTrack] = useState<{ id: string; title: string; artist: string } | null>(null);
 
@@ -277,6 +280,58 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
         });
     }
   }, [isOpen, track.id]);
+
+  // Look up usernames for all collaborator wallets
+  useEffect(() => {
+    const lookupCollaboratorNames = async () => {
+      if (!ipRights) return;
+
+      // Collect all unique wallet addresses from splits (excluding pending: prefixed ones)
+      const wallets = new Set<string>();
+      [...ipRights.composition_splits, ...ipRights.production_splits].forEach(split => {
+        if (split.wallet && !split.wallet.startsWith('pending:') && split.wallet.length > 10) {
+          wallets.add(split.wallet);
+        }
+      });
+
+      if (wallets.size === 0) return;
+
+      const names: Record<string, string> = {};
+
+      // Look up each wallet in personas table first, then user_profiles
+      for (const wallet of wallets) {
+        // Check personas table (for SUI addresses)
+        const { data: personaData } = await supabase
+          .from('personas')
+          .select('username, display_name')
+          .eq('wallet_address', wallet)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (personaData?.display_name || personaData?.username) {
+          names[wallet] = personaData.display_name || personaData.username;
+          continue;
+        }
+
+        // Check user_profiles table (for legacy STX addresses)
+        const { data: profileData } = await supabase
+          .from('user_profiles')
+          .select('username, display_name')
+          .eq('wallet_address', wallet)
+          .maybeSingle();
+
+        if (profileData?.display_name || profileData?.username) {
+          names[wallet] = profileData.display_name || profileData.username;
+        }
+      }
+
+      setCollaboratorNames(names);
+    };
+
+    if (isOpen && ipRights) {
+      lookupCollaboratorNames();
+    }
+  }, [isOpen, ipRights]);
 
   // Fetch individual loops if this is a loop pack OR individual songs if this is an EP OR individual stations if this is a station pack
   useEffect(() => {
@@ -547,14 +602,14 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     return wallet;
   };
 
-  // Get collaborator display info - resolves name from pending: prefix or pending_collaborators table
+  // Get collaborator display info - resolves name from pending: prefix, pending_collaborators table, or username lookup
   const getCollaboratorDisplay = (wallet: string, splitType: 'composition' | 'production', position: number): { name: string; isPending: boolean; isAI?: boolean } => {
     // Check if this is AI (for AI-assisted/generated content)
     if (wallet === 'AI') {
       return { name: '🤖 AI', isPending: false, isAI: true };
     }
 
-    // Check if wallet has pending: prefix (name-only collaborator)
+    // Check if wallet has pending: prefix (name-only collaborator without wallet)
     if (wallet.startsWith('pending:')) {
       const name = wallet.replace('pending:', '');
       return { name, isPending: true };
@@ -568,13 +623,18 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       return { name: pendingCollab.collaborator_name, isPending: pendingCollab.status === 'pending' };
     }
 
-    // Check if it's the creator's wallet (primary uploader)
+    // Check if it's the creator's wallet (primary uploader) - use artist name
     if (wallet === track.primary_uploader_wallet) {
       return { name: track.artist || 'Creator', isPending: false };
     }
 
-    // Default: show "Creator" with wallet
-    return { name: 'Creator', isPending: false };
+    // Check if we looked up a username for this wallet
+    if (collaboratorNames[wallet]) {
+      return { name: collaboratorNames[wallet], isPending: false };
+    }
+
+    // Default: show truncated wallet (no name found)
+    return { name: 'Collaborator', isPending: false };
   };
 
   // Create section divider
