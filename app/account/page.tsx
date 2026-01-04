@@ -1566,6 +1566,12 @@ function SettingsTab({
                   View Profile
                 </a>
                 <a
+                  href={`/store/${displayUsername || walletAddress}`}
+                  className="px-4 py-2 text-sm text-[#A8E66B] border border-[#A8E66B]/30 rounded-lg hover:bg-[#A8E66B]/10 transition-colors"
+                >
+                  View Store
+                </a>
+                <a
                   href={`/profile/${displayUsername || walletAddress}`}
                   className="px-4 py-2 text-sm text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-700/30 transition-colors"
                 >
