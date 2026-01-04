@@ -7,6 +7,7 @@ import type { Identifier } from 'dnd-core';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 
 interface PlaylistTrack {
   id: string;
@@ -17,6 +18,8 @@ interface PlaylistTrack {
   content_type: string;
   bpm?: number;
   stream_url?: string; // For radio stations
+  uploaderAddress?: string; // For profile/store links
+  primary_uploader_wallet?: string; // Alternative wallet field
 }
 
 export default function SimplePlaylistPlayer() {
@@ -148,7 +151,9 @@ export default function SimplePlaylistPlayer() {
           audioUrl: t.audio_url || t.stream_url,
           content_type: t.content_type,
           bpm: t.bpm,
-          stream_url: t.stream_url
+          stream_url: t.stream_url,
+          uploaderAddress: t.uploader_address,
+          primary_uploader_wallet: t.primary_uploader_wallet
         }));
 
         setPlaylist(prev => {
@@ -169,7 +174,9 @@ export default function SimplePlaylistPlayer() {
         audioUrl: track.audio_url || track.audioUrl || track.stream_url,
         content_type: track.content_type,
         bpm: track.bpm,
-        stream_url: track.stream_url
+        stream_url: track.stream_url,
+        uploaderAddress: track.uploaderAddress || track.uploader_address,
+        primary_uploader_wallet: track.primary_uploader_wallet
       };
 
       setPlaylist(prev => {
@@ -340,7 +347,9 @@ export default function SimplePlaylistPlayer() {
         audioUrl: track.audio_url || track.audioUrl || track.stream_url,
         content_type: track.content_type,
         bpm: track.bpm,
-        stream_url: track.stream_url
+        stream_url: track.stream_url,
+        uploaderAddress: track.uploaderAddress || track.uploader_address,
+        primary_uploader_wallet: track.primary_uploader_wallet
       };
 
       setPlaylist(prev => {
@@ -458,12 +467,31 @@ export default function SimplePlaylistPlayer() {
 
                 {/* Current track info */}
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <div className="text-sm font-semibold text-white truncate">
-                    {currentTrack.title}
-                  </div>
-                  <div className="text-xs text-gray-400 truncate">
-                    {currentTrack.artist}
-                  </div>
+                  {(currentTrack.uploaderAddress || currentTrack.primary_uploader_wallet) ? (
+                    <>
+                      <Link
+                        href={`/store/${currentTrack.uploaderAddress || currentTrack.primary_uploader_wallet}`}
+                        className="text-sm font-semibold text-white truncate hover:text-[#81E4F2] transition-colors"
+                      >
+                        {currentTrack.title}
+                      </Link>
+                      <Link
+                        href={`/profile/${currentTrack.uploaderAddress || currentTrack.primary_uploader_wallet}`}
+                        className="text-xs text-gray-400 truncate hover:text-[#81E4F2] transition-colors"
+                      >
+                        {currentTrack.artist}
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-sm font-semibold text-white truncate">
+                        {currentTrack.title}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate">
+                        {currentTrack.artist}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </>
