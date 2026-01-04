@@ -451,6 +451,19 @@ export default function AccountPage() {
                 )}
               </button>
               <button
+                onClick={() => setActiveTab("earnings")}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === "earnings"
+                    ? "text-[#81E4F2]"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
+              >
+                Earnings
+                {activeTab === "earnings" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab("uploads")}
                 className={`pb-3 px-2 font-medium transition-colors relative ${
                   activeTab === "uploads"
@@ -486,19 +499,6 @@ export default function AccountPage() {
               >
                 Upload History
                 {activeTab === "history" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("earnings")}
-                className={`pb-3 px-2 font-medium transition-colors relative ${
-                  activeTab === "earnings"
-                    ? "text-[#81E4F2]"
-                    : "text-gray-400 hover:text-gray-300"
-                }`}
-              >
-                Earnings
-                {activeTab === "earnings" && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
                 )}
               </button>

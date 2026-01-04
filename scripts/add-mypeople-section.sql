@@ -8,7 +8,7 @@ SELECT
   'mypeople',
   'My People',
   2,  -- After spotlight (1), before media (3)
-  false,  -- Hidden by default (no content)
+  true,  -- Visible by default (empty sections don't show content anyway)
   '[]'::jsonb
 FROM user_profiles
 WHERE wallet_address NOT IN (
@@ -43,7 +43,7 @@ BEGIN
   INSERT INTO user_profile_sections (wallet_address, section_type, title, display_order, is_visible)
   VALUES
     (p_wallet_address, 'spotlight', 'Spotlight', 1, true),
-    (p_wallet_address, 'mypeople', 'My People', 2, false),
+    (p_wallet_address, 'mypeople', 'My People', 2, true),
     (p_wallet_address, 'media', 'Media', 3, true),
     (p_wallet_address, 'shop', 'Shop', 4, true),
     (p_wallet_address, 'gallery', 'Gallery', 5, true)
