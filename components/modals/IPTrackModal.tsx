@@ -2142,19 +2142,18 @@ export default function IPTrackModal({
               <div className="flex-1">
                 <input
                   type="text"
-                  value={num === 1 ? 'You' : formData[`composition_split_${num}_wallet` as keyof typeof formData] as string}
+                  value={formData[`composition_split_${num}_wallet` as keyof typeof formData] as string || ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
 
                     // Validate wallet address format (reject alpha codes)
-                    if (value.trim() && !isValidStacksAddress(value) && isAlphaCode(value)) {
-                      showToast('❌ Please enter a valid Stacks address (SP... or SM...), not an alpha code', 'error');
+                    if (value.trim() && !isValidStacksAddress(value) && !value.startsWith('0x') && isAlphaCode(value)) {
+                      showToast('❌ Please enter a valid wallet address (0x... for SUI or SP.../SM... for Stacks)', 'error');
                     }
                   }}
                   className="input-field"
-                  placeholder={num === 1 ? '' : 'Name or wallet address'}
-                  disabled={num === 1} // First row is always the uploader
+                  placeholder={num === 1 ? 'Your wallet address (0x... or SP...)' : 'Name or wallet address'}
                 />
               </div>
               <div className="w-24">
@@ -2245,19 +2244,18 @@ export default function IPTrackModal({
               <div className="flex-1">
                 <input
                   type="text"
-                  value={num === 1 ? 'You' : formData[`production_split_${num}_wallet` as keyof typeof formData] as string}
+                  value={formData[`production_split_${num}_wallet` as keyof typeof formData] as string || ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);
 
                     // Validate wallet address format (reject alpha codes)
-                    if (value.trim() && !isValidStacksAddress(value) && isAlphaCode(value)) {
-                      showToast('❌ Please enter a valid Stacks address (SP... or SM...), not an alpha code', 'error');
+                    if (value.trim() && !isValidStacksAddress(value) && !value.startsWith('0x') && isAlphaCode(value)) {
+                      showToast('❌ Please enter a valid wallet address (0x... for SUI or SP.../SM... for Stacks)', 'error');
                     }
                   }}
                   className="input-field"
-                  placeholder={num === 1 ? '' : 'Name or wallet address'}
-                  disabled={num === 1} // First row is always the uploader
+                  placeholder={num === 1 ? 'Your wallet address (0x... or SP...)' : 'Name or wallet address'}
                 />
               </div>
               <div className="w-24">
