@@ -1,9 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { openContractCall } from '@stacks/connect';
-import { uintCV, listCV, tupleCV, standardPrincipalCV, PostConditionMode } from '@stacks/transactions';
-import { aggregateCartPayments } from '@/lib/batch-payment-aggregator';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { getZkLoginSession } from '@/lib/zklogin/session';
@@ -365,116 +362,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return result;
   };
 
-  /**
-   * Purchase with Stacks (legacy wallet users)
-   */
-  const purchaseWithStacks = async () => {
-    if (!walletAddress) {
-      throw new Error('Wallet not connected');
-    }
-
-    console.log('⚡ [STX] Starting Stacks purchase flow...');
-
-    // Fetch payment splits for all tracks in cart
-    const tracksWithSplits = await Promise.all(
-      cart.map(async (item) => {
-        const response = await fetch(`/api/calculate-payment-splits?trackId=${item.id}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch splits for track ${item.title}`);
-        }
-        const data = await response.json();
-        return {
-          trackId: item.id,
-          title: item.title,
-          totalPriceMicroSTX: Math.floor(parseFloat(item.price_stx || '2.5') * 1000000),
-          compositionSplits: data.compositionSplits,
-          productionSplits: data.productionSplits
-        };
-      })
-    );
-
-    console.log('💰 Tracks with splits:', tracksWithSplits);
-
-    // Aggregate all cart payments into single contract call
-    const aggregated = aggregateCartPayments(tracksWithSplits);
-
-    console.log('📊 Aggregated payment:', aggregated);
-
-    // Format splits for smart contract
-    const compositionCV = listCV(
-      aggregated.compositionSplits.map(split =>
-        tupleCV({
-          wallet: standardPrincipalCV(split.wallet),
-          percentage: uintCV(split.percentage)
-        })
-      )
-    );
-
-    const productionCV = listCV(
-      aggregated.productionSplits.map(split =>
-        tupleCV({
-          wallet: standardPrincipalCV(split.wallet),
-          percentage: uintCV(split.percentage)
-        })
-      )
-    );
-
-    const contractAddress = process.env.NEXT_PUBLIC_PAYMENT_SPLITTER_CONTRACT || 'SP1DTN6E9TCGBR7NJ350EM8Q8ACDHXG05BMZXNCTN';
-
-    console.log('🔗 Calling contract:', {
-      contractAddress,
-      totalMicroSTX: aggregated.totalPriceMicroSTX,
-      compositionSplits: aggregated.compositionSplits,
-      productionSplits: aggregated.productionSplits
-    });
-
-    return new Promise<void>((resolve, reject) => {
-      openContractCall({
-        contractAddress,
-        contractName: 'music-payment-splitter-v3',
-        functionName: 'split-track-payment',
-        functionArgs: [
-          uintCV(aggregated.totalPriceMicroSTX),
-          compositionCV,
-          productionCV
-        ],
-        postConditionMode: PostConditionMode.Allow,
-        onFinish: async (data) => {
-          console.log('✅ Payment split transaction submitted:', data);
-
-          // Record purchases in Supabase
-          try {
-            const purchasePromises = cart.map(item =>
-              supabase.from('purchases').insert({
-                buyer_wallet: walletAddress,
-                track_id: item.id,
-                price_stx: parseFloat(item.price_stx || '2.5'),
-                tx_id: data.txId || null
-              })
-            );
-
-            const results = await Promise.all(purchasePromises);
-            const errors = results.filter(r => r.error);
-
-            if (errors.length > 0) {
-              console.error('⚠️ Some purchases failed to record:', errors);
-            } else {
-              console.log('✅ All purchases recorded successfully');
-            }
-          } catch (error) {
-            console.error('⚠️ Failed to record purchases:', error);
-          }
-
-          resolve();
-        },
-        onCancel: () => {
-          console.log('❌ Transaction cancelled');
-          reject(new Error('Transaction cancelled by user'));
-        }
-      });
-    });
-  };
-
   const purchaseAll = async () => {
     console.log('🛒 Purchase All clicked!', {
       isAuthenticated,
@@ -502,15 +389,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setShowPurchaseModal(true);
       setPurchaseError(null);
 
-      // Route to appropriate payment flow based on auth type
+      // SUI-only payment flow
       if (authType === 'zklogin' && suiAddress) {
         console.log('🔷 Using SUI payment flow (zkLogin)');
         await purchaseWithSUI();
-      } else if (walletAddress) {
-        console.log('🟠 Using Stacks payment flow (wallet)');
-        await purchaseWithStacks();
+      } else if (authType === 'wallet' || authType === 'invite') {
+        // Stacks wallet users need to migrate to zkLogin
+        throw new Error('Purchases now require signing in with Google. Please sign out and sign in with Google to continue.');
       } else {
-        throw new Error('No valid payment method available');
+        throw new Error('Please sign in with Google to make purchases');
       }
 
       setPurchaseStatus('success');

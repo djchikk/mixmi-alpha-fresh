@@ -12,6 +12,7 @@ export default function CartWidget() {
     removeFromCart,
     clearCart,
     cartTotal,
+    purchaseAll,
     purchaseStatus,
     purchaseError,
     showPurchaseModal,
@@ -150,17 +151,21 @@ export default function CartWidget() {
                         Clear
                       </button>
                       <button
-                        disabled
-                        className="flex-1 px-3 py-2 bg-gray-600 text-gray-400 rounded text-xs cursor-not-allowed"
-                        title="Purchasing coming soon"
+                        onClick={purchaseAll}
+                        disabled={purchaseStatus === 'pending'}
+                        className={`flex-1 px-3 py-2 rounded text-xs font-medium transition-colors ${
+                          purchaseStatus === 'pending'
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                            : 'bg-[#81E4F2] hover:bg-[#6BC8D6] text-black'
+                        }`}
                       >
-                        Coming Soon
+                        {purchaseStatus === 'pending' ? 'Processing...' : 'Purchase'}
                       </button>
                     </div>
-                    {/* Coming Soon Notice */}
-                    <div className="mt-2 p-2 bg-amber-900/30 border border-amber-700/50 rounded text-center">
-                      <p className="text-amber-300 text-xs">
-                        💫 Purchases launching soon on SUI
+                    {/* Testnet Notice */}
+                    <div className="mt-2 p-2 bg-blue-900/30 border border-blue-700/50 rounded text-center">
+                      <p className="text-blue-300 text-xs">
+                        🧪 Testnet - Using test USDC
                       </p>
                     </div>
                   </div>
