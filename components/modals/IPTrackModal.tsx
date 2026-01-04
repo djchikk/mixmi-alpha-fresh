@@ -21,6 +21,7 @@ import { useIPTrackSubmit } from "@/hooks/useIPTrackSubmit";
 import { useSplitPresets } from "@/hooks/useSplitPresets";
 import { useLocationAutocomplete } from "@/hooks/useLocationAutocomplete";
 import ArtistAutosuggest from "../shared/ArtistAutosuggest";
+import CollaboratorAutosuggest from "../shared/CollaboratorAutosuggest";
 import SimplifiedLicensingStep from "./steps/SimplifiedLicensingStep";
 import { useAuth } from "@/contexts/AuthContext";
 import { isValidStacksAddress, isAlphaCode, getWalletFromAuthIdentity } from "@/lib/auth/wallet-mapping";
@@ -2140,20 +2141,17 @@ export default function IPTrackModal({
           {[1, 2, 3].slice(0, visibleCompositionSplits).map((num) => (
             <div key={num} className="flex gap-3 items-center">
               <div className="flex-1">
-                <input
-                  type="text"
+                <CollaboratorAutosuggest
                   value={formData[`composition_split_${num}_wallet` as keyof typeof formData] as string || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
+                  onChange={(value) => {
                     handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
-
                     // Validate wallet address format (reject alpha codes)
                     if (value.trim() && !isValidStacksAddress(value) && !value.startsWith('0x') && isAlphaCode(value)) {
                       showToast('❌ Please enter a valid wallet address (0x... for SUI or SP.../SM... for Stacks)', 'error');
                     }
                   }}
                   className="input-field"
-                  placeholder={num === 1 ? 'Your wallet address (0x... or SP...)' : 'Name or wallet address'}
+                  placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
                 />
               </div>
               <div className="w-24">
@@ -2242,20 +2240,17 @@ export default function IPTrackModal({
           {[1, 2, 3].slice(0, visibleProductionSplits).map((num) => (
             <div key={num} className="flex gap-3 items-center">
               <div className="flex-1">
-                <input
-                  type="text"
+                <CollaboratorAutosuggest
                   value={formData[`production_split_${num}_wallet` as keyof typeof formData] as string || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
+                  onChange={(value) => {
                     handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);
-
                     // Validate wallet address format (reject alpha codes)
                     if (value.trim() && !isValidStacksAddress(value) && !value.startsWith('0x') && isAlphaCode(value)) {
                       showToast('❌ Please enter a valid wallet address (0x... for SUI or SP.../SM... for Stacks)', 'error');
                     }
                   }}
                   className="input-field"
-                  placeholder={num === 1 ? 'Your wallet address (0x... or SP...)' : 'Name or wallet address'}
+                  placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
                 />
               </div>
               <div className="w-24">
