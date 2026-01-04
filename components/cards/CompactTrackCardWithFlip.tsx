@@ -139,11 +139,11 @@ export default function CompactTrackCardWithFlip({
     const fetchUsername = async () => {
       if (!track.primary_uploader_wallet) return;
 
-      // First check if there's a persona with this wallet
+      // First check if there's a persona with this wallet (check both wallet_address and sui_address)
       const { data: personaData } = await supabase
         .from('personas')
         .select('username, display_name')
-        .eq('wallet_address', track.primary_uploader_wallet)
+        .or(`wallet_address.eq.${track.primary_uploader_wallet},sui_address.eq.${track.primary_uploader_wallet}`)
         .eq('is_active', true)
         .maybeSingle();
 
