@@ -134,6 +134,16 @@ export default function AdminUsersPage() {
   // Form 12: Create Persona Profile
   const [createProfilePersonaId, setCreateProfilePersonaId] = useState('');
 
+  // Form 13: Migrate Tracks to SUI
+  const [migrateToSuiPersona, setMigrateToSuiPersona] = useState('');
+  const [migrateToSuiPreview, setMigrateToSuiPreview] = useState<{
+    tracksToMigrate: number;
+    trackTitles: string[];
+    stxWallet: string | null;
+    suiAddress: string | null;
+    canMigrate: boolean;
+  } | null>(null);
+
   // Fetch data
   const fetchData = async () => {
     // Fetch personas
@@ -647,6 +657,79 @@ export default function AdminUsersPage() {
       } else {
         showMessage(data.message, false);
         setCreateProfilePersonaId('');
+        fetchData();
+      }
+    } catch (err) {
+      showMessage('Network error', true);
+    }
+    setLoading(false);
+  };
+
+  // Form 13: Preview Migrate to SUI
+  const handlePreviewMigrateToSui = async (username: string) => {
+    if (!username) {
+      setMigrateToSuiPreview(null);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/migrate-tracks-to-sui?persona=${encodeURIComponent(username)}`, {
+        headers: { 'x-admin-code': ADMIN_CODE }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setMigrateToSuiPreview({
+          tracksToMigrate: data.tracksToMigrate,
+          trackTitles: data.trackTitles,
+          stxWallet: data.stxWallet,
+          suiAddress: data.suiAddress,
+          canMigrate: data.canMigrate
+        });
+      } else {
+        setMigrateToSuiPreview(null);
+      }
+    } catch (err) {
+      console.error('Error previewing migration:', err);
+      setMigrateToSuiPreview(null);
+    }
+  };
+
+  // Form 13: Execute Migrate to SUI
+  const handleMigrateToSui = async () => {
+    if (!migrateToSuiPersona) {
+      showMessage('Select a persona', true);
+      return;
+    }
+
+    if (!migrateToSuiPreview?.canMigrate) {
+      showMessage('This persona cannot be migrated (missing STX or SUI address)', true);
+      return;
+    }
+
+    if (!confirm(`Migrate ${migrateToSuiPreview.tracksToMigrate} tracks to SUI for @${migrateToSuiPersona}? This updates primary_uploader_wallet from STX to SUI.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/migrate-tracks-to-sui', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personaUsername: migrateToSuiPersona,
+          adminCode: ADMIN_CODE
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to migrate tracks', true);
+      } else {
+        showMessage(data.message, false);
+        setMigrateToSuiPersona('');
+        setMigrateToSuiPreview(null);
         fetchData();
       }
     } catch (err) {
@@ -1439,6 +1522,81 @@ export default function AdminUsersPage() {
                 className="w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-400 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create Profile + Store'}
+              </button>
+            </div>
+          </div>
+
+          {/* Form 13: Migrate Tracks to SUI */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-[#81E4F2] mb-4">13. Migrate Tracks to SUI</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Update primary_uploader_wallet from STX to SUI for a persona.
+              Makes old content appear in "My Work" for zkLogin users.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Select Persona *</label>
+                <select
+                  value={migrateToSuiPersona}
+                  onChange={(e) => {
+                    setMigrateToSuiPersona(e.target.value);
+                    handlePreviewMigrateToSui(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                >
+                  <option value="">-- Select Persona --</option>
+                  {personas.filter(p => p.wallet_address && p.sui_address).map((p) => (
+                    <option key={p.id} value={p.username}>
+                      @{p.username} {p.display_name ? `(${p.display_name})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-gray-500 text-xs mt-1">
+                  Showing {personas.filter(p => p.wallet_address && p.sui_address).length} personas with both STX and SUI addresses
+                </p>
+              </div>
+
+              {/* Preview */}
+              {migrateToSuiPreview && (
+                <div className="p-3 bg-slate-700/50 rounded-lg text-sm">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-400">STX Wallet:</span>
+                    <span className="text-amber-400 font-mono">{migrateToSuiPreview.stxWallet || 'None'}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-400">SUI Address:</span>
+                    <span className="text-[#81E4F2] font-mono">{migrateToSuiPreview.suiAddress || 'None'}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-400">Tracks to Migrate:</span>
+                    <span className={migrateToSuiPreview.tracksToMigrate > 0 ? 'text-green-400' : 'text-gray-500'}>
+                      {migrateToSuiPreview.tracksToMigrate}
+                    </span>
+                  </div>
+                  {migrateToSuiPreview.trackTitles.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-600">
+                      <p className="text-gray-400 text-xs mb-1">Track titles:</p>
+                      <ul className="text-xs text-gray-300 max-h-20 overflow-y-auto">
+                        {migrateToSuiPreview.trackTitles.map((title, i) => (
+                          <li key={i} className="truncate">• {title}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {!migrateToSuiPreview.canMigrate && (
+                    <p className="text-red-400 text-xs mt-2">
+                      Missing STX or SUI address - cannot migrate
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={handleMigrateToSui}
+                disabled={loading || !migrateToSuiPersona || !migrateToSuiPreview?.canMigrate || migrateToSuiPreview?.tracksToMigrate === 0}
+                className="w-full py-2 bg-[#81E4F2] text-slate-900 font-semibold rounded-lg hover:bg-[#6dd4e2] disabled:opacity-50"
+              >
+                {loading ? 'Migrating...' : `Migrate ${migrateToSuiPreview?.tracksToMigrate || 0} Tracks to SUI`}
               </button>
             </div>
           </div>
