@@ -47,12 +47,15 @@ async function migrateTracks(fromWallet, toWallet, dryRun = true) {
     return;
   }
 
-  // Perform the migration
+  // Perform the migration - update both primary_uploader_wallet AND uploader_address
   console.log('\n⏳ Migrating tracks...');
 
   const { error: updateError, count } = await supabase
     .from('ip_tracks')
-    .update({ primary_uploader_wallet: toWallet })
+    .update({
+      primary_uploader_wallet: toWallet,
+      uploader_address: toWallet
+    })
     .eq('primary_uploader_wallet', fromWallet)
     .is('deleted_at', null);
 
@@ -60,6 +63,13 @@ async function migrateTracks(fromWallet, toWallet, dryRun = true) {
     console.log('\n❌ Error migrating:', updateError.message);
     return;
   }
+
+  // Also update any tracks where uploader_address matches but primary_uploader_wallet was already changed
+  await supabase
+    .from('ip_tracks')
+    .update({ uploader_address: toWallet })
+    .eq('uploader_address', fromWallet)
+    .is('deleted_at', null);
 
   console.log(`\n✅ Successfully migrated ${tracks.length} tracks!`);
   console.log(`   From: ${fromWallet.slice(0, 16)}...`);
