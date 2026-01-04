@@ -420,9 +420,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return cart.some(item => item.id === trackId);
   };
 
-  // Cart total in USDC
+  // Cart total in USDC (fallback to price_stx for legacy items)
   const cartTotal = cart.reduce((sum, item) => {
-    return sum + (item.price_usdc || 0);
+    const price = item.price_usdc || parseFloat(item.price_stx || '0') || 0;
+    return sum + price;
   }, 0);
 
   // Expose addToCart globally

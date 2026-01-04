@@ -120,7 +120,7 @@ export default function CartWidget() {
                           <div className="text-xs text-gray-500 truncate">{item.artist}</div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-[#81E4F2]">${item.price_stx} USDC</span>
+                          <span className="text-xs text-[#81E4F2]">${(item.price_usdc || parseFloat(item.price_stx || '0')).toFixed(2)} USDC</span>
                           <button
                             onClick={() => removeFromCart(item.id)}
                             className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#252a3a] rounded transition-all"
