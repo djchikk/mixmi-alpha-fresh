@@ -5,6 +5,7 @@ import { Search, X, Play, Plus, Check, GripVertical, Radio } from 'lucide-react'
 import { TrackNode } from './types';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDrag } from 'react-dnd';
+import Link from 'next/link';
 
 interface GlobeSearchProps {
   nodes: TrackNode[];
@@ -387,7 +388,21 @@ export default function GlobeSearch({
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-mono text-white truncate">
-                      {track.title} - {track.artist}
+                      <Link
+                        href={`/store/${track.uploaderAddress || track.wallet_address || ''}`}
+                        className="hover:text-[#81E4F2] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {track.title}
+                      </Link>
+                      {' - '}
+                      <Link
+                        href={`/profile/${track.uploaderAddress || track.wallet_address || ''}`}
+                        className="hover:text-[#81E4F2] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {track.artist}
+                      </Link>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-[10px] text-gray-500 font-mono">
