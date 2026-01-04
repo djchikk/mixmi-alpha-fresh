@@ -487,7 +487,8 @@ export function useIPTrackSubmit({
     
     try {
       // CRITICAL: Convert alpha codes to actual wallet addresses for blockchain operations
-      const authIdentity = formData.wallet_address || walletAddress;
+      // Priority: form wallet → walletAddress prop → alphaWallet prop (which includes SUI address for zkLogin)
+      const authIdentity = formData.wallet_address || walletAddress || alphaWallet;
       const effectiveWalletAddress = await getWalletFromAuthIdentity(authIdentity);
       
       if (!effectiveWalletAddress) {

@@ -10,8 +10,13 @@ import { createClient } from '@supabase/supabase-js';
  */
 export async function getWalletFromAuthIdentity(authIdentity: string): Promise<string | null> {
   if (!authIdentity) return null;
-  
-  // If it's already a wallet address, return it directly
+
+  // If it's a SUI address (0x + 64 hex chars), return it directly
+  if (authIdentity.startsWith('0x') && /^0x[a-fA-F0-9]{64}$/.test(authIdentity)) {
+    return authIdentity;
+  }
+
+  // If it's a Stacks wallet address, return it directly
   const walletPattern = /^S[PM][0-9A-Z]{37,40}$/;
   if (walletPattern.test(authIdentity.toUpperCase())) {
     return authIdentity;
