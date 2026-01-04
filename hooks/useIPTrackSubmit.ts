@@ -678,24 +678,31 @@ export function useIPTrackSubmit({
         throw new Error('Wallet address is required for authentication');
       }
 
-      console.log('🔐 Authenticating alpha user via API...');
-      console.log(`👤 Auth wallet: ${authWallet} (ALPHA VERIFICATION)`);
+      console.log('🔐 Authenticating user...');
+      console.log(`👤 Auth wallet: ${authWallet}`);
       console.log(`👤 Content wallet: ${effectiveWalletAddress} (ATTRIBUTION)`);
-      
-      // Use API endpoint for authentication (server-side with service role key)
-      const authResponse = await fetch('/api/alpha-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: authWallet })
-      });
-      
-      const authResult = await authResponse.json();
-      
-      if (!authResult.success) {
-        throw new Error(`Alpha authentication failed: ${authResult.error}`);
-      }
 
-      console.log('✅ Alpha user authenticated successfully:', authResult.message);
+      // SUI addresses (zkLogin users) are pre-verified during signup - skip alpha-auth
+      const isSuiAddress = authWallet.startsWith('0x') && authWallet.length === 66;
+
+      if (isSuiAddress) {
+        console.log('✅ SUI address detected - zkLogin user pre-verified');
+      } else {
+        // Legacy: Use API endpoint for Stacks wallet authentication
+        const authResponse = await fetch('/api/alpha-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress: authWallet })
+        });
+
+        const authResult = await authResponse.json();
+
+        if (!authResult.success) {
+          throw new Error(`Alpha authentication failed: ${authResult.error}`);
+        }
+
+        console.log('✅ Alpha user authenticated successfully:', authResult.message);
+      }
       
       // Use the existing SupabaseAuthBridge as fallback for actual database operations
       // The API confirmed the user is approved, so this should work
