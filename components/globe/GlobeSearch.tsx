@@ -49,6 +49,10 @@ function DraggableSearchResult({ track, children }: DraggableSearchResultProps) 
           audioUrl: track.audioUrl || track.stream_url,
           audio_url: track.audioUrl, // Preserve original property
           stream_url: track.stream_url, // Include stream_url for radio stations
+          // Include wallet info for profile/store links
+          uploaderAddress: track.uploaderAddress,
+          uploader_address: track.uploaderAddress,
+          primary_uploader_wallet: track.wallet_address || track.uploaderAddress,
         }
       };
     },
