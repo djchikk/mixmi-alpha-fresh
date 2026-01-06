@@ -339,7 +339,7 @@ export default function UserProfilePage() {
                   profile={profile}
                   links={links}
                   targetWallet={targetWallet}
-                  suiAddress={isOwnProfile ? (activePersona?.sui_address || suiAddress) : null}
+                  suiAddress={isOwnProfile ? (activePersona?.sui_address || suiAddress) : profileData?.profile?.sui_address}
                   personaId={isOwnProfile ? profilePersonaId : null}
                   username={!isWalletAddress ? identifier : profileData?.profile?.username}
                   hasUploadedTracks={hasUploadedTracks}
