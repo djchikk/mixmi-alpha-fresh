@@ -167,6 +167,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       const fetchedPersonas = personasData || [];
       setPersonas(fetchedPersonas);
 
+      // Debug: Log all personas with their addresses
+      console.log('📋 Fetched personas:', fetchedPersonas.map(p => ({
+        username: p.username,
+        wallet_address: p.wallet_address,
+        sui_address: p.sui_address
+      })));
+
       // Set active persona: check localStorage first, then use default
       const storedActivePersonaId = localStorage.getItem('active_persona_id');
       let active = fetchedPersonas.find(p => p.id === storedActivePersonaId);
@@ -180,6 +187,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
       if (active) {
         localStorage.setItem('active_persona_id', active.id);
+        console.log('🎯 Active persona set:', {
+          username: active.username,
+          wallet_address: active.wallet_address,
+          sui_address: active.sui_address
+        });
       }
 
       console.log('✅ Loaded personas:', fetchedPersonas.length, 'Active:', active?.username);
@@ -190,9 +202,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   // Set active persona and persist to localStorage
   const setActivePersona = useCallback((persona: Persona) => {
+    console.log('🔄 Switching to persona:', {
+      username: persona.username,
+      wallet_address: persona.wallet_address,
+      sui_address: persona.sui_address
+    });
     setActivePersonaState(persona);
     localStorage.setItem('active_persona_id', persona.id);
-    console.log('🔄 Switched to persona:', persona.username);
   }, []);
 
   // Refresh personas (can be called externally after creating new persona)

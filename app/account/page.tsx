@@ -59,7 +59,8 @@ export default function AccountPage() {
 
   // For data lookup, use persona's wallet if available, otherwise use direct wallet
   // This allows zkLogin users to access data from their linked wallet
-  const effectiveWallet = activePersona?.wallet_address || walletAddress;
+  // Also check sui_address for personas with content linked to SUI addresses
+  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || walletAddress;
 
   const [activeTab, setActiveTab] = useState<Tab>("settings");
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -87,6 +88,14 @@ export default function AccountPage() {
 
   // Fetch user's tracks function
   const fetchTracks = async () => {
+    console.log('[Account] fetchTracks called with:', {
+      effectiveWallet,
+      'activePersona?.wallet_address': activePersona?.wallet_address,
+      'activePersona?.sui_address': activePersona?.sui_address,
+      'activePersona?.username': activePersona?.username,
+      walletAddress
+    });
+
     if (!effectiveWallet) {
       console.log('[Account] No effective wallet address yet');
       setLoading(false); // Don't spin forever for pure zkLogin users
@@ -163,11 +172,12 @@ export default function AccountPage() {
     fetchProfile();
   }, [effectiveWallet, activePersona]);
 
-  // Fetch tracks on mount and when effective wallet changes
+  // Fetch tracks on mount and when effective wallet or active persona changes
   useEffect(() => {
     // Always call fetchTracks - it handles the no-wallet case internally
+    console.log('[Account] useEffect triggered - effectiveWallet:', effectiveWallet, 'activePersona:', activePersona?.username);
     fetchTracks();
-  }, [effectiveWallet]);
+  }, [effectiveWallet, activePersona]);
 
   // Helper: Check if a track is a child item inside a pack/EP (should be hidden from dashboard)
   // Child items have pack_id AND pack_position >= 1
@@ -1237,7 +1247,8 @@ function SettingsTab({
   onProfileImageUpdate?: (url: string | null, thumbUrl: string | null) => void;
 }) {
   // For data lookup, use persona's wallet if available, otherwise use direct wallet
-  const effectiveWallet = activePersona?.wallet_address || walletAddress;
+  // Also check sui_address for personas with content linked to SUI addresses
+  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || walletAddress;
 
   const [loading, setLoading] = useState(true);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);

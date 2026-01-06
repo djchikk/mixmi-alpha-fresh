@@ -148,17 +148,20 @@ export default function CreatorStorePage() {
           let walletFromPersona: string | null = null;
           const { data: personaData } = await supabase
             .from('personas')
-            .select('account_id, username, wallet_address, display_name, avatar_url, bio')
+            .select('account_id, username, wallet_address, sui_address, display_name, avatar_url, bio')
             .eq('username', walletOrUsername)
             .single();
 
           if (personaData) {
-            console.log('Found persona:', personaData.username, 'wallet:', personaData.wallet_address);
+            console.log('Found persona:', personaData.username, 'wallet:', personaData.wallet_address, 'sui:', personaData.sui_address);
             setLinkedAccountId(personaData.account_id);
 
-            // Use wallet_address from persona if available
+            // Use wallet_address from persona if available, fall back to sui_address
             if (personaData.wallet_address) {
               walletFromPersona = personaData.wallet_address;
+              setActualWalletAddress(walletFromPersona);
+            } else if (personaData.sui_address) {
+              walletFromPersona = personaData.sui_address;
               setActualWalletAddress(walletFromPersona);
             }
 

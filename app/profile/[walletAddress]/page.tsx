@@ -71,29 +71,32 @@ export default function UserProfilePage() {
           // Might be a persona username - check personas table
           const { data: personaData } = await supabase
             .from('personas')
-            .select('id, account_id, username, wallet_address')
+            .select('id, account_id, username, wallet_address, sui_address')
             .eq('username', identifier)
             .single();
 
           if (personaData) {
-            console.log('Found persona:', personaData.username, 'id:', personaData.id, 'wallet:', personaData.wallet_address);
+            console.log('Found persona:', personaData.username, 'id:', personaData.id, 'wallet:', personaData.wallet_address, 'sui:', personaData.sui_address);
             setLinkedAccountId(personaData.account_id);
             setProfilePersonaId(personaData.id); // Store the persona ID for this profile
             foundPersonaId = personaData.id;
 
-            // Use the wallet_address directly from the persona
+            // Use wallet_address from persona if available, fall back to sui_address
             if (personaData.wallet_address) {
               walletFromPersona = personaData.wallet_address;
               console.log('Using persona wallet:', walletFromPersona);
+            } else if (personaData.sui_address) {
+              walletFromPersona = personaData.sui_address;
+              console.log('Using persona SUI address:', walletFromPersona);
             }
           }
         } else if (isSuiAddress) {
-          // For SUI addresses, look up persona by wallet_address (pure zkLogin users store their login SUI here)
-          console.log('Looking up persona by SUI wallet_address:', identifier);
+          // For SUI addresses, look up persona by wallet_address OR sui_address
+          console.log('Looking up persona by SUI address:', identifier);
           const { data: personaData } = await supabase
             .from('personas')
-            .select('id, account_id, username, wallet_address')
-            .eq('wallet_address', identifier)
+            .select('id, account_id, username, wallet_address, sui_address')
+            .or(`wallet_address.eq.${identifier},sui_address.eq.${identifier}`)
             .eq('is_active', true)
             .single();
 
@@ -102,7 +105,8 @@ export default function UserProfilePage() {
             setLinkedAccountId(personaData.account_id);
             setProfilePersonaId(personaData.id);
             foundPersonaId = personaData.id;
-            walletFromPersona = personaData.wallet_address;
+            // Use wallet_address if available, fall back to sui_address
+            walletFromPersona = personaData.wallet_address || personaData.sui_address;
           }
         }
 
