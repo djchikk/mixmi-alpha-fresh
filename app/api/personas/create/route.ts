@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Limit to 5 personas per account
-    const MAX_PERSONAS = 5;
+    // Limit personas per account (alpha users get 999)
+    const MAX_PERSONAS = 999;
     if (accountPersonas && accountPersonas.length >= MAX_PERSONAS) {
       return NextResponse.json(
         { error: `Maximum of ${MAX_PERSONAS} accounts allowed` },
