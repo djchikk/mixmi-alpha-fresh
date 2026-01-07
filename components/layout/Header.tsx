@@ -164,8 +164,8 @@ export default function Header() {
           <Image
             src="/logos/Logotype_Main 2026 - 01.svg"
             alt="mixmi Logo"
-            width={100}
-            height={32}
+            width={130}
+            height={42}
             priority
           />
         </Link>

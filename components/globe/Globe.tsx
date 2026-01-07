@@ -41,16 +41,37 @@ export default function Globe({ nodes = [], onNodeClick, onNodeHover, selectedNo
           gl.setClearColor('#0a0a1a', 1);
         }}
       >
-        {/* Night-time Earth lighting */}
-        {/* Blue-tinted ambient light */}
-        <ambientLight intensity={0.25} color="#4488cc" />
-        
-        {/* Cyan rim light from behind */}
-        <directionalLight position={[0, 0, -5]} intensity={0.7} color="#00ffff" />
-        
-        {/* Soft fill lights */}
-        <directionalLight position={[5, 3, 5]} intensity={0.3} color="#6699ff" />
-        <directionalLight position={[-5, -3, -5]} intensity={0.2} color="#4466aa" />
+        {/* Golden hour in space lighting */}
+        {/* Neutral ambient with slight warmth */}
+        <ambientLight intensity={0.2} color="#9999aa" />
+
+        {/* Main "sun" light - warm golden, upper right */}
+        <directionalLight
+          position={[4, 3, 2]}
+          intensity={1.2}
+          color="#FFD699"
+        />
+
+        {/* Secondary warm fill - softer, from the side */}
+        <directionalLight
+          position={[2, 1, 4]}
+          intensity={0.4}
+          color="#FFCC88"
+        />
+
+        {/* Cool shadow fill - opposite side for contrast */}
+        <directionalLight
+          position={[-4, -2, -3]}
+          intensity={0.25}
+          color="#4477aa"
+        />
+
+        {/* Subtle cyan rim light from behind - reduced */}
+        <directionalLight
+          position={[0, 0, -5]}
+          intensity={0.3}
+          color="#66ccdd"
+        />
         
         {/* Background sphere with gradient effect */}
         <mesh>

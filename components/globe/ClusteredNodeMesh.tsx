@@ -18,14 +18,14 @@ const CONTENT_TYPE_COLORS = {
 };
 
 // Fixed particle configuration - 6 particles in a scattered arrangement
-// Pre-calculated random positions for consistent look (reduced by 75% from original)
+// Pre-calculated random positions for consistent look
 const PARTICLE_CONFIG = [
-  { offsetX: -0.0045, offsetY: 0.003, offsetZ: 0.002, size: 0.003, color: 'loop' },
-  { offsetX: 0.00375, offsetY: -0.002, offsetZ: 0.003, size: 0.0025, color: 'loop' },
-  { offsetX: 0.002, offsetY: 0.0045, offsetZ: -0.0015, size: 0.00275, color: 'full_song' },
-  { offsetX: -0.0025, offsetY: -0.00375, offsetZ: -0.0025, size: 0.00325, color: 'full_song' },
-  { offsetX: 0.005, offsetY: 0.00125, offsetZ: -0.002, size: 0.00225, color: 'radio_station' },
-  { offsetX: -0.00125, offsetY: -0.0005, offsetZ: 0.0045, size: 0.00275, color: 'video_clip' },
+  { offsetX: -0.006, offsetY: 0.004, offsetZ: 0.003, size: 0.005, color: 'loop' },
+  { offsetX: 0.005, offsetY: -0.003, offsetZ: 0.004, size: 0.0045, color: 'loop' },
+  { offsetX: 0.003, offsetY: 0.006, offsetZ: -0.002, size: 0.0048, color: 'full_song' },
+  { offsetX: -0.004, offsetY: -0.005, offsetZ: -0.003, size: 0.0055, color: 'full_song' },
+  { offsetX: 0.007, offsetY: 0.002, offsetZ: -0.003, size: 0.004, color: 'radio_station' },
+  { offsetX: -0.002, offsetY: -0.001, offsetZ: 0.006, size: 0.0048, color: 'video_clip' },
 ];
 
 interface ClusteredNodeMeshProps {
