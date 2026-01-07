@@ -184,19 +184,22 @@ export default function HomePage() {
         imageUrl: track.imageUrl || track.cover_image_url,
         audioUrl: track.audioUrl || track.audio_url,
         stream_url: track.stream_url,
-        lat: track.lat || 0,
-        lng: track.lng || 0,
+        coordinates: {
+          lat: track.coordinates?.lat || track.lat || 0,
+          lng: track.coordinates?.lng || track.lng || 0
+        },
         bpm: track.bpm,
         content_type: track.content_type,
         tags: track.tags,
         description: track.description,
         license: track.license,
         price_stx: track.price_stx,
-        pack_position: track.pack_position,
         // Pre-generated thumbnails
         thumb_64_url: track.thumb_64_url,
         thumb_160_url: track.thumb_160_url,
         thumb_256_url: track.thumb_256_url,
+        // Wallet info for profile/store links
+        uploaderAddress: track.uploaderAddress || track.uploader_address || track.primary_uploader_wallet,
       };
 
       // Create pinned card at drop location
