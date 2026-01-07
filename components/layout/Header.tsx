@@ -162,7 +162,7 @@ export default function Header() {
       <div className="flex-1">
         <Link href="/" className="flex items-center">
           <Image
-            src="/logos/logotype-mixmi.svg"
+            src="/logos/Logotype_Main 2026 - 01.svg"
             alt="mixmi Logo"
             width={100}
             height={32}
