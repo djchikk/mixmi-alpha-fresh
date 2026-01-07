@@ -80,9 +80,6 @@ function DraggableTrackItem({
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
-      // Close modal so user can drop on globe
-      onCloseModal();
-
       // Convert TrackNode to track format expected by drop targets
       const track = {
         id: node.id,
@@ -103,6 +100,10 @@ function DraggableTrackItem({
         uploaderAddress: node.uploaderAddress,
         primary_uploader_wallet: node.uploaderAddress,
       };
+
+      // Close modal after drag starts (slight delay lets drag initialize first)
+      setTimeout(() => onCloseModal(), 50);
+
       return { track, source: 'null-island' };
     },
     collect: (monitor) => ({
