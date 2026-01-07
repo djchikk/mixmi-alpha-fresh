@@ -93,48 +93,62 @@ export const MixerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Loaded tracks state - full IPTrack data for remix split calculations
   const [loadedTracks, setLoadedTracks] = useState<IPTrack[]>([]);
 
+  // Flag to prevent saving until after initial load from localStorage
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
+
   // Load from localStorage on hydration
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
         const savedCollection = localStorage.getItem('mixer-collection');
         if (savedCollection) {
-          setCollection(JSON.parse(savedCollection));
+          const parsed = JSON.parse(savedCollection);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCollection(parsed);
+          }
         }
-        
+
         const savedDeckACrate = localStorage.getItem('mixer-deck-a-crate');
         if (savedDeckACrate) {
-          setDeckACrate(JSON.parse(savedDeckACrate));
+          const parsed = JSON.parse(savedDeckACrate);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setDeckACrate(parsed);
+          }
         }
-        
+
         const savedDeckBCrate = localStorage.getItem('mixer-deck-b-crate');
         if (savedDeckBCrate) {
-          setDeckBCrate(JSON.parse(savedDeckBCrate));
+          const parsed = JSON.parse(savedDeckBCrate);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setDeckBCrate(parsed);
+          }
         }
       } catch (error) {
         console.error('Error loading mixer state from localStorage:', error);
       }
+      // Mark that we've loaded from storage - now safe to save
+      setHasLoadedFromStorage(true);
     }
   }, []);
 
-  // Save to localStorage when state changes
+  // Save to localStorage when state changes (only after initial load)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && hasLoadedFromStorage) {
       localStorage.setItem('mixer-collection', JSON.stringify(collection));
     }
-  }, [collection]);
+  }, [collection, hasLoadedFromStorage]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && hasLoadedFromStorage) {
       localStorage.setItem('mixer-deck-a-crate', JSON.stringify(deckACrate));
     }
-  }, [deckACrate]);
+  }, [deckACrate, hasLoadedFromStorage]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && hasLoadedFromStorage) {
       localStorage.setItem('mixer-deck-b-crate', JSON.stringify(deckBCrate));
     }
-  }, [deckBCrate]);
+  }, [deckBCrate, hasLoadedFromStorage]);
 
   // Actions
   const loadTrackToDeck = useCallback((ipTrack: IPTrack, deck: 'A' | 'B') => {

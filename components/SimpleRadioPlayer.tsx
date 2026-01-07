@@ -104,8 +104,9 @@ export default function SimpleRadioPlayer() {
     audioRef.current.volume = volume;
 
     // Expose global function for cards to load radio stations
+    // Optional second parameter: autoPlay (default true for backward compatibility)
     if (typeof window !== 'undefined') {
-      (window as any).loadRadioTrack = async (track: IPTrack) => {
+      (window as any).loadRadioTrack = async (track: IPTrack, autoPlay: boolean = true) => {
         console.log('📻 SimpleRadioPlayer: Loading track:', track.title, 'content_type:', track.content_type, 'pack_position:', track.pack_position);
 
         // Handle Radio Packs: load the first station in the pack
@@ -147,16 +148,18 @@ export default function SimpleRadioPlayer() {
             // Load audio source (handles HLS and regular streams)
             loadAudioSource(audioRef.current, rawStreamUrl);
 
-            // Auto-play when loading new station
-            audioRef.current.play()
-              .then(() => {
-                setIsPlaying(true);
-                console.log('📻 SimpleRadioPlayer: First station from pack playing');
-              })
-              .catch(error => {
-                console.error('📻 SimpleRadioPlayer: Playback failed:', error);
-                setIsPlaying(false);
-              });
+            // Auto-play when loading new station (unless disabled)
+            if (autoPlay) {
+              audioRef.current.play()
+                .then(() => {
+                  setIsPlaying(true);
+                  console.log('📻 SimpleRadioPlayer: First station from pack playing');
+                })
+                .catch(error => {
+                  console.error('📻 SimpleRadioPlayer: Playback failed:', error);
+                  setIsPlaying(false);
+                });
+            }
           }
           return;
         }
@@ -176,16 +179,18 @@ export default function SimpleRadioPlayer() {
           // Load audio source (handles HLS and regular streams)
           loadAudioSource(audioRef.current, rawStreamUrl);
 
-          // Auto-play when loading new station
-          audioRef.current.play()
-            .then(() => {
-              setIsPlaying(true);
-              console.log('📻 SimpleRadioPlayer: Station playing');
-            })
+          // Auto-play when loading new station (unless disabled)
+          if (autoPlay) {
+            audioRef.current.play()
+              .then(() => {
+                setIsPlaying(true);
+                console.log('📻 SimpleRadioPlayer: Station playing');
+              })
             .catch(error => {
               console.error('📻 SimpleRadioPlayer: Playback failed:', error);
               setIsPlaying(false);
             });
+          }
         }
       };
     }

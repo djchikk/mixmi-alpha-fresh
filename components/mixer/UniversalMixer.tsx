@@ -153,8 +153,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     loadAudioForDeck
   } = useMixerAudio();
 
-  // Use mixer context for crate (collection) management
-  const { addTrackToCollection } = useMixer();
+  // Use mixer context for crate (collection) management and pending track loads
+  const { addTrackToCollection, pendingTrackLoads, consumePendingLoads } = useMixer();
 
   // Use toast for notifications
   const { showToast } = useToast();
@@ -1023,6 +1023,22 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const handlePackDrop = async (packTrack: any, deck: 'A' | 'B') => {
     await handlePackDropFromHook(packTrack, deck, loadTrackToDeckA, loadTrackToDeckB);
   };
+
+  // Process pending track loads from MixerContext (used by demo button and external load requests)
+  useEffect(() => {
+    if (pendingTrackLoads.length > 0) {
+      const loads = consumePendingLoads();
+      console.log('🎯 UniversalMixer: Processing pending track loads:', loads.length);
+
+      loads.forEach(async (load) => {
+        if (load.deck === 'A') {
+          await loadTrackToDeckA(load.track);
+        } else {
+          await loadTrackToDeckB(load.track);
+        }
+      });
+    }
+  }, [pendingTrackLoads, consumePendingLoads]);
 
   // Play/pause handlers
   const handleDeckAPlayPause = useCallback(async () => {

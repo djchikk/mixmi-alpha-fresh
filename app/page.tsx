@@ -17,6 +17,21 @@ import Crate from "@/components/shared/Crate";
 import WidgetLauncher from "@/components/WidgetLauncher";
 import ResetConfirmModal from "@/components/modals/ResetConfirmModal";
 import { NullIslandModal } from "@/components/globe/NullIslandModal";
+import { useMixer } from "@/contexts/MixerContext";
+
+// Demo content track IDs - curated selection for "show me" button
+const DEMO_CONTENT = {
+  deckA: 'e516f38a-164d-40c7-9d96-dbd718e650f0', // Test Disco - Lunar Drive (loop)
+  deckB: 'ab99dcf0-bf1e-4d9b-a93d-adebab349667', // test loop audio upload - tootles (loop)
+  radio: '7403c6dd-1f7b-4b9b-9334-8082c5ad7350', // Eritrean - Eritrean Music (radio_station)
+  floatingCards: [
+    '9a310503-66d5-418e-b476-d762668b14c4', // Baba Unanipenda - Maurice (full_song)
+    'bd1e9775-2e5f-4947-ac6d-d03e6ab396b0', // Pink Test Loop - LuLLaby ChicK (loop)
+    'c2abf750-bd9c-46c7-a5eb-a0b9902b5346', // Nakala Na Nagai vocal loop - Judy (loop)
+    '6b1d0317-878c-4629-9468-273e7118793e', // Puffy Clouds - Demos Never Done (video_clip)
+    '0922678f-80a6-42bb-8b24-1785662fe2bf', // TEst Clip 3 - Demos Never Done (video_clip)
+  ]
+};
 
 
 // Dynamically import GlobeTrackCard to avoid SSR issues
@@ -78,6 +93,11 @@ const CartWidget = dynamic(() => import('@/components/CartWidget'), {
   ssr: false
 });
 
+// Dynamically import DemoButton - show me demo button
+const DemoButton = dynamic(() => import('@/components/DemoButton'), {
+  ssr: false
+});
+
 // Dynamically import LandingTagline - first-visit animated tagline
 const LandingTagline = dynamic(() => import('@/components/LandingTagline'), {
   ssr: false
@@ -113,6 +133,7 @@ export default function HomePage() {
   const [selectedNodeTags, setSelectedNodeTags] = useState<string[] | null>(null);
   const [centerTrackCard, setCenterTrackCard] = useState<any | null>(null); // For FILL button centered card
   const [fillAddedTrackIds, setFillAddedTrackIds] = useState<Set<string>>(new Set()); // Track IDs added by FILL
+  const [isDemoMode, setIsDemoMode] = useState(false); // Demo mode toggle
 
   // Dwell timer for auto-pinning cards on hover
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -165,6 +186,146 @@ export default function HomePage() {
   const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Mixer context for demo loading
+  const { loadTrackToDeck } = useMixer();
+
+  // Demo mode: Load content with staggered animation
+  useEffect(() => {
+    if (!isDemoMode) return;
+
+    let isCancelled = false;
+    const demoCardIds: string[] = []; // Track demo cards for cleanup
+
+    const loadDemoContent = async () => {
+      try {
+        // Fetch all demo tracks from Supabase
+        const { data: tracks, error } = await supabase
+          .from('ip_tracks')
+          .select('*')
+          .in('id', [
+            DEMO_CONTENT.deckA,
+            DEMO_CONTENT.deckB,
+            DEMO_CONTENT.radio,
+            ...DEMO_CONTENT.floatingCards
+          ]);
+
+        if (error || !tracks || isCancelled) return;
+
+        // Create a map for quick lookup
+        const trackMap = new Map(tracks.map(t => [t.id, t]));
+
+        // Staggered loading sequence (~400ms between each, ~3s total)
+        const STAGGER_DELAY = 400;
+
+        // 1. Load Deck A
+        const deckATrack = trackMap.get(DEMO_CONTENT.deckA);
+        if (deckATrack && !isCancelled) {
+          loadTrackToDeck(deckATrack, 'A');
+        }
+
+        // 2. Load Deck B after delay
+        await new Promise(r => setTimeout(r, STAGGER_DELAY));
+        if (isCancelled) return;
+        const deckBTrack = trackMap.get(DEMO_CONTENT.deckB);
+        if (deckBTrack) {
+          loadTrackToDeck(deckBTrack, 'B');
+        }
+
+        // 3. Load Radio after delay (don't auto-play - pass false)
+        await new Promise(r => setTimeout(r, STAGGER_DELAY));
+        if (isCancelled) return;
+        const radioTrack = trackMap.get(DEMO_CONTENT.radio);
+        if (radioTrack && typeof window !== 'undefined' && (window as any).loadRadioTrack) {
+          (window as any).loadRadioTrack(radioTrack, false); // false = don't auto-play
+        }
+
+        // 4. Load floating cards one by one
+        const cardPositions = [
+          { x: 180, y: 180 },   // Top left area
+          { x: 320, y: 280 },   // Left middle
+          { x: window.innerWidth - 420, y: 200 },  // Top right area
+          { x: window.innerWidth - 380, y: 350 },  // Right middle
+          { x: window.innerWidth / 2 - 80, y: 160 }, // Top center
+        ];
+
+        for (let i = 0; i < DEMO_CONTENT.floatingCards.length; i++) {
+          await new Promise(r => setTimeout(r, STAGGER_DELAY));
+          if (isCancelled) return;
+
+          const cardTrack = trackMap.get(DEMO_CONTENT.floatingCards[i]);
+          if (cardTrack) {
+            const pos = cardPositions[i] || { x: 200 + i * 100, y: 200 + i * 50 };
+            const cardId = `demo-card-${cardTrack.id}-${Date.now()}`;
+            demoCardIds.push(cardId);
+
+            const node: TrackNode = {
+              id: cardTrack.id,
+              title: cardTrack.title,
+              artist: cardTrack.artist,
+              imageUrl: cardTrack.cover_image_url,
+              audioUrl: cardTrack.audio_url,
+              stream_url: cardTrack.stream_url,
+              video_url: cardTrack.video_url,
+              coordinates: { lat: 0, lng: 0 },
+              bpm: cardTrack.bpm,
+              content_type: cardTrack.content_type,
+              tags: cardTrack.tags || [],
+              description: cardTrack.description,
+              price_stx: cardTrack.price_stx,
+              primary_uploader_wallet: cardTrack.primary_uploader_wallet,
+              thumb_64_url: cardTrack.thumb_64_url,
+              thumb_160_url: cardTrack.thumb_160_url,
+              thumb_256_url: cardTrack.thumb_256_url,
+            };
+
+            setPinnedCards(prev => [...prev, {
+              node,
+              position: pos,
+              id: cardId,
+              isExpanded: false,
+              hasDragged: false
+            }]);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading demo content:', err);
+      }
+    };
+
+    loadDemoContent();
+
+    // Cleanup function when demo mode is turned off
+    return () => {
+      isCancelled = true;
+    };
+  }, [isDemoMode, loadTrackToDeck]);
+
+  // Demo mode OFF: Clear demo content
+  useEffect(() => {
+    if (isDemoMode) return; // Only run when turning OFF
+
+    // Check if we were previously in demo mode (via sessionStorage)
+    const wasInDemo = sessionStorage.getItem('demo-mode-active') === 'true';
+    if (!wasInDemo) return;
+
+    // Clear the flag
+    sessionStorage.removeItem('demo-mode-active');
+
+    // Clear pinned cards that were added by demo
+    setPinnedCards(prev => prev.filter(card => !card.id.startsWith('demo-card-')));
+
+    // Clear mixer decks - the mixer will handle this via its own state
+    // We don't need to explicitly clear them since loadTrackToDeck just queues loads
+
+  }, [isDemoMode]);
+
+  // Track when demo mode is active
+  useEffect(() => {
+    if (isDemoMode) {
+      sessionStorage.setItem('demo-mode-active', 'true');
+    }
+  }, [isDemoMode]);
 
   // Full-screen drop zone for pinning cards from search results
   const [{ isOverScreen }, screenDropRef] = useDrop(() => ({
@@ -1941,6 +2102,9 @@ export default function HomePage() {
 
       {/* Simple Playlist Player - Always available, bottom-left corner */}
       <SimplePlaylistPlayer />
+
+      {/* Demo Button - Fixed position, to the left of help widget */}
+      <DemoButton isOn={isDemoMode} onToggle={setIsDemoMode} />
 
       {/* Help Widget - Fixed position, right side */}
       <HelpWidget />

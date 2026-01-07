@@ -14,6 +14,16 @@ export default function LandingTagline() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Check if intro has already played this session
+      if (sessionStorage.getItem('intro-played') === 'true') {
+        // Skip animation, just ensure UI is visible
+        document.body.classList.add('intro-complete');
+        return;
+      }
+
+      // Mark intro as played for this session
+      sessionStorage.setItem('intro-played', 'true');
+
       // Add intro mode class to hide UI elements
       document.body.classList.add('intro-mode');
 
