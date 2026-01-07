@@ -60,6 +60,7 @@ interface DraggableTrackItemProps {
   playingId: string | null;
   onPlay: (id: string) => void;
   onPause: () => void;
+  onCloseModal: () => void; // Close modal when dragging to globe
 }
 
 function DraggableTrackItem({
@@ -69,7 +70,8 @@ function DraggableTrackItem({
   onSelect,
   playingId,
   onPlay,
-  onPause
+  onPause,
+  onCloseModal
 }: DraggableTrackItemProps) {
   const isRadio = ['radio_station', 'station_pack', 'grabbed_radio'].includes(node.content_type || '');
   const isPlaying = playingId === node.id;
@@ -78,6 +80,9 @@ function DraggableTrackItem({
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'TRACK_CARD',
     item: () => {
+      // Close modal so user can drop on globe
+      onCloseModal();
+
       // Convert TrackNode to track format expected by drop targets
       const track = {
         id: node.id,
@@ -93,14 +98,17 @@ function DraggableTrackItem({
         price_stx: node.price_stx,
         tags: node.tags,
         location: node.location,
-        coordinates: node.coordinates
+        coordinates: node.coordinates,
+        // Include uploader info for profile/store links on pinned cards
+        uploaderAddress: node.uploaderAddress,
+        primary_uploader_wallet: node.uploaderAddress,
       };
       return { track, source: 'null-island' };
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-  }), [node]);
+  }), [node, onCloseModal]);
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -386,6 +394,7 @@ export function NullIslandModal({
                           playingId={playingId}
                           onPlay={handlePlay}
                           onPause={handlePause}
+                          onCloseModal={onClose}
                         />
                       ))}
                     </div>
