@@ -193,6 +193,46 @@ export function NullIslandModal({
   const [playingId, setPlayingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Group nodes by content type - must be before early return (Rules of Hooks)
+  const groupedNodes = useMemo(() => {
+    const groups: Record<string, TrackNode[]> = {};
+
+    // Initialize groups
+    CONTENT_TYPE_GROUPS.forEach(group => {
+      groups[group.key] = [];
+    });
+
+    // Sort nodes into groups
+    nodes.forEach(node => {
+      // Skip cluster nodes - we want individual tracks
+      if (node.content_type === 'cluster') return;
+
+      const group = CONTENT_TYPE_GROUPS.find(g =>
+        g.types.includes(node.content_type || '')
+      ) || CONTENT_TYPE_GROUPS.find(g => g.key === 'other')!;
+
+      groups[group.key].push(node);
+    });
+
+    return groups;
+  }, [nodes]);
+
+  // Count actual tracks (not clusters)
+  const totalTracks = useMemo(() => {
+    return Object.values(groupedNodes).reduce((sum, group) => sum + group.length, 0);
+  }, [groupedNodes]);
+
+  // Cleanup audio on unmount
+  React.useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Early return AFTER all hooks
   if (!isOpen) return null;
 
   const handleSelectNode = (node: TrackNode) => {
@@ -251,45 +291,6 @@ export function NullIslandModal({
     }
     setPlayingId(null);
   };
-
-  // Cleanup on close
-  React.useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
-
-  // Group nodes by content type
-  const groupedNodes = useMemo(() => {
-    const groups: Record<string, TrackNode[]> = {};
-
-    // Initialize groups
-    CONTENT_TYPE_GROUPS.forEach(group => {
-      groups[group.key] = [];
-    });
-
-    // Sort nodes into groups
-    nodes.forEach(node => {
-      // Skip cluster nodes - we want individual tracks
-      if (node.content_type === 'cluster') return;
-
-      const group = CONTENT_TYPE_GROUPS.find(g =>
-        g.types.includes(node.content_type || '')
-      ) || CONTENT_TYPE_GROUPS.find(g => g.key === 'other')!;
-
-      groups[group.key].push(node);
-    });
-
-    return groups;
-  }, [nodes]);
-
-  // Count actual tracks (not clusters)
-  const totalTracks = useMemo(() => {
-    return Object.values(groupedNodes).reduce((sum, group) => sum + group.length, 0);
-  }, [groupedNodes]);
 
   return (
     <div
