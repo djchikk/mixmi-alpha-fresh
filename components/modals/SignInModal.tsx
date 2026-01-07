@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Modal from '../ui/Modal';
-import { useAuth } from '@/contexts/AuthContext';
 import GoogleSignInButton from '../auth/GoogleSignInButton';
 import AppleSignInButton from '../auth/AppleSignInButton';
 
@@ -12,7 +11,6 @@ interface SignInModalProps {
 }
 
 export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
-  const { connectWallet } = useAuth();
   const [inviteCode, setInviteCode] = useState('');
   const [validatedInviteCode, setValidatedInviteCode] = useState<string | null>(null);
   const [isReturningUser, setIsReturningUser] = useState(false); // Has existing zkLogin account
@@ -21,18 +19,6 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const [isValidating, setIsValidating] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState('');
-
-  const handleWalletConnect = async () => {
-    try {
-      setError('');
-      await connectWallet();
-      // If successful, close modal
-      onClose();
-    } catch (error) {
-      console.error('Wallet connection failed:', error);
-      setError('Failed to connect wallet. Please try again.');
-    }
-  };
 
   // Validate invite code (enables Google sign-in option)
   const handleValidateInvite = async (e: React.FormEvent) => {
@@ -66,42 +52,6 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
       setValidatedInviteCode(null);
     } finally {
       setIsValidating(false);
-    }
-  };
-
-  // Sign in directly with invite code (no Google)
-  const handleInviteCodeSignIn = async () => {
-    if (!validatedInviteCode) return;
-
-    setIsAuthenticating(true);
-    setError('');
-
-    try {
-      const response = await fetch('/api/auth/alpha-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: validatedInviteCode })
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.user) {
-        localStorage.setItem('alpha_auth', JSON.stringify({
-          type: 'invite',
-          inviteCode: validatedInviteCode,
-          walletAddress: result.user.wallet_address,
-          artistName: result.user.artist_name
-        }));
-
-        window.location.reload();
-      } else {
-        setError(result.error || 'Sign-in failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Invite code sign-in failed:', error);
-      setError('Sign-in failed. Please try again.');
-    } finally {
-      setIsAuthenticating(false);
     }
   };
 
@@ -193,29 +143,13 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
           <p className="text-gray-400 text-sm">
             {validatedInviteCode
               ? 'Choose how you want to sign in'
-              : 'Sign in with your Stacks wallet or alpha invite code'
+              : 'Enter your alpha invite code to get started'
             }
           </p>
         </div>
 
         {/* Divider */}
         <div className="h-px bg-white/10" />
-
-        {/* Connect Wallet Button */}
-        <button
-          onClick={handleWalletConnect}
-          className="w-full px-6 py-4 text-gray-300 font-medium rounded-lg border border-white/40 hover:border-[#81E4F2] hover:shadow-[0_0_12px_rgba(129,228,242,0.3)] transition-all hover:bg-white/5"
-          style={{ backgroundColor: '#061F3C' }}
-        >
-          🔗 Connect Stacks Wallet
-        </button>
-
-        {/* OR Divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-gray-500 text-sm font-medium">OR</span>
-          <div className="flex-1 h-px bg-white/10" />
-        </div>
 
         {/* Invite Code Section */}
         <div className="space-y-4">
@@ -332,22 +266,6 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
                 chosenUsername={isReturningUser ? undefined : chosenUsername}
                 disabled={isAuthenticating}
               />
-
-              {/* OR Divider */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-white/10" />
-                <span className="text-gray-500 text-xs">or</span>
-                <div className="flex-1 h-px bg-white/10" />
-              </div>
-
-              {/* Direct Sign-In with Code */}
-              <button
-                onClick={handleInviteCodeSignIn}
-                disabled={isAuthenticating}
-                className="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAuthenticating ? 'Signing in...' : 'Continue with Invite Code Only'}
-              </button>
             </div>
           )}
         </div>
