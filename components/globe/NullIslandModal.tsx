@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { TrackNode } from './types';
-import { X } from 'lucide-react';
+import { X, Play, Pause, GripVertical } from 'lucide-react';
+import { useDrag } from 'react-dnd';
 
 interface NullIslandModalProps {
   isOpen: boolean;
@@ -50,6 +51,135 @@ const CONTENT_TYPE_GROUPS = [
   }
 ];
 
+// Draggable track item component
+interface DraggableTrackItemProps {
+  node: TrackNode;
+  groupEmoji: string;
+  groupColor: string;
+  onSelect: () => void;
+  playingId: string | null;
+  onPlay: (id: string) => void;
+  onPause: () => void;
+}
+
+function DraggableTrackItem({
+  node,
+  groupEmoji,
+  groupColor,
+  onSelect,
+  playingId,
+  onPlay,
+  onPause
+}: DraggableTrackItemProps) {
+  const isRadio = ['radio_station', 'station_pack', 'grabbed_radio'].includes(node.content_type || '');
+  const isPlaying = playingId === node.id;
+
+  // Set up drag
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
+    type: 'TRACK_CARD',
+    item: () => {
+      // Convert TrackNode to track format expected by drop targets
+      const track = {
+        id: node.id,
+        title: node.title,
+        artist: node.artist,
+        content_type: node.content_type,
+        imageUrl: node.thumb_64_url || node.imageUrl,
+        cover_image_url: node.imageUrl, // Keep original high-res
+        audioUrl: node.audioUrl || node.stream_url || (node.content_type === 'video_clip' ? node.video_url : undefined),
+        stream_url: node.stream_url,
+        video_url: node.video_url,
+        bpm: node.bpm,
+        price_stx: node.price_stx,
+        tags: node.tags,
+        location: node.location,
+        coordinates: node.coordinates
+      };
+      return { track, source: 'null-island' };
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [node]);
+
+  const handlePlayClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPlaying) {
+      onPause();
+    } else {
+      onPlay(node.id);
+    }
+  };
+
+  // Get playable URL
+  const playableUrl = node.stream_url || node.audioUrl || (node.content_type === 'video_clip' ? node.video_url : undefined);
+  const canPreview = !!playableUrl;
+
+  return (
+    <div
+      ref={drag}
+      onClick={onSelect}
+      className={`w-full text-left p-2.5 rounded-lg border border-gray-700/50 hover:border-[#81E4F2]/60 hover:bg-[#81E4F2]/5 transition-all duration-200 group cursor-grab active:cursor-grabbing ${
+        isDragging ? 'opacity-50 border-[#81E4F2]' : ''
+      }`}
+      style={{ touchAction: 'none' }}
+    >
+      <div className="flex items-center space-x-3">
+        {/* Drag handle indicator */}
+        <div className="text-gray-500 group-hover:text-[#81E4F2]/60 transition-colors">
+          <GripVertical className="w-4 h-4" />
+        </div>
+
+        {/* Thumbnail with play overlay */}
+        <div className="relative flex-shrink-0">
+          {node.imageUrl ? (
+            <img
+              src={node.thumb_64_url || node.imageUrl}
+              alt={node.title}
+              className="w-10 h-10 rounded-md object-cover"
+            />
+          ) : (
+            <div
+              className="w-10 h-10 rounded-md flex items-center justify-center"
+              style={{ backgroundColor: `${groupColor}20` }}
+            >
+              <span className="text-lg">{groupEmoji}</span>
+            </div>
+          )}
+
+          {/* Play/Pause overlay button */}
+          {canPreview && (
+            <button
+              onClick={handlePlayClick}
+              className={`absolute inset-0 flex items-center justify-center rounded-md transition-all ${
+                isPlaying
+                  ? 'bg-black/60'
+                  : 'bg-black/40 opacity-0 group-hover:opacity-100'
+              }`}
+            >
+              {isPlaying ? (
+                <Pause className="w-5 h-5 text-white" fill="white" />
+              ) : (
+                <Play className="w-5 h-5 text-white" fill="white" />
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Track info */}
+        <div className="flex-1 min-w-0">
+          <h4 className="font-medium text-white text-sm truncate group-hover:text-[#81E4F2] transition-colors">
+            {node.title}
+          </h4>
+          <p className="text-xs text-gray-400 truncate">
+            {node.artist}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Null Island Modal - Shows content at (0,0) with a fun explainer header
  * The legendary home of location-less content! 🏝️
@@ -60,12 +190,77 @@ export function NullIslandModal({
   nodes,
   onSelectNode
 }: NullIslandModalProps) {
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   if (!isOpen) return null;
 
   const handleSelectNode = (node: TrackNode) => {
+    // Stop any playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+      setPlayingId(null);
+    }
     onSelectNode(node);
     onClose();
   };
+
+  const handlePlay = (id: string) => {
+    // Stop current audio if playing
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    // Find the node
+    const node = nodes.find(n => n.id === id);
+    if (!node) return;
+
+    // Get playable URL (radio uses proxy)
+    let url = node.stream_url || node.audioUrl || (node.content_type === 'video_clip' ? node.video_url : undefined);
+
+    if (!url) return;
+
+    // Proxy radio streams
+    const isRadio = ['radio_station', 'station_pack', 'grabbed_radio'].includes(node.content_type || '');
+    if (isRadio && node.stream_url) {
+      url = `/api/radio-proxy?url=${encodeURIComponent(node.stream_url)}`;
+    }
+
+    // Create and play audio
+    const audio = new Audio(url);
+    audio.volume = 0.7;
+    audio.play().catch(err => {
+      console.error('Playback failed:', err);
+      setPlayingId(null);
+    });
+
+    audio.onended = () => {
+      setPlayingId(null);
+      audioRef.current = null;
+    };
+
+    audioRef.current = audio;
+    setPlayingId(id);
+  };
+
+  const handlePause = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPlayingId(null);
+  };
+
+  // Cleanup on close
+  React.useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   // Group nodes by content type
   const groupedNodes = useMemo(() => {
@@ -95,26 +290,6 @@ export function NullIslandModal({
   const totalTracks = useMemo(() => {
     return Object.values(groupedNodes).reduce((sum, group) => sum + group.length, 0);
   }, [groupedNodes]);
-
-  // Get content type color (matches CONTENT_TYPE_GROUPS)
-  const getContentTypeColor = (contentType: string) => {
-    switch (contentType) {
-      case 'loop':
-      case 'loop_pack':
-        return '#A084F9'; // Purple
-      case 'full_song':
-      case 'ep':
-        return '#A8E66B'; // Champagne Gold
-      case 'radio_station':
-      case 'station_pack':
-      case 'grabbed_radio':
-        return '#FFC044'; // Tomato Coral
-      case 'video_clip':
-        return '#5BB5F9'; // Sky Blue
-      default:
-        return '#81E4F2'; // Cyan (Accent)
-    }
-  };
 
   return (
     <div
@@ -154,6 +329,13 @@ export function NullIslandModal({
               </span>
             )}
           </p>
+
+          {/* Drag hint */}
+          {totalTracks > 0 && (
+            <p className="text-[10px] text-gray-500 text-center mt-2">
+              Drag tracks to Crate, Mixer, Playlist, or Cart
+            </p>
+          )}
         </div>
 
         {/* Content List - Grouped by Type */}
@@ -194,37 +376,16 @@ export function NullIslandModal({
                     {/* Group Items */}
                     <div className="space-y-1.5 ml-1">
                       {groupTracks.map((node) => (
-                        <button
+                        <DraggableTrackItem
                           key={node.id}
-                          onClick={() => handleSelectNode(node)}
-                          className="w-full text-left p-2.5 rounded-lg border border-gray-700/50 hover:border-[#81E4F2]/60 hover:bg-[#81E4F2]/5 transition-all duration-200 group"
-                        >
-                          <div className="flex items-center space-x-3">
-                            {node.imageUrl && (
-                              <img
-                                src={node.imageUrl}
-                                alt={node.title}
-                                className="w-10 h-10 rounded-md object-cover flex-shrink-0"
-                              />
-                            )}
-                            {!node.imageUrl && (
-                              <div
-                                className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center"
-                                style={{ backgroundColor: `${group.color}20` }}
-                              >
-                                <span className="text-lg">{group.emoji}</span>
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-white text-sm truncate group-hover:text-[#81E4F2] transition-colors">
-                                {node.title}
-                              </h4>
-                              <p className="text-xs text-gray-400 truncate">
-                                {node.artist}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
+                          node={node}
+                          groupEmoji={group.emoji}
+                          groupColor={group.color}
+                          onSelect={() => handleSelectNode(node)}
+                          playingId={playingId}
+                          onPlay={handlePlay}
+                          onPause={handlePause}
+                        />
                       ))}
                     </div>
                   </div>
