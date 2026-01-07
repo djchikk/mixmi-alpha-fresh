@@ -319,7 +319,8 @@ body.intro-mode .radio-widget,
 body.intro-mode .playlist-widget,
 body.intro-mode .help-widget,
 body.intro-mode .cart-widget,
-body.intro-mode .globe-search {
+body.intro-mode .globe-search,
+body.intro-mode .demo-button {
   opacity: 0 !important;
   pointer-events: none !important;
   transition: opacity 0.8s ease-out;
@@ -334,7 +335,8 @@ body.intro-complete .radio-widget,
 body.intro-complete .playlist-widget,
 body.intro-complete .help-widget,
 body.intro-complete .cart-widget,
-body.intro-complete .globe-search {
+body.intro-complete .globe-search,
+body.intro-complete .demo-button {
   opacity: 1;
   pointer-events: auto;
   transition: opacity 0.8s ease-out;
