@@ -60,7 +60,7 @@ export default function CartWidget() {
       <div
         id="onborda-cart"
         ref={cartDropRef}
-        className="fixed top-20 right-4 z-[40] w-[200px] h-[200px]"
+        className="fixed top-20 right-4 z-[40] w-[200px] h-[200px] cart-widget"
         style={{ pointerEvents: 'auto' }}
       >
         {/* Cart icon pinned to top-right corner of drop zone */}

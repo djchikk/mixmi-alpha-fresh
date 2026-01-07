@@ -303,7 +303,7 @@ export default function HelpWidget() {
   }
 
   return (
-    <div className="fixed top-1/2 right-6 -translate-y-1/2 z-[999]">
+    <div className="fixed top-1/2 right-6 -translate-y-1/2 z-[999] help-widget">
       {/* Help Icon Button - Always Visible */}
       {!isExpanded && (
         <button

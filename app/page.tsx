@@ -101,7 +101,6 @@ export default function HomePage() {
   const [originalNodes, setOriginalNodes] = useState<TrackNode[]>(fallbackGlobeNodes); // Keep original for toggling
   const [isLoadingTracks, setIsLoadingTracks] = useState(true);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
-  const [showTagline, setShowTagline] = useState(false);
   // Simple location-based clustering enabled (much more performant than old aggregation)
   const isClusteringEnabled = true;
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
@@ -770,15 +769,7 @@ export default function HomePage() {
     loadTracks();
   }, []);
 
-  // Tagline animation - fade out after 8 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowTagline(false);
-    }, 8000); // Slower, more relaxed timing
-
-    return () => clearTimeout(timer);
-  }, []);
-  
+    
 
   const handleNodeClick = (node: TrackNode) => {
     // Clear any pending dwell timer
@@ -1029,7 +1020,7 @@ export default function HomePage() {
 
         {/* Content type legend - vertically centered left margin */}
         <div
-          className="fixed left-4 z-20 flex flex-col gap-2 pointer-events-none"
+          className="fixed left-4 z-20 flex flex-col gap-2 pointer-events-none content-legend"
           style={{
             top: '50%',
             transform: 'translateY(-50%)',
@@ -1071,73 +1062,7 @@ export default function HomePage() {
             onNullIslandClick={() => setShowNullIslandPopup(true)}
           />
 
-          {/* Tagline overlay - sequential fade animation */}
-          {showTagline && (
-            <div
-              className="absolute left-0 right-0 flex items-center justify-center pointer-events-none gap-4"
-              style={{
-                top: '45%',
-                transform: 'translateY(-50%)'
-              }}
-            >
-              <span
-                className="font-bold tracking-wide"
-                style={{
-                  fontSize: 'clamp(2rem, 5vw, 4rem)',
-                  textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-                  fontFamily: 'var(--font-geist-sans)',
-                  color: '#F6F6F6',
-                  animation: 'wordFadeSequence1 8s ease-in-out forwards'
-                }}
-              >
-                discover
-              </span>
-              <span
-                className="font-bold"
-                style={{
-                  fontSize: 'clamp(2rem, 5vw, 4rem)',
-                  color: '#F6F6F6',
-                  opacity: 0.6
-                }}
-              >
-                •
-              </span>
-              <span
-                className="font-bold tracking-wide"
-                style={{
-                  fontSize: 'clamp(2rem, 5vw, 4rem)',
-                  textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-                  fontFamily: 'var(--font-geist-sans)',
-                  color: '#F6F6F6',
-                  animation: 'wordFadeSequence2 8s ease-in-out forwards'
-                }}
-              >
-                mix
-              </span>
-              <span
-                className="font-bold"
-                style={{
-                  fontSize: 'clamp(2rem, 5vw, 4rem)',
-                  color: '#F6F6F6',
-                  opacity: 0.6
-                }}
-              >
-                •
-              </span>
-              <span
-                className="font-bold tracking-wide"
-                style={{
-                  fontSize: 'clamp(2rem, 5vw, 4rem)',
-                  textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-                  fontFamily: 'var(--font-geist-sans)',
-                  color: '#F6F6F6',
-                  animation: 'wordFadeSequence3 8s ease-in-out forwards'
-                }}
-              >
-                create
-              </span>
-            </div>
-          )}
+          {/* Landing tagline handled by LandingTagline component */}
 
           {/* Loading overlay removed - sequential tagline animation serves this purpose */}
         </div>
@@ -2003,7 +1928,7 @@ export default function HomePage() {
 
       {/* Universal Mixer - Always centered */}
       {isMixerVisible && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30 mixer-widget">
           <UniversalMixer />
         </div>
       )}

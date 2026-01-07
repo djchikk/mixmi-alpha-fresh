@@ -300,6 +300,46 @@ img[data-nimg="fill"] {
   }
 }
 
+/* Blinking cursor for typing animation */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Intro mode - hide UI elements during landing animation */
+body.intro-mode header,
+body.intro-mode .content-legend,
+body.intro-mode .mixer-widget,
+body.intro-mode .crate-widget,
+body.intro-mode .radio-widget,
+body.intro-mode .playlist-widget,
+body.intro-mode .help-widget,
+body.intro-mode .cart-widget,
+body.intro-mode .globe-search {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.8s ease-out;
+}
+
+/* Intro complete - fade in UI elements */
+body.intro-complete header,
+body.intro-complete .content-legend,
+body.intro-complete .mixer-widget,
+body.intro-complete .crate-widget,
+body.intro-complete .radio-widget,
+body.intro-complete .playlist-widget,
+body.intro-complete .help-widget,
+body.intro-complete .cart-widget,
+body.intro-complete .globe-search {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.8s ease-out;
+}
+
 /* Radio ticker scroll animation */
 @keyframes scroll {
   0% {

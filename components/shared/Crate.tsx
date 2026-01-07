@@ -532,8 +532,8 @@ export default function Crate({ className = '' }: CrateProps) {
   // Collapsed state - minimal bar
   if (isCollapsed) {
     return (
-      <div 
-        className={`collection-bar-collapsed ${className}`}
+      <div
+        className={`collection-bar-collapsed crate-widget ${className}`}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -622,9 +622,9 @@ export default function Crate({ className = '' }: CrateProps) {
 
   // Expanded state
   return (
-    <div 
+    <div
       ref={drop}
-      className={`collection-bar ${className} ${isOver ? 'drag-over' : ''}`}
+      className={`collection-bar crate-widget ${className} ${isOver ? 'drag-over' : ''}`}
       style={{
         position: 'fixed',
         bottom: 0,

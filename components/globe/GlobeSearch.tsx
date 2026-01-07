@@ -281,10 +281,10 @@ export default function GlobeSearch({
   };
 
   return (
-    <div 
+    <div
       ref={searchRef}
       className={`
-        fixed top-20 left-4 z-30 
+        fixed top-20 left-4 z-30 globe-search
         transition-all duration-300 ease-out
         ${isExpanded ? 'w-[300px]' : 'w-10 h-10'}
       `}

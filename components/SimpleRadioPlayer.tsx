@@ -446,7 +446,7 @@ export default function SimpleRadioPlayer() {
       {/* Large invisible drop zone for radio - extends left and up from radio position */}
       <div
         ref={radioDropRef}
-        className="fixed bottom-[100px] right-4 z-[998] w-[200px] h-[200px] pointer-events-auto"
+        className="fixed bottom-[100px] right-4 z-[998] w-[200px] h-[200px] pointer-events-auto radio-widget"
         style={{ pointerEvents: 'auto' }}
       >
         {/* Radio icon/widget pinned to bottom-right corner of drop zone */}

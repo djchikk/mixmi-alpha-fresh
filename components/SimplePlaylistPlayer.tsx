@@ -372,7 +372,7 @@ export default function SimplePlaylistPlayer() {
       {/* Large invisible drop zone for playlist - extends right and up from playlist position */}
       <div
         ref={playlistDropRef}
-        className="fixed bottom-[100px] left-4 z-[998] w-[200px] h-[200px] pointer-events-auto"
+        className="fixed bottom-[100px] left-4 z-[998] w-[200px] h-[200px] pointer-events-auto playlist-widget"
         style={{ pointerEvents: 'auto' }}
       >
         {/* Playlist icon/widget pinned to bottom-left corner of drop zone */}

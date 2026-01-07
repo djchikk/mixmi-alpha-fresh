@@ -2,53 +2,78 @@
 
 import { useState, useEffect } from 'react';
 
-const STORAGE_KEY = 'mixmi-tagline-shown';
+const SUBLINE_TEXT = "where every remix remembers where it came from";
+const TYPING_SPEED = 60; // ms per character
 
 export default function LandingTagline() {
   const [isVisible, setIsVisible] = useState(false);
-  const [line1Visible, setLine1Visible] = useState(false);
-  const [line2Visible, setLine2Visible] = useState(false);
-  const [line3Visible, setLine3Visible] = useState(false);
+  const [headlineVisible, setHeadlineVisible] = useState(false);
+  const [typedText, setTypedText] = useState('');
+  const [showCursor, setShowCursor] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Always show on page load (for testing/iteration)
-    // TODO: Before launch, switch to localStorage to show only on first visit ever
     if (typeof window !== 'undefined') {
+      // Add intro mode class to hide UI elements
+      document.body.classList.add('intro-mode');
+
       // Start the animation sequence
       setIsVisible(true);
 
-      // Line 1 fades in immediately
-      setTimeout(() => setLine1Visible(true), 100);
+      // Headline fades in after 500ms
+      setTimeout(() => setHeadlineVisible(true), 500);
 
-      // Line 2 fades in after 0.8s delay (after line 1 starts)
-      setTimeout(() => setLine2Visible(true), 900);
+      // Start typing after headline is visible (1.5s after headline appears)
+      setTimeout(() => {
+        setShowCursor(true);
+        let charIndex = 0;
 
-      // Line 3 fades in after another 0.8s delay
-      setTimeout(() => setLine3Visible(true), 1700);
+        const typeInterval = setInterval(() => {
+          if (charIndex < SUBLINE_TEXT.length) {
+            setTypedText(SUBLINE_TEXT.slice(0, charIndex + 1));
+            charIndex++;
+          } else {
+            clearInterval(typeInterval);
 
-      // Hold for 3.5s after all lines visible, then fade out
-      setTimeout(() => setIsFadingOut(true), 5800);
+            // After typing completes, wait 2s then fade out
+            setTimeout(() => {
+              setIsFadingOut(true);
+              setShowCursor(false);
 
-      // Remove from DOM after fade out completes (2.4s)
-      setTimeout(() => setIsVisible(false), 8200);
+              // Remove intro mode to show UI elements
+              setTimeout(() => {
+                document.body.classList.remove('intro-mode');
+                document.body.classList.add('intro-complete');
+              }, 800); // Start showing UI as tagline fades
+
+              // Hide tagline completely
+              setTimeout(() => setIsVisible(false), 2000);
+            }, 2000);
+          }
+        }, TYPING_SPEED);
+
+        return () => clearInterval(typeInterval);
+      }, 2000);
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (typeof window !== 'undefined') {
+        document.body.classList.remove('intro-mode');
+      }
+    };
   }, []);
 
   if (!isVisible) return null;
-
-  // Get opacity for a line based on state
-  const getOpacity = (lineVisible: boolean) => {
-    if (isFadingOut) return 0;
-    return lineVisible ? 1 : 0;
-  };
 
   return (
     <div
       className="fixed z-[100] pointer-events-none"
       style={{
         left: '5%',
-        top: '22%',
+        top: '28%',
+        opacity: isFadingOut ? 0 : 1,
+        transition: 'opacity 1.5s ease-out',
       }}
     >
       {/* Line 1: vibes from everywhere */}
@@ -56,49 +81,46 @@ export default function LandingTagline() {
         style={{
           fontFamily: 'var(--font-sora), sans-serif',
           fontWeight: 700,
-          fontSize: '64px',
+          fontSize: 'clamp(40px, 5vw, 64px)',
           color: '#F5F4F0',
           letterSpacing: '-0.02em',
           lineHeight: 1.1,
-          opacity: getOpacity(line1Visible),
-          transition: 'opacity 2.4s ease-out',
+          opacity: headlineVisible ? 1 : 0,
+          transform: headlineVisible ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'opacity 1.2s ease-out, transform 1.2s ease-out',
         }}
       >
         vibes from everywhere
       </div>
 
-      {/* Line 2: create, mix, share */}
+      {/* Line 2: Typing subline */}
       <div
         style={{
-          fontFamily: 'var(--font-sora), sans-serif',
+          fontFamily: 'var(--font-geist-mono), monospace',
           fontWeight: 400,
-          fontSize: '36px',
-          color: '#FAFAFA',
-          letterSpacing: '-0.02em',
-          lineHeight: 1.1,
-          marginTop: '16px',
-          opacity: getOpacity(line2Visible),
-          transition: 'opacity 2.4s ease-out',
-        }}
-      >
-        create, mix, share
-      </div>
-
-      {/* Line 3: Get paid. Fair. */}
-      <div
-        style={{
-          fontFamily: 'var(--font-unbounded), sans-serif',
-          fontWeight: 500,
-          fontSize: '48px',
-          color: '#F5F4F0',
-          letterSpacing: '0',
-          lineHeight: 1.1,
+          fontSize: 'clamp(16px, 2vw, 22px)',
+          color: 'rgba(255, 255, 255, 0.7)',
+          letterSpacing: '0.02em',
+          lineHeight: 1.4,
           marginTop: '20px',
-          opacity: getOpacity(line3Visible),
-          transition: 'opacity 2.4s ease-out',
+          minHeight: '1.4em', // Prevent layout shift
         }}
       >
-        Get paid. Fair.
+        {typedText}
+        {showCursor && (
+          <span
+            className="typing-cursor"
+            style={{
+              display: 'inline-block',
+              width: '2px',
+              height: '1em',
+              backgroundColor: '#81E4F2',
+              marginLeft: '2px',
+              verticalAlign: 'text-bottom',
+              animation: 'blink 0.8s step-end infinite',
+            }}
+          />
+        )}
       </div>
     </div>
   );
