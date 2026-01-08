@@ -42,7 +42,7 @@ export default function IPTrackModal({
   contentCategory,
 }: IPTrackModalProps) {
   // Global wallet auth state from header
-  const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress, suiAddress, authType } = useAuth();
+  const { isAuthenticated: globalWalletConnected, walletAddress: globalWalletAddress, suiAddress, authType, activePersona } = useAuth();
 
   // 🎯 SUI-ONLY UPLOADS: Require zkLogin (SUI address) for uploading
   const [alphaWallet, setAlphaWallet] = useState<string>(''); // Legacy - kept for compatibility
@@ -52,8 +52,9 @@ export default function IPTrackModal({
   const { showToast } = useToast();
 
   // For uploads, we REQUIRE a SUI address (zkLogin users only)
+  // When a persona is active, use their wallet or sui_address for content ownership
   const canUpload = !!suiAddress;
-  const walletToUse = suiAddress || ''; // Only use SUI address for uploads
+  const walletToUse = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || ''; // Prefer active persona's wallet/sui
 
   // Check if user is logged in with Stacks but needs to migrate
   const needsSuiMigration = globalWalletConnected && !suiAddress;
@@ -423,17 +424,31 @@ export default function IPTrackModal({
     // Remove dependencies that might cause re-renders
   }, [isOpen, track?.id]); // Only depend on track.id, not the whole track object
   
-  // Smart default behavior for wallet checkbox - prefer SUI address, fallback to resolving STX/alpha
+  // Smart default behavior for wallet checkbox - prefer active persona's wallet, then SUI address
   useEffect(() => {
     if (useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
-      // For zkLogin users, use SUI address directly
+      // Priority 1: Use active persona's wallet_address if available
+      if (activePersona?.wallet_address) {
+        console.log(`👤 Using active persona wallet for ownership: ${activePersona.wallet_address} (${activePersona.username})`);
+        handleInputChange('wallet_address', activePersona.wallet_address);
+        return;
+      }
+
+      // Priority 2: Use active persona's sui_address if wallet_address is null
+      if (activePersona?.sui_address) {
+        console.log(`👤 Using active persona SUI address for ownership: ${activePersona.sui_address} (${activePersona.username})`);
+        handleInputChange('wallet_address', activePersona.sui_address);
+        return;
+      }
+
+      // Priority 3: For zkLogin users without active persona, use root SUI address
       if (suiAddress) {
-        console.log(`🔷 Using SUI address for ownership: ${suiAddress}`);
+        console.log(`🔷 Using root SUI address for ownership: ${suiAddress}`);
         handleInputChange('wallet_address', suiAddress);
         return;
       }
 
-      // For legacy STX/alpha users, resolve the wallet address
+      // Priority 3: For legacy STX/alpha users, resolve the wallet address
       const authWallet = globalWalletAddress || alphaWallet;
       if (authWallet) {
         const convertAndFill = async () => {
@@ -462,7 +477,7 @@ export default function IPTrackModal({
         convertAndFill();
       }
     }
-  }, [suiAddress, globalWalletAddress, alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
+  }, [activePersona, suiAddress, globalWalletAddress, alphaWallet, useVerificationWallet, formData.wallet_address, handleInputChange]);
   
   // Show dropdown when suggestions are available
   useEffect(() => {
