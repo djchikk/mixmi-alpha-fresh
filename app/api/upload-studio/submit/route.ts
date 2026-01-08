@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
 import { parseLocationsAndGetCoordinates } from '@/lib/locationLookup';
 import { PRICING } from '@/config/pricing';
+import { generateKeypair, getAddressFromKeypair } from '@/lib/sui/keypair-manager';
 
 // Helper to check if two locations are duplicates (by coordinates, name, or containment)
 // Common country abbreviations and their full names
@@ -132,6 +133,120 @@ interface TrackSubmission {
   ep_files?: string[];
 }
 
+/**
+ * Sanitize a name into a valid username
+ */
+function sanitizeUsername(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 30);
+}
+
+/**
+ * Create managed personas for collaborators with create_persona flag
+ * Modifies the splits array in place, adding wallet addresses for created personas
+ */
+async function createManagedPersonasForSplits(
+  splits: Array<{ wallet?: string; name?: string; percentage: number; create_persona?: boolean; username?: string }> | undefined,
+  uploaderWallet: string,
+  supabaseClient: SupabaseClient
+): Promise<void> {
+  if (!splits || splits.length === 0) return;
+
+  // Find the uploader's account ID
+  const { data: uploaderPersona } = await supabaseClient
+    .from('personas')
+    .select('account_id')
+    .or(`wallet_address.eq.${uploaderWallet},sui_address.eq.${uploaderWallet}`)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+
+  if (!uploaderPersona?.account_id) {
+    console.log('⚠️ Could not find uploader account - skipping persona creation');
+    return;
+  }
+
+  const accountId = uploaderPersona.account_id;
+
+  for (const split of splits) {
+    // Skip if doesn't need persona creation
+    if (!split.create_persona || !split.name) continue;
+    // Skip if already has a wallet
+    if (split.wallet) continue;
+
+    console.log(`🆕 Creating managed persona for collaborator: "${split.name}"`);
+
+    // Generate unique username
+    let baseUsername = sanitizeUsername(split.name);
+    if (baseUsername.length < 3) {
+      baseUsername = `collab-${baseUsername || 'user'}`;
+    }
+
+    let username = baseUsername;
+    let suffix = 1;
+    let usernameAvailable = false;
+
+    while (!usernameAvailable && suffix < 100) {
+      const { data: existing } = await supabaseClient
+        .from('personas')
+        .select('username')
+        .eq('username', username)
+        .limit(1)
+        .maybeSingle();
+
+      if (!existing) {
+        usernameAvailable = true;
+      } else {
+        username = `${baseUsername}-${suffix}`;
+        suffix++;
+      }
+    }
+
+    if (!usernameAvailable) {
+      console.error(`❌ Could not generate unique username for "${split.name}"`);
+      continue;
+    }
+
+    // Generate SUI wallet
+    const keypair = generateKeypair();
+    const suiAddress = getAddressFromKeypair(keypair);
+
+    // Create the persona
+    const { data: newPersona, error: createError } = await supabaseClient
+      .from('personas')
+      .insert({
+        account_id: accountId,
+        username: username,
+        display_name: split.name,
+        wallet_address: suiAddress,
+        sui_address: suiAddress,
+        is_default: false,
+        is_active: true,
+        balance_usdc: 0
+      })
+      .select('id, username, sui_address')
+      .single();
+
+    if (createError) {
+      console.error(`❌ Failed to create persona for "${split.name}":`, createError);
+      continue;
+    }
+
+    console.log(`✅ Created managed persona @${username} with wallet ${suiAddress}`);
+
+    // Update the split with the new wallet address
+    split.wallet = newPersona.sui_address;
+    split.username = newPersona.username;
+    delete split.create_persona; // Clean up the flag
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -244,6 +359,10 @@ export async function POST(request: NextRequest) {
         conversationId
       );
     }
+
+    // Create managed personas for collaborators with create_persona flag
+    await createManagedPersonasForSplits(trackData.composition_splits, effectiveWallet, supabase);
+    await createManagedPersonasForSplits(trackData.production_splits, effectiveWallet, supabase);
 
     // Process splits - handle pending collaborators
     const compositionSplits = processSplits(trackData.composition_splits, effectiveWallet);

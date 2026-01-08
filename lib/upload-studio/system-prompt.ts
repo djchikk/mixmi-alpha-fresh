@@ -240,6 +240,42 @@ If someone's stuck on exact percentages, nudge them:
 
 The vibe: This isn't dividing a pie where someone loses - everyone wins together.
 
+### COLLABORATOR PERSONA MATCHING
+
+When you mention collaborator names, the system will search for matching personas on mixmi. If results are provided in the context (shown as [Persona search results for "Name": ...]), handle them as follows:
+
+**If found in user's OWN managed personas:**
+"Is [Name] the same as @[username]? That's one of your managed accounts - I can link their wallet directly!"
+If confirmed, update the split with the wallet address and username.
+
+**If found in OTHER users' accounts:**
+"Is [Name] the same as @[username] on mixmi? If so, their wallet will be linked automatically!"
+If confirmed, update the split with the wallet address and username.
+
+**If NO matches found OR user says "they're not on mixmi":**
+"[Name] doesn't have a mixmi account yet. Want me to create a managed persona for them under your account? You'll hold their earnings until you pay them or hand over the account."
+If user confirms, include create_persona: true in the split data.
+
+**Data format after persona confirmation:**
+\`\`\`extracted
+{
+  "composition_splits": [
+    {"name": "CHP", "wallet": "0x123...", "username": "chp-alpha", "percentage": 50}
+  ]
+}
+\`\`\`
+
+**Data format when creating new managed persona:**
+\`\`\`extracted
+{
+  "composition_splits": [
+    {"name": "Kwame", "percentage": 25, "create_persona": true}
+  ]
+}
+\`\`\`
+
+**IMPORTANT:** Don't prompt for persona matching until the user has actually mentioned collaborator names. If they say "just me" or similar, skip this entirely.
+
 **After splits, ask about credits:**
 "Anyone else to shout out? Credits are for anyone who contributed - even without a percentage."
 (Vocals, guitar, mixing, featured artist, sample sources, etc.)
@@ -598,6 +634,13 @@ Say "saving" not "registering" (blockchain registration comes later).
 
 Remember: Help creators protect and share their work. Make them feel good about the process!`;
 
+interface PersonaMatch {
+  username: string;
+  displayName: string;
+  walletAddress: string | null;
+  suiAddress: string | null;
+}
+
 /**
  * Format message history for the API
  */
@@ -607,7 +650,8 @@ export function formatMessagesForAPI(
   currentMessage: string,
   currentData: any,
   attachmentInfo?: string,
-  carryOverSettings?: { artist?: string; location?: string; downloadSettings?: any }
+  carryOverSettings?: { artist?: string; location?: string; downloadSettings?: any },
+  personaMatches?: Record<string, { ownPersonas: PersonaMatch[]; otherPersonas: PersonaMatch[] }>
 ) {
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -634,6 +678,27 @@ export function formatMessagesForAPI(
     userContent += `\n\n[Carry-over from previous upload - user confirmed same settings: ${JSON.stringify(carryOverSettings)}]`;
   }
 
+  // Add persona search results for collaborator matching
+  if (personaMatches && Object.keys(personaMatches).length > 0) {
+    let personaContext = '\n\n[Persona search results for collaborators:';
+    for (const [name, matches] of Object.entries(personaMatches)) {
+      personaContext += `\n  "${name}":`;
+      if (matches.ownPersonas.length > 0) {
+        const own = matches.ownPersonas.map(p => `@${p.username} (${p.displayName}, wallet: ${p.suiAddress || p.walletAddress})`).join(', ');
+        personaContext += `\n    - YOUR managed personas: ${own}`;
+      }
+      if (matches.otherPersonas.length > 0) {
+        const other = matches.otherPersonas.map(p => `@${p.username} (${p.displayName})`).join(', ');
+        personaContext += `\n    - Other mixmi users: ${other}`;
+      }
+      if (matches.ownPersonas.length === 0 && matches.otherPersonas.length === 0) {
+        personaContext += `\n    - No matches found`;
+      }
+    }
+    personaContext += '\n]';
+    userContent += personaContext;
+  }
+
   messages.push({ role: 'user', content: userContent });
 
   return messages;
@@ -650,7 +715,7 @@ export function parseExtractedData(response: string): {
   // Look for the ```extracted block
   const extractedMatch = response.match(/```extracted\n?([\s\S]*?)```/);
 
-  let extractedData = {};
+  let extractedData: any = {};
   let readyToSubmit = false;
   let cleanMessage = response;
 

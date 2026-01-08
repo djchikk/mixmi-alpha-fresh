@@ -56,9 +56,21 @@ interface ExtractedTrackData {
   // Contact access
   contact_email?: string;
   contact_fee_stx?: number;
-  // Splits (ownership)
-  composition_splits?: Array<{ wallet?: string; name?: string; percentage: number }>;
-  production_splits?: Array<{ wallet?: string; name?: string; percentage: number }>;
+  // Splits (ownership) - with persona matching support
+  composition_splits?: Array<{
+    wallet?: string;
+    name?: string;
+    username?: string;       // Persona username if matched
+    percentage: number;
+    create_persona?: boolean; // Auto-create managed persona at submit
+  }>;
+  production_splits?: Array<{
+    wallet?: string;
+    name?: string;
+    username?: string;
+    percentage: number;
+    create_persona?: boolean;
+  }>;
   // Credits (attribution - no ownership, just recognition)
   credits?: Array<{ name: string; role: string }>;
   // Files
@@ -100,6 +112,8 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [extractedData, setExtractedData] = useState<ExtractedTrackData>({});
   const [conversationId, setConversationId] = useState<string>('');
+  // Persona matches from previous chat response (for collaborator matching)
+  const [personaMatchesFromPrevious, setPersonaMatchesFromPrevious] = useState<any>(undefined);
   const [isReadyToSubmit, setIsReadyToSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -908,7 +922,8 @@ Feel free to try again with a different file, or let me know if you need help!`,
           messageHistory: messages.map(m => ({
             role: m.role,
             content: m.content
-          }))
+          })),
+          personaMatchesFromPrevious // Include persona matches from previous response
         })
       });
 
@@ -937,6 +952,14 @@ Feel free to try again with a different file, or let me know if you need help!`,
       // Update extracted data if provided
       if (result.extractedData) {
         setExtractedData(prev => ({ ...prev, ...result.extractedData }));
+      }
+
+      // Store persona matches for next message (collaborator matching flow)
+      if (result.personaMatches) {
+        setPersonaMatchesFromPrevious(result.personaMatches);
+      } else {
+        // Clear if no matches in this response
+        setPersonaMatchesFromPrevious(undefined);
       }
 
       // Check if ready to submit
