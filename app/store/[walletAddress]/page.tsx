@@ -96,19 +96,45 @@ export default function CreatorStorePage() {
     const resolveWalletAddress = async () => {
       if (!walletOrUsername) return;
 
-      // Check if it's a wallet address (starts with SP or ST)
-      if (walletOrUsername.startsWith('SP') || walletOrUsername.startsWith('ST')) {
+      // Check if it's a wallet address (Stacks: SP/ST, SUI: 0x)
+      const isStacksAddress = walletOrUsername.startsWith('SP') || walletOrUsername.startsWith('ST');
+      const isSuiAddress = walletOrUsername.startsWith('0x') && walletOrUsername.length >= 40;
+
+      if (isStacksAddress || isSuiAddress) {
         setActualWalletAddress(walletOrUsername);
         // Set a default creator name from wallet (will be overridden by profile or first track)
         setCreatorName(walletOrUsername.slice(0, 8) + '...');
 
         // Fetch profile data for wallet addresses
+        // For SUI addresses, also check personas table since they may not have user_profiles
         try {
+          // First try user_profiles
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
             .select('display_name, username, avatar_url, avatar_thumb_96_url, store_label, account_id')
             .eq('wallet_address', walletOrUsername)
-            .single();
+            .maybeSingle();
+
+          // If no user_profile found and it's a SUI address, check personas table
+          if (!profileData && isSuiAddress) {
+            const { data: personaData } = await supabase
+              .from('personas')
+              .select('account_id, username, display_name, avatar_url, wallet_address, sui_address')
+              .or(`wallet_address.eq.${walletOrUsername},sui_address.eq.${walletOrUsername}`)
+              .maybeSingle();
+
+            if (personaData) {
+              setLinkedAccountId(personaData.account_id);
+              if (personaData.display_name) {
+                setCreatorName(personaData.display_name);
+              } else if (personaData.username) {
+                setCreatorName(personaData.username);
+              }
+              if (personaData.avatar_url) {
+                setProfileImage(personaData.avatar_url);
+              }
+            }
+          }
 
           if (!profileError && profileData) {
             // Store account_id for ownership check
