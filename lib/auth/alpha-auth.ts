@@ -42,11 +42,17 @@ export class AlphaAuth {
     });
   }
   
-  // Validate wallet address format
-  private static isValidWalletAddress(address: string): boolean {
+  // Validate Stacks wallet address format
+  private static isValidStacksAddress(address: string): boolean {
     // Stacks mainnet addresses start with SP and range from 39-42 characters total
     const stacksMainnetPattern = /^SP[0-9A-Z]{37,40}$/;
     return stacksMainnetPattern.test(address.toUpperCase());
+  }
+
+  // Validate SUI address format (0x followed by 64 hex characters)
+  private static isValidSuiAddress(address: string): boolean {
+    const suiPattern = /^0x[a-fA-F0-9]{64}$/;
+    return suiPattern.test(address);
   }
 
   // Validate alpha invite code format (e.g., mixmi-ABC123)
@@ -58,31 +64,88 @@ export class AlphaAuth {
   }
 
   // Check if wallet or invite code is in approved alpha users list
-  static async checkAlphaUser(input: string): Promise<AuthResult & { effectiveWallet?: string; authType?: 'wallet' | 'invite' }> {
+  static async checkAlphaUser(input: string): Promise<AuthResult & { effectiveWallet?: string; authType?: 'wallet' | 'invite' | 'zklogin' }> {
     try {
       console.log('🔍 Checking alpha access for:', input);
 
-      // Determine if input is a wallet address or invite code
-      const isWallet = this.isValidWalletAddress(input);
+      const supabase = this.getServiceClient();
+
+      // Determine if input is a wallet address, SUI address, or invite code
+      const isStacksWallet = this.isValidStacksAddress(input);
+      const isSuiAddress = this.isValidSuiAddress(input);
       const isInviteCode = this.isValidInviteCode(input);
 
-      if (!isWallet && !isInviteCode) {
+      // Handle SUI addresses - look up via zklogin_users or personas table
+      if (isSuiAddress) {
+        console.log('📝 Input type: SUI Address');
+
+        // First check zklogin_users table for the invite code
+        const { data: zkUser } = await supabase
+          .from('zklogin_users')
+          .select('invite_code, email')
+          .eq('sui_address', input)
+          .maybeSingle();
+
+        if (zkUser?.invite_code) {
+          // Verify the invite code is approved in alpha_users
+          const { data: alphaUser } = await supabase
+            .from('alpha_users')
+            .select('wallet_address, artist_name, email, notes, approved, created_at, invite_code')
+            .eq('invite_code', zkUser.invite_code.toUpperCase())
+            .eq('approved', true)
+            .maybeSingle();
+
+          if (alphaUser) {
+            console.log('✅ zkLogin user verified via invite code:', alphaUser.artist_name);
+            return {
+              success: true,
+              user: alphaUser,
+              authType: 'zklogin',
+              effectiveWallet: input // Use SUI address as effective wallet
+            };
+          }
+        }
+
+        // Also check personas table - the SUI address might be a persona's sui_address
+        const { data: persona } = await supabase
+          .from('personas')
+          .select('username, wallet_address, sui_address, account_id')
+          .or(`sui_address.eq.${input},wallet_address.eq.${input}`)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (persona) {
+          console.log('✅ Persona found:', persona.username);
+          return {
+            success: true,
+            user: { wallet_address: input, artist_name: persona.username, approved: true, created_at: '' },
+            authType: 'zklogin',
+            effectiveWallet: input
+          };
+        }
+
         return {
           success: false,
-          error: 'Invalid format. Please provide a valid Stacks wallet address (SP...) or alpha invite code.'
+          error: 'This SUI address is not associated with an approved alpha account.'
         };
       }
 
-      console.log(`📝 Input type: ${isWallet ? 'Wallet Address' : 'Invite Code'}`);
+      if (!isStacksWallet && !isInviteCode) {
+        return {
+          success: false,
+          error: 'Invalid format. Please provide a valid wallet address or alpha invite code.'
+        };
+      }
+
+      console.log(`📝 Input type: ${isStacksWallet ? 'Stacks Wallet Address' : 'Invite Code'}`);
 
       // Query alpha_users table directly
-      const supabase = this.getServiceClient();
       let query = supabase
         .from('alpha_users')
         .select('wallet_address, artist_name, email, notes, approved, created_at, invite_code')
         .eq('approved', true);
 
-      if (isWallet) {
+      if (isStacksWallet) {
         // Direct wallet address lookup
         query = query.eq('wallet_address', input);
       } else {
@@ -115,17 +178,17 @@ export class AlphaAuth {
         console.log('❌ Not approved:', input);
         return {
           success: false,
-          error: isWallet
+          error: isStacksWallet
             ? 'This wallet is not approved for alpha access. Please use an invite code or contact support.'
             : 'Invalid invite code. Please check your code or contact support.'
         };
       }
 
-      console.log('✅ Alpha user verified:', user.artist_name, `(${isWallet ? 'wallet' : 'invite code'})`);
+      console.log('✅ Alpha user verified:', user.artist_name, `(${isStacksWallet ? 'wallet' : 'invite code'})`);
       return {
         success: true,
         user: user,
-        authType: isWallet ? 'wallet' : 'invite',
+        authType: isStacksWallet ? 'wallet' : 'invite',
         effectiveWallet: user.wallet_address
       };
 

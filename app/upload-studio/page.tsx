@@ -7,24 +7,30 @@ import ConversationalUploader from '@/components/upload-studio/ConversationalUpl
 import Header from '@/components/layout/Header';
 
 export default function UploadStudioPage() {
-  const { isAuthenticated, walletAddress } = useAuth();
+  const { isAuthenticated, walletAddress, suiAddress, activePersona } = useAuth();
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isApproved, setIsApproved] = useState(false);
 
+  // Determine the effective wallet address (zkLogin users may only have suiAddress)
+  // Priority: active persona's wallet > active persona's sui > root suiAddress > legacy walletAddress
+  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const hasValidAuth = isAuthenticated && !!effectiveWallet;
+
   // Check if user is authenticated and approved for alpha
   useEffect(() => {
     const checkApproval = async () => {
-      if (!isAuthenticated || !walletAddress) {
+      if (!hasValidAuth) {
         setIsCheckingAuth(false);
         return;
       }
 
       try {
+        // For zkLogin users, pass suiAddress for alpha check
         const response = await fetch('/api/auth/alpha-check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress })
+          body: JSON.stringify({ walletAddress: effectiveWallet })
         });
 
         const result = await response.json();
@@ -38,7 +44,7 @@ export default function UploadStudioPage() {
     };
 
     checkApproval();
-  }, [isAuthenticated, walletAddress]);
+  }, [hasValidAuth, effectiveWallet]);
 
   // Loading state
   if (isCheckingAuth) {
@@ -56,7 +62,7 @@ export default function UploadStudioPage() {
   }
 
   // Not authenticated
-  if (!isAuthenticated || !walletAddress) {
+  if (!hasValidAuth) {
     return (
       <div className="min-h-screen bg-[#0a0e1a]">
         <Header />
@@ -104,7 +110,7 @@ export default function UploadStudioPage() {
   return (
     <div className="min-h-screen bg-[#0a0e1a]">
       <Header />
-      <ConversationalUploader walletAddress={walletAddress} />
+      <ConversationalUploader walletAddress={effectiveWallet!} />
     </div>
   );
 }
