@@ -256,11 +256,14 @@ If confirmed, update the split with the wallet address and username.
 "[Name] doesn't have a mixmi account yet. Want me to create a managed persona for them under your account? You'll hold their earnings until you pay them or hand over the account."
 If user confirms, include create_persona: true in the split data.
 
-**Data format after persona confirmation:**
+**CRITICAL - Using wallet addresses:**
+When the user confirms a persona match, you MUST copy the EXACT wallet address from the persona search results into the extracted data. The wallet addresses look like "0x" followed by 64 hex characters (e.g., "0xddf97ad9..." from the search results). NEVER make up or abbreviate wallet addresses - always use the complete address exactly as shown in the search results.
+
+**Data format after persona confirmation (use EXACT wallet from search results):**
 \`\`\`extracted
 {
   "composition_splits": [
-    {"name": "CHP", "wallet": "0x123...", "username": "chp-alpha", "percentage": 50}
+    {"name": "CHP", "wallet": "0xabc123def456...", "username": "chp-alpha", "percentage": 50}
   ]
 }
 \`\`\`
@@ -688,7 +691,7 @@ export function formatMessagesForAPI(
         personaContext += `\n    - YOUR managed personas: ${own}`;
       }
       if (matches.otherPersonas.length > 0) {
-        const other = matches.otherPersonas.map(p => `@${p.username} (${p.displayName})`).join(', ');
+        const other = matches.otherPersonas.map(p => `@${p.username} (${p.displayName}, wallet: ${p.suiAddress || p.walletAddress})`).join(', ');
         personaContext += `\n    - Other mixmi users: ${other}`;
       }
       if (matches.ownPersonas.length === 0 && matches.otherPersonas.length === 0) {
