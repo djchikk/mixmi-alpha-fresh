@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Call Claude API
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022', // Using stable model - update to claude-4 when available
+      model: 'claude-sonnet-4-5-20250929', // Claude Sonnet 4.5
       max_tokens: 1024,
       system: UPLOAD_STUDIO_SYSTEM_PROMPT,
       messages: apiMessages
