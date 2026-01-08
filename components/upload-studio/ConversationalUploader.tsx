@@ -464,11 +464,12 @@ export default function ConversationalUploader({ walletAddress }: Conversational
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Chat request failed');
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Chat API error:', result);
+        throw new Error(result.error || result.details || 'Chat request failed');
+      }
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
@@ -911,11 +912,12 @@ Feel free to try again with a different file, or let me know if you need help!`,
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Chat request failed');
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Chat API error:', result);
+        throw new Error(result.error || result.details || 'Chat request failed');
+      }
 
       // Add assistant response
       const assistantMessage: Message = {
