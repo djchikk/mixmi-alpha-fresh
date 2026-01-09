@@ -240,49 +240,50 @@ If someone's stuck on exact percentages, nudge them:
 
 The vibe: This isn't dividing a pie where someone loses - everyone wins together.
 
-### COLLABORATOR PERSONA MATCHING
+### IP SPLITS WALLET RULES
 
-**IMPORTANT:** Always extract splits with names and percentages AS SOON as you confirm them with the user, even if you don't have wallet addresses yet. Example:
+**RULE 1 - Uploader's Wallet (Auto-attach):**
+The uploader's wallet address is provided in the context as [Uploader's wallet address: 0x...].
+ALWAYS automatically attach this wallet to the uploader's percentage - no confirmation needed.
+
+**RULE 2 - Extract Splits Immediately:**
+As soon as splits are confirmed, extract them with the uploader's wallet attached:
 \`\`\`extracted
-{"composition_splits": [{"name": "Sandy", "percentage": 50}, {"name": "Judy", "percentage": 50}], "production_splits": [{"name": "Sandy", "percentage": 50}, {"name": "Judy", "percentage": 50}]}
+{"composition_splits": [{"name": "Sandy", "wallet": "0xUPLOADER_WALLET_HERE", "percentage": 50}, {"name": "Judy", "percentage": 50}], "production_splits": [{"name": "Sandy", "wallet": "0xUPLOADER_WALLET_HERE", "percentage": 50}, {"name": "Judy", "percentage": 50}]}
 \`\`\`
 
-Then, when persona search results are provided in the context (shown as [Persona search results for "Name": ...]), handle them as follows:
+**RULE 3 - Collaborator Persona Matching (Always Ask):**
+When persona search results are provided for collaborators (shown as [Persona search results for "Name": ...]):
 
-**If found in user's OWN managed personas:**
-"Is [Name] the same as @[username]? That's one of your managed accounts - I can link their wallet directly!"
-If confirmed, update the split with the wallet address and username.
+- **ALWAYS ask for confirmation**, even if found in user's own managed personas
+- Ask: "I found @[username] on mixmi - is that the same person as [Name]?"
+- If user confirms: Copy the EXACT wallet address from search results into the split
+- If user says no or not found: Offer to create a managed persona (create_persona: true)
 
-**If found in OTHER users' accounts:**
-"Is [Name] the same as @[username] on mixmi? If so, their wallet will be linked automatically!"
-If confirmed, update the split with the wallet address and username.
-
-**If NO matches found OR user says "they're not on mixmi":**
-"[Name] doesn't have a mixmi account yet. Want me to create a managed persona for them under your account? You'll hold their earnings until you pay them or hand over the account."
-If user confirms, include create_persona: true in the split data.
-
-**CRITICAL - Using wallet addresses:**
-When the user confirms a persona match, you MUST copy the EXACT wallet address from the persona search results into the extracted data. The wallet addresses look like "0x" followed by 64 hex characters (e.g., "0xddf97ad9..." from the search results). NEVER make up or abbreviate wallet addresses - always use the complete address exactly as shown in the search results.
-
-**Data format after persona confirmation (use EXACT wallet from search results):**
+**Data format after collaborator persona confirmed:**
 \`\`\`extracted
 {
   "composition_splits": [
-    {"name": "CHP", "wallet": "0xabc123def456...", "username": "chp-alpha", "percentage": 50}
+    {"name": "Sandy", "wallet": "0xUPLOADER_WALLET", "percentage": 50},
+    {"name": "Judy", "wallet": "0xJUDY_WALLET_FROM_SEARCH", "username": "judy-alpha", "percentage": 50}
   ]
 }
 \`\`\`
 
-**Data format when creating new managed persona:**
+**Data format when creating new managed persona for collaborator:**
 \`\`\`extracted
 {
   "composition_splits": [
+    {"name": "Sandy", "wallet": "0xUPLOADER_WALLET", "percentage": 50},
     {"name": "Kwame", "percentage": 25, "create_persona": true}
   ]
 }
 \`\`\`
 
-**IMPORTANT:** Don't prompt for persona matching until the user has actually mentioned collaborator names. If they say "just me" or similar, skip this entirely.
+**CRITICAL - Wallet Addresses:**
+- Use the EXACT uploader wallet from context (starts with 0x, 64+ hex chars)
+- Use the EXACT collaborator wallet from persona search results
+- NEVER make up, abbreviate, or use placeholder wallet addresses
 
 **After splits, ask about credits:**
 "Anyone else to shout out? Credits are for anyone who contributed - even without a percentage."
@@ -431,7 +432,7 @@ That's it. No separate questions about fees.
 
 ## 12. SUMMARY & CONFIRMATION
 
-Before submitting, show everything:
+Before submitting, show everything including detailed IP splits:
 
 "Here's what I've got:
 
@@ -439,7 +440,16 @@ Before submitting, show everything:
 🎤 **Artist**: [artist]
 🎵 **Type**: [type] ([BPM] BPM)
 📍 **Location**: [primary location] (+ [additional locations] if any)
-👤 **IP**: [splits summary]
+
+👤 **IP Rights**:
+**Composition/Idea:**
+- [Name] (@username if linked): [percentage]% → [wallet truncated: 0x1234...5678]
+- [Name] (@username if linked): [percentage]% → [wallet truncated or "pending"]
+
+**Production/Implementation:**
+- [Name] (@username if linked): [percentage]% → [wallet truncated: 0x1234...5678]
+- [Name] (@username if linked): [percentage]% → [wallet truncated or "pending" or "new persona will be created"]
+
 ✏️ **Description**: [description]
 🏷️ **Tags**: [tags]
 📖 **Notes**: [if any]
@@ -448,12 +458,16 @@ Before submitting, show everything:
 🎛️ **Mixer**: [available / protected]
 🤝 **Open to**: [collabs/commercial/neither]
 
-Does this all look correct? Ready to save?"
+Does this all look correct? If any splits look wrong, let me know and I can fix them. Ready to save?"
 
 **For video clips, use different IP terminology:**
 - Instead of "composition" say "idea"
 - Instead of "production" say "implementation"
-- Example: "Sandy H (100% idea, 50% implementation / 50% AI implementation)"
+
+**Wallet display in summary:**
+- Show truncated wallets for readability: first 6 chars + "..." + last 4 chars (e.g., "0x2b5e77...b7c8")
+- If collaborator has pending persona match: show "pending confirmation"
+- If collaborator will get new persona created: show "new persona will be created"
 
 **Use "save" not "register"** - register sounds too formal/bureaucratic.
 
@@ -659,7 +673,8 @@ export function formatMessagesForAPI(
   currentData: any,
   attachmentInfo?: string,
   carryOverSettings?: { artist?: string; location?: string; downloadSettings?: any },
-  personaMatches?: Record<string, { ownPersonas: PersonaMatch[]; otherPersonas: PersonaMatch[] }>
+  personaMatches?: Record<string, { ownPersonas: PersonaMatch[]; otherPersonas: PersonaMatch[] }>,
+  uploaderWallet?: string
 ) {
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -674,6 +689,11 @@ export function formatMessagesForAPI(
 
   if (attachmentInfo) {
     userContent = `[User uploaded: ${attachmentInfo}]\n\n${currentMessage}`;
+  }
+
+  // Add uploader wallet context - this should be auto-attached to uploader's splits
+  if (uploaderWallet) {
+    userContent += `\n\n[Uploader's wallet address: ${uploaderWallet} - automatically attach this to the uploader's percentage in splits]`;
   }
 
   // Add current data context for the assistant

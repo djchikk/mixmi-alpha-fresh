@@ -149,7 +149,8 @@ export async function POST(request: NextRequest) {
       currentData || {},
       attachmentInfo,
       undefined, // carryOverSettings
-      personaMatchesFromPrevious // Persona search results to inject into context
+      personaMatchesFromPrevious, // Persona search results to inject into context
+      walletAddress // Uploader's wallet address for auto-attaching to splits
     );
 
     // Filter out empty messages and prepare for API
