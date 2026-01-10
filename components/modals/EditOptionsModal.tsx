@@ -28,12 +28,15 @@ export default function EditOptionsModal({
 }: EditOptionsModalProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { walletAddress } = useAuth();
+  const { walletAddress, suiAddress, activePersona } = useAuth();
+
+  // Use the effective wallet (persona wallet for zkLogin users)
+  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
 
   if (!isOpen) return null;
 
   const handleHideToggle = async () => {
-    if (!walletAddress) {
+    if (!effectiveWallet) {
       alert('Please connect your wallet');
       return;
     }
@@ -47,7 +50,7 @@ export default function EditOptionsModal({
         },
         body: JSON.stringify({
           trackId: track.id,
-          walletAddress: walletAddress,
+          walletAddress: effectiveWallet,
         }),
       });
 
@@ -69,7 +72,7 @@ export default function EditOptionsModal({
   };
 
   const handleDeleteForever = async () => {
-    if (!walletAddress) {
+    if (!effectiveWallet) {
       alert('Please connect your wallet');
       return;
     }
@@ -83,7 +86,7 @@ export default function EditOptionsModal({
         },
         body: JSON.stringify({
           trackId: track.id,
-          walletAddress: walletAddress,
+          walletAddress: effectiveWallet,
         }),
       });
 
