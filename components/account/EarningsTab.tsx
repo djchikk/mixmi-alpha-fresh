@@ -81,6 +81,10 @@ export default function EarningsTab({
   const [linkSearchResults, setLinkSearchResults] = useState<Array<{ username: string; displayName: string; walletAddress: string; suiAddress: string | null }>>([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
 
+  // Invite generation state
+  const [generatingInvite, setGeneratingInvite] = useState<string | null>(null); // TBD persona ID being processed
+  const [inviteCopied, setInviteCopied] = useState<string | null>(null); // TBD persona ID with copied link
+
   // Withdrawal state
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawModal, setWithdrawModal] = useState<{
@@ -314,6 +318,44 @@ export default function EarningsTab({
       console.error('Error searching users:', error);
     }
     setSearchingUsers(false);
+  };
+
+  // Generate invite link for TBD persona
+  const generateInviteLink = async (tbdPersona: TbdPersona) => {
+    if (!accountId) return;
+
+    setGeneratingInvite(tbdPersona.id);
+    try {
+      const response = await fetch('/api/personas/generate-claim-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tbdPersonaId: tbdPersona.id,
+          accountId,
+          recipientName: tbdPersona.displayName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Failed to generate invite:', data.error);
+        alert('Failed to generate invite link: ' + data.error);
+        return;
+      }
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(data.claimUrl);
+      setInviteCopied(tbdPersona.id);
+
+      // Reset copied state after 3 seconds
+      setTimeout(() => setInviteCopied(null), 3000);
+    } catch (error) {
+      console.error('Error generating invite:', error);
+      alert('Failed to generate invite link');
+    } finally {
+      setGeneratingInvite(null);
+    }
   };
 
   // Handle withdrawal
@@ -835,7 +877,7 @@ export default function EarningsTab({
             </div>
           )}
         </div>
-      ) : (
+      ) : view === 'treasury' ? (
         <div className="space-y-2">
           {treasuryHoldings.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
@@ -954,16 +996,30 @@ export default function EarningsTab({
                     {/* Action Buttons */}
                     <div className="flex gap-2 mt-4">
                       <button
-                        onClick={() => {
-                          // TODO: Generate invite link
-                          const inviteUrl = `${window.location.origin}/invite?ref=${tbd.username}`;
-                          navigator.clipboard.writeText(inviteUrl);
-                          alert('Invite link copied! (Feature coming soon)');
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-lg transition-colors text-sm"
+                        onClick={() => generateInviteLink(tbd)}
+                        disabled={generatingInvite === tbd.id}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                          inviteCopied === tbd.id
+                            ? 'bg-green-600 text-white'
+                            : 'bg-slate-800 hover:bg-slate-700 text-gray-300'
+                        } disabled:opacity-50`}
                       >
-                        <UserPlus className="w-4 h-4" />
-                        Invite
+                        {generatingInvite === tbd.id ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : inviteCopied === tbd.id ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Link Copied!
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4" />
+                            Invite
+                          </>
+                        )}
                       </button>
                       <button
                         onClick={() => {
