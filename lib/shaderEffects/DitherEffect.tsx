@@ -24,6 +24,8 @@ const fragmentShader = `
   uniform float uThreshold;
   uniform vec3 uColor1;
   uniform vec3 uColor2;
+  uniform float uAudioLevel;
+  uniform bool uAudioReactive;
 
   // 8x8 Bayer matrix for ordered dithering
   const int bayerMatrix[64] = int[64](
@@ -50,9 +52,14 @@ const fragmentShader = `
       return;
     }
 
+    // Audio reactive boost: when enabled, audio level modulates the effect
+    float audioBoost = uAudioReactive ? uAudioLevel : 0.0;
+
     // Calculate pixelation from granularity (higher = larger blocks = coarser)
     // Range: 1 pixel (fine) to 8 pixels (blocky)
-    float pixelation = mix(1.0, 8.0, uGranularity);
+    // Audio reactive: pixelation increases with audio level for pulsing blocky effect
+    float basePixelation = mix(1.0, 8.0, uGranularity);
+    float pixelation = basePixelation * (1.0 + audioBoost * 1.0);
 
     // Apply pixelation
     vec2 pixelSize = vec2(pixelation) / resolution;
@@ -61,8 +68,9 @@ const fragmentShader = `
     vec4 color = texture2D(inputBuffer, pixelatedUV);
 
     // Calculate contrast from intensity (higher intensity = more contrast = harsher dither)
-    float contrast = mix(1.0, 1.8, uIntensity);
-    float brightness = mix(0.9, 1.1, uIntensity);
+    // Audio reactive: contrast increases with audio level
+    float contrast = mix(1.0, 1.8, uIntensity) * (1.0 + audioBoost * 0.4);
+    float brightness = mix(0.9, 1.1, uIntensity) * (1.0 + audioBoost * 0.2);
 
     // Apply brightness and contrast
     color.rgb = ((color.rgb - 0.5) * contrast + 0.5) * brightness;
@@ -76,7 +84,8 @@ const fragmentShader = `
     float bayerThreshold = getBayerValue(pixelCoord);
 
     // Apply dithering threshold (intensity affects threshold spread)
-    float thresholdMod = mix(0.8, 1.2, uIntensity);
+    // Audio reactive: threshold spread increases with audio for more dramatic dither
+    float thresholdMod = mix(0.8, 1.2, uIntensity) * (1.0 + audioBoost * 0.3);
     float ditherThreshold = bayerThreshold * thresholdMod;
     float ditheredValue = step(ditherThreshold, luma);
 
@@ -107,6 +116,8 @@ interface DitherEffectOptions {
   wetDry?: number
   color1?: string
   color2?: string
+  audioLevel?: number
+  audioReactive?: boolean
 }
 
 class DitherEffectImpl extends Effect {
@@ -117,6 +128,8 @@ class DitherEffectImpl extends Effect {
       wetDry = 1.0,
       color1 = "#000000",
       color2 = "#ffffff",
+      audioLevel = 0,
+      audioReactive = false,
     } = options
 
     const [r1, g1, b1] = hexToRgb(color1)
@@ -133,6 +146,8 @@ class DitherEffectImpl extends Effect {
         ["uThreshold", new Uniform(1.0)],
         ["uColor1", new Uniform([r1, g1, b1])],
         ["uColor2", new Uniform([r2, g2, b2])],
+        ["uAudioLevel", new Uniform(audioLevel)],
+        ["uAudioReactive", new Uniform(audioReactive)],
       ]),
     })
   }
@@ -144,6 +159,8 @@ interface DitherEffectProps {
   wetDry?: number
   color1?: string
   color2?: string
+  audioLevel?: number
+  audioReactive?: boolean
 }
 
 export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((props, ref) => {
@@ -153,10 +170,12 @@ export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((pro
     wetDry = 1.0,
     color1 = "#000000",
     color2 = "#ffffff",
+    audioLevel = 0,
+    audioReactive = false,
   } = props
 
   const effect = useMemo(
-    () => new DitherEffectImpl({ intensity, granularity, wetDry, color1, color2 }),
+    () => new DitherEffectImpl({ intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive }),
     []
   )
 
@@ -170,7 +189,9 @@ export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((pro
     const [r2, g2, b2] = hexToRgb(color2)
     effect.uniforms.get("uColor1")!.value = [r1, g1, b1]
     effect.uniforms.get("uColor2")!.value = [r2, g2, b2]
-  }, [effect, intensity, granularity, wetDry, color1, color2])
+    effect.uniforms.get("uAudioLevel")!.value = audioLevel
+    effect.uniforms.get("uAudioReactive")!.value = audioReactive
+  }, [effect, intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive])
 
   return <primitive ref={ref} object={effect} dispose={null} />
 })

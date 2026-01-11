@@ -23,6 +23,8 @@ const fragmentShader = `
   uniform vec2 uResolution;
   uniform bool uColorMode;
   uniform float uScanlineIntensity;
+  uniform float uAudioLevel;
+  uniform bool uAudioReactive;
 
   // Helper functions
   float random(vec2 st) {
@@ -77,17 +79,23 @@ const fragmentShader = `
       return;
     }
 
+    // Audio reactive boost: when enabled, audio level modulates the effect
+    float audioBoost = uAudioReactive ? uAudioLevel : 0.0;
+
     // Calculate cell size from granularity (higher granularity = larger cells = coarser)
     // Range: 2 pixels (fine) to 16 pixels (coarse)
-    float cellSize = mix(2.0, 16.0, uGranularity);
+    // Audio reactive: cell size increases with audio level for pulsing effect
+    float baseCellSize = mix(2.0, 16.0, uGranularity);
+    float cellSize = baseCellSize * (1.0 + audioBoost * 0.5);
 
     // Calculate cell grid
     vec2 cellCount = uResolution / cellSize;
     vec2 cellCoord = floor(uv * cellCount);
 
-    // Add jitter based on intensity
-    if (uIntensity > 0.5) {
-      float jitterAmount = (uIntensity - 0.5) * 2.0;
+    // Add jitter based on intensity (boosted by audio)
+    float jitterThreshold = 0.5 - audioBoost * 0.3;
+    if (uIntensity > jitterThreshold) {
+      float jitterAmount = (uIntensity - jitterThreshold) * 2.0 * (1.0 + audioBoost);
       float jitterX = (random(vec2(cellCoord.y, floor(uTime * 10.0))) - 0.5) * jitterAmount * 0.5;
       cellCoord.x += jitterX;
     }
@@ -99,8 +107,9 @@ const fragmentShader = `
     // Calculate brightness
     float brightness = dot(cellColor.rgb, vec3(0.299, 0.587, 0.114));
 
-    // Boost contrast based on intensity
-    brightness = (brightness - 0.5) * (1.0 + uIntensity) + 0.5;
+    // Boost contrast based on intensity (enhanced by audio)
+    float contrastBoost = 1.0 + uIntensity + audioBoost * 0.5;
+    brightness = (brightness - 0.5) * contrastBoost + 0.5;
     brightness = clamp(brightness, 0.0, 1.0);
 
     // Get local UV within cell
@@ -146,6 +155,8 @@ interface AsciiEffectOptions {
   wetDry?: number
   colorMode?: boolean
   resolution?: Vector2
+  audioLevel?: number
+  audioReactive?: boolean
 }
 
 class AsciiEffectImpl extends Effect {
@@ -155,7 +166,9 @@ class AsciiEffectImpl extends Effect {
       granularity = 0.5,
       wetDry = 1.0,
       colorMode = true,
-      resolution = new Vector2(408, 408)
+      resolution = new Vector2(408, 408),
+      audioLevel = 0,
+      audioReactive = false,
     } = options
 
     super("AsciiEffect", fragmentShader, {
@@ -168,6 +181,8 @@ class AsciiEffectImpl extends Effect {
         ["uResolution", new Uniform(resolution)],
         ["uColorMode", new Uniform(colorMode)],
         ["uScanlineIntensity", new Uniform(0)],
+        ["uAudioLevel", new Uniform(audioLevel)],
+        ["uAudioReactive", new Uniform(audioReactive)],
       ]),
     })
   }
@@ -188,6 +203,8 @@ interface AsciiEffectProps {
   wetDry?: number
   colorMode?: boolean
   resolution?: Vector2
+  audioLevel?: number
+  audioReactive?: boolean
 }
 
 export const AsciiEffect = forwardRef<AsciiEffectImpl, AsciiEffectProps>((props, ref) => {
@@ -196,11 +213,13 @@ export const AsciiEffect = forwardRef<AsciiEffectImpl, AsciiEffectProps>((props,
     granularity = 0.5,
     wetDry = 1.0,
     colorMode = true,
-    resolution = new Vector2(408, 408)
+    resolution = new Vector2(408, 408),
+    audioLevel = 0,
+    audioReactive = false,
   } = props
 
   const effect = useMemo(
-    () => new AsciiEffectImpl({ intensity, granularity, wetDry, colorMode, resolution }),
+    () => new AsciiEffectImpl({ intensity, granularity, wetDry, colorMode, resolution, audioLevel, audioReactive }),
     []
   )
 
@@ -211,7 +230,9 @@ export const AsciiEffect = forwardRef<AsciiEffectImpl, AsciiEffectProps>((props,
     effect.uniforms.get("uWetDry")!.value = wetDry
     effect.uniforms.get("uColorMode")!.value = colorMode
     effect.uniforms.get("uResolution")!.value = resolution
-  }, [effect, intensity, granularity, wetDry, colorMode, resolution])
+    effect.uniforms.get("uAudioLevel")!.value = audioLevel
+    effect.uniforms.get("uAudioReactive")!.value = audioReactive
+  }, [effect, intensity, granularity, wetDry, colorMode, resolution, audioLevel, audioReactive])
 
   return <primitive ref={ref} object={effect} dispose={null} />
 })

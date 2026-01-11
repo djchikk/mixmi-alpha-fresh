@@ -172,6 +172,7 @@ export default function HomePage() {
   const [webglWetDry, setWebglWetDry] = useState(1.0);
   const [webglAudioReactive, setWebglAudioReactive] = useState(false);
   const [webglDitherColor, setWebglDitherColor] = useState('#ffffff');
+  const [webglAudioLevel, setWebglAudioLevel] = useState(0);
   const [isWebglFXPanelOpen, setIsWebglFXPanelOpen] = useState(false);
 
   // Pinned cards (draggable sticky notes)
@@ -455,6 +456,67 @@ export default function HomePage() {
   const toggleWebglFXPanel = () => {
     setIsWebglFXPanelOpen(prev => !prev);
   };
+
+  // Audio reactive: Sample audio levels from analyzer nodes when enabled
+  useEffect(() => {
+    if (!webglAudioReactive || !webglActiveEffect) {
+      setWebglAudioLevel(0);
+      return;
+    }
+
+    let animationId: number;
+    const dataArray = new Uint8Array(128);
+
+    const sampleAudio = () => {
+      const windowMixerState = (window as any).mixerState;
+      if (!windowMixerState) {
+        animationId = requestAnimationFrame(sampleAudio);
+        return;
+      }
+
+      // Get analyzer from whichever deck is playing (or combine both)
+      const analyzerA = windowMixerState.deckAAnalyzer;
+      const analyzerB = windowMixerState.deckBAnalyzer;
+      const isAPlaying = windowMixerState.deckAPlaying;
+      const isBPlaying = windowMixerState.deckBPlaying;
+
+      let level = 0;
+
+      // Sample from playing deck(s)
+      if (analyzerA && isAPlaying) {
+        try {
+          analyzerA.getByteFrequencyData(dataArray);
+          const sum = dataArray.reduce((acc, val) => acc + val, 0);
+          level = Math.max(level, sum / (dataArray.length * 255));
+        } catch (e) {
+          // Analyzer may not be ready
+        }
+      }
+
+      if (analyzerB && isBPlaying) {
+        try {
+          analyzerB.getByteFrequencyData(dataArray);
+          const sum = dataArray.reduce((acc, val) => acc + val, 0);
+          level = Math.max(level, sum / (dataArray.length * 255));
+        } catch (e) {
+          // Analyzer may not be ready
+        }
+      }
+
+      // Apply smoothing and boost for visual effect
+      const boostedLevel = Math.min(1, level * 2.5);
+      setWebglAudioLevel(boostedLevel);
+
+      animationId = requestAnimationFrame(sampleAudio);
+    };
+
+    sampleAudio();
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      setWebglAudioLevel(0);
+    };
+  }, [webglAudioReactive, webglActiveEffect]);
 
   // Handle video display dragging
   const handleVideoMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -2065,7 +2127,8 @@ export default function HomePage() {
                 granularity: webglGranularity,
                 wetDry: webglWetDry,
                 audioReactive: webglAudioReactive,
-                ditherColor: webglDitherColor
+                ditherColor: webglDitherColor,
+                audioLevel: webglAudioLevel
               }}
             />
           </div>

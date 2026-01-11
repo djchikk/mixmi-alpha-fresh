@@ -23,6 +23,8 @@ const fragmentShader = `
   uniform float uWetDry;
   uniform float uSpeed;
   uniform bool uAnimated;
+  uniform float uAudioLevel;
+  uniform bool uAudioReactive;
 
   // Pseudo-random function
   float rand(vec2 co) {
@@ -66,13 +68,16 @@ const fragmentShader = `
     float intensity = uIntensity;
     float granularity = uGranularity;
 
-    // Derived parameters from intensity and granularity
-    float grain = intensity * 2.0;
-    float glitchBlocks = intensity * 0.15;
-    float rgbShift = intensity * 2.5;
+    // Audio reactive boost: when enabled, audio level amplifies the effect
+    float audioBoost = uAudioReactive ? (1.0 + uAudioLevel * 2.0) : 1.0;
+
+    // Derived parameters from intensity and granularity (boosted by audio)
+    float grain = intensity * 2.0 * audioBoost;
+    float glitchBlocks = intensity * 0.15 * audioBoost;
+    float rgbShift = intensity * 2.5 * audioBoost;
     float scanlines = granularity * 4.0;
-    float noiseAmount = intensity * 0.3;
-    float distortion = intensity * 0.5;
+    float noiseAmount = intensity * 0.3 * audioBoost;
+    float distortion = intensity * 0.5 * audioBoost;
 
     // === VHS-STYLE VERTICAL BAR DISTORTION ===
     if (distortion > 0.0) {
@@ -151,6 +156,8 @@ interface VhsGlitchEffectOptions {
   wetDry?: number
   speed?: number
   animated?: boolean
+  audioLevel?: number
+  audioReactive?: boolean
 }
 
 class VhsGlitchEffectImpl extends Effect {
@@ -161,6 +168,8 @@ class VhsGlitchEffectImpl extends Effect {
       wetDry = 1.0,
       speed = 1.5,
       animated = true,
+      audioLevel = 0,
+      audioReactive = false,
     } = options
 
     super("VhsGlitchEffect", fragmentShader, {
@@ -171,6 +180,8 @@ class VhsGlitchEffectImpl extends Effect {
         ["uWetDry", new Uniform(wetDry)],
         ["uSpeed", new Uniform(speed)],
         ["uAnimated", new Uniform(animated)],
+        ["uAudioLevel", new Uniform(audioLevel)],
+        ["uAudioReactive", new Uniform(audioReactive)],
       ]),
     })
   }
@@ -191,6 +202,8 @@ interface VhsGlitchEffectProps {
   wetDry?: number
   speed?: number
   animated?: boolean
+  audioLevel?: number
+  audioReactive?: boolean
 }
 
 export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectProps>((props, ref) => {
@@ -200,11 +213,13 @@ export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectPr
     wetDry = 1.0,
     speed = 1.5,
     animated = true,
+    audioLevel = 0,
+    audioReactive = false,
   } = props
 
   const effect = useMemo(
     () => new VhsGlitchEffectImpl({
-      intensity, granularity, wetDry, speed, animated
+      intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive
     }),
     []
   )
@@ -216,7 +231,9 @@ export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectPr
     effect.uniforms.get("uWetDry")!.value = wetDry
     effect.uniforms.get("uSpeed")!.value = speed
     effect.uniforms.get("uAnimated")!.value = animated
-  }, [effect, intensity, granularity, wetDry, speed, animated])
+    effect.uniforms.get("uAudioLevel")!.value = audioLevel
+    effect.uniforms.get("uAudioReactive")!.value = audioReactive
+  }, [effect, intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive])
 
   return <primitive ref={ref} object={effect} dispose={null} />
 })

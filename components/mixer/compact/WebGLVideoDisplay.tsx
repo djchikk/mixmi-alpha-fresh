@@ -20,6 +20,7 @@ interface WebGLVideoEffects {
   wetDry: number         // 0-1
   audioReactive: boolean
   ditherColor?: string   // Hex color for dither effect (default white)
+  audioLevel?: number    // 0-1, from audio analyzer
 }
 
 interface WebGLVideoDisplayProps {
@@ -302,6 +303,8 @@ export default function WebGLVideoDisplay({
               granularity={effects.granularity}
               wetDry={effects.wetDry}
               animated={true}
+              audioLevel={effects.audioLevel || 0}
+              audioReactive={effects.audioReactive}
             />
           )}
           {effects.activeEffect === 'ascii' && (
@@ -311,6 +314,8 @@ export default function WebGLVideoDisplay({
               wetDry={effects.wetDry}
               colorMode={true}
               resolution={new Vector2(408, 408)}
+              audioLevel={effects.audioLevel || 0}
+              audioReactive={effects.audioReactive}
             />
           )}
           {effects.activeEffect === 'dither' && (
@@ -320,6 +325,8 @@ export default function WebGLVideoDisplay({
               wetDry={effects.wetDry}
               color1="#000000"
               color2={effects.ditherColor || "#ffffff"}
+              audioLevel={effects.audioLevel || 0}
+              audioReactive={effects.audioReactive}
             />
           )}
         </EffectComposer>

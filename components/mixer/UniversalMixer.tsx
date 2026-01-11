@@ -1693,7 +1693,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       deckAMuted: mixerState.deckA.videoMuted,
       deckBPlaying: mixerState.deckB.playing,
       deckBMuted: mixerState.deckB.videoMuted,
-      crossfaderPosition: mixerState.crossfaderPosition
+      crossfaderPosition: mixerState.crossfaderPosition,
+      // Audio analyzer nodes for WebGL audio reactive effects
+      deckAAnalyzer: mixerState.deckA.audioState?.analyzerNode || null,
+      deckBAnalyzer: mixerState.deckB.audioState?.analyzerNode || null,
     };
 
     return () => {
@@ -1706,7 +1709,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     mixerState.deckB.playing,
     mixerState.deckA.videoMuted,
     mixerState.deckB.videoMuted,
-    mixerState.crossfaderPosition
+    mixerState.crossfaderPosition,
+    mixerState.deckA.audioState?.analyzerNode,
+    mixerState.deckB.audioState?.analyzerNode,
   ]);
 
   // Check if any deck has radio content - radio can't sync
