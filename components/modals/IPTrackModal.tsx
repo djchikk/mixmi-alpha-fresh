@@ -2170,6 +2170,7 @@ export default function IPTrackModal({
                   }}
                   className="input-field"
                   placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
+                  uploaderWallet={num > 1 ? walletToUse : undefined}
                 />
               </div>
               <div className="w-24">
@@ -2269,6 +2270,7 @@ export default function IPTrackModal({
                   }}
                   className="input-field"
                   placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
+                  uploaderWallet={num > 1 ? walletToUse : undefined}
                 />
               </div>
               <div className="w-24">

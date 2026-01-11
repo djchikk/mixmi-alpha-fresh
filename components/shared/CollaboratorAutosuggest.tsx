@@ -18,6 +18,10 @@ interface CollaboratorAutosuggestProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  /** Uploader's wallet - required to create managed personas */
+  uploaderWallet?: string;
+  /** Callback when a new persona is created */
+  onPersonaCreated?: (persona: { username: string; displayName: string; walletAddress: string }) => void;
 }
 
 export default function CollaboratorAutosuggest({
@@ -26,12 +30,16 @@ export default function CollaboratorAutosuggest({
   onUserSelect,
   placeholder = "Name or wallet address",
   className = "",
-  disabled = false
+  disabled = false,
+  uploaderWallet,
+  onPersonaCreated
 }: CollaboratorAutosuggestProps) {
   const [suggestions, setSuggestions] = useState<User[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
+  const [isCreatingPersona, setIsCreatingPersona] = useState(false);
+  const [searchedQuery, setSearchedQuery] = useState(''); // Track what we searched for
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -41,6 +49,7 @@ export default function CollaboratorAutosuggest({
     if (query.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setSearchedQuery('');
       return;
     }
 
@@ -48,16 +57,19 @@ export default function CollaboratorAutosuggest({
     if (query.startsWith('0x') || query.startsWith('SP') || query.startsWith('ST')) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setSearchedQuery('');
       return;
     }
 
     setIsSearching(true);
+    setSearchedQuery(query);
     try {
       const response = await fetch(`/api/profile/search-users?q=${encodeURIComponent(query)}`);
       if (response.ok) {
         const { users } = await response.json();
         setSuggestions(users);
-        setShowSuggestions(users.length > 0);
+        // Show dropdown even when no results (to offer create option)
+        setShowSuggestions(true);
       }
     } catch (error) {
       console.error('Error searching users:', error);
@@ -65,6 +77,48 @@ export default function CollaboratorAutosuggest({
       setIsSearching(false);
     }
   }, []);
+
+  // Create managed persona for collaborator
+  const handleCreatePersona = async () => {
+    if (!uploaderWallet || !searchedQuery.trim()) return;
+
+    setIsCreatingPersona(true);
+    try {
+      const response = await fetch('/api/upload-studio/create-collaborator-persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uploaderWallet,
+          collaboratorName: searchedQuery.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.persona) {
+        // Fill in the wallet address
+        onChange(data.persona.walletAddress || data.persona.suiAddress);
+        setShowSuggestions(false);
+
+        // Notify parent if callback provided
+        if (onPersonaCreated) {
+          onPersonaCreated({
+            username: data.persona.username,
+            displayName: data.persona.displayName,
+            walletAddress: data.persona.walletAddress || data.persona.suiAddress
+          });
+        }
+      } else {
+        console.error('Failed to create persona:', data.error);
+        alert(data.error || 'Failed to create managed persona');
+      }
+    } catch (error) {
+      console.error('Error creating persona:', error);
+      alert('Failed to create managed persona');
+    } finally {
+      setIsCreatingPersona(false);
+    }
+  };
 
   // Debounced search
   useEffect(() => {
@@ -245,12 +299,47 @@ export default function CollaboratorAutosuggest({
         </div>
       )}
 
-      {/* Hint text */}
+      {/* No results - offer to create managed persona */}
       {showSuggestions && suggestions.length === 0 && value.length >= 2 && !isSearching && (
-        <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg p-3">
-          <p className="text-gray-400 text-sm">
-            No users found. You can enter a wallet address or name directly.
-          </p>
+        <div
+          ref={suggestionsRef}
+          className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg"
+        >
+          <div className="p-3 border-b border-slate-700">
+            <p className="text-gray-400 text-sm">
+              No mixmi users found for "{searchedQuery}"
+            </p>
+          </div>
+
+          {/* Create managed persona option */}
+          {uploaderWallet && (
+            <button
+              type="button"
+              onClick={handleCreatePersona}
+              disabled={isCreatingPersona}
+              className="w-full text-left px-3 py-3 hover:bg-slate-700 transition-colors border-b border-slate-700 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#81E4F2]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-[#81E4F2]">+</span>
+                </div>
+                <div className="flex-1">
+                  <div className="text-[#81E4F2] text-sm font-medium">
+                    {isCreatingPersona ? 'Creating...' : `Create managed wallet for "${searchedQuery}"`}
+                  </div>
+                  <div className="text-gray-400 text-xs">
+                    You'll hold their earnings until you pay them
+                  </div>
+                </div>
+              </div>
+            </button>
+          )}
+
+          <div className="p-2 text-center">
+            <p className="text-gray-500 text-xs">
+              Or paste a wallet address directly
+            </p>
+          </div>
         </div>
       )}
     </div>
