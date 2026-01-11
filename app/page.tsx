@@ -103,13 +103,13 @@ const LandingTagline = dynamic(() => import('@/components/LandingTagline'), {
   ssr: false
 });
 
-// Dynamically import VideoDisplayArea - video mixer display
-const VideoDisplayArea = dynamic(() => import('@/components/mixer/compact/VideoDisplayArea'), {
+// Dynamically import WebGLVideoDisplay - WebGL video mixer display with shader effects
+const WebGLVideoDisplay = dynamic(() => import('@/components/mixer/compact/WebGLVideoDisplay'), {
   ssr: false
 });
 
-// Dynamically import VideoControlPanel - video mixer controls
-const VideoControlPanel = dynamic(() => import('@/components/mixer/compact/VideoControlPanel'), {
+// Dynamically import WebGLFXPanel - new effect control panel
+const WebGLFXPanel = dynamic(() => import('@/components/mixer/compact/WebGLFXPanel'), {
   ssr: false
 });
 
@@ -162,17 +162,16 @@ export default function HomePage() {
   const [isVideoMixerHovered, setIsVideoMixerHovered] = useState(false);
   const [isVideoViewerCollapsed, setIsVideoViewerCollapsed] = useState(false);
 
-  // Video mixer controls state
+  // Video mixer controls state - WebGL effects
   type CrossfadeMode = 'slide' | 'blend' | 'cut';
-  type VideoFXType = 'colorShift' | 'pixelate' | 'invert' | 'bw';
+  type WebGLEffectType = 'vhs' | 'ascii' | 'dither' | null;
   const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('slide');
-  const [videoEffects, setVideoEffects] = useState({
-    colorShift: 0,
-    pixelate: 0,
-    invert: 0,
-    bw: 0
-  });
-  const [activeEffect, setActiveEffect] = useState<VideoFXType | null>(null);
+  const [webglActiveEffect, setWebglActiveEffect] = useState<WebGLEffectType>(null);
+  const [webglIntensity, setWebglIntensity] = useState(0.5);
+  const [webglGranularity, setWebglGranularity] = useState(0.5);
+  const [webglWetDry, setWebglWetDry] = useState(1.0);
+  const [webglAudioReactive, setWebglAudioReactive] = useState(false);
+  const [isWebglFXPanelOpen, setIsWebglFXPanelOpen] = useState(false);
 
   // Pinned cards (draggable sticky notes)
   const [pinnedCards, setPinnedCards] = useState<Array<{
@@ -451,22 +450,9 @@ export default function HomePage() {
     }
   }, [mixerState, videoDisplayPosition.x, videoDisplayPosition.y, hasManuallyPositionedVideo]);
 
-  // Handle video effect triggers
-  const handleEffectStart = (fxType: VideoFXType) => {
-    console.log(`🎥 Starting video effect: ${fxType}`);
-    setActiveEffect(fxType);
-    setVideoEffects(prev => ({ ...prev, [fxType]: 1.0 }));
-  };
-
-  const handleEffectStop = () => {
-    if (!activeEffect) return;
-    console.log(`🎥 Stopping video effect: ${activeEffect}`);
-    setVideoEffects(prev => ({ ...prev, [activeEffect]: 0 }));
-    setActiveEffect(null);
-  };
-
-  const handleTriggerFX = (fxType: VideoFXType, intensity: number) => {
-    setVideoEffects(prev => ({ ...prev, [fxType]: intensity }));
+  // WebGL FX panel toggle (triggered by button on video display)
+  const toggleWebglFXPanel = () => {
+    setIsWebglFXPanelOpen(prev => !prev);
   };
 
   // Handle video display dragging
@@ -2065,25 +2051,66 @@ export default function HomePage() {
               opacity: isVideoViewerCollapsed ? 0 : 1
             }}
           >
-            <VideoDisplayArea
+            <WebGLVideoDisplay
               deckATrack={mixerState.deckATrack}
               deckBTrack={mixerState.deckBTrack}
               deckAPlaying={mixerState.deckAPlaying}
               deckBPlaying={mixerState.deckBPlaying}
               crossfaderPosition={mixerState.crossfaderPosition}
               crossfadeMode={crossfadeMode}
-              videoEffects={videoEffects}
+              effects={{
+                activeEffect: webglActiveEffect,
+                intensity: webglIntensity,
+                granularity: webglGranularity,
+                wetDry: webglWetDry,
+                audioReactive: webglAudioReactive
+              }}
             />
           </div>
 
-          <VideoControlPanel
-            crossfadeMode={crossfadeMode}
-            onCrossfadeModeChange={setCrossfadeMode}
-            onTriggerFX={handleTriggerFX}
-            activeEffect={activeEffect}
-            onEffectStart={handleEffectStart}
-            onEffectStop={handleEffectStop}
-          />
+          {/* FX Button - opens FX panel */}
+          <div className="flex justify-end p-1 bg-slate-900/90 rounded-b-lg">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWebglFXPanel();
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className={`px-3 py-1 text-xs font-bold rounded transition-all ${
+                isWebglFXPanelOpen
+                  ? 'bg-cyan-500 text-white'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              FX
+            </button>
+          </div>
+
+          {/* WebGL FX Panel - pops out below */}
+          {isWebglFXPanelOpen && (
+            <div className="absolute top-full left-0 mt-1 z-50">
+              <WebGLFXPanel
+                isOpen={isWebglFXPanelOpen}
+                onClose={() => setIsWebglFXPanelOpen(false)}
+                crossfadeMode={crossfadeMode}
+                onCrossfadeModeChange={setCrossfadeMode}
+                activeEffect={webglActiveEffect}
+                onEffectChange={setWebglActiveEffect}
+                intensity={webglIntensity}
+                onIntensityChange={setWebglIntensity}
+                granularity={webglGranularity}
+                onGranularityChange={setWebglGranularity}
+                wetDry={webglWetDry}
+                onWetDryChange={setWebglWetDry}
+                audioReactive={webglAudioReactive}
+                onAudioReactiveChange={setWebglAudioReactive}
+              />
+            </div>
+          )}
         </div>
       )}
 
