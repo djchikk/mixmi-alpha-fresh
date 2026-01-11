@@ -623,12 +623,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       return { name: pendingCollab.collaborator_name, isPending: pendingCollab.status === 'pending' };
     }
 
-    // Check if it's the creator's wallet (primary uploader) - use artist name
-    if (wallet === track.primary_uploader_wallet) {
-      return { name: track.artist || 'Creator', isPending: false };
-    }
-
-    // Check if we looked up a username for this wallet
+    // Check if we looked up a username/display_name for this wallet (includes primary uploader)
     if (collaboratorNames[wallet]) {
       return { name: collaboratorNames[wallet], isPending: false };
     }
