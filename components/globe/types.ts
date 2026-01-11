@@ -40,6 +40,15 @@ export interface TrackNode {
 
   // Portal fields
   portal_username?: string;
+
+  // Video crop data for WebGL display
+  video_crop_x?: number;
+  video_crop_y?: number;
+  video_crop_width?: number;
+  video_crop_height?: number;
+  video_crop_zoom?: number;
+  video_natural_width?: number;
+  video_natural_height?: number;
 }
 
 export interface GlobeProps {

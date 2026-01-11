@@ -57,7 +57,15 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
       thumb_160_url: track.thumb_160_url || undefined,
       thumb_256_url: track.thumb_256_url || undefined,
       // Portal fields
-      portal_username: track.portal_username || undefined
+      portal_username: track.portal_username || undefined,
+      // Video crop data for WebGL display
+      video_crop_x: track.video_crop_x,
+      video_crop_y: track.video_crop_y,
+      video_crop_width: track.video_crop_width,
+      video_crop_height: track.video_crop_height,
+      video_crop_zoom: track.video_crop_zoom,
+      video_natural_width: track.video_natural_width,
+      video_natural_height: track.video_natural_height
     }));
   }
   
@@ -104,7 +112,15 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     thumb_160_url: track.thumb_160_url || undefined,
     thumb_256_url: track.thumb_256_url || undefined,
     // Portal fields
-    portal_username: track.portal_username || undefined
+    portal_username: track.portal_username || undefined,
+    // Video crop data for WebGL display
+    video_crop_x: track.video_crop_x,
+    video_crop_y: track.video_crop_y,
+    video_crop_width: track.video_crop_width,
+    video_crop_height: track.video_crop_height,
+    video_crop_zoom: track.video_crop_zoom,
+    video_natural_width: track.video_natural_width,
+    video_natural_height: track.video_natural_height
   };
 }
 

@@ -152,14 +152,16 @@ function VideoPlane({
 
   // Apply crop data to texture if available
   if (textureRef.current && cropX != null && cropY != null && cropWidth && cropHeight && videoNaturalWidth && videoNaturalHeight) {
+    console.log('🎬 WebGL Crop Data:', { cropX, cropY, cropWidth, cropHeight, cropZoom, videoNaturalWidth, videoNaturalHeight })
+
     // Calculate UV offset and repeat to show only the cropped region
     // UV coordinates go from 0-1, so we need to normalize the crop values
 
-    // Apply zoom by adjusting the crop region size
+    // Apply zoom by adjusting the crop region size (zoom > 1 means zoom in, so smaller region)
     const zoomedWidth = cropWidth / cropZoom
     const zoomedHeight = cropHeight / cropZoom
 
-    // Recenter after zoom
+    // Recenter after zoom - zoom centers on the crop region center
     const zoomOffsetX = (cropWidth - zoomedWidth) / 2
     const zoomOffsetY = (cropHeight - zoomedHeight) / 2
 
@@ -167,18 +169,29 @@ function VideoPlane({
     const effectiveCropY = cropY + zoomOffsetY
 
     // Calculate texture repeat (how much of the texture to show)
+    // This is the fraction of the original video we want to display
     const repeatX = zoomedWidth / videoNaturalWidth
     const repeatY = zoomedHeight / videoNaturalHeight
 
     // Calculate texture offset (where to start in UV space)
-    // Note: Three.js UV origin is bottom-left, video origin is top-left
+    // Three.js UV: (0,0) = bottom-left, (1,1) = top-right
+    // Video/image: (0,0) = top-left
+    // So we need to flip the Y coordinate
     const offsetX = effectiveCropX / videoNaturalWidth
     const offsetY = 1 - (effectiveCropY / videoNaturalHeight) - repeatY
 
+    console.log('📐 WebGL UV:', { repeatX, repeatY, offsetX, offsetY })
+
+    // Set texture wrapping to clamp (prevents tiling)
+    textureRef.current.wrapS = THREE.ClampToEdgeWrapping
+    textureRef.current.wrapT = THREE.ClampToEdgeWrapping
     textureRef.current.repeat.set(repeatX, repeatY)
     textureRef.current.offset.set(offsetX, offsetY)
   } else if (textureRef.current) {
+    console.log('⚠️ WebGL: No crop data, showing full texture')
     // No crop data - show full texture
+    textureRef.current.wrapS = THREE.ClampToEdgeWrapping
+    textureRef.current.wrapT = THREE.ClampToEdgeWrapping
     textureRef.current.repeat.set(1, 1)
     textureRef.current.offset.set(0, 0)
   }
