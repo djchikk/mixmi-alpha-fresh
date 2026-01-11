@@ -171,6 +171,7 @@ export default function HomePage() {
   const [webglGranularity, setWebglGranularity] = useState(0.5);
   const [webglWetDry, setWebglWetDry] = useState(1.0);
   const [webglAudioReactive, setWebglAudioReactive] = useState(false);
+  const [webglDitherColor, setWebglDitherColor] = useState('#ffffff');
   const [isWebglFXPanelOpen, setIsWebglFXPanelOpen] = useState(false);
 
   // Pinned cards (draggable sticky notes)
@@ -2063,7 +2064,8 @@ export default function HomePage() {
                 intensity: webglIntensity,
                 granularity: webglGranularity,
                 wetDry: webglWetDry,
-                audioReactive: webglAudioReactive
+                audioReactive: webglAudioReactive,
+                ditherColor: webglDitherColor
               }}
             />
           </div>
@@ -2108,6 +2110,8 @@ export default function HomePage() {
                 onWetDryChange={setWebglWetDry}
                 audioReactive={webglAudioReactive}
                 onAudioReactiveChange={setWebglAudioReactive}
+                ditherColor={webglDitherColor}
+                onDitherColorChange={setWebglDitherColor}
               />
             </div>
           )}

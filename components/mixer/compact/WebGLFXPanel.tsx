@@ -21,6 +21,8 @@ interface WebGLFXPanelProps {
   onWetDryChange: (value: number) => void
   audioReactive: boolean
   onAudioReactiveChange: (enabled: boolean) => void
+  ditherColor: string
+  onDitherColorChange: (color: string) => void
   className?: string
 }
 
@@ -41,6 +43,8 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
   onWetDryChange,
   audioReactive,
   onAudioReactiveChange,
+  ditherColor,
+  onDitherColorChange,
   className = ''
 }: WebGLFXPanelProps) {
 
@@ -212,6 +216,35 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
               {Math.round(wetDry * 100)}%
             </span>
           </div>
+
+          {/* Dither Color - Only show when dither is active */}
+          {currentEffect === 'dither' && (
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-700/50" onMouseDown={(e) => e.stopPropagation()}>
+              <span className="text-[8px] font-bold uppercase text-slate-400 w-16">Color</span>
+              <div className="flex-1 flex items-center gap-2">
+                <input
+                  type="color"
+                  value={ditherColor}
+                  onChange={(e) => onDitherColorChange(e.target.value)}
+                  className="w-6 h-6 rounded cursor-pointer border border-slate-600 bg-transparent"
+                  title="Choose dither highlight color"
+                />
+                <input
+                  type="text"
+                  value={ditherColor}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
+                      onDitherColorChange(val)
+                    }
+                  }}
+                  className="flex-1 px-1.5 py-0.5 text-[9px] font-mono bg-slate-800 border border-slate-600 rounded text-slate-300 uppercase"
+                  placeholder="#FFFFFF"
+                  maxLength={7}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

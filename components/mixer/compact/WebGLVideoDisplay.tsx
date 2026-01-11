@@ -7,6 +7,7 @@ import * as THREE from 'three'
 import { Track } from '../types'
 import { VhsGlitchEffect } from '@/lib/shaderEffects/VhsGlitchEffect'
 import { AsciiEffect } from '@/lib/shaderEffects/AsciiEffect'
+import { DitherEffect } from '@/lib/shaderEffects/DitherEffect'
 import { Vector2 } from 'three'
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut'
@@ -18,6 +19,7 @@ interface WebGLVideoEffects {
   granularity: number    // 0-1
   wetDry: number         // 0-1
   audioReactive: boolean
+  ditherColor?: string   // Hex color for dither effect (default white)
 }
 
 interface WebGLVideoDisplayProps {
@@ -309,6 +311,15 @@ export default function WebGLVideoDisplay({
               wetDry={effects.wetDry}
               colorMode={true}
               resolution={new Vector2(408, 408)}
+            />
+          )}
+          {effects.activeEffect === 'dither' && (
+            <DitherEffect
+              intensity={effects.intensity}
+              granularity={effects.granularity}
+              wetDry={effects.wetDry}
+              color1="#000000"
+              color2={effects.ditherColor || "#ffffff"}
             />
           )}
         </EffectComposer>
