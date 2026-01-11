@@ -29,7 +29,12 @@ function sanitizeUsername(name: string): string {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { uploaderWallet, collaboratorName } = await request.json();
+    const { uploaderWallet, collaboratorName: rawName } = await request.json();
+
+    // Clean up the collaborator name - strip "pending:" prefix if present
+    const collaboratorName = rawName
+      ?.replace(/^pending:/i, '')
+      .trim();
 
     if (!uploaderWallet || !collaboratorName) {
       return NextResponse.json(
