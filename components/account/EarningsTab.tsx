@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Persona } from '@/contexts/AuthContext';
-import { DollarSign, ArrowUpRight, Clock, Users, ExternalLink, Wallet, Send, RefreshCw, Copy, Check, ChevronDown, ChevronUp, QrCode } from 'lucide-react';
+import { DollarSign, ArrowUpRight, Clock, Users, ExternalLink, Wallet, Send, RefreshCw, Copy, Check, ChevronDown, ChevronUp, QrCode, AlertCircle, UserPlus, Link2, UserCheck, Search } from 'lucide-react';
 import QRCodeModal from '@/components/shared/QRCodeModal';
 
 interface Earning {
@@ -40,6 +40,16 @@ interface WalletBalance {
   error?: string;
 }
 
+interface TbdPersona {
+  id: string;
+  username: string;
+  displayName: string;
+  suiAddress: string;
+  balance: number;
+  trackCount: number;
+  createdAt: string;
+}
+
 interface EarningsTabProps {
   accountId: string | null;
   personas: Persona[];
@@ -58,7 +68,18 @@ export default function EarningsTab({
   const [walletBalances, setWalletBalances] = useState<WalletBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingBalances, setLoadingBalances] = useState(false);
-  const [view, setView] = useState<'wallets' | 'earnings' | 'treasury'>('wallets');
+  const [view, setView] = useState<'wallets' | 'earnings' | 'treasury' | 'resolve'>('wallets');
+
+  // TBD Persona resolution state
+  const [tbdPersonas, setTbdPersonas] = useState<TbdPersona[]>([]);
+  const [loadingTbd, setLoadingTbd] = useState(false);
+  const [resolveModal, setResolveModal] = useState<{
+    persona: TbdPersona;
+    action: 'link' | 'merge' | null;
+  } | null>(null);
+  const [linkSearchQuery, setLinkSearchQuery] = useState('');
+  const [linkSearchResults, setLinkSearchResults] = useState<Array<{ username: string; displayName: string; walletAddress: string; suiAddress: string | null }>>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
 
   // Withdrawal state
   const [withdrawing, setWithdrawing] = useState(false);
@@ -213,6 +234,87 @@ export default function EarningsTab({
       fetchWalletBalances();
     }
   }, [view, accountId]);
+
+  // Fetch TBD personas (those with -tbd suffix)
+  const fetchTbdPersonas = async () => {
+    if (!accountId) return;
+
+    setLoadingTbd(true);
+    try {
+      // Get TBD personas for this account
+      const { data: tbdData, error } = await supabase
+        .from('personas')
+        .select('id, username, display_name, sui_address, balance_usdc, created_at')
+        .eq('account_id', accountId)
+        .eq('is_active', true)
+        .like('username', '%-tbd%');
+
+      if (error) {
+        console.error('Error fetching TBD personas:', error);
+        return;
+      }
+
+      if (!tbdData || tbdData.length === 0) {
+        setTbdPersonas([]);
+        return;
+      }
+
+      // For each TBD persona, count tracks where their wallet appears in splits
+      const tbdWithCounts = await Promise.all(
+        tbdData.map(async (p) => {
+          // Count tracks where this wallet appears in any split field
+          const { count } = await supabase
+            .from('ip_tracks')
+            .select('id', { count: 'exact', head: true })
+            .or(`composition_split_1_wallet.eq.${p.sui_address},composition_split_2_wallet.eq.${p.sui_address},composition_split_3_wallet.eq.${p.sui_address},production_split_1_wallet.eq.${p.sui_address},production_split_2_wallet.eq.${p.sui_address},production_split_3_wallet.eq.${p.sui_address}`);
+
+          return {
+            id: p.id,
+            username: p.username,
+            displayName: p.display_name,
+            suiAddress: p.sui_address,
+            balance: p.balance_usdc || 0,
+            trackCount: count || 0,
+            createdAt: p.created_at,
+          };
+        })
+      );
+
+      setTbdPersonas(tbdWithCounts);
+    } catch (error) {
+      console.error('Error fetching TBD personas:', error);
+    }
+    setLoadingTbd(false);
+  };
+
+  // Fetch TBD personas when view changes to resolve
+  useEffect(() => {
+    if (view === 'resolve' && accountId) {
+      fetchTbdPersonas();
+    }
+  }, [view, accountId]);
+
+  // Search for users to link
+  const searchUsersForLink = async (query: string) => {
+    if (query.length < 2) {
+      setLinkSearchResults([]);
+      return;
+    }
+
+    setSearchingUsers(true);
+    try {
+      const response = await fetch(`/api/profile/search-users?q=${encodeURIComponent(query)}`);
+      if (response.ok) {
+        const { users } = await response.json();
+        // Filter out TBD personas from results
+        const filtered = users.filter((u: any) => !u.username?.includes('-tbd'));
+        setLinkSearchResults(filtered);
+      }
+    } catch (error) {
+      console.error('Error searching users:', error);
+    }
+    setSearchingUsers(false);
+  };
 
   // Handle withdrawal
   const handleWithdraw = async () => {
@@ -518,6 +620,24 @@ export default function EarningsTab({
         >
           Treasury Holdings
         </button>
+        <button
+          onClick={() => setView('resolve')}
+          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+            view === 'resolve'
+              ? 'bg-amber-500 text-slate-900 font-medium'
+              : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            Resolve
+            {tbdPersonas.length > 0 && (
+              <span className="px-1.5 py-0.5 bg-amber-600 text-white text-xs rounded-full">
+                {tbdPersonas.length}
+              </span>
+            )}
+          </span>
+        </button>
       </div>
 
       {/* Content */}
@@ -779,6 +899,225 @@ export default function EarningsTab({
               are held in your SUI wallet. When they create a mixmi account and claim their earnings,
               the funds will transfer to their address.
             </p>
+          </div>
+        </div>
+      ) : view === 'resolve' ? (
+        /* Resolve View - TBD Personas */
+        <div className="space-y-4">
+          {loadingTbd ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+            </div>
+          ) : tbdPersonas.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <UserCheck className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
+              <p className="text-green-400 font-medium">All caught up!</p>
+              <p className="text-sm text-gray-600 mt-2">
+                No TBD collaborators to resolve
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* TBD Personas List */}
+              <div className="space-y-3">
+                {tbdPersonas.map((tbd) => (
+                  <div
+                    key={tbd.id}
+                    className="p-4 bg-[#101726] border border-amber-900/30 rounded-lg"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        {/* Avatar placeholder */}
+                        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">
+                          {tbd.displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-medium">{tbd.displayName}</span>
+                            <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded">
+                              @{tbd.username}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {tbd.trackCount} track{tbd.trackCount !== 1 ? 's' : ''} · Created {formatDate(tbd.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-mono text-amber-400">
+                          ${tbd.balance.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-500">held</div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={() => {
+                          // TODO: Generate invite link
+                          const inviteUrl = `${window.location.origin}/invite?ref=${tbd.username}`;
+                          navigator.clipboard.writeText(inviteUrl);
+                          alert('Invite link copied! (Feature coming soon)');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-lg transition-colors text-sm"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        Invite
+                      </button>
+                      <button
+                        onClick={() => {
+                          setResolveModal({ persona: tbd, action: 'link' });
+                          setLinkSearchQuery('');
+                          setLinkSearchResults([]);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 text-[#81E4F2] rounded-lg transition-colors text-sm"
+                      >
+                        <Link2 className="w-4 h-4" />
+                        Link to User
+                      </button>
+                      <button
+                        onClick={() => setResolveModal({ persona: tbd, action: 'merge' })}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#A8E66B]/20 hover:bg-[#A8E66B]/30 text-[#A8E66B] rounded-lg transition-colors text-sm"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        This is Me
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Resolve Info */}
+              <div className="p-4 bg-amber-900/10 border border-amber-900/30 rounded-lg text-sm text-amber-200/80">
+                <p className="font-medium mb-1">About TBD Collaborators</p>
+                <p className="text-amber-200/60">
+                  These are placeholder accounts created for collaborators who weren't on mixmi when you uploaded.
+                  Their earnings are held safely until you resolve them:
+                </p>
+                <ul className="text-amber-200/60 mt-2 space-y-1 text-xs">
+                  <li>• <strong>Invite</strong> - Send them a link to join mixmi and claim their earnings</li>
+                  <li>• <strong>Link to User</strong> - Connect to an existing mixmi user</li>
+                  <li>• <strong>This is Me</strong> - Merge into one of your own personas</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {/* Resolve Modal - Link to User */}
+      {resolveModal && resolveModal.action === 'link' && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#151C2A] border border-[#1E293B] rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Link to User</h3>
+              <button
+                onClick={() => setResolveModal(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 bg-[#0a0f1a] rounded-lg">
+                <div className="text-xs text-gray-500 mb-1">Linking earnings from</div>
+                <div className="text-white font-medium">{resolveModal.persona.displayName}</div>
+                <div className="text-xs text-gray-400">@{resolveModal.persona.username}</div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Search for user</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input
+                    type="text"
+                    value={linkSearchQuery}
+                    onChange={(e) => {
+                      setLinkSearchQuery(e.target.value);
+                      searchUsersForLink(e.target.value);
+                    }}
+                    placeholder="Search by name or username..."
+                    className="w-full pl-10 pr-4 py-3 bg-[#0a0f1a] border border-[#1E293B] rounded-lg text-white focus:border-[#81E4F2] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Search Results */}
+              {searchingUsers ? (
+                <div className="text-center py-4 text-gray-500">Searching...</div>
+              ) : linkSearchResults.length > 0 ? (
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {linkSearchResults.map((user) => (
+                    <button
+                      key={user.walletAddress || user.username}
+                      onClick={() => {
+                        // TODO: Implement actual linking
+                        alert(`Link to @${user.username} - Feature coming soon!`);
+                        setResolveModal(null);
+                      }}
+                      className="w-full p-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-left transition-colors"
+                    >
+                      <div className="text-white font-medium">{user.displayName || user.username}</div>
+                      <div className="text-xs text-gray-400">@{user.username}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : linkSearchQuery.length >= 2 ? (
+                <div className="text-center py-4 text-gray-500">No users found</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resolve Modal - This is Me */}
+      {resolveModal && resolveModal.action === 'merge' && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#151C2A] border border-[#1E293B] rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Merge into Your Account</h3>
+              <button
+                onClick={() => setResolveModal(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 bg-[#0a0f1a] rounded-lg">
+                <div className="text-xs text-gray-500 mb-1">Merging</div>
+                <div className="text-white font-medium">{resolveModal.persona.displayName}</div>
+                <div className="text-xs text-amber-400">${resolveModal.persona.balance.toFixed(2)} held</div>
+              </div>
+
+              <p className="text-sm text-gray-400">
+                Select which of your personas to merge this into. The TBD wallet will be replaced
+                with your persona's wallet on all associated tracks.
+              </p>
+
+              <div className="space-y-2">
+                {personas.filter(p => !p.username.includes('-tbd')).map((persona) => (
+                  <button
+                    key={persona.id}
+                    onClick={() => {
+                      // TODO: Implement actual merge
+                      alert(`Merge into @${persona.username} - Feature coming soon!`);
+                      setResolveModal(null);
+                    }}
+                    className="w-full p-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-left transition-colors flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-white font-medium">{persona.display_name || persona.username}</div>
+                      <div className="text-xs text-gray-400">@{persona.username}</div>
+                    </div>
+                    <UserCheck className="w-5 h-5 text-[#A8E66B]" />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
