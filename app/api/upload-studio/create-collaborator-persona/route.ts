@@ -69,11 +69,13 @@ export async function POST(request: NextRequest) {
 
     const accountId = uploaderPersona.account_id;
 
-    // Generate username from collaborator name
+    // Generate username from collaborator name with -tbd suffix
+    // This makes it clear the persona is a managed placeholder
     let baseUsername = sanitizeUsername(collaboratorName);
     if (baseUsername.length < 3) {
       baseUsername = `collab-${baseUsername || 'user'}`;
     }
+    baseUsername = `${baseUsername}-tbd`; // Add -tbd suffix for managed personas
 
     // Check if username exists and generate unique one if needed
     let username = baseUsername;
