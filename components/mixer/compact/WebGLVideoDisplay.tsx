@@ -50,6 +50,14 @@ interface VideoPlaneProps {
   clipRight?: number // 0-1, portion to clip from right
   position?: [number, number, number]
   visible: boolean
+  // Crop data from track
+  cropX?: number
+  cropY?: number
+  cropWidth?: number
+  cropHeight?: number
+  cropZoom?: number
+  videoNaturalWidth?: number
+  videoNaturalHeight?: number
 }
 
 function VideoPlane({
@@ -59,7 +67,14 @@ function VideoPlane({
   clipLeft = 0,
   clipRight = 0,
   position = [0, 0, 0],
-  visible
+  visible,
+  cropX,
+  cropY,
+  cropWidth,
+  cropHeight,
+  cropZoom = 1,
+  videoNaturalWidth,
+  videoNaturalHeight
 }: VideoPlaneProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -135,7 +150,40 @@ function VideoPlane({
 
   if (!videoUrl || !videoReady || !visible) return null
 
-  // Adjust plane width and position for slide mode clipping
+  // Apply crop data to texture if available
+  if (textureRef.current && cropX != null && cropY != null && cropWidth && cropHeight && videoNaturalWidth && videoNaturalHeight) {
+    // Calculate UV offset and repeat to show only the cropped region
+    // UV coordinates go from 0-1, so we need to normalize the crop values
+
+    // Apply zoom by adjusting the crop region size
+    const zoomedWidth = cropWidth / cropZoom
+    const zoomedHeight = cropHeight / cropZoom
+
+    // Recenter after zoom
+    const zoomOffsetX = (cropWidth - zoomedWidth) / 2
+    const zoomOffsetY = (cropHeight - zoomedHeight) / 2
+
+    const effectiveCropX = cropX + zoomOffsetX
+    const effectiveCropY = cropY + zoomOffsetY
+
+    // Calculate texture repeat (how much of the texture to show)
+    const repeatX = zoomedWidth / videoNaturalWidth
+    const repeatY = zoomedHeight / videoNaturalHeight
+
+    // Calculate texture offset (where to start in UV space)
+    // Note: Three.js UV origin is bottom-left, video origin is top-left
+    const offsetX = effectiveCropX / videoNaturalWidth
+    const offsetY = 1 - (effectiveCropY / videoNaturalHeight) - repeatY
+
+    textureRef.current.repeat.set(repeatX, repeatY)
+    textureRef.current.offset.set(offsetX, offsetY)
+  } else if (textureRef.current) {
+    // No crop data - show full texture
+    textureRef.current.repeat.set(1, 1)
+    textureRef.current.offset.set(0, 0)
+  }
+
+  // Keep display square, adjust for slide mode clipping
   const planeWidth = 2 * (1 - clipLeft - clipRight)
   const xOffset = (clipLeft - clipRight)
 
@@ -165,6 +213,9 @@ interface VideoSceneProps {
   deckBHasVideo: boolean
   crossfaderPosition: number
   crossfadeMode: CrossfadeMode
+  // Crop data for each deck
+  deckATrack: Track | null
+  deckBTrack: Track | null
 }
 
 function VideoScene({
@@ -175,7 +226,9 @@ function VideoScene({
   deckAHasVideo,
   deckBHasVideo,
   crossfaderPosition,
-  crossfadeMode
+  crossfadeMode,
+  deckATrack,
+  deckBTrack
 }: VideoSceneProps) {
   const { size } = useThree()
 
@@ -233,6 +286,13 @@ function VideoScene({
         clipRight={deckAClipRight}
         position={[0, 0, 0]}
         visible={showDeckA}
+        cropX={(deckATrack as any)?.video_crop_x}
+        cropY={(deckATrack as any)?.video_crop_y}
+        cropWidth={(deckATrack as any)?.video_crop_width}
+        cropHeight={(deckATrack as any)?.video_crop_height}
+        cropZoom={(deckATrack as any)?.video_crop_zoom}
+        videoNaturalWidth={(deckATrack as any)?.video_natural_width}
+        videoNaturalHeight={(deckATrack as any)?.video_natural_height}
       />
 
       {/* Deck B Video - slightly in front for blend mode layering */}
@@ -244,6 +304,13 @@ function VideoScene({
         clipRight={deckBClipRight}
         position={[0, 0, 0.001]}
         visible={showDeckB}
+        cropX={(deckBTrack as any)?.video_crop_x}
+        cropY={(deckBTrack as any)?.video_crop_y}
+        cropWidth={(deckBTrack as any)?.video_crop_width}
+        cropHeight={(deckBTrack as any)?.video_crop_height}
+        cropZoom={(deckBTrack as any)?.video_crop_zoom}
+        videoNaturalWidth={(deckBTrack as any)?.video_natural_width}
+        videoNaturalHeight={(deckBTrack as any)?.video_natural_height}
       />
     </>
   )
@@ -293,6 +360,8 @@ export default function WebGLVideoDisplay({
           deckBHasVideo={deckBHasVideo}
           crossfaderPosition={crossfaderPosition}
           crossfadeMode={crossfadeMode}
+          deckATrack={deckATrack}
+          deckBTrack={deckBTrack}
         />
 
         {/* Post-processing effects */}
