@@ -2152,7 +2152,7 @@ export default function HomePage() {
             onEffectChange={setWebglActiveEffect}
             audioReactive={webglAudioReactive}
             onAudioReactiveChange={setWebglAudioReactive}
-            onOpenSettings={toggleWebglFXPanel}
+            onOpenSettings={() => setIsWebglFXPanelOpen(true)}
           />
 
           {/* WebGL FX Panel - pops out below */}

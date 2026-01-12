@@ -63,25 +63,27 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
         </button>
       </div>
 
-      {/* RIDICULOUS MODE - Only show when audio reactive is on */}
-      {audioReactive && (
-        <div className="px-3 py-2">
-          <button
-            onClick={() => onRidiculousModeChange(!ridiculousMode)}
-            className={`w-full py-1.5 rounded-md font-bold text-[8px] uppercase tracking-wider transition-all ${
-              ridiculousMode
-                ? 'bg-gradient-to-r from-fuchsia-500 via-red-500 to-yellow-500 text-white shadow-lg shadow-fuchsia-500/30 animate-pulse'
-                : 'bg-slate-800/50 border border-fuchsia-400/30 text-fuchsia-400 hover:border-fuchsia-400/60'
-            }`}
-          >
-            RIDICULOUS
-          </button>
-        </div>
-      )}
-
       {/* Controls - Only show when effect is active */}
       {showControls && (
-        <div className="border-t border-slate-700/50 px-3 py-2 space-y-1.5">
+        <div className="px-3 py-2 space-y-1.5">
+          {/* "11" MODE - Only show when audio reactive is on */}
+          {audioReactive && (
+            <div className="flex items-center gap-2 pb-1.5 border-b border-slate-700/30">
+              <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Boost</span>
+              <button
+                onClick={() => onRidiculousModeChange(!ridiculousMode)}
+                className={`px-3 py-1 rounded-md font-black text-[10px] transition-all ${
+                  ridiculousMode
+                    ? 'bg-gradient-to-r from-fuchsia-500 via-red-500 to-yellow-500 text-white shadow-lg shadow-fuchsia-500/30 animate-pulse'
+                    : 'bg-slate-800/50 border border-fuchsia-400/30 text-fuchsia-400 hover:border-fuchsia-400/60'
+                }`}
+                title="Turn it up to 11!"
+              >
+                11
+              </button>
+            </div>
+          )}
+
           {/* Intensity */}
           <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Intensity</span>

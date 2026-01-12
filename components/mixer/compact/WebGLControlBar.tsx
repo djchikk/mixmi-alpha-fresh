@@ -1,7 +1,6 @@
 "use client"
 
 import React, { memo, useCallback } from 'react'
-import { Settings2 } from 'lucide-react'
 import { WebGLEffectType } from './WebGLVideoDisplay'
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut'
@@ -31,8 +30,10 @@ const WebGLControlBar = memo(function WebGLControlBar({
       onEffectChange(null)
     } else {
       onEffectChange(effectType)
+      // Auto-open settings panel when effect is turned on
+      onOpenSettings()
     }
-  }, [activeEffect, onEffectChange])
+  }, [activeEffect, onEffectChange, onOpenSettings])
 
   const handleReactiveToggle = useCallback(() => {
     const newReactive = !audioReactive
@@ -174,15 +175,6 @@ const WebGLControlBar = memo(function WebGLControlBar({
               </button>
               <span className="text-[7px] font-bold uppercase text-slate-500">REACT</span>
             </div>
-
-            {/* Settings Button - Opens FX Panel for sliders */}
-            <button
-              onClick={onOpenSettings}
-              className="ml-2 p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all"
-              title="FX Settings"
-            >
-              <Settings2 size={16} />
-            </button>
           </div>
         </div>
       </div>
