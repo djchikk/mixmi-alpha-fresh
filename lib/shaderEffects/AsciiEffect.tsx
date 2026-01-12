@@ -148,36 +148,42 @@ const fragmentShader = `
 
     // === RIDICULOUS MODE EFFECTS ===
     if (uRidiculousMode && uAudioReactive) {
-      // Invert colors on strong beats
-      if (uAudioLevel > 0.6) {
+      // Invert to negative on strong beats
+      if (uAudioLevel > 0.7) {
         finalColor = 1.0 - finalColor;
       }
 
-      // Rainbow hue cycling based on position and audio
-      float hueShift = uv.x * 6.28318 + uAudioLevel * 12.566 + uTime * 2.0;
-      float cosH = cos(hueShift);
-      float sinH = sin(hueShift);
-      mat3 hueMatrix = mat3(
-        0.299 + 0.701*cosH + 0.168*sinH, 0.587 - 0.587*cosH + 0.330*sinH, 0.114 - 0.114*cosH - 0.497*sinH,
-        0.299 - 0.299*cosH - 0.328*sinH, 0.587 + 0.413*cosH + 0.035*sinH, 0.114 - 0.114*cosH + 0.292*sinH,
-        0.299 - 0.300*cosH + 1.250*sinH, 0.587 - 0.588*cosH - 1.050*sinH, 0.114 + 0.886*cosH - 0.203*sinH
-      );
-      finalColor = hueMatrix * finalColor;
+      // Glitchy horizontal offset - whole rows shift
+      if (uAudioLevel > 0.5) {
+        float rowNoise = random(vec2(floor(uv.y * 20.0), floor(uTime * 8.0)));
+        if (rowNoise > 0.7) {
+          // Re-sample with horizontal offset for glitch rows
+          vec2 glitchUV = uv + vec2((rowNoise - 0.5) * 0.3 * uAudioLevel, 0.0);
+          vec4 glitchColor = texture2D(inputBuffer, glitchUV);
+          finalColor = mix(finalColor, glitchColor.rgb, uAudioLevel);
+        }
+      }
 
-      // Extreme contrast pumping with audio
-      float contrastPump = 1.0 + uAudioLevel * 4.0;
+      // Strobe flash on peaks
+      if (uAudioLevel > 0.8 && random(vec2(floor(uTime * 15.0), 0.0)) > 0.6) {
+        finalColor = vec3(1.0);
+      }
+
+      // Extreme contrast pumping
+      float contrastPump = 1.0 + uAudioLevel * 3.0;
       finalColor = (finalColor - 0.5) * contrastPump + 0.5;
       finalColor = clamp(finalColor, 0.0, 1.0);
 
-      // Random posterization on peaks
-      if (uAudioLevel > 0.7) {
-        float levels = 2.0 + floor(random(vec2(floor(uTime * 3.0), 0.0)) * 4.0);
-        finalColor = floor(finalColor * levels) / levels;
+      // Random color channel boost (not swap) - more subtle than full rainbow
+      float channelBoost = random(vec2(floor(uTime * 4.0), 1.0));
+      if (channelBoost < 0.33) {
+        finalColor.r *= 1.0 + uAudioLevel;
+      } else if (channelBoost < 0.66) {
+        finalColor.g *= 1.0 + uAudioLevel;
+      } else {
+        finalColor.b *= 1.0 + uAudioLevel;
       }
-
-      // Neon glow effect - boost colors way past 1.0 then tone map
-      finalColor = finalColor * (1.5 + uAudioLevel * 2.0);
-      finalColor = finalColor / (1.0 + finalColor); // Soft tone mapping
+      finalColor = clamp(finalColor, 0.0, 1.0);
     }
 
     outputColor = vec4(finalColor, 1.0);

@@ -104,36 +104,40 @@ const fragmentShader = `
 
     // === RIDICULOUS MODE EFFECTS ===
     if (uRidiculousMode && uAudioReactive) {
-      // Swap colors on beats
-      if (uAudioLevel > 0.6) {
+      // Invert the dither pattern on strong beats (swap black/white)
+      if (uAudioLevel > 0.65) {
         finalColor = 1.0 - finalColor;
       }
 
-      // Rainbow cycling through the dither
-      float hueShift = uv.y * 3.14159 + uTime * 3.0 + uAudioLevel * 6.28318;
-      float cosH = cos(hueShift);
-      float sinH = sin(hueShift);
-      mat3 hueMatrix = mat3(
-        0.299 + 0.701*cosH + 0.168*sinH, 0.587 - 0.587*cosH + 0.330*sinH, 0.114 - 0.114*cosH - 0.497*sinH,
-        0.299 - 0.299*cosH - 0.328*sinH, 0.587 + 0.413*cosH + 0.035*sinH, 0.114 - 0.114*cosH + 0.292*sinH,
-        0.299 - 0.300*cosH + 1.250*sinH, 0.587 - 0.588*cosH - 1.050*sinH, 0.114 + 0.886*cosH - 0.203*sinH
-      );
-      finalColor = hueMatrix * finalColor;
-
-      // Extreme saturation on peaks
-      if (uAudioLevel > 0.5) {
-        float gray = dot(finalColor, vec3(0.299, 0.587, 0.114));
-        finalColor = mix(vec3(gray), finalColor, 1.0 + uAudioLevel * 4.0);
+      // Threshold chaos - randomly flip pixels based on audio
+      float flipChance = uAudioLevel * 0.4;
+      float flipNoise = random(uv * 100.0 + uTime);
+      if (flipNoise < flipChance) {
+        finalColor = 1.0 - finalColor;
       }
 
-      // Random color channel swapping
-      if (uAudioLevel > 0.75 && random(vec2(floor(uTime * 4.0), 0.0)) > 0.5) {
-        finalColor = finalColor.brg;
+      // Strobe flash on peaks
+      if (uAudioLevel > 0.8 && random(vec2(floor(uTime * 12.0), 0.0)) > 0.5) {
+        finalColor = vec3(1.0);
       }
 
-      // Bright neon boost
-      finalColor = finalColor * (1.2 + uAudioLevel * 1.5);
-      finalColor = clamp(finalColor, 0.0, 1.0);
+      // Horizontal tear/glitch lines
+      float tearLine = random(vec2(floor(uv.y * 30.0), floor(uTime * 6.0)));
+      if (tearLine > 0.85 && uAudioLevel > 0.4) {
+        // Offset this line horizontally
+        vec2 tearUV = uv + vec2((tearLine - 0.5) * 0.2, 0.0);
+        vec4 tearColor = texture2D(inputBuffer, tearUV);
+        float tearLuma = dot(tearColor.rgb, vec3(0.299, 0.587, 0.114));
+        finalColor = mix(uColor1, uColor2, step(0.5, tearLuma));
+      }
+
+      // Random blocks of inverted dither
+      float blockX = floor(uv.x * 8.0);
+      float blockY = floor(uv.y * 8.0);
+      float blockNoise = random(vec2(blockX + blockY * 8.0, floor(uTime * 5.0)));
+      if (blockNoise > 0.9 - uAudioLevel * 0.3) {
+        finalColor = 1.0 - finalColor;
+      }
     }
 
     outputColor = vec4(finalColor, inputColor.a);
