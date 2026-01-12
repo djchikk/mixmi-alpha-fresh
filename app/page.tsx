@@ -2152,12 +2152,13 @@ export default function HomePage() {
             onEffectChange={setWebglActiveEffect}
             audioReactive={webglAudioReactive}
             onAudioReactiveChange={setWebglAudioReactive}
+            audioLevel={webglAudioLevel}
             onOpenSettings={() => setIsWebglFXPanelOpen(true)}
           />
 
-          {/* WebGL FX Panel - pops out below */}
+          {/* WebGL FX Panel - extends below control bar */}
           {isWebglFXPanelOpen && (
-            <div className="absolute top-full left-0 mt-1 z-50">
+            <div className="relative z-50">
               <WebGLFXPanel
                 isOpen={isWebglFXPanelOpen}
                 onClose={() => setIsWebglFXPanelOpen(false)}
