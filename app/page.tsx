@@ -113,6 +113,11 @@ const WebGLFXPanel = dynamic(() => import('@/components/mixer/compact/WebGLFXPan
   ssr: false
 });
 
+// Dynamically import WebGLControlBar - inline control bar below video
+const WebGLControlBar = dynamic(() => import('@/components/mixer/compact/WebGLControlBar'), {
+  ssr: false
+});
+
 export default function HomePage() {
   // Alpha app - no auth required for globe viewing
   const [selectedNode, setSelectedNode] = useState<TrackNode | null>(null);
@@ -2139,27 +2144,16 @@ export default function HomePage() {
             />
           </div>
 
-          {/* FX Button - opens FX panel */}
-          <div className="flex justify-end p-1 bg-slate-900/90 rounded-b-lg">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleWebglFXPanel();
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              className={`px-3 py-1 text-xs font-bold rounded transition-all ${
-                isWebglFXPanelOpen
-                  ? 'bg-cyan-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              FX
-            </button>
-          </div>
+          {/* Inline Control Bar - MIX and FX controls */}
+          <WebGLControlBar
+            crossfadeMode={crossfadeMode}
+            onCrossfadeModeChange={setCrossfadeMode}
+            activeEffect={webglActiveEffect}
+            onEffectChange={setWebglActiveEffect}
+            audioReactive={webglAudioReactive}
+            onAudioReactiveChange={setWebglAudioReactive}
+            onOpenSettings={toggleWebglFXPanel}
+          />
 
           {/* WebGL FX Panel - pops out below */}
           {isWebglFXPanelOpen && (
