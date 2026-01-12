@@ -25,6 +25,8 @@ interface WebGLFXPanelProps {
   onDitherColorChange: (color: string) => void
   ridiculousMode: boolean
   onRidiculousModeChange: (enabled: boolean) => void
+  saturation: number
+  onSaturationChange: (value: number) => void
   className?: string
 }
 
@@ -49,6 +51,8 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
   onDitherColorChange,
   ridiculousMode,
   onRidiculousModeChange,
+  saturation,
+  onSaturationChange,
   className = ''
 }: WebGLFXPanelProps) {
 
@@ -233,6 +237,22 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
             />
             <span className="text-[8px] font-mono text-slate-400 w-8 text-right">
               {Math.round(wetDry * 100)}%
+            </span>
+          </div>
+
+          {/* Saturation */}
+          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
+            <span className="text-[8px] font-bold uppercase text-slate-400 w-16">Saturate</span>
+            <input
+              type="range"
+              min="0"
+              max="200"
+              value={saturation * 100}
+              onChange={(e) => onSaturationChange(Number(e.target.value) / 100)}
+              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+            />
+            <span className="text-[8px] font-mono text-slate-400 w-8 text-right">
+              {Math.round(saturation * 100)}%
             </span>
           </div>
 

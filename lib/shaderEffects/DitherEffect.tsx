@@ -28,6 +28,7 @@ const fragmentShader = `
   uniform bool uAudioReactive;
   uniform bool uRidiculousMode;
   uniform float uTime;
+  uniform float uSaturation;
 
   // 8x8 Bayer matrix for ordered dithering
   const int bayerMatrix[64] = int[64](
@@ -140,6 +141,10 @@ const fragmentShader = `
       }
     }
 
+    // === SATURATION ===
+    float grayFinal = dot(finalColor, vec3(0.299, 0.587, 0.114));
+    finalColor = mix(vec3(grayFinal), finalColor, uSaturation);
+
     outputColor = vec4(finalColor, inputColor.a);
   }
 `
@@ -164,6 +169,7 @@ interface DitherEffectOptions {
   audioLevel?: number
   audioReactive?: boolean
   ridiculousMode?: boolean
+  saturation?: number
 }
 
 class DitherEffectImpl extends Effect {
@@ -177,6 +183,7 @@ class DitherEffectImpl extends Effect {
       audioLevel = 0,
       audioReactive = false,
       ridiculousMode = false,
+      saturation = 1.0,
     } = options
 
     const [r1, g1, b1] = hexToRgb(color1)
@@ -197,6 +204,7 @@ class DitherEffectImpl extends Effect {
         ["uAudioReactive", new Uniform(audioReactive)],
         ["uRidiculousMode", new Uniform(ridiculousMode)],
         ["uTime", new Uniform(0)],
+        ["uSaturation", new Uniform(saturation)],
       ]),
     })
   }
@@ -220,6 +228,7 @@ interface DitherEffectProps {
   audioLevel?: number
   audioReactive?: boolean
   ridiculousMode?: boolean
+  saturation?: number
 }
 
 export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((props, ref) => {
@@ -232,10 +241,11 @@ export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((pro
     audioLevel = 0,
     audioReactive = false,
     ridiculousMode = false,
+    saturation = 1.0,
   } = props
 
   const effect = useMemo(
-    () => new DitherEffectImpl({ intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive, ridiculousMode }),
+    () => new DitherEffectImpl({ intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive, ridiculousMode, saturation }),
     []
   )
 
@@ -252,7 +262,8 @@ export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((pro
     effect.uniforms.get("uAudioLevel")!.value = audioLevel
     effect.uniforms.get("uAudioReactive")!.value = audioReactive
     effect.uniforms.get("uRidiculousMode")!.value = ridiculousMode
-  }, [effect, intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive, ridiculousMode])
+    effect.uniforms.get("uSaturation")!.value = saturation
+  }, [effect, intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive, ridiculousMode, saturation])
 
   return <primitive ref={ref} object={effect} dispose={null} />
 })

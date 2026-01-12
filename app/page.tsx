@@ -174,6 +174,7 @@ export default function HomePage() {
   const [webglDitherColor, setWebglDitherColor] = useState('#ffffff');
   const [webglAudioLevel, setWebglAudioLevel] = useState(0);
   const [webglRidiculousMode, setWebglRidiculousMode] = useState(false);
+  const [webglSaturation, setWebglSaturation] = useState(1.0);
   const [isWebglFXPanelOpen, setIsWebglFXPanelOpen] = useState(false);
 
   // Pinned cards (draggable sticky notes)
@@ -2132,7 +2133,8 @@ export default function HomePage() {
                 audioReactive: webglAudioReactive,
                 ditherColor: webglDitherColor,
                 audioLevel: webglAudioLevel,
-                ridiculousMode: webglRidiculousMode
+                ridiculousMode: webglRidiculousMode,
+                saturation: webglSaturation
               }}
             />
           </div>
@@ -2181,6 +2183,8 @@ export default function HomePage() {
                 onDitherColorChange={setWebglDitherColor}
                 ridiculousMode={webglRidiculousMode}
                 onRidiculousModeChange={setWebglRidiculousMode}
+                saturation={webglSaturation}
+                onSaturationChange={setWebglSaturation}
               />
             </div>
           )}

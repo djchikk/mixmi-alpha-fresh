@@ -26,6 +26,7 @@ const fragmentShader = `
   uniform float uAudioLevel;
   uniform bool uAudioReactive;
   uniform bool uRidiculousMode;
+  uniform float uSaturation;
 
   // Pseudo-random function
   float rand(vec2 co) {
@@ -175,6 +176,10 @@ const fragmentShader = `
     // === WET/DRY MIX ===
     vec3 finalColor = mix(inputColor.rgb, color, uWetDry);
 
+    // === SATURATION ===
+    float gray = dot(finalColor, vec3(0.299, 0.587, 0.114));
+    finalColor = mix(vec3(gray), finalColor, uSaturation);
+
     outputColor = vec4(finalColor, 1.0);
   }
 `
@@ -188,6 +193,7 @@ interface VhsGlitchEffectOptions {
   audioLevel?: number
   audioReactive?: boolean
   ridiculousMode?: boolean
+  saturation?: number
 }
 
 class VhsGlitchEffectImpl extends Effect {
@@ -201,6 +207,7 @@ class VhsGlitchEffectImpl extends Effect {
       audioLevel = 0,
       audioReactive = false,
       ridiculousMode = false,
+      saturation = 1.0,
     } = options
 
     super("VhsGlitchEffect", fragmentShader, {
@@ -214,6 +221,7 @@ class VhsGlitchEffectImpl extends Effect {
         ["uAudioLevel", new Uniform(audioLevel)],
         ["uAudioReactive", new Uniform(audioReactive)],
         ["uRidiculousMode", new Uniform(ridiculousMode)],
+        ["uSaturation", new Uniform(saturation)],
       ]),
     })
   }
@@ -237,6 +245,7 @@ interface VhsGlitchEffectProps {
   audioLevel?: number
   audioReactive?: boolean
   ridiculousMode?: boolean
+  saturation?: number
 }
 
 export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectProps>((props, ref) => {
@@ -249,11 +258,12 @@ export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectPr
     audioLevel = 0,
     audioReactive = false,
     ridiculousMode = false,
+    saturation = 1.0,
   } = props
 
   const effect = useMemo(
     () => new VhsGlitchEffectImpl({
-      intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive, ridiculousMode
+      intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive, ridiculousMode, saturation
     }),
     []
   )
@@ -268,7 +278,8 @@ export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectPr
     effect.uniforms.get("uAudioLevel")!.value = audioLevel
     effect.uniforms.get("uAudioReactive")!.value = audioReactive
     effect.uniforms.get("uRidiculousMode")!.value = ridiculousMode
-  }, [effect, intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive, ridiculousMode])
+    effect.uniforms.get("uSaturation")!.value = saturation
+  }, [effect, intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive, ridiculousMode, saturation])
 
   return <primitive ref={ref} object={effect} dispose={null} />
 })

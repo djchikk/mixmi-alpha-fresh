@@ -26,6 +26,7 @@ const fragmentShader = `
   uniform float uAudioLevel;
   uniform bool uAudioReactive;
   uniform bool uRidiculousMode;
+  uniform float uSaturation;
 
   // Helper functions
   float random(vec2 st) {
@@ -148,43 +149,49 @@ const fragmentShader = `
 
     // === RIDICULOUS MODE EFFECTS ===
     if (uRidiculousMode && uAudioReactive) {
-      // Invert to negative on strong beats
-      if (uAudioLevel > 0.7) {
+      // Negative flash on strong beats (not white, inverted)
+      if (uAudioLevel > 0.75 && random(vec2(floor(uTime * 10.0), 0.0)) > 0.5) {
         finalColor = 1.0 - finalColor;
       }
 
-      // Glitchy horizontal offset - whole rows shift
-      if (uAudioLevel > 0.5) {
-        float rowNoise = random(vec2(floor(uv.y * 20.0), floor(uTime * 8.0)));
-        if (rowNoise > 0.7) {
-          // Re-sample with horizontal offset for glitch rows
-          vec2 glitchUV = uv + vec2((rowNoise - 0.5) * 0.3 * uAudioLevel, 0.0);
-          vec4 glitchColor = texture2D(inputBuffer, glitchUV);
-          finalColor = mix(finalColor, glitchColor.rgb, uAudioLevel);
-        }
+      // "Matrix rain" - vertical streaks that fall down
+      float rainColumn = floor(uv.x * 40.0);
+      float rainSpeed = random(vec2(rainColumn, 0.0)) * 2.0 + 1.0;
+      float rainPhase = fract(uv.y + uTime * rainSpeed * 0.5);
+      float rainBrightness = smoothstep(0.0, 0.3, rainPhase) * smoothstep(1.0, 0.5, rainPhase);
+      if (random(vec2(rainColumn, floor(uTime * 3.0))) > 0.7 - uAudioLevel * 0.3) {
+        finalColor = mix(finalColor, finalColor * (0.5 + rainBrightness), uAudioLevel * 0.7);
       }
 
-      // Strobe flash on peaks
-      if (uAudioLevel > 0.8 && random(vec2(floor(uTime * 15.0), 0.0)) > 0.6) {
-        finalColor = vec3(1.0);
+      // Color tint cycling - shifts through cyan/magenta/yellow
+      float tintPhase = uTime * 2.0 + uAudioLevel * 3.0;
+      vec3 tint = vec3(
+        0.5 + 0.5 * sin(tintPhase),
+        0.5 + 0.5 * sin(tintPhase + 2.094),
+        0.5 + 0.5 * sin(tintPhase + 4.188)
+      );
+      finalColor = mix(finalColor, finalColor * tint * 1.5, uAudioLevel * 0.5);
+
+      // Scanline intensity boost - makes them much more visible
+      float scanlinePulse = sin(uv.y * 200.0 + uTime * 20.0) * 0.5 + 0.5;
+      finalColor *= 1.0 - (scanlinePulse * uAudioLevel * 0.4);
+
+      // Random block glitches - small squares that invert
+      float blockX = floor(uv.x * 16.0);
+      float blockY = floor(uv.y * 16.0);
+      float blockNoise = random(vec2(blockX + blockY * 16.0, floor(uTime * 8.0)));
+      if (blockNoise > 0.92 - uAudioLevel * 0.15) {
+        finalColor = 1.0 - finalColor;
       }
 
-      // Extreme contrast pumping
-      float contrastPump = 1.0 + uAudioLevel * 3.0;
-      finalColor = (finalColor - 0.5) * contrastPump + 0.5;
-      finalColor = clamp(finalColor, 0.0, 1.0);
-
-      // Random color channel boost (not swap) - more subtle than full rainbow
-      float channelBoost = random(vec2(floor(uTime * 4.0), 1.0));
-      if (channelBoost < 0.33) {
-        finalColor.r *= 1.0 + uAudioLevel;
-      } else if (channelBoost < 0.66) {
-        finalColor.g *= 1.0 + uAudioLevel;
-      } else {
-        finalColor.b *= 1.0 + uAudioLevel;
-      }
+      // Subtle brightness pump with audio
+      finalColor *= 0.8 + uAudioLevel * 0.5;
       finalColor = clamp(finalColor, 0.0, 1.0);
     }
+
+    // === SATURATION ===
+    float grayFinal = dot(finalColor, vec3(0.299, 0.587, 0.114));
+    finalColor = mix(vec3(grayFinal), finalColor, uSaturation);
 
     outputColor = vec4(finalColor, 1.0);
   }
@@ -199,6 +206,7 @@ interface AsciiEffectOptions {
   audioLevel?: number
   audioReactive?: boolean
   ridiculousMode?: boolean
+  saturation?: number
 }
 
 class AsciiEffectImpl extends Effect {
@@ -212,6 +220,7 @@ class AsciiEffectImpl extends Effect {
       audioLevel = 0,
       audioReactive = false,
       ridiculousMode = false,
+      saturation = 1.0,
     } = options
 
     super("AsciiEffect", fragmentShader, {
@@ -227,6 +236,7 @@ class AsciiEffectImpl extends Effect {
         ["uAudioLevel", new Uniform(audioLevel)],
         ["uAudioReactive", new Uniform(audioReactive)],
         ["uRidiculousMode", new Uniform(ridiculousMode)],
+        ["uSaturation", new Uniform(saturation)],
       ]),
     })
   }
@@ -250,6 +260,7 @@ interface AsciiEffectProps {
   audioLevel?: number
   audioReactive?: boolean
   ridiculousMode?: boolean
+  saturation?: number
 }
 
 export const AsciiEffect = forwardRef<AsciiEffectImpl, AsciiEffectProps>((props, ref) => {
@@ -262,10 +273,11 @@ export const AsciiEffect = forwardRef<AsciiEffectImpl, AsciiEffectProps>((props,
     audioLevel = 0,
     audioReactive = false,
     ridiculousMode = false,
+    saturation = 1.0,
   } = props
 
   const effect = useMemo(
-    () => new AsciiEffectImpl({ intensity, granularity, wetDry, colorMode, resolution, audioLevel, audioReactive, ridiculousMode }),
+    () => new AsciiEffectImpl({ intensity, granularity, wetDry, colorMode, resolution, audioLevel, audioReactive, ridiculousMode, saturation }),
     []
   )
 
@@ -279,7 +291,8 @@ export const AsciiEffect = forwardRef<AsciiEffectImpl, AsciiEffectProps>((props,
     effect.uniforms.get("uAudioLevel")!.value = audioLevel
     effect.uniforms.get("uAudioReactive")!.value = audioReactive
     effect.uniforms.get("uRidiculousMode")!.value = ridiculousMode
-  }, [effect, intensity, granularity, wetDry, colorMode, resolution, audioLevel, audioReactive, ridiculousMode])
+    effect.uniforms.get("uSaturation")!.value = saturation
+  }, [effect, intensity, granularity, wetDry, colorMode, resolution, audioLevel, audioReactive, ridiculousMode, saturation])
 
   return <primitive ref={ref} object={effect} dispose={null} />
 })

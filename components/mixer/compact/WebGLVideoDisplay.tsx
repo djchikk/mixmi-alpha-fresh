@@ -22,6 +22,7 @@ interface WebGLVideoEffects {
   ditherColor?: string   // Hex color for dither effect (default white)
   audioLevel?: number    // 0-1, from audio analyzer
   ridiculousMode?: boolean // Enable extreme effects when audio reactive
+  saturation?: number    // 0-2, where 0=grayscale, 1=normal, 2=oversaturated
 }
 
 interface WebGLVideoDisplayProps {
@@ -385,6 +386,7 @@ export default function WebGLVideoDisplay({
               audioLevel={effects.audioLevel || 0}
               audioReactive={effects.audioReactive}
               ridiculousMode={effects.ridiculousMode || false}
+              saturation={effects.saturation ?? 1.0}
             />
           )}
           {effects.activeEffect === 'ascii' && (
@@ -397,6 +399,7 @@ export default function WebGLVideoDisplay({
               audioLevel={effects.audioLevel || 0}
               audioReactive={effects.audioReactive}
               ridiculousMode={effects.ridiculousMode || false}
+              saturation={effects.saturation ?? 1.0}
             />
           )}
           {effects.activeEffect === 'dither' && (
@@ -409,6 +412,7 @@ export default function WebGLVideoDisplay({
               audioLevel={effects.audioLevel || 0}
               audioReactive={effects.audioReactive}
               ridiculousMode={effects.ridiculousMode || false}
+              saturation={effects.saturation ?? 1.0}
             />
           )}
         </EffectComposer>
