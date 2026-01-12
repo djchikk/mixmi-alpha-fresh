@@ -152,7 +152,6 @@ function VideoPlane({
 
   // Apply crop data to texture if available
   if (textureRef.current && cropX != null && cropY != null && cropWidth && cropHeight && videoNaturalWidth && videoNaturalHeight) {
-    console.log('🎬 WebGL Crop Data:', { cropX, cropY, cropWidth, cropHeight, cropZoom, videoNaturalWidth, videoNaturalHeight })
 
     // Calculate UV offset and repeat to show only the cropped region
     // UV coordinates go from 0-1, so we need to normalize the crop values
@@ -180,15 +179,12 @@ function VideoPlane({
     const offsetX = effectiveCropX / videoNaturalWidth
     const offsetY = 1 - (effectiveCropY / videoNaturalHeight) - repeatY
 
-    console.log('📐 WebGL UV:', { repeatX, repeatY, offsetX, offsetY })
-
     // Set texture wrapping to clamp (prevents tiling)
     textureRef.current.wrapS = THREE.ClampToEdgeWrapping
     textureRef.current.wrapT = THREE.ClampToEdgeWrapping
     textureRef.current.repeat.set(repeatX, repeatY)
     textureRef.current.offset.set(offsetX, offsetY)
   } else if (textureRef.current) {
-    console.log('⚠️ WebGL: No crop data, showing full texture')
     // No crop data - show full texture
     textureRef.current.wrapS = THREE.ClampToEdgeWrapping
     textureRef.current.wrapT = THREE.ClampToEdgeWrapping
