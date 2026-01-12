@@ -71,97 +71,109 @@ const WebGLControlBar = memo(function WebGLControlBar({
         {/* FX Section */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold uppercase text-white/90">FX:</span>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {/* VHS - Pink */}
-            <button
-              onClick={() => handleEffectToggle('vhs')}
-              className="relative overflow-hidden transition-all active:scale-95"
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '5px',
-                backgroundColor: '#000000',
-                boxShadow: activeEffect === 'vhs' ? '0 0 10px rgba(236, 132, 243, 0.5)' : 'none'
-              }}
-              title="VHS Glitch - Click to toggle"
-            >
-              <div
-                className="absolute inset-0 transition-opacity duration-200"
+            <div className="flex flex-col items-center gap-0.5">
+              <button
+                onClick={() => handleEffectToggle('vhs')}
+                className="relative overflow-hidden transition-all active:scale-95"
                 style={{
-                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #F3C2F7 30%, #EC84F3 100%)',
-                  opacity: activeEffect === 'vhs' ? 1 : 0.65
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '5px',
+                  backgroundColor: '#000000',
+                  boxShadow: activeEffect === 'vhs' ? '0 0 10px rgba(236, 132, 243, 0.5)' : 'none'
                 }}
-              />
-            </button>
+                title="VHS Glitch - Click to toggle"
+              >
+                <div
+                  className="absolute inset-0 transition-opacity duration-200"
+                  style={{
+                    background: 'radial-gradient(circle at center, #FFFFFF 0%, #F3C2F7 30%, #EC84F3 100%)',
+                    opacity: activeEffect === 'vhs' ? 1 : 0.65
+                  }}
+                />
+              </button>
+              <span className="text-[7px] font-bold uppercase text-slate-500">VHS</span>
+            </div>
 
             {/* ASCII - Orange */}
-            <button
-              onClick={() => handleEffectToggle('ascii')}
-              className="relative overflow-hidden transition-all active:scale-95"
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '5px',
-                backgroundColor: '#000000',
-                boxShadow: activeEffect === 'ascii' ? '0 0 10px rgba(255, 171, 107, 0.5)' : 'none'
-              }}
-              title="ASCII - Click to toggle"
-            >
-              <div
-                className="absolute inset-0 transition-opacity duration-200"
+            <div className="flex flex-col items-center gap-0.5">
+              <button
+                onClick={() => handleEffectToggle('ascii')}
+                className="relative overflow-hidden transition-all active:scale-95"
                 style={{
-                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)',
-                  opacity: activeEffect === 'ascii' ? 1 : 0.65
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '5px',
+                  backgroundColor: '#000000',
+                  boxShadow: activeEffect === 'ascii' ? '0 0 10px rgba(255, 171, 107, 0.5)' : 'none'
                 }}
-              />
-            </button>
+                title="ASCII - Click to toggle"
+              >
+                <div
+                  className="absolute inset-0 transition-opacity duration-200"
+                  style={{
+                    background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)',
+                    opacity: activeEffect === 'ascii' ? 1 : 0.65
+                  }}
+                />
+              </button>
+              <span className="text-[7px] font-bold uppercase text-slate-500">ASCII</span>
+            </div>
 
             {/* Dither - Yellow-green */}
-            <button
-              onClick={() => handleEffectToggle('dither')}
-              className="relative overflow-hidden transition-all active:scale-95"
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '5px',
-                backgroundColor: '#000000',
-                boxShadow: activeEffect === 'dither' ? '0 0 10px rgba(255, 230, 107, 0.5)' : 'none'
-              }}
-              title="Dither - Click to toggle"
-            >
-              <div
-                className="absolute inset-0 transition-opacity duration-200"
+            <div className="flex flex-col items-center gap-0.5">
+              <button
+                onClick={() => handleEffectToggle('dither')}
+                className="relative overflow-hidden transition-all active:scale-95"
                 style={{
-                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFF9A3 30%, #FFE66B 100%)',
-                  opacity: activeEffect === 'dither' ? 1 : 0.65
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '5px',
+                  backgroundColor: '#000000',
+                  boxShadow: activeEffect === 'dither' ? '0 0 10px rgba(255, 230, 107, 0.5)' : 'none'
                 }}
-              />
-            </button>
+                title="Dither - Click to toggle"
+              >
+                <div
+                  className="absolute inset-0 transition-opacity duration-200"
+                  style={{
+                    background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFF9A3 30%, #FFE66B 100%)',
+                    opacity: activeEffect === 'dither' ? 1 : 0.65
+                  }}
+                />
+              </button>
+              <span className="text-[7px] font-bold uppercase text-slate-500">DTHR</span>
+            </div>
 
             {/* Audio Reactive - Green */}
-            <button
-              onClick={handleReactiveToggle}
-              className="relative overflow-hidden transition-all active:scale-95"
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '5px',
-                backgroundColor: '#000000',
-                boxShadow: audioReactive ? '0 0 10px rgba(107, 255, 170, 0.5)' : 'none'
-              }}
-              title="Audio Reactive - Click to toggle"
-            >
-              <div
-                className="absolute inset-0 transition-opacity duration-200"
+            <div className="flex flex-col items-center gap-0.5">
+              <button
+                onClick={handleReactiveToggle}
+                className="relative overflow-hidden transition-all active:scale-95"
                 style={{
-                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
-                  opacity: audioReactive ? 1 : 0.65
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '5px',
+                  backgroundColor: '#000000',
+                  boxShadow: audioReactive ? '0 0 10px rgba(107, 255, 170, 0.5)' : 'none'
                 }}
-              />
-              {audioReactive && (
-                <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              )}
-            </button>
+                title="Audio Reactive - Click to toggle"
+              >
+                <div
+                  className="absolute inset-0 transition-opacity duration-200"
+                  style={{
+                    background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
+                    opacity: audioReactive ? 1 : 0.65
+                  }}
+                />
+                {audioReactive && (
+                  <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                )}
+              </button>
+              <span className="text-[7px] font-bold uppercase text-slate-500">REACT</span>
+            </div>
 
             {/* Settings Button - Opens FX Panel for sliders */}
             <button

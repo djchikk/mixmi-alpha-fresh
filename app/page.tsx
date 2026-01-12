@@ -2161,10 +2161,7 @@ export default function HomePage() {
               <WebGLFXPanel
                 isOpen={isWebglFXPanelOpen}
                 onClose={() => setIsWebglFXPanelOpen(false)}
-                crossfadeMode={crossfadeMode}
-                onCrossfadeModeChange={setCrossfadeMode}
                 activeEffect={webglActiveEffect}
-                onEffectChange={setWebglActiveEffect}
                 intensity={webglIntensity}
                 onIntensityChange={setWebglIntensity}
                 granularity={webglGranularity}
@@ -2172,7 +2169,6 @@ export default function HomePage() {
                 wetDry={webglWetDry}
                 onWetDryChange={setWebglWetDry}
                 audioReactive={webglAudioReactive}
-                onAudioReactiveChange={setWebglAudioReactive}
                 ditherColor={webglDitherColor}
                 onDitherColorChange={setWebglDitherColor}
                 ridiculousMode={webglRidiculousMode}
