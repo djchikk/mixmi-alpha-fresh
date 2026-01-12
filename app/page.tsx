@@ -2073,7 +2073,7 @@ export default function HomePage() {
             bottom: videoDisplayPosition.y === 0 ? '508px' : 'auto',
             transform: videoDisplayPosition.x === 0 ? 'translateX(-50%)' : 'none',
             width: '408px',
-            zIndex: isDraggingVideo ? 200 : 30,
+            zIndex: isDraggingVideo ? 200 : 40,
             cursor: isDraggingVideo ? 'grabbing' : 'grab'
           }}
           onMouseDown={handleVideoMouseDown}
