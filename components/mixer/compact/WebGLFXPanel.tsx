@@ -1,6 +1,6 @@
 "use client"
 
-import React, { memo } from 'react'
+import React, { memo, useState } from 'react'
 import { WebGLEffectType } from './WebGLVideoDisplay'
 import Knob from './Knob'
 
@@ -46,16 +46,26 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
   className = ''
 }: WebGLFXPanelProps) {
 
+  const [isHovered, setIsHovered] = useState(false)
+  const [showAttribution, setShowAttribution] = useState(false)
+
   if (!isOpen) return null
 
   const currentEffect = activeEffect
   const showControls = currentEffect !== null
 
   return (
-    <div className={`webgl-fx-panel bg-black/90 backdrop-blur-sm rounded-t-none overflow-hidden flex flex-col ${className}`}>
+    <div
+      className={`webgl-fx-panel bg-black/90 backdrop-blur-sm rounded-t-none flex flex-col relative ${className}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false)
+        setShowAttribution(false)
+      }}
+    >
       {/* Controls - Only show when effect is active */}
       {showControls && (
-        <div className="px-3 py-2 space-y-1.5">
+        <div className="px-3 py-2 space-y-1.5 relative">
           {/* Knob Controls Row with optional Boost button */}
           <div className="flex justify-center items-start gap-4 py-2" onMouseDown={(e) => e.stopPropagation()}>
             <Knob
@@ -148,6 +158,49 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
                     title={preset.name}
                   />
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Info icon - appears on hover */}
+          <button
+            onClick={() => setShowAttribution(!showAttribution)}
+            className={`absolute left-2 bottom-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-200 ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            } ${
+              showAttribution
+                ? 'bg-slate-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
+            }`}
+            title="FX Credits"
+          >
+            i
+          </button>
+
+          {/* Attribution popover */}
+          {showAttribution && (
+            <div className="absolute left-2 bottom-8 bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl z-[100] w-56">
+              <div className="text-[9px] font-bold uppercase text-slate-400 mb-2">FX Pipeline Credits</div>
+              <div className="space-y-1.5 text-[8px] text-slate-300">
+                <div>
+                  <span className="text-slate-500">Vision & Design:</span>
+                  <br />Sandy Hoover (Mixmi)
+                </div>
+                <div>
+                  <span className="text-slate-500">Planning:</span>
+                  <br />Claude (Anthropic)
+                </div>
+                <div>
+                  <span className="text-slate-500">Implementation:</span>
+                  <br />Claude Code (Opus 4.5)
+                </div>
+                <div>
+                  <span className="text-slate-500">Shader Inspiration:</span>
+                  <br />Pablo Stanley / <a href="https://efecto.app" target="_blank" rel="noopener noreferrer" className="text-[#5BB5F9] hover:underline">efecto.app</a>
+                </div>
+              </div>
+              <div className="text-[7px] text-slate-500 mt-2 pt-2 border-t border-slate-700">
+                January 2026
               </div>
             </div>
           )}
