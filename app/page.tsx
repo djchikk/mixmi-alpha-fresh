@@ -2169,6 +2169,7 @@ export default function HomePage() {
                 wetDry={webglWetDry}
                 onWetDryChange={setWebglWetDry}
                 audioReactive={webglAudioReactive}
+                audioLevel={webglAudioLevel}
                 ditherColor={webglDitherColor}
                 onDitherColorChange={setWebglDitherColor}
                 ridiculousMode={webglRidiculousMode}
