@@ -3,6 +3,7 @@
 import React, { memo } from 'react'
 import { X } from 'lucide-react'
 import { WebGLEffectType } from './WebGLVideoDisplay'
+import Knob from './Knob'
 
 interface WebGLFXPanelProps {
   isOpen: boolean
@@ -120,68 +121,34 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
             </div>
           )}
 
-          {/* Intensity */}
-          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Intensity</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={intensity * 100}
-              onChange={(e) => onIntensityChange(Number(e.target.value) / 100)}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#81E4F2]"
+          {/* Knob Controls Row */}
+          <div className="flex justify-center gap-4 py-2" onMouseDown={(e) => e.stopPropagation()}>
+            <Knob
+              value={intensity}
+              onChange={onIntensityChange}
+              label="INT"
+              size={32}
             />
-            <span className="text-[8px] font-mono text-slate-500 w-7 text-right">
-              {Math.round(intensity * 100)}%
-            </span>
-          </div>
-
-          {/* Granularity */}
-          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Grain</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={granularity * 100}
-              onChange={(e) => onGranularityChange(Number(e.target.value) / 100)}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#81E4F2]"
+            <Knob
+              value={granularity}
+              onChange={onGranularityChange}
+              label="GRAIN"
+              size={32}
             />
-            <span className="text-[8px] font-mono text-slate-500 w-7 text-right">
-              {Math.round(granularity * 100)}%
-            </span>
-          </div>
-
-          {/* Wet/Dry */}
-          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Wet/Dry</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={wetDry * 100}
-              onChange={(e) => onWetDryChange(Number(e.target.value) / 100)}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#81E4F2]"
+            <Knob
+              value={wetDry}
+              onChange={onWetDryChange}
+              label="WET"
+              size={32}
             />
-            <span className="text-[8px] font-mono text-slate-500 w-7 text-right">
-              {Math.round(wetDry * 100)}%
-            </span>
-          </div>
-
-          {/* Saturation */}
-          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Saturate</span>
-            <input
-              type="range"
-              min="0"
-              max="200"
-              value={saturation * 100}
-              onChange={(e) => onSaturationChange(Number(e.target.value) / 100)}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#81E4F2]"
+            <Knob
+              value={saturation}
+              onChange={onSaturationChange}
+              label="SAT"
+              size={32}
+              min={0}
+              max={2}
             />
-            <span className="text-[8px] font-mono text-slate-500 w-7 text-right">
-              {Math.round(saturation * 100)}%
-            </span>
           </div>
 
           {/* Dither Color - Only show when dither is active */}
