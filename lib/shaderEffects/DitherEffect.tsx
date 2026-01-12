@@ -26,6 +26,8 @@ const fragmentShader = `
   uniform vec3 uColor2;
   uniform float uAudioLevel;
   uniform bool uAudioReactive;
+  uniform bool uRidiculousMode;
+  uniform float uTime;
 
   // 8x8 Bayer matrix for ordered dithering
   const int bayerMatrix[64] = int[64](
@@ -43,6 +45,11 @@ const fragmentShader = `
     int x = int(mod(coord.x, 8.0));
     int y = int(mod(coord.y, 8.0));
     return float(bayerMatrix[y * 8 + x]) / 64.0;
+  }
+
+  // Random function for ridiculous mode
+  float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
   }
 
   void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
@@ -95,6 +102,40 @@ const fragmentShader = `
     // Mix with original based on wet/dry
     vec3 finalColor = mix(inputColor.rgb, ditheredColor, uWetDry);
 
+    // === RIDICULOUS MODE EFFECTS ===
+    if (uRidiculousMode && uAudioReactive) {
+      // Swap colors on beats
+      if (uAudioLevel > 0.6) {
+        finalColor = 1.0 - finalColor;
+      }
+
+      // Rainbow cycling through the dither
+      float hueShift = uv.y * 3.14159 + uTime * 3.0 + uAudioLevel * 6.28318;
+      float cosH = cos(hueShift);
+      float sinH = sin(hueShift);
+      mat3 hueMatrix = mat3(
+        0.299 + 0.701*cosH + 0.168*sinH, 0.587 - 0.587*cosH + 0.330*sinH, 0.114 - 0.114*cosH - 0.497*sinH,
+        0.299 - 0.299*cosH - 0.328*sinH, 0.587 + 0.413*cosH + 0.035*sinH, 0.114 - 0.114*cosH + 0.292*sinH,
+        0.299 - 0.300*cosH + 1.250*sinH, 0.587 - 0.588*cosH - 1.050*sinH, 0.114 + 0.886*cosH - 0.203*sinH
+      );
+      finalColor = hueMatrix * finalColor;
+
+      // Extreme saturation on peaks
+      if (uAudioLevel > 0.5) {
+        float gray = dot(finalColor, vec3(0.299, 0.587, 0.114));
+        finalColor = mix(vec3(gray), finalColor, 1.0 + uAudioLevel * 4.0);
+      }
+
+      // Random color channel swapping
+      if (uAudioLevel > 0.75 && random(vec2(floor(uTime * 4.0), 0.0)) > 0.5) {
+        finalColor = finalColor.brg;
+      }
+
+      // Bright neon boost
+      finalColor = finalColor * (1.2 + uAudioLevel * 1.5);
+      finalColor = clamp(finalColor, 0.0, 1.0);
+    }
+
     outputColor = vec4(finalColor, inputColor.a);
   }
 `
@@ -118,6 +159,7 @@ interface DitherEffectOptions {
   color2?: string
   audioLevel?: number
   audioReactive?: boolean
+  ridiculousMode?: boolean
 }
 
 class DitherEffectImpl extends Effect {
@@ -130,6 +172,7 @@ class DitherEffectImpl extends Effect {
       color2 = "#ffffff",
       audioLevel = 0,
       audioReactive = false,
+      ridiculousMode = false,
     } = options
 
     const [r1, g1, b1] = hexToRgb(color1)
@@ -148,8 +191,19 @@ class DitherEffectImpl extends Effect {
         ["uColor2", new Uniform([r2, g2, b2])],
         ["uAudioLevel", new Uniform(audioLevel)],
         ["uAudioReactive", new Uniform(audioReactive)],
+        ["uRidiculousMode", new Uniform(ridiculousMode)],
+        ["uTime", new Uniform(0)],
       ]),
     })
+  }
+
+  update(_renderer: any, _inputBuffer: any, deltaTime?: number) {
+    if (deltaTime) {
+      const timeUniform = this.uniforms.get("uTime")
+      if (timeUniform) {
+        timeUniform.value += deltaTime
+      }
+    }
   }
 }
 
@@ -161,6 +215,7 @@ interface DitherEffectProps {
   color2?: string
   audioLevel?: number
   audioReactive?: boolean
+  ridiculousMode?: boolean
 }
 
 export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((props, ref) => {
@@ -172,10 +227,11 @@ export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((pro
     color2 = "#ffffff",
     audioLevel = 0,
     audioReactive = false,
+    ridiculousMode = false,
   } = props
 
   const effect = useMemo(
-    () => new DitherEffectImpl({ intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive }),
+    () => new DitherEffectImpl({ intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive, ridiculousMode }),
     []
   )
 
@@ -191,7 +247,8 @@ export const DitherEffect = forwardRef<DitherEffectImpl, DitherEffectProps>((pro
     effect.uniforms.get("uColor2")!.value = [r2, g2, b2]
     effect.uniforms.get("uAudioLevel")!.value = audioLevel
     effect.uniforms.get("uAudioReactive")!.value = audioReactive
-  }, [effect, intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive])
+    effect.uniforms.get("uRidiculousMode")!.value = ridiculousMode
+  }, [effect, intensity, granularity, wetDry, color1, color2, audioLevel, audioReactive, ridiculousMode])
 
   return <primitive ref={ref} object={effect} dispose={null} />
 })

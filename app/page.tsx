@@ -2131,7 +2131,8 @@ export default function HomePage() {
                 wetDry: webglWetDry,
                 audioReactive: webglAudioReactive,
                 ditherColor: webglDitherColor,
-                audioLevel: webglAudioLevel
+                audioLevel: webglAudioLevel,
+                ridiculousMode: webglRidiculousMode
               }}
             />
           </div>

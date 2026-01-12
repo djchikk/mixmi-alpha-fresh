@@ -25,6 +25,7 @@ const fragmentShader = `
   uniform bool uAnimated;
   uniform float uAudioLevel;
   uniform bool uAudioReactive;
+  uniform bool uRidiculousMode;
 
   // Pseudo-random function
   float rand(vec2 co) {
@@ -143,6 +144,34 @@ const fragmentShader = `
       color += grainNoise - (0.025 * grainAmount);
     }
 
+    // === RIDICULOUS MODE EFFECTS ===
+    if (uRidiculousMode && uAudioReactive) {
+      // Invert colors on strong beats
+      if (uAudioLevel > 0.7) {
+        color = 1.0 - color;
+      }
+
+      // Extreme saturation boost
+      float gray = dot(color, vec3(0.299, 0.587, 0.114));
+      color = mix(vec3(gray), color, 1.0 + uAudioLevel * 3.0);
+
+      // Hue rotation based on audio
+      float hueShift = uAudioLevel * 6.28318; // Full rotation at max
+      float cosH = cos(hueShift);
+      float sinH = sin(hueShift);
+      mat3 hueMatrix = mat3(
+        0.299 + 0.701*cosH + 0.168*sinH, 0.587 - 0.587*cosH + 0.330*sinH, 0.114 - 0.114*cosH - 0.497*sinH,
+        0.299 - 0.299*cosH - 0.328*sinH, 0.587 + 0.413*cosH + 0.035*sinH, 0.114 - 0.114*cosH + 0.292*sinH,
+        0.299 - 0.300*cosH + 1.250*sinH, 0.587 - 0.588*cosH - 1.050*sinH, 0.114 + 0.886*cosH - 0.203*sinH
+      );
+      color = hueMatrix * color;
+
+      // Random color channel swap on peaks
+      if (uAudioLevel > 0.8 && rand(vec2(floor(t * 5.0), 0.0)) > 0.5) {
+        color = color.gbr;
+      }
+    }
+
     // === WET/DRY MIX ===
     vec3 finalColor = mix(inputColor.rgb, color, uWetDry);
 
@@ -158,6 +187,7 @@ interface VhsGlitchEffectOptions {
   animated?: boolean
   audioLevel?: number
   audioReactive?: boolean
+  ridiculousMode?: boolean
 }
 
 class VhsGlitchEffectImpl extends Effect {
@@ -170,6 +200,7 @@ class VhsGlitchEffectImpl extends Effect {
       animated = true,
       audioLevel = 0,
       audioReactive = false,
+      ridiculousMode = false,
     } = options
 
     super("VhsGlitchEffect", fragmentShader, {
@@ -182,6 +213,7 @@ class VhsGlitchEffectImpl extends Effect {
         ["uAnimated", new Uniform(animated)],
         ["uAudioLevel", new Uniform(audioLevel)],
         ["uAudioReactive", new Uniform(audioReactive)],
+        ["uRidiculousMode", new Uniform(ridiculousMode)],
       ]),
     })
   }
@@ -204,6 +236,7 @@ interface VhsGlitchEffectProps {
   animated?: boolean
   audioLevel?: number
   audioReactive?: boolean
+  ridiculousMode?: boolean
 }
 
 export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectProps>((props, ref) => {
@@ -215,11 +248,12 @@ export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectPr
     animated = true,
     audioLevel = 0,
     audioReactive = false,
+    ridiculousMode = false,
   } = props
 
   const effect = useMemo(
     () => new VhsGlitchEffectImpl({
-      intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive
+      intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive, ridiculousMode
     }),
     []
   )
@@ -233,7 +267,8 @@ export const VhsGlitchEffect = forwardRef<VhsGlitchEffectImpl, VhsGlitchEffectPr
     effect.uniforms.get("uAnimated")!.value = animated
     effect.uniforms.get("uAudioLevel")!.value = audioLevel
     effect.uniforms.get("uAudioReactive")!.value = audioReactive
-  }, [effect, intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive])
+    effect.uniforms.get("uRidiculousMode")!.value = ridiculousMode
+  }, [effect, intensity, granularity, wetDry, speed, animated, audioLevel, audioReactive, ridiculousMode])
 
   return <primitive ref={ref} object={effect} dispose={null} />
 })
