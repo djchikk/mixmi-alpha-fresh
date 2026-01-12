@@ -23,6 +23,8 @@ interface WebGLFXPanelProps {
   onAudioReactiveChange: (enabled: boolean) => void
   ditherColor: string
   onDitherColorChange: (color: string) => void
+  ridiculousMode: boolean
+  onRidiculousModeChange: (enabled: boolean) => void
   className?: string
 }
 
@@ -45,6 +47,8 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
   onAudioReactiveChange,
   ditherColor,
   onDitherColorChange,
+  ridiculousMode,
+  onRidiculousModeChange,
   className = ''
 }: WebGLFXPanelProps) {
 
@@ -164,6 +168,21 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
             )}
           </button>
         </div>
+
+        {/* RIDICULOUS MODE - Only show when audio reactive is on */}
+        {audioReactive && (
+          <button
+            onClick={() => onRidiculousModeChange(!ridiculousMode)}
+            className={`w-full py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all ${
+              ridiculousMode
+                ? 'bg-gradient-to-r from-fuchsia-500 via-red-500 to-yellow-500 text-white shadow-lg shadow-fuchsia-500/50 animate-pulse'
+                : 'bg-slate-800 border border-fuchsia-400/30 text-fuchsia-400 hover:border-fuchsia-400 hover:bg-slate-700'
+            }`}
+            title="RIDICULOUS MODE - Crank everything to absurd levels"
+          >
+            {ridiculousMode ? '🔥 RIDICULOUS 🔥' : 'RIDICULOUS'}
+          </button>
+        )}
       </div>
 
       {/* Universal Controls - Only show when effect is active */}

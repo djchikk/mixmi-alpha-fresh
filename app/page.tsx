@@ -173,6 +173,7 @@ export default function HomePage() {
   const [webglAudioReactive, setWebglAudioReactive] = useState(false);
   const [webglDitherColor, setWebglDitherColor] = useState('#ffffff');
   const [webglAudioLevel, setWebglAudioLevel] = useState(0);
+  const [webglRidiculousMode, setWebglRidiculousMode] = useState(false);
   const [isWebglFXPanelOpen, setIsWebglFXPanelOpen] = useState(false);
 
   // Pinned cards (draggable sticky notes)
@@ -504,7 +505,9 @@ export default function HomePage() {
       }
 
       // Apply smoothing and boost for visual effect
-      const boostedLevel = Math.min(1, level * 2.5);
+      // Ridiculous mode: CRANK IT UP
+      const boostMultiplier = webglRidiculousMode ? 8.0 : 2.5;
+      const boostedLevel = Math.min(1, level * boostMultiplier);
       setWebglAudioLevel(boostedLevel);
 
       animationId = requestAnimationFrame(sampleAudio);
@@ -516,7 +519,7 @@ export default function HomePage() {
       cancelAnimationFrame(animationId);
       setWebglAudioLevel(0);
     };
-  }, [webglAudioReactive, webglActiveEffect]);
+  }, [webglAudioReactive, webglActiveEffect, webglRidiculousMode]);
 
   // Handle video display dragging
   const handleVideoMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -2175,6 +2178,8 @@ export default function HomePage() {
                 onAudioReactiveChange={setWebglAudioReactive}
                 ditherColor={webglDitherColor}
                 onDitherColorChange={setWebglDitherColor}
+                ridiculousMode={webglRidiculousMode}
+                onRidiculousModeChange={setWebglRidiculousMode}
               />
             </div>
           )}
