@@ -1,7 +1,7 @@
 "use client"
 
 import React, { memo, useCallback } from 'react'
-import { X, Tv, Type, Grid2x2, Waves } from 'lucide-react'
+import { X } from 'lucide-react'
 import { WebGLEffectType } from './WebGLVideoDisplay'
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut'
@@ -83,183 +83,226 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
   const showControls = currentEffect !== null
 
   return (
-    <div className={`webgl-fx-panel bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden flex flex-col ${className}`}>
-      {/* Panel Header with Crossfade Mode Selector */}
-      <div className="flex items-center justify-between border-b border-slate-700 px-2 py-1.5 gap-2">
-        {/* Crossfade Mode Selector */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[7px] font-bold uppercase text-slate-400">Mix:</span>
-          <select
-            value={crossfadeMode}
-            onChange={(e) => onCrossfadeModeChange(e.target.value as CrossfadeMode)}
-            className="px-1.5 h-4 rounded text-[7px] font-bold uppercase bg-slate-800 border border-slate-600 text-slate-300 cursor-pointer hover:border-cyan-400 transition-all"
+    <div className={`webgl-fx-panel bg-black/90 backdrop-blur-sm rounded-lg shadow-2xl overflow-hidden flex flex-col ${className}`}>
+      {/* Crossfade Mode Buttons - Pill style like the inspiration */}
+      <div className="flex items-center justify-center gap-1 px-3 py-2 border-b border-slate-700/50">
+        <span className="text-[9px] font-bold uppercase text-slate-500 mr-2">MIX:</span>
+        {(['slide', 'blend', 'cut'] as CrossfadeMode[]).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => onCrossfadeModeChange(mode)}
+            className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase transition-all ${
+              crossfadeMode === mode
+                ? 'bg-[#81E4F2]/15 text-[#81E4F2] border border-[#81E4F2]/50'
+                : 'bg-slate-800/50 text-slate-400 border border-transparent hover:bg-slate-700/50'
+            }`}
           >
-            <option value="slide">SLIDE</option>
-            <option value="blend">BLEND</option>
-            <option value="cut">CUT</option>
-          </select>
-        </div>
+            {mode}
+          </button>
+        ))}
 
         {/* Close button */}
         <button
           onClick={onClose}
-          className="text-slate-500 hover:text-red-400 transition-all"
+          className="ml-2 text-slate-500 hover:text-red-400 transition-all"
           title="Close"
         >
-          <X size={12} />
+          <X size={14} />
         </button>
       </div>
 
-      {/* 2x2 Effect Buttons Grid */}
-      <div className="p-2.5">
-        <div className="grid grid-cols-2 gap-1.5" style={{ height: '80px' }}>
-          {/* VHS Glitch - Pink */}
-          <button
-            onClick={() => handleEffectToggle('vhs')}
-            className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
-              currentEffect === 'vhs'
-                ? 'border-pink-400 bg-pink-900/50 shadow-lg shadow-pink-500/50'
-                : 'border-pink-400/30 hover:border-pink-400 hover:bg-slate-700 active:scale-95'
-            }`}
-            title="VHS Glitch - Click to toggle"
-          >
-            <Tv size={16} className="text-pink-400 mb-1" />
-            <div className="text-[8px] font-bold uppercase text-slate-300">VHS</div>
-          </button>
+      {/* FX Buttons with Gradient Style */}
+      <div className="px-3 py-2.5">
+        <div className="flex items-center justify-center gap-1 mb-2">
+          <span className="text-[9px] font-bold uppercase text-slate-500 mr-2">FX:</span>
 
-          {/* ASCII - Orange */}
-          <button
-            onClick={() => handleEffectToggle('ascii')}
-            className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
-              currentEffect === 'ascii'
-                ? 'border-orange-400 bg-orange-900/50 shadow-lg shadow-orange-500/50'
-                : 'border-orange-400/30 hover:border-orange-400 hover:bg-slate-700 active:scale-95'
-            }`}
-            title="ASCII - Click to toggle"
-          >
-            <Type size={16} className="text-orange-400 mb-1" />
-            <div className="text-[8px] font-bold uppercase text-slate-300">ASCII</div>
-          </button>
+          {/* VHS - Pink gradient */}
+          <div className="flex flex-col items-center gap-0.5">
+            <button
+              onClick={() => handleEffectToggle('vhs')}
+              className="relative overflow-hidden transition-all active:scale-95"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                backgroundColor: '#000000',
+                boxShadow: currentEffect === 'vhs' ? '0 0 12px rgba(236, 132, 243, 0.6)' : 'none'
+              }}
+            >
+              <div
+                className="absolute inset-0 transition-opacity duration-200"
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #F3C2F7 30%, #EC84F3 100%)',
+                  opacity: currentEffect === 'vhs' ? 1 : 0.5
+                }}
+              />
+            </button>
+            <span className="text-[7px] font-bold uppercase text-slate-500">VHS</span>
+          </div>
 
-          {/* Dither - Yellow */}
-          <button
-            onClick={() => handleEffectToggle('dither')}
-            className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
-              currentEffect === 'dither'
-                ? 'border-yellow-400 bg-yellow-900/50 shadow-lg shadow-yellow-500/50'
-                : 'border-yellow-400/30 hover:border-yellow-400 hover:bg-slate-700 active:scale-95'
-            }`}
-            title="Dither - Click to toggle"
-          >
-            <Grid2x2 size={16} className="text-yellow-400 mb-1" />
-            <div className="text-[8px] font-bold uppercase text-slate-300">Dither</div>
-          </button>
+          {/* ASCII - Orange gradient */}
+          <div className="flex flex-col items-center gap-0.5">
+            <button
+              onClick={() => handleEffectToggle('ascii')}
+              className="relative overflow-hidden transition-all active:scale-95"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                backgroundColor: '#000000',
+                boxShadow: currentEffect === 'ascii' ? '0 0 12px rgba(255, 171, 107, 0.6)' : 'none'
+              }}
+            >
+              <div
+                className="absolute inset-0 transition-opacity duration-200"
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)',
+                  opacity: currentEffect === 'ascii' ? 1 : 0.5
+                }}
+              />
+            </button>
+            <span className="text-[7px] font-bold uppercase text-slate-500">ASCII</span>
+          </div>
 
-          {/* Audio Reactive - Green (Modifier) */}
-          <button
-            onClick={handleReactiveToggle}
-            className={`group relative flex flex-col items-center justify-center bg-slate-800 border-2 rounded-lg transition-all ${
-              audioReactive
-                ? 'border-green-400 bg-green-900/50 scale-95 shadow-lg shadow-green-500/50'
-                : 'border-green-400/30 hover:border-green-400 hover:bg-slate-700 active:scale-95'
-            }`}
-            title="Audio Reactive - Toggle to make effects respond to music"
-          >
-            <Waves size={16} className="text-green-400 mb-1" />
-            <div className="text-[8px] font-bold uppercase text-slate-300">React</div>
-            {audioReactive && (
-              <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            )}
-          </button>
+          {/* Dither - Yellow-green gradient */}
+          <div className="flex flex-col items-center gap-0.5">
+            <button
+              onClick={() => handleEffectToggle('dither')}
+              className="relative overflow-hidden transition-all active:scale-95"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                backgroundColor: '#000000',
+                boxShadow: currentEffect === 'dither' ? '0 0 12px rgba(200, 255, 107, 0.6)' : 'none'
+              }}
+            >
+              <div
+                className="absolute inset-0 transition-opacity duration-200"
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #E8FFA3 30%, #C8FF6B 100%)',
+                  opacity: currentEffect === 'dither' ? 1 : 0.5
+                }}
+              />
+            </button>
+            <span className="text-[7px] font-bold uppercase text-slate-500">DTHR</span>
+          </div>
+
+          {/* Audio Reactive - Green/Teal gradient */}
+          <div className="flex flex-col items-center gap-0.5">
+            <button
+              onClick={handleReactiveToggle}
+              className="relative overflow-hidden transition-all active:scale-95"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                backgroundColor: '#000000',
+                boxShadow: audioReactive ? '0 0 12px rgba(107, 255, 170, 0.6)' : 'none'
+              }}
+            >
+              <div
+                className="absolute inset-0 transition-opacity duration-200"
+                style={{
+                  background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
+                  opacity: audioReactive ? 1 : 0.5
+                }}
+              />
+              {/* Pulsing indicator when active */}
+              {audioReactive && (
+                <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              )}
+            </button>
+            <span className="text-[7px] font-bold uppercase text-slate-500">REACT</span>
+          </div>
         </div>
 
         {/* RIDICULOUS MODE - Only show when audio reactive is on */}
         {audioReactive && (
           <button
             onClick={() => onRidiculousModeChange(!ridiculousMode)}
-            className={`w-full py-1.5 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-all ${
+            className={`w-full py-1 rounded-md font-bold text-[8px] uppercase tracking-wider transition-all mb-2 ${
               ridiculousMode
-                ? 'bg-gradient-to-r from-fuchsia-500 via-red-500 to-yellow-500 text-white shadow-lg shadow-fuchsia-500/50 animate-pulse'
-                : 'bg-slate-800 border border-fuchsia-400/30 text-fuchsia-400 hover:border-fuchsia-400 hover:bg-slate-700'
+                ? 'bg-gradient-to-r from-fuchsia-500 via-red-500 to-yellow-500 text-white shadow-lg shadow-fuchsia-500/30 animate-pulse'
+                : 'bg-slate-800/50 border border-fuchsia-400/30 text-fuchsia-400 hover:border-fuchsia-400/60'
             }`}
-            title="RIDICULOUS MODE - Crank everything to absurd levels"
           >
-            {ridiculousMode ? '🔥 RIDICULOUS 🔥' : 'RIDICULOUS'}
+            {ridiculousMode ? 'RIDICULOUS' : 'RIDICULOUS'}
           </button>
         )}
       </div>
 
-      {/* Universal Controls - Only show when effect is active */}
+      {/* Controls - Only show when effect is active */}
       {showControls && (
-        <div className="border-t border-slate-700 px-2.5 py-2 space-y-2">
+        <div className="border-t border-slate-700/50 px-3 py-2 space-y-1.5">
           {/* Intensity */}
           <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <span className="text-[8px] font-bold uppercase text-slate-400 w-16">Intensity</span>
+            <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Intensity</span>
             <input
               type="range"
               min="0"
               max="100"
               value={intensity * 100}
               onChange={(e) => onIntensityChange(Number(e.target.value) / 100)}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#81E4F2]"
             />
-            <span className="text-[8px] font-mono text-slate-400 w-8 text-right">
+            <span className="text-[8px] font-mono text-slate-500 w-7 text-right">
               {Math.round(intensity * 100)}%
             </span>
           </div>
 
           {/* Granularity */}
           <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <span className="text-[8px] font-bold uppercase text-slate-400 w-16">Grain</span>
+            <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Grain</span>
             <input
               type="range"
               min="0"
               max="100"
               value={granularity * 100}
               onChange={(e) => onGranularityChange(Number(e.target.value) / 100)}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#81E4F2]"
             />
-            <span className="text-[8px] font-mono text-slate-400 w-8 text-right">
+            <span className="text-[8px] font-mono text-slate-500 w-7 text-right">
               {Math.round(granularity * 100)}%
             </span>
           </div>
 
           {/* Wet/Dry */}
           <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <span className="text-[8px] font-bold uppercase text-slate-400 w-16">Wet/Dry</span>
+            <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Wet/Dry</span>
             <input
               type="range"
               min="0"
               max="100"
               value={wetDry * 100}
               onChange={(e) => onWetDryChange(Number(e.target.value) / 100)}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#81E4F2]"
             />
-            <span className="text-[8px] font-mono text-slate-400 w-8 text-right">
+            <span className="text-[8px] font-mono text-slate-500 w-7 text-right">
               {Math.round(wetDry * 100)}%
             </span>
           </div>
 
           {/* Saturation */}
           <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <span className="text-[8px] font-bold uppercase text-slate-400 w-16">Saturate</span>
+            <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Saturate</span>
             <input
               type="range"
               min="0"
               max="200"
               value={saturation * 100}
               onChange={(e) => onSaturationChange(Number(e.target.value) / 100)}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#81E4F2]"
             />
-            <span className="text-[8px] font-mono text-slate-400 w-8 text-right">
+            <span className="text-[8px] font-mono text-slate-500 w-7 text-right">
               {Math.round(saturation * 100)}%
             </span>
           </div>
 
           {/* Dither Color - Only show when dither is active */}
           {currentEffect === 'dither' && (
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-700/50" onMouseDown={(e) => e.stopPropagation()}>
-              <span className="text-[8px] font-bold uppercase text-slate-400 w-16">Color</span>
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-700/30" onMouseDown={(e) => e.stopPropagation()}>
+              <span className="text-[8px] font-bold uppercase text-slate-500 w-14">Color</span>
               <div className="flex-1 flex items-center gap-2">
                 <input
                   type="color"
@@ -277,7 +320,7 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
                       onDitherColorChange(val)
                     }
                   }}
-                  className="flex-1 px-1.5 py-0.5 text-[9px] font-mono bg-slate-800 border border-slate-600 rounded text-slate-300 uppercase"
+                  className="flex-1 px-1.5 py-0.5 text-[8px] font-mono bg-slate-800 border border-slate-600 rounded text-slate-300 uppercase"
                   placeholder="#FFFFFF"
                   maxLength={7}
                 />
