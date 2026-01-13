@@ -155,6 +155,7 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
       .from('ip_tracks')
       .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, thumb_64_url, thumb_160_url, thumb_256_url, tags, description, notes, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, production_split_1_wallet, production_split_1_percentage, uploader_address, primary_uploader_wallet, locations, remix_protected, pack_id, pack_position, portal_username') // Includes thumbnail URLs for optimized image loading
       .is('deleted_at', null) // Exclude soft-deleted tracks from globe display
+      .eq('is_deleted', false) // Also check is_deleted flag (some tracks have is_deleted=true but deleted_at=null)
       .or('pack_id.is.null,pack_position.eq.0') // Standalone content OR pack/EP container records
       .order('created_at', { ascending: false })
     
