@@ -235,6 +235,22 @@ DELETE FROM zklogin_users WHERE email = 'user@gmail.com';
 
 **Profile page SUI handling**: URLs can contain SUI addresses (`/profile/0x123...`). Profile page detects `0x` prefix and looks up persona by `wallet_address`.
 
+### zkLogin Bug Fix (January 13, 2026)
+**Problem**: New zkLogin users were being routed to existing accounts instead of getting fresh accounts.
+
+**Root cause**: The salt API (`app/api/auth/zklogin/salt/route.ts`) had logic that looked up `wallet_address` from `alpha_users` → `user_profiles` and attached new zkLogin users to whatever account owned that wallet. This caused:
+1. Cross-account contamination when wallet addresses were shared/reused in alpha_users
+2. Silent failures when no matching user_profiles existed (no account created at all)
+
+**Fix**: Removed the wallet_address lookup entirely (lines 228-329). All new zkLogin users now get fresh accounts via the "pure zkLogin" path, regardless of whether `alpha_users.wallet_address` has a value.
+
+**What still works**:
+- Invite codes still required (alpha gate intact)
+- Returning users identified by `google_sub` still get their existing accounts
+- All existing personas and accounts unaffected
+
+**Backup**: `backup-main-2026-01-13` branch preserves pre-fix state.
+
 ### USDC Pricing Model
 All prices now in USDC (centralized in `config/pricing.ts`):
 ```typescript
