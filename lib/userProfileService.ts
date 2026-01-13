@@ -2,6 +2,15 @@ import { supabase } from './supabase';
 
 export type StoreLabel = 'Store' | 'Space' | 'Shelf' | 'Spot' | 'Stall';
 
+export interface AvatarEffectSettings {
+  type: 'vhs' | 'ascii' | 'dither' | null;
+  intensity: number;
+  granularity: number;
+  wetDry: number;
+  saturation: number;
+  ditherColor: string;
+}
+
 export interface UserProfile {
   wallet_address: string;
   account_id?: string;
@@ -13,6 +22,7 @@ export interface UserProfile {
   avatar_url?: string;
   avatar_thumb_48_url?: string;  // 48px thumbnail for header displays
   avatar_thumb_96_url?: string;  // 96px thumbnail for store/dashboard
+  avatar_effect?: AvatarEffectSettings | null;  // Avatar FX settings (VHS, ASCII, Dither)
   sticker_id: string;
   sticker_visible: boolean;
   custom_sticker?: string;

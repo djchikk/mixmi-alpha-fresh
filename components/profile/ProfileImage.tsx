@@ -1,17 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import SafeImage from "../shared/SafeImage";
 import ProfileImageModal from "./ProfileImageModal";
+import { AvatarEffectSettings, defaultAvatarEffectSettings } from "./AvatarEffectPreview";
+
+// Dynamic import for WebGL component to avoid SSR issues
+const AvatarEffectPreview = dynamic(() => import("./AvatarEffectPreview"), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-slate-800 animate-pulse" />
+});
 
 interface ProfileImageProps {
   profile: {
-    avatar_url?: string | null;  // Changed from 'image' to 'avatar_url' to match DB
+    avatar_url?: string | null;
+    avatar_effect?: AvatarEffectSettings | null;
     name?: string | null;
   };
   isOwnProfile: boolean;
   targetWallet: string;
-  personaId?: string | null;  // Active persona ID (for syncing to personas table)
+  personaId?: string | null;
   onUpdate: () => Promise<void>;
 }
 
@@ -31,6 +40,9 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, pers
     profile.avatar_url.includes('video/')
   );
 
+  // Check if there's an active effect
+  const hasEffect = profile.avatar_effect?.type != null;
+
   return (
     <>
       <div className="relative w-[400px] h-[400px] mx-auto">
@@ -43,7 +55,15 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, pers
           <div className="relative w-full h-full">
             {profile.avatar_url ? (
               <div className="relative w-full h-full">
-                {isVideo ? (
+                {hasEffect ? (
+                  // Render with WebGL effects
+                  <AvatarEffectPreview
+                    imageUrl={profile.avatar_url}
+                    effects={profile.avatar_effect || defaultAvatarEffectSettings}
+                    size={392}
+                    className="w-full h-full"
+                  />
+                ) : isVideo ? (
                   <video
                     src={profile.avatar_url}
                     className="w-full h-full object-cover rounded-[6px]"
@@ -68,14 +88,14 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, pers
             ) : (
               <div className="w-full h-full bg-[#151C2A] flex items-center justify-center">
                 {isOwnProfile && (
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     className="w-12 h-12 text-gray-500 group-hover:text-gray-400 transition-colors"
                   >
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -92,6 +112,7 @@ export default function ProfileImage({ profile, isOwnProfile, targetWallet, pers
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         currentImage={profile.avatar_url || undefined}
+        currentEffect={profile.avatar_effect}
         targetWallet={targetWallet}
         personaId={personaId}
         onUpdate={onUpdate}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useDrop } from 'react-dnd';
+import { useDrop, useDragLayer } from 'react-dnd';
 import { ShoppingCart } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 
@@ -22,6 +22,11 @@ export default function CartWidget() {
   const [showCartPopover, setShowCartPopover] = useState(false);
   const [cartPinned, setCartPinned] = useState(false);
   const cartPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Global drag state - only enable drop zone when dragging
+  const { isDragging } = useDragLayer((monitor) => ({
+    isDragging: monitor.isDragging(),
+  }));
 
   // Cart drop zone - accepts all track types
   const [{ isOverCart }, cartDropRef] = useDrop({
@@ -57,14 +62,15 @@ export default function CartWidget() {
   return (
     <>
       {/* Large invisible drop zone for cart - extends left and down from cart position */}
+      {/* Only capture pointer events when actively dragging to avoid blocking UI underneath */}
       <div
         id="onborda-cart"
         ref={cartDropRef}
         className="fixed top-20 right-4 z-[40] w-[200px] h-[200px] cart-widget"
-        style={{ pointerEvents: 'auto' }}
+        style={{ pointerEvents: isDragging ? 'auto' : 'none' }}
       >
         {/* Cart icon pinned to top-right corner of drop zone */}
-        <div className="absolute top-0 right-0">
+        <div className="absolute top-0 right-0" style={{ pointerEvents: 'auto' }}>
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowCartPopover(!showCartPopover)}

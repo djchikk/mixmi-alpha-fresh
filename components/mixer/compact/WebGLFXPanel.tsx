@@ -179,7 +179,7 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
 
           {/* Attribution popover */}
           {showAttribution && (
-            <div className="absolute left-2 bottom-8 bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl z-[100] w-56">
+            <div className="absolute left-2 bottom-8 bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl z-[100] w-64">
               <div className="text-[9px] font-bold uppercase text-slate-400 mb-2">FX Pipeline Credits</div>
               <div className="space-y-1.5 text-[8px] text-slate-300">
                 <div>
@@ -187,16 +187,12 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
                   <br />Sandy Hoover (Mixmi)
                 </div>
                 <div>
-                  <span className="text-slate-500">Planning:</span>
-                  <br />Claude (Anthropic)
-                </div>
-                <div>
-                  <span className="text-slate-500">Implementation:</span>
-                  <br />Claude Code (Opus 4.5)
-                </div>
-                <div>
-                  <span className="text-slate-500">Shader Inspiration:</span>
+                  <span className="text-slate-500">VHS, ASCII, DTHR shaders based on:</span>
                   <br />Pablo Stanley / <a href="https://efecto.app" target="_blank" rel="noopener noreferrer" className="text-[#5BB5F9] hover:underline">efecto.app</a>
+                </div>
+                <div className="pt-1 border-t border-slate-700/50">
+                  <span className="text-slate-500">Implementation:</span>
+                  <br />Claude Code (Anthropic Opus 4.5)
                 </div>
               </div>
               <div className="text-[7px] text-slate-500 mt-2 pt-2 border-t border-slate-700">

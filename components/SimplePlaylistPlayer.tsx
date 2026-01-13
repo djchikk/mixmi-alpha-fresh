@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ListMusic, Play, Pause, Volume2, VolumeX, X, GripVertical } from 'lucide-react';
-import { useDrag, useDrop } from 'react-dnd';
+import { useDrag, useDrop, useDragLayer } from 'react-dnd';
 import type { Identifier } from 'dnd-core';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
@@ -30,6 +30,11 @@ export default function SimplePlaylistPlayer() {
   const [isMuted, setIsMuted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasRestoredState, setHasRestoredState] = useState(false);
+
+  // Global drag state - only enable drop zone when dragging
+  const { isDraggingGlobal } = useDragLayer((monitor) => ({
+    isDraggingGlobal: monitor.isDragging(),
+  }));
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -372,11 +377,11 @@ export default function SimplePlaylistPlayer() {
       {/* Large invisible drop zone for playlist - extends right and up from playlist position */}
       <div
         ref={playlistDropRef}
-        className="fixed bottom-[100px] left-4 z-[998] w-[200px] h-[200px] pointer-events-auto playlist-widget"
-        style={{ pointerEvents: 'auto' }}
+        className="fixed bottom-[100px] left-4 z-[998] w-[200px] h-[200px] playlist-widget"
+        style={{ pointerEvents: isDraggingGlobal ? 'auto' : 'none' }}
       >
         {/* Playlist icon/widget pinned to bottom-left corner of drop zone */}
-        <div className="absolute bottom-0 left-2">
+        <div className="absolute bottom-0 left-2" style={{ pointerEvents: 'auto' }}>
           <div id="onborda-playlist">
             {/* Playlist Icon Button - Always Visible like cart/radio icons */}
             {!isExpanded && (

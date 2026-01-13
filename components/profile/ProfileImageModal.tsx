@@ -1,17 +1,27 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Modal from "../ui/Modal";
 import ImageUploader from "../shared/ImageUploader";
 import { UserProfileService } from "@/lib/userProfileService";
 import { processAndUploadProfileImage } from "@/lib/profileImageUpload";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import AvatarEffectControls from "./AvatarEffectControls";
+import { AvatarEffectSettings, defaultAvatarEffectSettings } from "./AvatarEffectPreview";
+
+// Dynamic import for WebGL component to avoid SSR issues
+const AvatarEffectPreview = dynamic(() => import("./AvatarEffectPreview"), {
+  ssr: false,
+  loading: () => <div className="w-full aspect-square bg-slate-800 rounded-lg animate-pulse" />
+});
 
 interface ProfileImageModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentImage?: string;
+  currentEffect?: AvatarEffectSettings | null;
   targetWallet: string;
   personaId?: string | null;  // Active persona ID (for syncing to personas table)
   onUpdate: () => Promise<void>;
@@ -21,6 +31,7 @@ export default function ProfileImageModal({
   isOpen,
   onClose,
   currentImage,
+  currentEffect,
   targetWallet,
   personaId,
   onUpdate
@@ -31,7 +42,11 @@ export default function ProfileImageModal({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
   const [isGifUpload, setIsGifUpload] = useState(false);
   const [isVideoUpload, setIsVideoUpload] = useState(false);
-  
+  const [effectSettings, setEffectSettings] = useState<AvatarEffectSettings>(
+    currentEffect || defaultAvatarEffectSettings
+  );
+  const [showEffectPreview, setShowEffectPreview] = useState(false);
+
   // Initialize state when modal opens (no cleanup needed since component unmounts on close)
   useEffect(() => {
     console.log('🔧 ProfileImageModal useEffect triggered:', {
@@ -41,12 +56,14 @@ export default function ProfileImageModal({
     });
     if (isOpen) {
       setCurrentImageData(currentImage || "");
+      setEffectSettings(currentEffect || defaultAvatarEffectSettings);
+      setShowEffectPreview(!!currentEffect?.type);
       setIsSaving(false);
       setSaveStatus('idle');
       setIsGifUpload(false);
       setIsVideoUpload(false);
     }
-  }, [isOpen, currentImage]); // Include currentImage to ensure preview updates when modal opens
+  }, [isOpen, currentImage, currentEffect]); // Include currentEffect to restore settings
   
   const handleImageChange = (imageData: string) => {
     console.log('🔧 ProfileImageModal.handleImageChange called:', {
@@ -77,9 +94,11 @@ export default function ProfileImageModal({
 
       console.log('📸 Saving image URL to profile:', imageUrl);
 
-      // Update the profile with the image URL
+      // Update the profile with the image URL and effect settings
+      const effectToSave = effectSettings.type ? effectSettings : null;
       await UserProfileService.updateProfile(targetWallet, {
-        avatar_url: imageUrl
+        avatar_url: imageUrl,
+        avatar_effect: effectToSave
       });
 
       // Also update the personas table if we have a personaId
@@ -92,6 +111,7 @@ export default function ProfileImageModal({
             body: JSON.stringify({
               personaId,
               avatarUrl: imageUrl,
+              avatarEffect: effectToSave,
               accountId: activePersona?.account_id // For ownership verification
             })
           });
@@ -177,19 +197,46 @@ export default function ProfileImageModal({
   
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile Image">
-      <div className="space-y-6">
+      <div className="space-y-4">
         <p className="text-sm text-gray-400">
-          You can upload an image, GIF, or short video (MP4/WebM, 5-10 seconds max).
+          Upload an image, GIF, or short video. Then add optional FX to make it pop!
         </p>
-        
-        <ImageUploader
-          initialImage={currentImageData || currentImage}
-          onImageChange={handleImageChange}
-          aspectRatio="square"
-          section="profile"
-          walletAddress={targetWallet}  // Pass wallet for storage upload
-          hideToggle={true}  // Hide upload/URL toggle to prevent tab switching from clearing preview
-        />
+
+        {/* Two-column layout: Upload on left, Preview on right */}
+        <div className="flex gap-4">
+          {/* Upload Section */}
+          <div className="flex-1">
+            <ImageUploader
+              initialImage={currentImageData || currentImage}
+              onImageChange={handleImageChange}
+              aspectRatio="square"
+              section="profile"
+              walletAddress={targetWallet}
+              hideToggle={true}
+            />
+          </div>
+
+          {/* Effect Preview - Only show when we have an image and effects are being used */}
+          {currentImageData && effectSettings.type && (
+            <div className="flex-shrink-0">
+              <div className="text-[10px] font-bold uppercase text-slate-400 mb-1 text-center">Preview</div>
+              <AvatarEffectPreview
+                imageUrl={currentImageData}
+                effects={effectSettings}
+                size={160}
+                className="border-2 border-slate-600 rounded-lg"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* FX Controls - Only show when we have an image */}
+        {currentImageData && (
+          <AvatarEffectControls
+            effects={effectSettings}
+            onEffectsChange={setEffectSettings}
+          />
+        )}
         
         {/* Save Status Indicator */}
         {isSaving && (

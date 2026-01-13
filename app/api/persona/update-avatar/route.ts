@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { personaId, avatarUrl, accountId } = await request.json();
+    const { personaId, avatarUrl, avatarEffect, accountId } = await request.json();
 
     if (!personaId || !avatarUrl || !accountId) {
       return NextResponse.json(
@@ -43,9 +43,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build update object - avatar_effect can be null to clear it
+    const updateData: { avatar_url: string; avatar_effect?: any } = {
+      avatar_url: avatarUrl
+    };
+    if (avatarEffect !== undefined) {
+      updateData.avatar_effect = avatarEffect;
+    }
+
     const { data, error } = await supabase
       .from('personas')
-      .update({ avatar_url: avatarUrl })
+      .update(updateData)
       .eq('id', personaId)
       .select();
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Radio, Play, Pause, Volume2, VolumeX, X, GripVertical } from 'lucide-react';
-import { useDrag, useDrop } from 'react-dnd';
+import { useDrag, useDrop, useDragLayer } from 'react-dnd';
 import Hls from 'hls.js';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
@@ -20,6 +20,11 @@ export default function SimpleRadioPlayer() {
   const [isMuted, setIsMuted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasRestoredState, setHasRestoredState] = useState(false);
+
+  // Global drag state - only enable drop zone when dragging
+  const { isDraggingGlobal } = useDragLayer((monitor) => ({
+    isDraggingGlobal: monitor.isDragging(),
+  }));
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -449,13 +454,14 @@ export default function SimpleRadioPlayer() {
   return (
     <>
       {/* Large invisible drop zone for radio - extends left and up from radio position */}
+      {/* Only capture pointer events when actively dragging to avoid blocking UI underneath */}
       <div
         ref={radioDropRef}
-        className="fixed bottom-[100px] right-4 z-[998] w-[200px] h-[200px] pointer-events-auto radio-widget"
-        style={{ pointerEvents: 'auto' }}
+        className="fixed bottom-[100px] right-4 z-[998] w-[200px] h-[200px] radio-widget"
+        style={{ pointerEvents: isDraggingGlobal ? 'auto' : 'none' }}
       >
         {/* Radio icon/widget pinned to bottom-right corner of drop zone */}
-        <div className="absolute bottom-0 right-2">
+        <div className="absolute bottom-0 right-2" style={{ pointerEvents: 'auto' }}>
           <div id="onborda-radio">
             {/* Radio Icon Button - Always Visible like cart/search icons */}
             {!isExpanded && (
