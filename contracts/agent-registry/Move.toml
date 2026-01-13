@@ -1,0 +1,14 @@
+[package]
+name = "agent_registry"
+version = "1.0.0"
+edition = "2024.beta"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
+# Reference the deployed TING package
+ting = { local = "../ting" }
+
+[addresses]
+agent_registry = "0x0"
+# Use the deployed TING package address (MAINNET)
+ting = "0x3a0ef6ea616304707df8cb9bcaccbd8a021064ca2da2d7079543ade7a69c07ce"
