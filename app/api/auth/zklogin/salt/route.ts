@@ -223,114 +223,11 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ New zkLogin user registered:', email, 'SUI:', suiAddress.substring(0, 10) + '...');
 
-    // Also store salt in accounts table for persona wallet encryption
-    // Find the account via: invite_code → alpha_users → user_profiles → account_id
-    if (alphaUser.wallet_address) {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('account_id, username, display_name, avatar_url, bio')
-        .eq('wallet_address', alphaUser.wallet_address)
-        .single();
-
-      if (profile?.account_id) {
-        // Account exists - just update it with zklogin_salt
-        const { error: updateError } = await supabase
-          .from('accounts')
-          .update({
-            zklogin_salt: salt,
-            sui_address: suiAddress  // Also store the SUI address for reference
-          })
-          .eq('id', profile.account_id);
-
-        if (updateError) {
-          console.error('Failed to update account with zklogin_salt:', updateError);
-          // Non-fatal - persona wallets can still be generated later
-        } else {
-          console.log('✅ Stored zklogin_salt in account:', profile.account_id);
-
-          // Also generate wallets for personas that don't have them
-          await generateWalletsForPersonas(supabase, profile.account_id, salt);
-        }
-      } else if (profile) {
-        // Profile exists but no account_id - CREATE the account and persona chain
-        console.log('🔧 Creating account/persona chain for existing profile...');
-
-        // 1. Create the account
-        const { data: newAccount, error: accountError } = await supabase
-          .from('accounts')
-          .insert({
-            wallet_address: alphaUser.wallet_address,
-            sui_address: suiAddress,
-            zklogin_salt: salt,
-            account_type: 'human'
-          })
-          .select('id')
-          .single();
-
-        if (accountError || !newAccount) {
-          console.error('Failed to create account:', accountError);
-        } else {
-          console.log('✅ Created account:', newAccount.id);
-
-          // 2. Create default persona from profile data
-          const personaUsername = profile.username || 'user_' + alphaUser.wallet_address.slice(0, 8).toLowerCase();
-          const { data: newPersona, error: personaError } = await supabase
-            .from('personas')
-            .insert({
-              account_id: newAccount.id,
-              username: personaUsername,
-              display_name: profile.display_name || personaUsername,
-              avatar_url: profile.avatar_url || null,
-              bio: profile.bio || null,
-              wallet_address: alphaUser.wallet_address,
-              is_default: true,
-              is_active: true
-            })
-            .select('id')
-            .single();
-
-          if (personaError) {
-            console.error('Failed to create persona:', personaError);
-          } else {
-            console.log('✅ Created default persona:', personaUsername);
-
-            // Generate wallet for the new persona
-            try {
-              const encryptedKeypair = generateEncryptedKeypair(salt);
-              await supabase
-                .from('personas')
-                .update({
-                  sui_address: encryptedKeypair.suiAddress,
-                  sui_keypair_encrypted: encryptedKeypair.encryptedKey,
-                  sui_keypair_nonce: encryptedKeypair.nonce,
-                })
-                .eq('id', newPersona.id);
-              console.log('✅ Generated wallet for persona:', encryptedKeypair.suiAddress);
-            } catch (e) {
-              console.error('Failed to generate persona wallet:', e);
-            }
-          }
-
-          // 3. Link user_profiles to the new account
-          const { error: linkError } = await supabase
-            .from('user_profiles')
-            .update({
-              account_id: newAccount.id,
-              sui_address: suiAddress
-            })
-            .eq('wallet_address', alphaUser.wallet_address);
-
-          if (linkError) {
-            console.error('Failed to link profile to account:', linkError);
-          } else {
-            console.log('✅ Linked user_profiles to account');
-          }
-        }
-      }
-    } else {
-      // No wallet_address in alpha_users - pure zkLogin user (no prior Stacks wallet)
-      // Create account and persona from scratch
-      console.log('🔧 Creating account/persona for pure zkLogin user...');
+    // Create account and persona for zkLogin user
+    // NOTE: We always create a fresh account for zkLogin users, even if alpha_users has a wallet_address.
+    // The wallet_address in alpha_users is legacy data from Stacks wallet registrations and should not
+    // be used to link zkLogin users to existing accounts (that was causing cross-account contamination bugs).
+    console.log('🔧 Creating account/persona for zkLogin user...');
 
       // 1. Create the account
       const { data: newAccount, error: accountError } = await supabase
@@ -431,7 +328,6 @@ export async function POST(request: NextRequest) {
         }
         console.log('✅ Created/updated user_profiles for zkLogin user');
       }
-    }
 
     return NextResponse.json({
       salt,
