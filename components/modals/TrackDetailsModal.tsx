@@ -304,7 +304,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
       const names: Record<string, string> = {};
 
-      // Look up each wallet in personas table first, then user_profiles
+      // Look up each wallet in personas table first, then ai_agents, then user_profiles
       for (const wallet of wallets) {
         // Check personas table (for SUI addresses)
         const { data: personaData } = await supabase
@@ -316,6 +316,20 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
         if (personaData?.display_name || personaData?.username) {
           names[wallet] = personaData.display_name || personaData.username;
+          continue;
+        }
+
+        // Check ai_agents table (for Creator's Agent wallets)
+        const { data: agentData } = await supabase
+          .from('ai_agents')
+          .select('agent_name')
+          .eq('agent_address', wallet)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (agentData?.agent_name) {
+          // Use "Creator's Agent" as the display name for AI agents
+          names[wallet] = "Creator's Agent";
           continue;
         }
 
