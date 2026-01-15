@@ -89,13 +89,14 @@ export default function UserProfilePage() {
             foundPersonaId = personaData.id;
             foundPersonaData = personaData; // Store for fallback
 
-            // Use wallet_address from persona if available, fall back to sui_address
-            if (personaData.wallet_address) {
-              walletFromPersona = personaData.wallet_address;
-              console.log('Using persona wallet:', walletFromPersona);
-            } else if (personaData.sui_address) {
+            // Use sui_address FIRST for profile lookup (user_profiles.wallet_address has SUI addresses)
+            // Fall back to wallet_address only if sui_address is not available
+            if (personaData.sui_address) {
               walletFromPersona = personaData.sui_address;
-              console.log('Using persona SUI address:', walletFromPersona);
+              console.log('Using persona SUI address for profile lookup:', walletFromPersona);
+            } else if (personaData.wallet_address) {
+              walletFromPersona = personaData.wallet_address;
+              console.log('Using persona wallet for profile lookup:', walletFromPersona);
             }
           }
         } else if (isSuiAddress) {
@@ -114,8 +115,8 @@ export default function UserProfilePage() {
             setProfilePersonaId(personaData.id);
             foundPersonaId = personaData.id;
             foundPersonaData = personaData; // Store for fallback
-            // Use wallet_address if available, fall back to sui_address
-            walletFromPersona = personaData.wallet_address || personaData.sui_address;
+            // Use sui_address FIRST for profile lookup (user_profiles.wallet_address has SUI addresses)
+            walletFromPersona = personaData.sui_address || personaData.wallet_address;
           }
         }
 
