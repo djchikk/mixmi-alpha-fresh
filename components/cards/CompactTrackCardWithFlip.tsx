@@ -48,7 +48,10 @@ function DraggableDrawerTrack({ track, index, contentType, onPlay, playingLoopId
         ...(track.content_type === 'video_clip' && track.video_url && {
           video_url: track.video_url
         }),
-        notes: track.notes // Preserve notes for CC text overlay
+        notes: track.notes, // Preserve notes for CC text overlay
+        // AI assistance flags for Creation display
+        ai_assisted_idea: (track as any).ai_assisted_idea,
+        ai_assisted_implementation: (track as any).ai_assisted_implementation
       },
       source: 'globe'
     }),
@@ -310,7 +313,10 @@ export default function CompactTrackCardWithFlip({
           video_url: track.video_url
         }),
         // Preserve notes for CC text overlay
-        notes: track.notes
+        notes: track.notes,
+        // AI assistance flags for Creation display - explicitly preserve
+        ai_assisted_idea: (track as any).ai_assisted_idea,
+        ai_assisted_implementation: (track as any).ai_assisted_implementation
       };
 
       return { track: optimizedTrack, source: 'globe' };

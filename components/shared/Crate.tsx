@@ -52,7 +52,10 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           price_stx: track.price_stx,
           download_price_stx: (track as any).download_price_stx, // Per-item price for cart
           license: track.license,
-          primary_uploader_wallet: track.primary_uploader_wallet
+          primary_uploader_wallet: track.primary_uploader_wallet,
+          // AI assistance flags for Creation display
+          ai_assisted_idea: (track as any).ai_assisted_idea,
+          ai_assisted_implementation: (track as any).ai_assisted_implementation
         },
         sourceIndex: index
       };
@@ -109,7 +112,10 @@ function ExpandedPackTrack({
         price_stx: packTrack.price_stx,
         download_price_stx: packTrack.download_price_stx, // Per-item price for cart
         license: packTrack.license,
-        pack_position: packTrack.pack_position // Preserve pack position for numbered badges
+        pack_position: packTrack.pack_position, // Preserve pack position for numbered badges
+        // AI assistance flags for Creation display
+        ai_assisted_idea: (packTrack as any).ai_assisted_idea,
+        ai_assisted_implementation: (packTrack as any).ai_assisted_implementation
       },
       sourceIndex: -1
     }),
@@ -1113,7 +1119,10 @@ export default function Crate({ className = '' }: CrateProps) {
             tags: selectedTrack.tags || [],
             description: selectedTrack.description || '',
             tell_us_more: selectedTrack.tell_us_more || '',
-            notes: selectedTrack.notes || ''
+            notes: selectedTrack.notes || '',
+            // AI assistance flags for Creation display
+            ai_assisted_idea: selectedTrack.ai_assisted_idea,
+            ai_assisted_implementation: selectedTrack.ai_assisted_implementation
           }}
           isOpen={showInfoModal}
           onClose={() => {

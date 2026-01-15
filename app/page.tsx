@@ -1327,6 +1327,9 @@ export default function HomePage() {
                     thumb_64_url: leftComparisonTrack.thumb_64_url,
                     thumb_160_url: leftComparisonTrack.thumb_160_url,
                     thumb_256_url: leftComparisonTrack.thumb_256_url,
+                    // AI assistance flags for Creation display
+                    ai_assisted_idea: leftComparisonTrack.ai_assisted_idea,
+                    ai_assisted_implementation: leftComparisonTrack.ai_assisted_implementation,
                     // Required fields for IPTrack
                     wallet_address: '',
                     created_at: new Date().toISOString(),
@@ -1389,6 +1392,9 @@ export default function HomePage() {
                     thumb_64_url: rightComparisonTrack.thumb_64_url,
                     thumb_160_url: rightComparisonTrack.thumb_160_url,
                     thumb_256_url: rightComparisonTrack.thumb_256_url,
+                    // AI assistance flags for Creation display
+                    ai_assisted_idea: rightComparisonTrack.ai_assisted_idea,
+                    ai_assisted_implementation: rightComparisonTrack.ai_assisted_implementation,
                     // Required fields for IPTrack
                     wallet_address: '',
                     created_at: new Date().toISOString(),
@@ -1451,6 +1457,9 @@ export default function HomePage() {
                     thumb_64_url: centerTrackCard.thumb_64_url,
                     thumb_160_url: centerTrackCard.thumb_160_url,
                     thumb_256_url: centerTrackCard.thumb_256_url,
+                    // AI assistance flags for Creation display
+                    ai_assisted_idea: centerTrackCard.ai_assisted_idea,
+                    ai_assisted_implementation: centerTrackCard.ai_assisted_implementation,
                     wallet_address: '',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -1606,6 +1615,9 @@ export default function HomePage() {
                                 thumb_64_url: track.thumb_64_url,
                                 thumb_160_url: track.thumb_160_url,
                                 thumb_256_url: track.thumb_256_url,
+                                // AI assistance flags for Creation display
+                                ai_assisted_idea: track.ai_assisted_idea,
+                                ai_assisted_implementation: track.ai_assisted_implementation,
                                 wallet_address: '',
                                 created_at: new Date().toISOString(),
                                 updated_at: new Date().toISOString(),
@@ -1665,6 +1677,9 @@ export default function HomePage() {
                               thumb_64_url: track.thumb_64_url,
                               thumb_160_url: track.thumb_160_url,
                               thumb_256_url: track.thumb_256_url,
+                              // AI assistance flags for Creation display
+                              ai_assisted_idea: track.ai_assisted_idea,
+                              ai_assisted_implementation: track.ai_assisted_implementation,
                               wallet_address: '',
                               created_at: new Date().toISOString(),
                               updated_at: new Date().toISOString(),
@@ -1707,6 +1722,9 @@ export default function HomePage() {
                         thumb_256_url: pinnedCard.node.thumb_256_url,
                         // Portal fields
                         portal_username: pinnedCard.node.portal_username,
+                        // AI assistance flags for Creation display
+                        ai_assisted_idea: pinnedCard.node.ai_assisted_idea,
+                        ai_assisted_implementation: pinnedCard.node.ai_assisted_implementation,
                         wallet_address: '',
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
@@ -1819,7 +1837,10 @@ export default function HomePage() {
                             // Pre-generated thumbnails
                             thumb_64_url: track.thumb_64_url,
                             thumb_160_url: track.thumb_160_url,
-                            thumb_256_url: track.thumb_256_url
+                            thumb_256_url: track.thumb_256_url,
+                            // AI assistance flags for Creation display
+                            ai_assisted_idea: track.ai_assisted_idea,
+                            ai_assisted_implementation: track.ai_assisted_implementation
                           } as any}
                           isPlaying={playingTrackId !== null && playingTrackId === track.id}
                           onPlayPreview={handlePlayPreview}
@@ -1880,7 +1901,10 @@ export default function HomePage() {
                               // Pre-generated thumbnails
                               thumb_64_url: track.thumb_64_url,
                               thumb_160_url: track.thumb_160_url,
-                              thumb_256_url: track.thumb_256_url
+                              thumb_256_url: track.thumb_256_url,
+                              // AI assistance flags for Creation display
+                              ai_assisted_idea: track.ai_assisted_idea,
+                              ai_assisted_implementation: track.ai_assisted_implementation
                             } as any}
                             isPlaying={playingTrackId !== null && playingTrackId === track.id}
                             onPlayPreview={handlePlayPreview}
@@ -1927,6 +1951,9 @@ export default function HomePage() {
                       thumb_256_url: displayTrack.thumb_256_url,
                       // Portal fields
                       portal_username: displayTrack.portal_username,
+                      // AI assistance flags for Creation display
+                      ai_assisted_idea: displayTrack.ai_assisted_idea,
+                      ai_assisted_implementation: displayTrack.ai_assisted_implementation,
                       // Required fields for IPTrack
                       wallet_address: '',
                       created_at: new Date().toISOString(),

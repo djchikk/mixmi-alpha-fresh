@@ -75,7 +75,10 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     download_price_stx: ipTrack.download_price_stx, // Preserve new pricing model
     allow_downloads: ipTrack.allow_downloads, // Preserve download permission
     primary_uploader_wallet: ipTrack.primary_uploader_wallet, // Preserve for linking to creator store
-    foundByAgent: (ipTrack as any).foundByAgent // Preserve agent discovery flag
+    foundByAgent: (ipTrack as any).foundByAgent, // Preserve agent discovery flag
+    // AI assistance flags for Creation display
+    ai_assisted_idea: ipTrack.ai_assisted_idea,
+    ai_assisted_implementation: ipTrack.ai_assisted_implementation
   };
 };
 
