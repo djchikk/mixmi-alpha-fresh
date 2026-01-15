@@ -71,11 +71,14 @@ export default function UserProfilePage() {
         const isStacksAddress = identifier.startsWith('SP') || identifier.startsWith('ST');
         const isSuiAddress = identifier.startsWith('0x') && identifier.length >= 40;
 
+        // Store persona data for fallback if user_profiles lookup fails
+        let foundPersonaData: any = null;
+
         if (!isStacksAddress && !isSuiAddress) {
           // Might be a persona username - check personas table
           const { data: personaData } = await supabase
             .from('personas')
-            .select('id, account_id, username, wallet_address, sui_address')
+            .select('id, account_id, username, display_name, avatar_url, bio, wallet_address, sui_address')
             .eq('username', identifier)
             .single();
 
@@ -84,6 +87,7 @@ export default function UserProfilePage() {
             setLinkedAccountId(personaData.account_id);
             setProfilePersonaId(personaData.id); // Store the persona ID for this profile
             foundPersonaId = personaData.id;
+            foundPersonaData = personaData; // Store for fallback
 
             // Use wallet_address from persona if available, fall back to sui_address
             if (personaData.wallet_address) {
@@ -99,7 +103,7 @@ export default function UserProfilePage() {
           console.log('Looking up persona by SUI address:', identifier);
           const { data: personaData } = await supabase
             .from('personas')
-            .select('id, account_id, username, wallet_address, sui_address')
+            .select('id, account_id, username, display_name, avatar_url, bio, wallet_address, sui_address')
             .or(`wallet_address.eq.${identifier},sui_address.eq.${identifier}`)
             .eq('is_active', true)
             .single();
@@ -109,6 +113,7 @@ export default function UserProfilePage() {
             setLinkedAccountId(personaData.account_id);
             setProfilePersonaId(personaData.id);
             foundPersonaId = personaData.id;
+            foundPersonaData = personaData; // Store for fallback
             // Use wallet_address if available, fall back to sui_address
             walletFromPersona = personaData.wallet_address || personaData.sui_address;
           }
@@ -149,6 +154,30 @@ export default function UserProfilePage() {
               console.log('Found persona by wallet:', personaByWallet.id);
             }
           }
+        } else if (foundPersonaData) {
+          // No user_profiles record, but we found a persona - construct profile from persona data
+          console.log('No user_profile found, using persona data as fallback:', foundPersonaData.username);
+          const personaWallet = foundPersonaData.wallet_address || foundPersonaData.sui_address;
+          setTargetWallet(personaWallet);
+          setProfileData({
+            profile: {
+              wallet_address: personaWallet,
+              sui_address: foundPersonaData.sui_address,
+              username: foundPersonaData.username,
+              display_name: foundPersonaData.display_name || foundPersonaData.username,
+              avatar_url: foundPersonaData.avatar_url,
+              bio: foundPersonaData.bio,
+              tagline: '',
+              sticker_id: 'daisy-blue',
+              sticker_visible: true,
+              show_wallet_address: false,
+              show_btc_address: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            links: [],
+            sections: []
+          });
         } else {
           // If not found by identifier, try by wallet if it looks like a wallet address
           if (isStacksAddress || isSuiAddress) {
@@ -189,7 +218,8 @@ export default function UserProfilePage() {
 
         // Fetch artist name and cover image from first track as fallback
         // Use for profiles that don't exist OR haven't been customized yet
-        const walletToCheck = data.profile?.wallet_address || identifier;
+        // Priority: profile wallet > persona wallet > identifier
+        const walletToCheck = data.profile?.wallet_address || walletFromPersona || identifier;
         const isWalletCheckable = walletToCheck.startsWith('SP') || walletToCheck.startsWith('ST') ||
                                   (walletToCheck.startsWith('0x') && walletToCheck.length >= 40);
         if (isWalletCheckable) {
