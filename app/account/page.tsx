@@ -60,7 +60,8 @@ export default function AccountPage() {
   // For data lookup, use persona's wallet if available, otherwise use direct wallet
   // This allows zkLogin users to access data from their linked wallet
   // Also check sui_address for personas with content linked to SUI addresses
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || walletAddress;
+  // IMPORTANT: Prefer suiAddress over walletAddress for zkLogin users (walletAddress may be stale Stacks address)
+  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
 
   const [activeTab, setActiveTab] = useState<Tab>("settings");
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -1248,7 +1249,8 @@ function SettingsTab({
 }) {
   // For data lookup, use persona's wallet if available, otherwise use direct wallet
   // Also check sui_address for personas with content linked to SUI addresses
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || walletAddress;
+  // IMPORTANT: Prefer suiAddress over walletAddress for zkLogin users
+  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
 
   const [loading, setLoading] = useState(true);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);

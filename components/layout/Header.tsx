@@ -40,8 +40,9 @@ export default function Header() {
     setActivePersona
   } = useAuth();
 
-  // For zkLogin users, use suiAddress; for wallet users, use walletAddress
-  const effectiveAddress = walletAddress || suiAddress;
+  // For zkLogin users, prefer suiAddress; for wallet users, use walletAddress
+  // IMPORTANT: suiAddress must come first for zkLogin to work properly
+  const effectiveAddress = suiAddress || walletAddress;
 
   // Display address: prefer SUI address for display (migration to SUI)
   const displayAddress = suiAddress || walletAddress;

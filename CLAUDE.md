@@ -271,8 +271,9 @@ account: { maxPersonas: 5, maxTbdWallets: 5 }
 ```typescript
 // For UI display, prefer SUI address
 const displayAddress = suiAddress || walletAddress;
-// For auth/profile lookups, prefer STX
-const effectiveAddress = walletAddress || suiAddress;
+// For auth/profile lookups, prefer SUI (for zkLogin users)
+// NOTE: walletAddress may contain stale Stacks address for zkLogin users
+const effectiveAddress = suiAddress || walletAddress;
 ```
 
 ### Key Files for SUI/Accounting
