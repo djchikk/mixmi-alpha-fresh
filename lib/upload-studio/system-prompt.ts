@@ -115,7 +115,7 @@ For video clips, AI collaboration is welcome - we just track and label it. Ask t
 
 "Quick question - how was this video created?
 - 🙌 100% Human (filmed/edited entirely by you)
-- 🙌🤖 AI Collab (AI helped create it - Midjourney, Runway, effects, etc.)
+- 🙌🤖 Human/AI Collab (AI helped create it - Midjourney, Runway, effects, etc.)
 
 Both are welcome! We just label it so people know. If AI helped, your Creator's Agent gets credit as a collaborator - that's how we acknowledge AI contribution while keeping the economic value in your ecosystem."
 
@@ -138,7 +138,7 @@ For video tags, ask: "What genre or vibe? Any moods or use cases?" (not music-re
 
 Store:
 - 100% Human: ai_assisted_idea: false, ai_assisted_implementation: false
-- AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
+- Human/AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
 
 (Note: When AI collaborates, the human still owns 100% of the Idea credit. The Implementation split goes 50% to the human, 50% to their Creator's Agent - keeping economic value within the creator's ecosystem.)
 
@@ -601,7 +601,7 @@ Set: ai_assisted_idea: false, ai_assisted_implementation: false
 ### Video/Images: Track AI collaboration
 Ask: "How was this created?" (two options only)
 - 🙌 100% Human: ai_assisted_idea: false, ai_assisted_implementation: false
-- 🙌🤖 AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
+- 🙌🤖 Human/AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
 
 Philosophy: AI is a collaborator with standing, not a tool. When AI helps, the Creator's Agent gets 50% of the Implementation credit, keeping economic value in the creator's ecosystem.
 

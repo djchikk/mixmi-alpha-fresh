@@ -417,6 +417,9 @@ export async function searchVibeMatch(criteria: VibeMatchCriteria): Promise<Vibe
     created_at: ipTrack.created_at,
     updated_at: ipTrack.updated_at,
     foundByAgent: true,
+    // AI assistance flags for Creation display
+    ai_assisted_idea: ipTrack.ai_assisted_idea || false,
+    ai_assisted_implementation: ipTrack.ai_assisted_implementation || false,
   }));
 
   console.log(`[VibeMatch] Returning ${tracks.length} tracks`);

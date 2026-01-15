@@ -54,11 +54,11 @@ We simplified from three states to two, because music is always human-created an
 | State | Emoji | Meaning | Database Flags |
 |-------|-------|---------|----------------|
 | 100% Human | 🙌 | No AI involvement | `ai_assisted_idea: false`, `ai_assisted_implementation: false` |
-| AI Collab | 🙌🤖 | AI contributed as collaborator | `ai_assisted_idea: true`, `ai_assisted_implementation: true` |
+| Human/AI Collab | 🙌🤖 | AI contributed as collaborator | `ai_assisted_idea: true`, `ai_assisted_implementation: true` |
 
-We removed "AI-Generated" (🤖) because it implied AI worked alone - like invisible machinery. "AI Collab" positions it as a partnership.
+We removed "AI-Generated" (🤖) because it implied AI worked alone - like invisible machinery. "Human/AI Collab" positions it as a partnership.
 
-### IP Splits for AI Collaboration
+### IP Splits for Human/AI Collaboration
 
 When a video is created with AI collaboration:
 
@@ -159,7 +159,7 @@ if (agentData?.agent_name) {
 ### January 15, 2026
 
 **AI Attribution Simplification**
-- Reduced from 3 states to 2: "100% Human" and "AI Collab"
+- Reduced from 3 states to 2: "100% Human" and "Human/AI Collab"
 - Removed "AI-Generated" label (implied AI worked alone)
 - Updated chatbot, manual form, and display components
 

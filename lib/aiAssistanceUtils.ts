@@ -10,7 +10,7 @@ import { IPTrack } from '@/types';
  *
  * Two states only - keeping it simple:
  * - Neither flag: 100% Human (purely human creation)
- * - Any AI flag: AI Collab (AI contributed as a collaborator)
+ * - Any AI flag: Human/AI Collab (AI contributed as a collaborator)
  *
  * Philosophy: AI is a collaborator with standing, not a tool or threat.
  * Music is always human-created; AI helps with visuals, curation, etc.
@@ -23,11 +23,11 @@ export function getAIAssistanceDisplay(track: IPTrack): {
   const ideaAI = track.ai_assisted_idea || false;
   const implementationAI = track.ai_assisted_implementation || false;
 
-  // Any AI involvement = AI Collab
+  // Any AI involvement = Human/AI Collab
   if (ideaAI || implementationAI) {
     return {
       emoji: '🙌🤖',
-      text: 'AI Collab',
+      text: 'Human/AI Collab',
       hasAI: true
     };
   }

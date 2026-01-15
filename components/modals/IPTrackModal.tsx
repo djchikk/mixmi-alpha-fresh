@@ -1773,7 +1773,7 @@ export default function IPTrackModal({
               </span>
             </label>
 
-            {/* AI Collab */}
+            {/* Human/AI Collab */}
             <label className="flex items-center gap-2 cursor-pointer group">
               <input
                 type="radio"
@@ -1786,7 +1786,7 @@ export default function IPTrackModal({
                 className="w-4 h-4 text-[#5BB5F9] focus:ring-[#5BB5F9] focus:ring-offset-slate-900"
               />
               <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                🙌🤖 AI Collab
+                🙌🤖 Human/AI Collab
               </span>
             </label>
           </div>
@@ -2935,7 +2935,7 @@ export default function IPTrackModal({
             <span className="text-gray-400">Creation:</span>
             <span className="text-white">
               {(formData as any).ai_assisted_idea || (formData as any).ai_assisted_implementation
-                ? '🙌🤖 AI Collab'
+                ? '🙌🤖 Human/AI Collab'
                 : '🙌 100% Human'}
             </span>
           </div>

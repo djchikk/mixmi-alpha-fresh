@@ -20,6 +20,9 @@ export interface Track {
   created_at?: string; // For IPTrack conversion compatibility
   updated_at?: string; // For IPTrack conversion compatibility
   foundByAgent?: boolean; // Track was found by user's AI agent
+  // AI assistance flags for Creation display
+  ai_assisted_idea?: boolean;
+  ai_assisted_implementation?: boolean;
 }
 
 export interface FXState {
