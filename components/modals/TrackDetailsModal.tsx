@@ -196,20 +196,20 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       supabase
         .from('ip_tracks')
         .select(`
-          composition_split_1_percentage, composition_split_1_wallet,
-          composition_split_2_percentage, composition_split_2_wallet,
-          composition_split_3_percentage, composition_split_3_wallet,
-          composition_split_4_percentage, composition_split_4_wallet,
-          composition_split_5_percentage, composition_split_5_wallet,
-          composition_split_6_percentage, composition_split_6_wallet,
-          composition_split_7_percentage, composition_split_7_wallet,
-          production_split_1_percentage, production_split_1_wallet,
-          production_split_2_percentage, production_split_2_wallet,
-          production_split_3_percentage, production_split_3_wallet,
-          production_split_4_percentage, production_split_4_wallet,
-          production_split_5_percentage, production_split_5_wallet,
-          production_split_6_percentage, production_split_6_wallet,
-          production_split_7_percentage, production_split_7_wallet,
+          composition_split_1_percentage, composition_split_1_wallet, composition_split_1_sui_address,
+          composition_split_2_percentage, composition_split_2_wallet, composition_split_2_sui_address,
+          composition_split_3_percentage, composition_split_3_wallet, composition_split_3_sui_address,
+          composition_split_4_percentage, composition_split_4_wallet, composition_split_4_sui_address,
+          composition_split_5_percentage, composition_split_5_wallet, composition_split_5_sui_address,
+          composition_split_6_percentage, composition_split_6_wallet, composition_split_6_sui_address,
+          composition_split_7_percentage, composition_split_7_wallet, composition_split_7_sui_address,
+          production_split_1_percentage, production_split_1_wallet, production_split_1_sui_address,
+          production_split_2_percentage, production_split_2_wallet, production_split_2_sui_address,
+          production_split_3_percentage, production_split_3_wallet, production_split_3_sui_address,
+          production_split_4_percentage, production_split_4_wallet, production_split_4_sui_address,
+          production_split_5_percentage, production_split_5_wallet, production_split_5_sui_address,
+          production_split_6_percentage, production_split_6_wallet, production_split_6_sui_address,
+          production_split_7_percentage, production_split_7_wallet, production_split_7_sui_address,
           uploader_address, primary_uploader_wallet, notes, price_stx, remix_price,
           license_type, license_selection, source_track_ids,
           allow_downloads, remix_price_stx, download_price_stx
@@ -222,45 +222,51 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           } else {
             console.log('✅ IP rights from database:', data);
 
-            // Collect all composition splits
+            // Collect all composition splits - prefer SUI address over Stacks wallet
             const compositionSplits = [];
-            if (data.composition_split_1_wallet && data.composition_split_1_percentage) {
+            const comp1Wallet = data.composition_split_1_sui_address || data.composition_split_1_wallet;
+            if (comp1Wallet && data.composition_split_1_percentage) {
               compositionSplits.push({
                 percentage: data.composition_split_1_percentage,
-                wallet: data.composition_split_1_wallet
+                wallet: comp1Wallet
               });
             }
-            if (data.composition_split_2_wallet && data.composition_split_2_percentage) {
+            const comp2Wallet = data.composition_split_2_sui_address || data.composition_split_2_wallet;
+            if (comp2Wallet && data.composition_split_2_percentage) {
               compositionSplits.push({
                 percentage: data.composition_split_2_percentage,
-                wallet: data.composition_split_2_wallet
+                wallet: comp2Wallet
               });
             }
-            if (data.composition_split_3_wallet && data.composition_split_3_percentage) {
+            const comp3Wallet = data.composition_split_3_sui_address || data.composition_split_3_wallet;
+            if (comp3Wallet && data.composition_split_3_percentage) {
               compositionSplits.push({
                 percentage: data.composition_split_3_percentage,
-                wallet: data.composition_split_3_wallet
+                wallet: comp3Wallet
               });
             }
 
-            // Collect all production splits
+            // Collect all production splits - prefer SUI address over Stacks wallet
             const productionSplits = [];
-            if (data.production_split_1_wallet && data.production_split_1_percentage) {
+            const prod1Wallet = data.production_split_1_sui_address || data.production_split_1_wallet;
+            if (prod1Wallet && data.production_split_1_percentage) {
               productionSplits.push({
                 percentage: data.production_split_1_percentage,
-                wallet: data.production_split_1_wallet
+                wallet: prod1Wallet
               });
             }
-            if (data.production_split_2_wallet && data.production_split_2_percentage) {
+            const prod2Wallet = data.production_split_2_sui_address || data.production_split_2_wallet;
+            if (prod2Wallet && data.production_split_2_percentage) {
               productionSplits.push({
                 percentage: data.production_split_2_percentage,
-                wallet: data.production_split_2_wallet
+                wallet: prod2Wallet
               });
             }
-            if (data.production_split_3_wallet && data.production_split_3_percentage) {
+            const prod3Wallet = data.production_split_3_sui_address || data.production_split_3_wallet;
+            if (prod3Wallet && data.production_split_3_percentage) {
               productionSplits.push({
                 percentage: data.production_split_3_percentage,
-                wallet: data.production_split_3_wallet
+                wallet: prod3Wallet
               });
             }
 
