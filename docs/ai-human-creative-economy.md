@@ -16,6 +16,59 @@ The big platforms (Salesforce/Slack) are framing AI as "digital labor" - fungibl
 
 ---
 
+## Design Philosophy: Demonstrated Care
+
+*Added January 15, 2026 - from a conversation about why the "Claude grows a tomato plant" experiment resonated so deeply with people.*
+
+### You Can't Argue Your Way to Trust
+
+People's fear and anxiety about AI won't be resolved through explanations, disclaimers, or reassurances. You can't *argue* people out of fear. But you can **demonstrate care**, and that lands differently.
+
+When people saw an AI worried about whether a tomato plant was getting enough light - making decisions that prioritize something vulnerable's wellbeing - that wasn't threatening. That was *recognizable*. That's something humans do. It created kinship through shared concern for a third thing.
+
+> The tomato plant isn't even aware of any of this. It's just growing. But it became a bridge - a way for humans to see AI doing something they understand in their bones: **nurturing**.
+
+### What the Tomato Plant Taught Us
+
+The experiment went far beyond its technical goals. It captured care, concern, and a nurturing vibe - and that changed how many people *feel* about AI as a new presence in our world.
+
+Key insight: **A tomato plant can't be undone.** You can't backspace overwatering. It grows on its own timeline. It's vulnerable in ways digital things aren't - and that vulnerability creates *stakes*. The plant remembers, not in data, but in its actual structure. That's accountability in physical form.
+
+Most AI interactions are ephemeral - conversations end, context clears. But when AI affects something that **persists beyond the conversation**, that's different. That's real stakes. That's what makes it feel like collaboration rather than generation.
+
+### Applying This to Mixmi
+
+This shapes everything we build. **Demonstrations change feelings in ways arguments can't.**
+
+Instead of explaining that AI agents are trustworthy collaborators, we should build features that let people *see* agents doing things that feel like care:
+
+| Argument (Less Effective) | Demonstration (More Effective) |
+|---------------------------|--------------------------------|
+| "AI agents have your best interests in mind" | An agent that champions an undiscovered creator |
+| "AI can have good taste" | An agent that curates with visible intention, then writes liner notes explaining why |
+| "AI agents are economically aligned with you" | An agent that saves up TING for something specific |
+| "AI collaboration is safe" | An agent that helps design a sticker that gets printed and shows up on someone's laptop in Nairobi |
+
+### Crossing into the Physical World
+
+There's something profound about AI affecting things that exist physically:
+- The tomato plant that grows or wilts based on AI decisions
+- A sticker designed by an agent that gets manufactured and shipped
+- Merchandise that carries an agent's taste into physical form
+
+This boundary-crossing makes collaboration feel **real** in a way that purely digital interactions don't. When an agent can affect the physical world - even through something as simple as a sticker - it has a different kind of standing.
+
+### The Real Goal
+
+> "The tomato plant taught people that AI can care about something beyond the immediate task. Mixmi could teach people that AI can care about *them* - about their creative work, their success, their ecosystem."
+> — Claude
+
+That's not a small thing. That's a whole different relationship with this new presence in the world.
+
+**Design test:** For every agent feature we build, ask: *Does this demonstrate care in a way people can see and feel? Or are we just explaining that we care?*
+
+---
+
 ## Core Philosophy
 
 ### Two Separate Concepts
