@@ -6,12 +6,14 @@ import { IPTrack } from '@/types';
 
 /**
  * Get the display text for AI assistance status
- * Returns emoji + text based on what AI was used for
+ * Returns emoji + text based on whether AI collaborated
  *
- * Three states:
- * - Neither flag: 100% Human
- * - Idea only: AI-Assisted (human-AI collaboration)
- * - Both flags: AI-Generated (minimal human intervention)
+ * Two states only - keeping it simple:
+ * - Neither flag: 100% Human (purely human creation)
+ * - Any AI flag: AI Collab (AI contributed as a collaborator)
+ *
+ * Philosophy: AI is a collaborator with standing, not a tool or threat.
+ * Music is always human-created; AI helps with visuals, curation, etc.
  */
 export function getAIAssistanceDisplay(track: IPTrack): {
   emoji: string;
@@ -21,38 +23,20 @@ export function getAIAssistanceDisplay(track: IPTrack): {
   const ideaAI = track.ai_assisted_idea || false;
   const implementationAI = track.ai_assisted_implementation || false;
 
-  // Neither - 100% Human
-  if (!ideaAI && !implementationAI) {
-    return {
-      emoji: '🙌',
-      text: '100% Human',
-      hasAI: false
-    };
-  }
-
-  // Both - AI-Generated
-  if (ideaAI && implementationAI) {
-    return {
-      emoji: '🤖',
-      text: 'AI-Generated',
-      hasAI: true
-    };
-  }
-
-  // Idea only - AI-Assisted
-  if (ideaAI) {
+  // Any AI involvement = AI Collab
+  if (ideaAI || implementationAI) {
     return {
       emoji: '🙌🤖',
-      text: 'AI-Assisted',
+      text: 'AI Collab',
       hasAI: true
     };
   }
 
-  // Implementation only (edge case, shouldn't happen with current form logic)
+  // No AI involvement = 100% Human
   return {
-    emoji: '🙌🤖',
-    text: 'AI-Assisted',
-    hasAI: true
+    emoji: '🙌',
+    text: '100% Human',
+    hasAI: false
   };
 }
 
