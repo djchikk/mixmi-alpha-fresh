@@ -60,6 +60,10 @@ export interface TrackNode {
   primary_uploader_wallet?: string;
   cover_image_url?: string;
   audio_url?: string;
+
+  // AI assistance flags for Creation display
+  ai_assisted_idea?: boolean;
+  ai_assisted_implementation?: boolean;
 }
 
 export interface GlobeProps {

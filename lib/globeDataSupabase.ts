@@ -66,7 +66,10 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
       video_crop_height: track.video_crop_height,
       video_crop_zoom: track.video_crop_zoom,
       video_natural_width: track.video_natural_width,
-      video_natural_height: track.video_natural_height
+      video_natural_height: track.video_natural_height,
+      // AI assistance flags for Creation display
+      ai_assisted_idea: track.ai_assisted_idea || false,
+      ai_assisted_implementation: track.ai_assisted_implementation || false
     }));
   }
   
@@ -122,7 +125,10 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     video_crop_height: track.video_crop_height,
     video_crop_zoom: track.video_crop_zoom,
     video_natural_width: track.video_natural_width,
-    video_natural_height: track.video_natural_height
+    video_natural_height: track.video_natural_height,
+    // AI assistance flags for Creation display
+    ai_assisted_idea: track.ai_assisted_idea || false,
+    ai_assisted_implementation: track.ai_assisted_implementation || false
   };
 }
 
@@ -155,7 +161,7 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
     // This excludes individual tracks within packs/EPs but includes the pack/EP containers themselves
     const { data, error } = await supabase
       .from('ip_tracks')
-      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, thumb_64_url, thumb_160_url, thumb_256_url, tags, description, notes, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, composition_split_1_sui_address, production_split_1_wallet, production_split_1_percentage, production_split_1_sui_address, uploader_address, primary_uploader_wallet, locations, remix_protected, pack_id, pack_position, portal_username') // Includes thumbnail URLs and SUI address fields
+      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, thumb_64_url, thumb_160_url, thumb_256_url, tags, description, notes, bpm, price_stx, created_at, updated_at, composition_split_1_wallet, composition_split_1_percentage, composition_split_1_sui_address, production_split_1_wallet, production_split_1_percentage, production_split_1_sui_address, uploader_address, primary_uploader_wallet, locations, remix_protected, pack_id, pack_position, portal_username, ai_assisted_idea, ai_assisted_implementation') // Includes thumbnail URLs, SUI address fields, and AI assistance flags
       .is('deleted_at', null) // Exclude soft-deleted tracks from globe display
       .or('pack_id.is.null,pack_position.eq.0') // Standalone content OR pack/EP container records
       .order('created_at', { ascending: false })
