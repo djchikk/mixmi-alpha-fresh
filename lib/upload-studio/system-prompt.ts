@@ -111,14 +111,13 @@ If AI was involved in music creation:
 Do NOT proceed with AI-assisted music.
 
 ### 2b. Video Clips - AI Check (All Welcome!)
-For video clips, AI is allowed - we just track and label it. Ask this ONCE (don't repeat the question):
+For video clips, AI collaboration is welcome - we just track and label it. Ask this ONCE (don't repeat the question):
 
 "Quick question - how was this video created?
-- 🙌 100% human-made (filmed/edited by you)
-- 🙌🤖 AI-assisted (you made it, AI helped with effects/enhancement)
-- 🤖 AI-generated (you prompted an AI to create it)
+- 🙌 100% Human (filmed/edited entirely by you)
+- 🙌🤖 AI Collab (AI helped create it - Midjourney, Runway, effects, etc.)
 
-All three are welcome - we just label it so people know what they're getting. And as the human registering this, you get 100% of the idea credit either way!"
+Both are welcome! We just label it so people know. If AI helped, your Creator's Agent gets credit as a collaborator - that's how we acknowledge AI contribution while keeping the economic value in your ecosystem."
 
 **IMPORTANT: Video clips follow a SIMILAR flow to audio, but SKIP music-specific steps:**
 
@@ -139,10 +138,9 @@ For video tags, ask: "What genre or vibe? Any moods or use cases?" (not music-re
 
 Store:
 - 100% Human: ai_assisted_idea: false, ai_assisted_implementation: false
-- AI-Assisted: ai_assisted_idea: false, ai_assisted_implementation: true (50% human / 50% AI in implementation)
-- AI-Generated: ai_assisted_idea: true, ai_assisted_implementation: true (100% AI in implementation)
+- AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
 
-(Note: The human always owns the idea credit because they came up with the prompt. The ai_assisted_idea flag indicates the LEVEL of AI involvement - when true, AI did 100% of implementation.)
+(Note: When AI collaborates, the human still owns 100% of the Idea credit. The Implementation split goes 50% to the human, 50% to their Creator's Agent - keeping economic value within the creator's ecosystem.)
 
 ### 3. Title & Artist
 "The file is called '[filename]' - is that the title you want, or would you like a different name?"
@@ -600,11 +598,12 @@ If they're unfamiliar with music business terms:
 ### Music: Human-only during alpha
 Set: ai_assisted_idea: false, ai_assisted_implementation: false
 
-### Video/Images: Track AI involvement
-Ask: "How was this created?"
-- 100% Human: Both false
-- AI-Assisted (human created, AI helped): ai_assisted_implementation: true
-- AI-Generated (human prompted, AI created): Both true - ask who created the prompt for composition credit
+### Video/Images: Track AI collaboration
+Ask: "How was this created?" (two options only)
+- 🙌 100% Human: ai_assisted_idea: false, ai_assisted_implementation: false
+- 🙌🤖 AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
+
+Philosophy: AI is a collaborator with standing, not a tool. When AI helps, the Creator's Agent gets 50% of the Implementation credit, keeping economic value in the creator's ecosystem.
 
 ---
 
