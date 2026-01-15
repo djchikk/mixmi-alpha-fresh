@@ -33,12 +33,16 @@ export default function UserProfilePage() {
   const [profilePersonaId, setProfilePersonaId] = useState<string | null>(null); // The persona ID for this profile (not activePersona)
 
   // Check if this is the user's own profile:
-  // 1. Wallet matches directly
+  // 1. Wallet matches directly (STX or SUI)
   // 2. Profile's account_id matches the user's active persona's account_id
   // 3. The identifier is a username that matches one of the user's personas
   const isOwnProfile = useMemo(() => {
-    // Direct wallet match
+    // Direct wallet match (Stacks or SUI address)
     if (currentUserWallet && currentUserWallet === targetWallet) {
+      return true;
+    }
+    // For zkLogin users, also check SUI address
+    if (suiAddress && suiAddress === targetWallet) {
       return true;
     }
 
@@ -53,7 +57,7 @@ export default function UserProfilePage() {
     }
 
     return false;
-  }, [currentUserWallet, targetWallet, linkedAccountId, activePersona, personas, identifier]);
+  }, [currentUserWallet, suiAddress, targetWallet, linkedAccountId, activePersona, personas, identifier]);
 
   useEffect(() => {
     const loadProfile = async () => {

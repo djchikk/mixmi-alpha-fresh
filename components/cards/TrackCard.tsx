@@ -45,7 +45,9 @@ export default function TrackCard({
 }: TrackCardProps) {
   const router = useRouter();
   const { loadTrackToDeck, addTrackToCollection } = useMixer();
-  const { walletAddress } = useAuth();
+  const { walletAddress, suiAddress } = useAuth();
+  // For zkLogin users, prefer suiAddress over walletAddress
+  const effectiveAddress = suiAddress || walletAddress;
   const { showToast } = useToast();
   
   const [isFlipped, setIsFlipped] = useState(false);
@@ -165,7 +167,7 @@ export default function TrackCard({
       const authResponse = await fetch('/api/auth/create-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: walletAddress })
+        body: JSON.stringify({ walletAddress: effectiveAddress })
       });
       
       if (!authResponse.ok) {

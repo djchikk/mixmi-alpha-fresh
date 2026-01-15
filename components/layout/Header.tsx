@@ -76,37 +76,35 @@ export default function Header() {
         return;
       }
 
-      // For wallet users, get profile data including thumbnail
-      // zkLogin users won't have a profile yet - they'll use DiceBear avatar
-      if (walletAddress) {
-        const { data: profileData } = await supabase
-          .from('user_profiles')
-          .select('username, avatar_url, avatar_thumb_48_url')
-          .eq('wallet_address', walletAddress)
-          .single();
+      // Get profile data including thumbnail
+      // Use effectiveAddress (prefers suiAddress for zkLogin users)
+      const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('username, avatar_url, avatar_thumb_48_url')
+        .eq('wallet_address', effectiveAddress)
+        .single();
 
-        setUsername(profileData?.username || null);
+      setUsername(profileData?.username || null);
 
-        // Priority 1: Profile avatar (with thumbnail for small displays)
-        if (profileData?.avatar_url) {
-          setAvatarUrl(profileData.avatar_url);
-          setAvatarThumb48Url(profileData?.avatar_thumb_48_url || null);
-          return;
-        }
+      // Priority 1: Profile avatar (with thumbnail for small displays)
+      if (profileData?.avatar_url) {
+        setAvatarUrl(profileData.avatar_url);
+        setAvatarThumb48Url(profileData?.avatar_thumb_48_url || null);
+        return;
+      }
 
-        // Priority 2: First track cover they uploaded
-        const { data: trackData } = await supabase
-          .from('ip_tracks')
-          .select('cover_image_url')
-          .eq('primary_uploader_wallet', walletAddress)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .single();
+      // Priority 2: First track cover they uploaded
+      const { data: trackData } = await supabase
+        .from('ip_tracks')
+        .select('cover_image_url')
+        .eq('primary_uploader_wallet', effectiveAddress)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
 
-        if (trackData?.cover_image_url) {
-          setAvatarUrl(trackData.cover_image_url);
-          return;
-        }
+      if (trackData?.cover_image_url) {
+        setAvatarUrl(trackData.cover_image_url);
+        return;
       }
 
       // For zkLogin users or users without profile data: use DiceBear (handled in render)
@@ -114,7 +112,7 @@ export default function Header() {
     };
 
     fetchUserData();
-  }, [effectiveAddress, walletAddress]);
+  }, [effectiveAddress]);
 
   // Handle click outside avatar dropdown
   useEffect(() => {

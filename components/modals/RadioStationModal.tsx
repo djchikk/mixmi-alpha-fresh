@@ -30,7 +30,9 @@ export default function RadioStationModal({
   onSave
 }: RadioStationModalProps) {
   const isEditMode = !!track;
-  const { walletAddress, isAuthenticated } = useAuth();
+  const { walletAddress, suiAddress, isAuthenticated } = useAuth();
+  // For zkLogin users, prefer suiAddress over walletAddress
+  const effectiveAddress = suiAddress || walletAddress;
   const { showToast } = useToast();
 
   // Form state
@@ -199,7 +201,7 @@ export default function RadioStationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAuthenticated || !walletAddress) {
+    if (!isAuthenticated || !effectiveAddress) {
       showToast('Please connect your wallet first', 'error');
       return;
     }
@@ -285,11 +287,11 @@ export default function RadioStationModal({
           tags: tags,
           content_type: 'radio_station',
           sample_type: 'radio',
-          primary_uploader_wallet: walletAddress,
+          primary_uploader_wallet: effectiveAddress,
           ...locationData,
-          composition_split_1_wallet: walletAddress,
+          composition_split_1_wallet: effectiveAddress,
           composition_split_1_percentage: 100,
-          production_split_1_wallet: walletAddress,
+          production_split_1_wallet: effectiveAddress,
           production_split_1_percentage: 100,
           isrc: null, // Radio stations don't need ISRC codes
           created_at: new Date().toISOString(),
@@ -321,11 +323,11 @@ export default function RadioStationModal({
           tags: tags,
           content_type: 'station_pack',
           sample_type: 'radio',
-          primary_uploader_wallet: walletAddress,
+          primary_uploader_wallet: effectiveAddress,
           ...locationData,
-          composition_split_1_wallet: walletAddress,
+          composition_split_1_wallet: effectiveAddress,
           composition_split_1_percentage: 100,
-          production_split_1_wallet: walletAddress,
+          production_split_1_wallet: effectiveAddress,
           production_split_1_percentage: 100,
           pack_position: null,
           isrc: null, // Station packs don't need ISRC codes
@@ -355,11 +357,11 @@ export default function RadioStationModal({
           tags: tags,
           content_type: 'radio_station',
           sample_type: 'radio',
-          primary_uploader_wallet: walletAddress,
+          primary_uploader_wallet: effectiveAddress,
           ...locationData,
-          composition_split_1_wallet: walletAddress,
+          composition_split_1_wallet: effectiveAddress,
           composition_split_1_percentage: 100,
-          production_split_1_wallet: walletAddress,
+          production_split_1_wallet: effectiveAddress,
           production_split_1_percentage: 100,
           pack_id: packData.id, // Link to parent pack
           pack_position: index + 1,
@@ -614,7 +616,7 @@ export default function RadioStationModal({
               Cover Image <span className="text-red-400">*</span>
             </label>
             <TrackCoverUploader
-              walletAddress={walletAddress || ''}
+              walletAddress={effectiveAddress || ''}
               onImageChange={setCoverImageUrl}
               initialImage={coverImageUrl}
             />

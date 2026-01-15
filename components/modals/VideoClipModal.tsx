@@ -20,7 +20,9 @@ export default function VideoClipModal({
   onClose,
   onUploadComplete
 }: VideoClipModalProps) {
-  const { walletAddress, isAuthenticated } = useAuth();
+  const { walletAddress, suiAddress, isAuthenticated } = useAuth();
+  // For zkLogin users, prefer suiAddress over walletAddress
+  const effectiveAddress = suiAddress || walletAddress;
   const { showToast } = useToast();
 
   // Form state
@@ -269,7 +271,7 @@ export default function VideoClipModal({
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (!validateForm() || !walletAddress || !videoFile) return;
+    if (!validateForm() || !effectiveAddress || !videoFile) return;
 
     setIsUploading(true);
     setUploadProgress(0);
@@ -320,10 +322,10 @@ export default function VideoClipModal({
           cover_image_url: coverImageUrl,
           video_url: videoUrl,
           bpm: bpm || null,
-          primary_uploader_wallet: walletAddress,
-          composition_split_1_wallet: walletAddress,
+          primary_uploader_wallet: effectiveAddress,
+          composition_split_1_wallet: effectiveAddress,
           composition_split_1_percentage: 100,
-          production_split_1_wallet: walletAddress,
+          production_split_1_wallet: effectiveAddress,
           production_split_1_percentage: 100,
           location_lat: finalLocationCoords?.lat || null,
           location_lng: finalLocationCoords?.lng || null,

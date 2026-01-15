@@ -19,7 +19,9 @@ interface StoreCardProps {
 }
 
 export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdit, onDelete }: StoreCardProps) {
-  const { isAuthenticated, walletAddress } = useAuth();
+  const { isAuthenticated, walletAddress, suiAddress } = useAuth();
+  // For zkLogin users viewing their own store, prefer suiAddress
+  const effectiveWallet = suiAddress || walletAddress;
   const [trackCount, setTrackCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
@@ -29,7 +31,7 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
   // Fetch track count, username, and profile image from Supabase
   useEffect(() => {
     const fetchStoreData = async () => {
-      const wallet = targetWallet || walletAddress;
+      const wallet = targetWallet || effectiveWallet;
       if (!wallet) {
         setIsLoading(false);
         return;
@@ -71,10 +73,10 @@ export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdi
     };
 
     fetchStoreData();
-  }, [targetWallet, walletAddress]);
+  }, [targetWallet, effectiveWallet]);
 
   const handleCardClick = () => {
-    const wallet = targetWallet || walletAddress;
+    const wallet = targetWallet || effectiveWallet;
     if (!wallet) return;
 
     // Navigate to store using username if available, otherwise wallet address

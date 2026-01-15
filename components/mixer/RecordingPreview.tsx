@@ -199,7 +199,8 @@ export default function RecordingPreview({
   onClose,
   onSelectSegment
 }: RecordingPreviewProps) {
-  const { walletAddress } = useAuth();
+  const { walletAddress, suiAddress } = useAuth();
+  const effectiveAddress = suiAddress || walletAddress;
   const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoopPlaying, setIsLoopPlaying] = useState(false);
@@ -618,8 +619,8 @@ export default function RecordingPreview({
                   onClick={() => {
                     setShowSuccessModal(false);
                     onClose();
-                    if (walletAddress) {
-                      router.push(`/store/${walletAddress}`);
+                    if (effectiveAddress) {
+                      router.push(`/store/${effectiveAddress}`);
                     }
                   }}
                   className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"

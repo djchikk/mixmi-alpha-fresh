@@ -48,7 +48,9 @@ export default function PaymentModal({
   onClose,
   onSuccess
 }: PaymentModalProps) {
-  const { isAuthenticated, connectWallet, walletAddress } = useAuth();
+  const { isAuthenticated, connectWallet, walletAddress, suiAddress } = useAuth();
+  // For zkLogin users, prefer suiAddress over walletAddress
+  const effectiveAddress = suiAddress || walletAddress;
   const { addToCart } = useCart();
   const { loadedTracks } = useMixer();
   const [selectedOption, setSelectedOption] = useState<'loop-only' | 'loop-plus-sources'>('loop-only');
@@ -63,13 +65,13 @@ export default function PaymentModal({
   // Fetch user's profile data (image and name)
   useEffect(() => {
     const fetchProfileData = async () => {
-      if (!walletAddress) return;
+      if (!effectiveAddress) return;
 
       try {
         const { data, error } = await supabase
           .from('user_profiles')
           .select('avatar_url, display_name, username')
-          .eq('wallet_address', walletAddress)
+          .eq('wallet_address', effectiveAddress)
           .single();
 
         if (!error && data) {
@@ -79,7 +81,7 @@ export default function PaymentModal({
           }
 
           // Set artist name - priority: display_name > username > wallet address
-          let name = walletAddress;
+          let name = effectiveAddress;
           if (data.display_name && data.display_name !== 'New User') {
             name = data.display_name;
           } else if (data.username) {
@@ -88,20 +90,20 @@ export default function PaymentModal({
 
           setArtistName(name);
         } else {
-          // Fallback to wallet address if no profile found
-          setArtistName(walletAddress);
+          // Fallback to address if no profile found
+          setArtistName(effectiveAddress);
         }
       } catch (error) {
         console.error('Error fetching profile data:', error);
-        // Fallback to wallet address on error
-        if (walletAddress) {
-          setArtistName(walletAddress);
+        // Fallback to address on error
+        if (effectiveAddress) {
+          setArtistName(effectiveAddress);
         }
       }
     };
 
     fetchProfileData();
-  }, [walletAddress]);
+  }, [effectiveAddress]);
 
   // Check if source loops are available for offline use
   useEffect(() => {
@@ -176,19 +178,19 @@ export default function PaymentModal({
       const filename = `remix_${timestamp}.webm`;
       const audioFile = await blobUrlToFile(blobUrl, filename);
 
-      if (!walletAddress) {
+      if (!effectiveAddress) {
         throw new Error('Wallet address is required for upload');
       }
 
       // Create authenticated session
-      const authSession = await SupabaseAuthBridge.createWalletSession(walletAddress);
+      const authSession = await SupabaseAuthBridge.createWalletSession(effectiveAddress);
 
       if (!authSession?.supabase) {
         throw new Error('Failed to create authenticated session for upload');
       }
 
       // Generate storage path
-      const audioPath = `${walletAddress}/audio/remixes/${timestamp}_${filename}`;
+      const audioPath = `${effectiveAddress}/audio/remixes/${timestamp}_${filename}`;
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await authSession.supabase.storage
@@ -223,19 +225,19 @@ export default function PaymentModal({
       const filename = `remix_cover_${timestamp}.png`;
       const imageFile = await blobUrlToFile(blobUrl, filename);
 
-      if (!walletAddress) {
+      if (!effectiveAddress) {
         throw new Error('Wallet address is required for upload');
       }
 
       // Create authenticated session
-      const authSession = await SupabaseAuthBridge.createWalletSession(walletAddress);
+      const authSession = await SupabaseAuthBridge.createWalletSession(effectiveAddress);
 
       if (!authSession?.supabase) {
         throw new Error('Failed to create authenticated session for upload');
       }
 
       // Generate storage path
-      const imagePath = `${walletAddress}/images/remixes/${timestamp}_${filename}`;
+      const imagePath = `${effectiveAddress}/images/remixes/${timestamp}_${filename}`;
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await authSession.supabase.storage
@@ -268,7 +270,7 @@ export default function PaymentModal({
       return;
     }
 
-    if (!isAuthenticated || !walletAddress) {
+    if (!isAuthenticated || !effectiveAddress) {
       await connectWallet();
       return;
     }
@@ -298,7 +300,7 @@ export default function PaymentModal({
       const remixSplits = calculateRemixSplits(
         loop1,
         loop2,
-        walletAddress!
+        effectiveAddress!
       );
 
       // Consolidate duplicate wallets in splits
@@ -400,9 +402,9 @@ export default function PaymentModal({
       const newRemixData = {
         id: crypto.randomUUID(),
         title: mixTitle,
-        artist: artistName || walletAddress, // Use fetched artist name or wallet as fallback
-        primary_uploader_wallet: walletAddress, // The wallet that owns this track in their store
-        uploader_address: walletAddress, // Legacy field - required by database
+        artist: artistName || effectiveAddress, // Use fetched artist name or address as fallback
+        primary_uploader_wallet: effectiveAddress, // The wallet that owns this track in their store
+        uploader_address: effectiveAddress, // Legacy field - required by database
 
         // Gen 1 lineage tracking (new fields from migration)
         generation: 1, // This is a first-generation remix
@@ -517,7 +519,7 @@ export default function PaymentModal({
         price_stx: data.price_stx,
         stacksTxId: stacksTxId,
         blockHeight: undefined, // TODO: Get from Stacks
-        walletAddress: walletAddress,
+        walletAddress: effectiveAddress,
         timestamp: new Date()
       };
 

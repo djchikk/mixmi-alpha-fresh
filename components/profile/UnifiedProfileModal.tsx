@@ -51,7 +51,7 @@ type TabType = "profile" | "social" | "wallet";
 
 export default function UnifiedProfileModal({ isOpen, onClose }: UnifiedProfileModalProps) {
   const { profile, updateProfile } = useProfile();
-  const { walletAddress, btcAddress } = useAuth();
+  const { walletAddress, btcAddress, suiAddress } = useAuth();
   const { showToast } = useToast();
   
   // State for tab selection
@@ -462,6 +462,15 @@ export default function UnifiedProfileModal({ isOpen, onClose }: UnifiedProfileM
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-300">Connected Wallets</h3>
             
+            {suiAddress ? (
+              <div className="bg-slate-900 p-2 rounded-md flex items-center">
+                <span className="text-xs text-gray-500">SUI:</span>
+                <span className="ml-2 text-sm">{`${suiAddress.slice(0, 8)}...${suiAddress.slice(-8)}`}</span>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No SUI wallet connected</p>
+            )}
+
             {walletAddress ? (
               <div className="bg-slate-900 p-2 rounded-md flex items-center">
                 <span className="text-xs text-gray-500">STX:</span>
@@ -470,7 +479,7 @@ export default function UnifiedProfileModal({ isOpen, onClose }: UnifiedProfileM
             ) : (
               <p className="text-sm text-gray-500">No STX wallet connected</p>
             )}
-            
+
             {btcAddress ? (
               <div className="bg-slate-900 p-2 rounded-md flex items-center">
                 <span className="text-xs text-gray-500">BTC:</span>

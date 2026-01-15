@@ -115,7 +115,8 @@ function SavePresetModal({ isOpen, onClose, onSave, currentPresetData }: SavePre
 }
 
 export default function SplitPresetManagerUI({ presets, onLoadPreset, onSavePreset, onDeletePreset, currentFormData }: SplitPresetManagerUIProps) {
-  const { walletAddress } = useAuth();
+  const { walletAddress, suiAddress } = useAuth();
+  const effectiveAddress = suiAddress || walletAddress;
   const [showSaveModal, setShowSaveModal] = useState(false);
 
   // Handle loading a preset
@@ -125,7 +126,7 @@ export default function SplitPresetManagerUI({ presets, onLoadPreset, onSavePres
 
   // Handle saving a preset
   const handleSavePreset = (name: string, description: string) => {
-    if (!walletAddress) return;
+    if (!effectiveAddress) return;
 
     const presetData = SplitPresetManager.extractPresetFromForm(currentFormData);
     onSavePreset({ ...presetData, name, description });
