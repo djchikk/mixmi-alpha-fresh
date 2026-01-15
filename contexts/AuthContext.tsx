@@ -71,7 +71,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Fetch personas for the current account
   // Uses user_profiles to get account_id (avoids RLS issues with accounts table)
   const fetchPersonas = useCallback(async (walletAddr: string | null, suiAddr: string | null) => {
+    console.log('🔍 [fetchPersonas] Starting with:', { walletAddr, suiAddr });
+
     if (!walletAddr && !suiAddr) {
+      console.log('🔍 [fetchPersonas] No addresses provided, clearing personas');
       setPersonas([]);
       setActivePersonaState(null);
       return;
@@ -80,68 +83,95 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     try {
       let accountId: string | null = null;
 
-      // For wallet users: get account_id from user_profiles
-      if (walletAddr) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('account_id')
-          .eq('wallet_address', walletAddr)
-          .single();
+      // Try SUI address FIRST (prioritize zkLogin users)
+      if (suiAddr) {
+        console.log('🔍 [fetchPersonas] Trying SUI address path:', suiAddr);
 
-        if (profileError || !profileData?.account_id) {
-          console.log('No profile/account found for wallet, personas will be empty');
-          setPersonas([]);
-          setActivePersonaState(null);
-          return;
-        }
-        accountId = profileData.account_id;
-      }
-      // For zkLogin users: try multiple lookup paths
-      else if (suiAddr) {
-        // Path 1: Direct lookup by sui_address in user_profiles (pure zkLogin users)
-        const { data: directProfile } = await supabase
+        // Path 1: Direct lookup by sui_address in user_profiles
+        const { data: directProfile, error: directError } = await supabase
           .from('user_profiles')
           .select('account_id')
           .eq('sui_address', suiAddr)
           .maybeSingle();
 
+        console.log('🔍 [fetchPersonas] Path 1 (user_profiles.sui_address) result:', { directProfile, directError });
+
         if (directProfile?.account_id) {
           accountId = directProfile.account_id;
+          console.log('🔍 [fetchPersonas] Found account_id via Path 1:', accountId);
         }
 
-        // Path 2: If not found, try zklogin_users -> alpha_users -> user_profiles (linked users)
+        // Path 2: Try wallet_address lookup in user_profiles (SUI address might be stored there)
         if (!accountId) {
-          const { data: zkUser } = await supabase
+          const { data: walletProfile, error: walletError } = await supabase
+            .from('user_profiles')
+            .select('account_id')
+            .eq('wallet_address', suiAddr)
+            .maybeSingle();
+
+          console.log('🔍 [fetchPersonas] Path 2 (user_profiles.wallet_address with SUI) result:', { walletProfile, walletError });
+
+          if (walletProfile?.account_id) {
+            accountId = walletProfile.account_id;
+            console.log('🔍 [fetchPersonas] Found account_id via Path 2:', accountId);
+          }
+        }
+
+        // Path 3: zklogin_users -> alpha_users -> user_profiles (linked users)
+        if (!accountId) {
+          console.log('🔍 [fetchPersonas] Trying Path 3 (zklogin_users chain)');
+          const { data: zkUser, error: zkError } = await supabase
             .from('zklogin_users')
             .select('invite_code')
             .eq('sui_address', suiAddr)
-            .single();
+            .maybeSingle();
+
+          console.log('🔍 [fetchPersonas] zklogin_users lookup:', { zkUser, zkError });
 
           if (zkUser?.invite_code) {
-            const { data: alphaUser } = await supabase
+            const { data: alphaUser, error: alphaError } = await supabase
               .from('alpha_users')
               .select('wallet_address')
               .eq('invite_code', zkUser.invite_code)
-              .single();
+              .maybeSingle();
+
+            console.log('🔍 [fetchPersonas] alpha_users lookup:', { alphaUser, alphaError });
 
             if (alphaUser?.wallet_address) {
-              const { data: profileData } = await supabase
+              const { data: profileData, error: profileError } = await supabase
                 .from('user_profiles')
                 .select('account_id')
                 .eq('wallet_address', alphaUser.wallet_address)
-                .single();
+                .maybeSingle();
 
+              console.log('🔍 [fetchPersonas] user_profiles via alpha_users:', { profileData, profileError });
               accountId = profileData?.account_id || null;
             }
           }
         }
+      }
 
-        if (!accountId) {
-          console.log('No account found for SUI address, personas will be empty');
-          setPersonas([]);
-          setActivePersonaState(null);
-          return;
+      // Fall back to Stacks wallet lookup if SUI didn't find anything
+      if (!accountId && walletAddr) {
+        console.log('🔍 [fetchPersonas] Trying Stacks wallet path:', walletAddr);
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('account_id')
+          .eq('wallet_address', walletAddr)
+          .maybeSingle();
+
+        console.log('🔍 [fetchPersonas] Stacks wallet lookup result:', { profileData, profileError });
+
+        if (profileData?.account_id) {
+          accountId = profileData.account_id;
         }
+      }
+
+      if (!accountId) {
+        console.log('🔍 [fetchPersonas] No account_id found via any path, clearing personas');
+        setPersonas([]);
+        setActivePersonaState(null);
+        return;
       }
 
       if (!accountId) {
