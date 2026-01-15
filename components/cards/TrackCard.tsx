@@ -45,9 +45,9 @@ export default function TrackCard({
 }: TrackCardProps) {
   const router = useRouter();
   const { loadTrackToDeck, addTrackToCollection } = useMixer();
-  const { walletAddress, suiAddress } = useAuth();
-  // For zkLogin users, prefer suiAddress over walletAddress
-  const effectiveAddress = suiAddress || walletAddress;
+  const { walletAddress, suiAddress, activePersona } = useAuth();
+  // Priority: active persona's wallet > persona's SUI > account SUI > account STX
+  const effectiveAddress = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
   const { showToast } = useToast();
   
   const [isFlipped, setIsFlipped] = useState(false);

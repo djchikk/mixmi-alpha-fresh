@@ -20,9 +20,9 @@ export default function VideoClipModal({
   onClose,
   onUploadComplete
 }: VideoClipModalProps) {
-  const { walletAddress, suiAddress, isAuthenticated } = useAuth();
-  // For zkLogin users, prefer suiAddress over walletAddress
-  const effectiveAddress = suiAddress || walletAddress;
+  const { walletAddress, suiAddress, isAuthenticated, activePersona } = useAuth();
+  // Priority: active persona's wallet > persona's SUI > account SUI > account STX
+  const effectiveAddress = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
   const { showToast } = useToast();
 
   // Form state
