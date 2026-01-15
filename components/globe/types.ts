@@ -49,6 +49,17 @@ export interface TrackNode {
   video_crop_zoom?: number;
   video_natural_width?: number;
   video_natural_height?: number;
+
+  // IP Rights fields (for modal display)
+  composition_split?: number;
+  production_split?: number;
+  wallet_address?: string; // SUI address (preferred) or Stacks wallet
+  remix_protected?: boolean;
+
+  // IPTrack compatibility fields
+  primary_uploader_wallet?: string;
+  cover_image_url?: string;
+  audio_url?: string;
 }
 
 export interface GlobeProps {

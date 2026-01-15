@@ -115,18 +115,24 @@ export interface IPTrack {
   // Composition Splits (up to 3 owners)
   composition_split_1_wallet: string;
   composition_split_1_percentage: number;
+  composition_split_1_sui_address?: string; // SUI address for payment (preferred over wallet)
   composition_split_2_wallet?: string;
   composition_split_2_percentage?: number;
+  composition_split_2_sui_address?: string;
   composition_split_3_wallet?: string;
   composition_split_3_percentage?: number;
-  
+  composition_split_3_sui_address?: string;
+
   // Production Splits (up to 3 owners)
   production_split_1_wallet: string;
   production_split_1_percentage: number;
+  production_split_1_sui_address?: string; // SUI address for payment (preferred over wallet)
   production_split_2_wallet?: string;
   production_split_2_percentage?: number;
+  production_split_2_sui_address?: string;
   production_split_3_wallet?: string;
   production_split_3_percentage?: number;
+  production_split_3_sui_address?: string;
   
   // Media Assets
   cover_image_url?: string;
@@ -289,23 +295,29 @@ export interface IPTrackSplitPreset {
   name: string; // User-friendly name like "My Band", "Producer Team", etc.
   description?: string; // Optional description
   created_at: string;
-  
+
   // Composition splits
   composition_split_1_wallet: string;
   composition_split_1_percentage: number;
+  composition_split_1_sui_address?: string;
   composition_split_2_wallet: string;
   composition_split_2_percentage: number;
+  composition_split_2_sui_address?: string;
   composition_split_3_wallet: string;
   composition_split_3_percentage: number;
-  
+  composition_split_3_sui_address?: string;
+
   // Production splits
   production_split_1_wallet: string;
   production_split_1_percentage: number;
+  production_split_1_sui_address?: string;
   production_split_2_wallet: string;
   production_split_2_percentage: number;
+  production_split_2_sui_address?: string;
   production_split_3_wallet: string;
   production_split_3_percentage: number;
-  
+  production_split_3_sui_address?: string;
+
   // Optional defaults
   default_content_type?: ContentType;
   default_loop_category?: LoopCategory;
