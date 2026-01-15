@@ -1753,9 +1753,9 @@ export default function IPTrackModal({
           </div>
         )}
 
-        {/* For video clips - Show all three options */}
+        {/* For video clips - Show two options: 100% Human or AI Collab */}
         {formData.content_type === 'video_clip' && (
-          <div className="flex gap-4">
+          <div className="flex gap-6">
             {/* 100% Human */}
             <label className="flex items-center gap-2 cursor-pointer group">
               <input
@@ -1773,30 +1773,12 @@ export default function IPTrackModal({
               </span>
             </label>
 
-            {/* AI-Assisted */}
+            {/* AI Collab */}
             <label className="flex items-center gap-2 cursor-pointer group">
               <input
                 type="radio"
                 name="ai_assistance"
-                checked={(formData.ai_assisted_idea || formData.ai_assisted_implementation) &&
-                         !(formData.ai_assisted_idea && formData.ai_assisted_implementation)}
-                onChange={() => {
-                  handleInputChange('ai_assisted_idea', true);
-                  handleInputChange('ai_assisted_implementation', false);
-                }}
-                className="w-4 h-4 text-[#5BB5F9] focus:ring-[#5BB5F9] focus:ring-offset-slate-900"
-              />
-              <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                🙌🤖 AI-Assisted
-              </span>
-            </label>
-
-            {/* AI-Generated */}
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="radio"
-                name="ai_assistance"
-                checked={formData.ai_assisted_idea && formData.ai_assisted_implementation}
+                checked={formData.ai_assisted_idea || formData.ai_assisted_implementation}
                 onChange={() => {
                   handleInputChange('ai_assisted_idea', true);
                   handleInputChange('ai_assisted_implementation', true);
@@ -1804,7 +1786,7 @@ export default function IPTrackModal({
                 className="w-4 h-4 text-[#5BB5F9] focus:ring-[#5BB5F9] focus:ring-offset-slate-900"
               />
               <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                🤖 AI-Generated
+                🙌🤖 AI Collab
               </span>
             </label>
           </div>
@@ -2952,11 +2934,9 @@ export default function IPTrackModal({
           <div className="flex justify-between">
             <span className="text-gray-400">Creation:</span>
             <span className="text-white">
-              {!(formData as any).ai_assisted_idea && !(formData as any).ai_assisted_implementation
-                ? '🙌 100% Human'
-                : (formData as any).ai_assisted_idea && (formData as any).ai_assisted_implementation
-                ? '🤖 AI-Generated'
-                : '🙌🤖 AI-Assisted'}
+              {(formData as any).ai_assisted_idea || (formData as any).ai_assisted_implementation
+                ? '🙌🤖 AI Collab'
+                : '🙌 100% Human'}
             </span>
           </div>
           {(formData as any).notes && (
