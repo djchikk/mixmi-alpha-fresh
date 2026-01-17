@@ -26,6 +26,13 @@ const fragmentShader = `
   uniform bool ridiculousMode;
   uniform vec2 resolution;
 
+  // Rotate a 2D point around origin
+  vec2 rotate2D(vec2 p, float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+  }
+
   void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
     vec3 color = inputColor.rgb;
 
@@ -39,42 +46,58 @@ const fragmentShader = `
       effectiveGranularity = clamp(granularity + audioBoost * 0.3, 0.0, 1.0);
     }
 
-    // Dot spacing based on granularity (smaller value = more dots)
-    float dotSpacing = mix(0.02, 0.08, 1.0 - effectiveGranularity);
+    // Cell size based on granularity (smaller = more dots)
+    float cellSize = mix(4.0, 20.0, 1.0 - effectiveGranularity);
 
-    // Calculate grid position
-    vec2 gridPos = uv / dotSpacing;
-    vec2 cellPos = fract(gridPos) - 0.5; // -0.5 to 0.5 within each cell
-
-    // Distance from center of cell
-    float dist = length(cellPos);
-
-    // Get luminosity of current pixel
-    float luma = dot(color, vec3(0.299, 0.587, 0.114));
-
-    // Dot radius based on darkness (darker = bigger dots)
-    // Inverted: dark areas get big dots, light areas get small/no dots
-    float maxRadius = 0.45; // Max dot radius relative to cell
-    float dotRadius = (1.0 - luma) * maxRadius * effectiveIntensity;
-
-    // Add subtle pulsing with audio
+    // Grid angle - classic halftone uses 45 degrees
+    float angle = 0.785398; // 45 degrees in radians
     if (audioReactive) {
-      dotRadius *= 1.0 + audioLevel * 0.3;
+      angle += sin(time * 0.5) * 0.1 * audioLevel;
     }
 
-    // Create dot with smooth edge
-    float dotMask = 1.0 - smoothstep(dotRadius - 0.05, dotRadius + 0.05, dist);
+    // Convert UV to pixel coordinates
+    vec2 pixelCoord = uv * resolution;
 
-    // Halftone result: white background with dark dots
-    // dotMask = 1 inside dot, 0 outside
-    // So halftone = 1 - dotMask gives us dark dots on white
-    vec3 halftoneColor = vec3(1.0 - dotMask);
+    // Rotate the coordinate system for angled grid
+    vec2 rotatedCoord = rotate2D(pixelCoord, angle);
 
-    // Tint the halftone with original color
+    // Find which cell we're in
+    vec2 cellIndex = floor(rotatedCoord / cellSize);
+    vec2 cellCenter = (cellIndex + 0.5) * cellSize;
+
+    // Rotate back to get the actual center position in UV space
+    vec2 centerUV = clamp(rotate2D(cellCenter, -angle) / resolution, 0.0, 1.0);
+
+    // Sample the color at cell center
+    vec3 sampleColor = texture2D(inputBuffer, centerUV).rgb;
+
+    // Calculate luminosity at cell center
+    float luma = dot(sampleColor, vec3(0.299, 0.587, 0.114));
+
+    // Invert luma for dot size (darker = bigger dots)
+    float dotSize = (1.0 - luma) * cellSize * 0.5 * effectiveIntensity;
+
+    // Add subtle pulsing to dot size with audio
+    if (audioReactive) {
+      dotSize *= 1.0 + audioLevel * 0.3;
+    }
+
+    // Distance from current pixel to cell center
+    vec2 toCenter = rotatedCoord - cellCenter;
+    float dist = length(toCenter);
+
+    // Create the dot with smooth edges
+    float dotVal = 1.0 - smoothstep(dotSize - 1.0, dotSize + 1.0, dist);
+
+    // Mono halftone base color (black dots on white, or inverse)
+    vec3 halftoneColor = vec3(1.0 - dotVal);
+
+    // Option to tint with original color based on intensity
+    // At low intensity, more color comes through; at high intensity, more pure halftone
     vec3 tintedHalftone = mix(
-      halftoneColor * color * 1.5,  // Tinted version (multiply with original)
-      halftoneColor,                 // Pure black & white
-      effectiveIntensity * 0.5
+      halftoneColor * sampleColor * 2.0,  // Tinted version
+      halftoneColor,                       // Pure mono version
+      effectiveIntensity * 0.7
     );
 
     // Apply saturation adjustment
