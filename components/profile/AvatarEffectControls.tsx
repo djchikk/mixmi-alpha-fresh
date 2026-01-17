@@ -262,6 +262,31 @@ export default function AvatarEffectControls({
           </button>
           <span className="text-[8px] font-bold uppercase text-slate-500">NEON</span>
         </div>
+
+        {/* Halftone - Green (Pablo Stanley's effect) */}
+        <div className="flex flex-col items-center gap-0.5">
+          <button
+            onClick={() => handleEffectToggle('halftone')}
+            className="relative overflow-hidden transition-all active:scale-95"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '6px',
+              backgroundColor: '#000000',
+              boxShadow: effects.type === 'halftone' ? '0 0 12px rgba(107, 255, 170, 0.6)' : 'none'
+            }}
+            title="Halftone - Classic print dot pattern"
+          >
+            <div
+              className="absolute inset-0 transition-opacity duration-200"
+              style={{
+                background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
+                opacity: effects.type === 'halftone' ? 1 : 0.5
+              }}
+            />
+          </button>
+          <span className="text-[8px] font-bold uppercase text-slate-500">HALF</span>
+        </div>
       </div>
 
       {/* Controls - Only show when effect is active */}
@@ -357,7 +382,7 @@ export default function AvatarEffectControls({
               <br />Sandy Hoover (Mixmi)
             </div>
             <div>
-              <span className="text-slate-500">VHS, ASCII, DTHR shaders based on:</span>
+              <span className="text-slate-500">VHS, ASCII, DTHR, HALF based on:</span>
               <br />Pablo Stanley / <a href="https://efecto.app" target="_blank" rel="noopener noreferrer" className="text-[#5BB5F9] hover:underline">efecto.app</a>
             </div>
             <div>

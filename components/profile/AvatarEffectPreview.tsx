@@ -12,8 +12,9 @@ import { HolographicEffect } from '@/lib/shaderEffects/HolographicEffect'
 import { PrismEffect } from '@/lib/shaderEffects/PrismEffect'
 import { ThermalEffect } from '@/lib/shaderEffects/ThermalEffect'
 import { NeonGlowEffect } from '@/lib/shaderEffects/NeonGlowEffect'
+import { HalftoneEffect } from '@/lib/shaderEffects/HalftoneEffect'
 
-export type AvatarEffectType = 'vhs' | 'ascii' | 'dither' | 'holographic' | 'prism' | 'thermal' | 'neon' | null
+export type AvatarEffectType = 'vhs' | 'ascii' | 'dither' | 'holographic' | 'prism' | 'thermal' | 'neon' | 'halftone' | null
 
 export interface AvatarEffectSettings {
   type: AvatarEffectType
@@ -264,6 +265,18 @@ export default function AvatarEffectPreview({
           )}
           {effects.type === 'neon' && (
             <NeonGlowEffect
+              intensity={effects.intensity}
+              granularity={effects.granularity}
+              wetDry={effects.wetDry}
+              audioLevel={0}
+              audioReactive={false}
+              ridiculousMode={false}
+              saturation={effects.saturation}
+              resolution={{ x: size, y: size }}
+            />
+          )}
+          {effects.type === 'halftone' && (
+            <HalftoneEffect
               intensity={effects.intensity}
               granularity={effects.granularity}
               wetDry={effects.wetDry}
