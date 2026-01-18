@@ -1,6 +1,7 @@
 "use client"
 
 import React, { memo, useState } from 'react'
+import { ChevronUp } from 'lucide-react'
 import { WebGLEffectType } from './WebGLVideoDisplay'
 import Knob from './Knob'
 
@@ -223,9 +224,25 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
         setShowAttribution(false)
       }}
     >
+      {/* Close button - always visible at top right */}
+      <button
+        onClick={onClose}
+        className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-white/60 hover:text-white transition-colors z-10"
+        title="Close FX panel"
+      >
+        <ChevronUp size={14} strokeWidth={2.5} />
+      </button>
+
+      {/* No effect message */}
+      {!showControls && (
+        <div className="px-4 py-3 pt-6 text-center">
+          <span className="text-[10px] text-slate-400">Select an effect above to adjust settings</span>
+        </div>
+      )}
+
       {/* Controls - Only show when effect is active */}
       {showControls && (
-        <div className="px-3 py-2 space-y-1.5 relative">
+        <div className="px-3 py-2 space-y-1.5 relative pt-5">
           {/* Controls Row - REACT/VU/11 on left, knobs on right */}
           <div className="flex justify-center items-center gap-2 py-2" onMouseDown={(e) => e.stopPropagation()}>
             {/* REACT button - matches FX button style, blue */}

@@ -9,7 +9,7 @@ import { TrackNode } from "@/components/globe/types";
 import { IPTrack } from "@/types";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
-import { Globe as GlobeIcon, Headphones, X, ChevronDown, ChevronUp, Layers } from "lucide-react";
+import { Globe as GlobeIcon, Headphones, X, ChevronDown, ChevronUp, Layers, Volume2, VolumeX, Video } from "lucide-react";
 import { fetchGlobeTracksFromSupabase, fallbackGlobeNodes } from "@/lib/globeDataSupabase";
 import { supabase } from "@/lib/supabase";
 import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } from "@/lib/globe/simpleCluster";
@@ -94,10 +94,10 @@ const CartWidget = dynamic(() => import('@/components/CartWidget'), {
   ssr: false
 });
 
-// Dynamically import DemoButton - show me demo button
-const DemoButton = dynamic(() => import('@/components/DemoButton'), {
-  ssr: false
-});
+// DemoButton removed - demo functionality accessible via code but button hidden
+// const DemoButton = dynamic(() => import('@/components/DemoButton'), {
+//   ssr: false
+// });
 
 // Dynamically import LandingTagline - first-visit animated tagline
 const LandingTagline = dynamic(() => import('@/components/LandingTagline'), {
@@ -2095,7 +2095,8 @@ export default function HomePage() {
       )}
 
       {/* Video Display Area - Draggable video mixer display */}
-      {isMixerVisible && mixerState && (mixerState.deckATrack?.content_type === 'video_clip' || mixerState.deckBTrack?.content_type === 'video_clip') && (
+      {/* Shows when: mixer visible, videos loaded, AND not collapsed (collapsed = hidden, use sidebar icon to show) */}
+      {isMixerVisible && mixerState && (mixerState.deckATrack?.content_type === 'video_clip' || mixerState.deckBTrack?.content_type === 'video_clip') && !isVideoViewerCollapsed && (
         <div
           className="fixed"
           style={{
@@ -2124,36 +2125,26 @@ export default function HomePage() {
             {/* DRAG TO MOVE - centered */}
             <span className="text-white/60 text-[10px]">DRAG TO MOVE</span>
 
-            {/* Collapse/Expand button - absolute positioned right */}
+            {/* Hide button - collapses to sidebar icon */}
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setIsVideoViewerCollapsed(!isVideoViewerCollapsed);
+                setIsVideoViewerCollapsed(true);
               }}
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
               }}
               className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-white/20 rounded p-0.5 transition-colors pointer-events-auto"
-              title={isVideoViewerCollapsed ? "Expand viewer" : "Collapse viewer"}
+              title="Hide (click sidebar icon to show)"
             >
-              {isVideoViewerCollapsed ? (
-                <ChevronUp className="w-5 h-5" strokeWidth={2.5} />
-              ) : (
-                <ChevronDown className="w-5 h-5" strokeWidth={2.5} />
-              )}
+              <X className="w-4 h-4" strokeWidth={2.5} />
             </button>
           </div>
 
-          {/* Video display - conditionally shown */}
-          <div
-            className="transition-all duration-300 ease-in-out overflow-hidden"
-            style={{
-              maxHeight: isVideoViewerCollapsed ? '0px' : '272px',
-              opacity: isVideoViewerCollapsed ? 0 : 1
-            }}
-          >
+          {/* Video display */}
+          <div className="relative">
             <WebGLVideoDisplay
               deckATrack={mixerState.deckATrack}
               deckBTrack={mixerState.deckBTrack}
@@ -2173,6 +2164,54 @@ export default function HomePage() {
                 saturation: webglSaturation
               }}
             />
+
+            {/* Video Audio Mute Controls - overlay on video display */}
+            {mixerState.deckATrack?.content_type === 'video_clip' && (
+              <button
+                onClick={() => (window as any).mixerState?.toggleDeckAMute?.()}
+                className={`absolute top-2 left-20 px-2 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition-all ${
+                  mixerState.deckAMuted
+                    ? 'bg-red-500/80 text-white'
+                    : 'bg-black/70 text-cyan-400 hover:bg-black/90'
+                }`}
+                title={mixerState.deckAMuted ? 'Unmute Video A audio' : 'Mute Video A audio'}
+              >
+                {mixerState.deckAMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+              </button>
+            )}
+            {mixerState.deckBTrack?.content_type === 'video_clip' && (
+              <button
+                onClick={() => (window as any).mixerState?.toggleDeckBMute?.()}
+                className={`absolute top-2 right-20 px-2 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition-all ${
+                  mixerState.deckBMuted
+                    ? 'bg-red-500/80 text-white'
+                    : 'bg-black/70 text-blue-400 hover:bg-black/90'
+                }`}
+                title={mixerState.deckBMuted ? 'Unmute Video B audio' : 'Mute Video B audio'}
+              >
+                {mixerState.deckBMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+              </button>
+            )}
+
+            {/* Video Dismiss Buttons - X to remove video from slot */}
+            {mixerState.deckATrack?.content_type === 'video_clip' && (
+              <button
+                onClick={() => (window as any).mixerState?.clearDeckA?.()}
+                className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-black/70 hover:bg-red-500/80 text-white/70 hover:text-white transition-all"
+                title="Remove Video A"
+              >
+                <X size={12} strokeWidth={2.5} />
+              </button>
+            )}
+            {mixerState.deckBTrack?.content_type === 'video_clip' && (
+              <button
+                onClick={() => (window as any).mixerState?.clearDeckB?.()}
+                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded bg-black/70 hover:bg-red-500/80 text-white/70 hover:text-white transition-all"
+                title="Remove Video B"
+              >
+                <X size={12} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
 
           {/* Inline Control Bar - MIX and FX controls */}
@@ -2246,11 +2285,38 @@ export default function HomePage() {
       {/* Simple Playlist Player - Always available, bottom-left corner */}
       <SimplePlaylistPlayer />
 
-      {/* Demo Button - Fixed position, to the left of help widget */}
-      <DemoButton isOn={isDemoMode} onToggle={setIsDemoMode} />
+      {/* Help Widget - Hidden icon, accessible via header menu (window.openHelpWidget) */}
+      <HelpWidget hideIcon={true} />
 
-      {/* Help Widget - Fixed position, right side */}
-      <HelpWidget />
+      {/* Video Widget Icon - Shows when videos are loaded, toggles Video Widget visibility */}
+      {mixerState && (mixerState.deckATrack?.content_type === 'video_clip' || mixerState.deckBTrack?.content_type === 'video_clip') && (
+        <div className="fixed top-1/2 right-6 -translate-y-1/2 z-[998]">
+          <button
+            onClick={() => setIsVideoViewerCollapsed(!isVideoViewerCollapsed)}
+            className={`p-2 rounded-lg transition-all duration-200 hover:scale-105 ${
+              isVideoViewerCollapsed
+                ? 'bg-[#5BB5F9]/20 hover:bg-[#5BB5F9]/30'
+                : 'bg-[#5BB5F9]/40 shadow-lg shadow-[#5BB5F9]/20'
+            }`}
+            title={isVideoViewerCollapsed ? 'Show Video Widget' : 'Hide Video Widget'}
+          >
+            <Video
+              className={`w-6 h-6 transition-colors ${
+                isVideoViewerCollapsed ? 'text-[#5BB5F9]/70' : 'text-[#5BB5F9]'
+              }`}
+              strokeWidth={2}
+            />
+          </button>
+          {/* Label below icon */}
+          <div className={`
+            absolute top-full left-1/2 -translate-x-1/2 mt-1.5
+            text-[8px] font-bold uppercase tracking-wider whitespace-nowrap
+            transition-opacity duration-200 text-[#5BB5F9]/70
+          `}>
+            VIDEO
+          </div>
+        </div>
+      )}
 
       {/* Agent Widget - Fixed position, left side (triggered by crate robot button) */}
       <AgentWidget />

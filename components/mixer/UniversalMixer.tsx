@@ -254,6 +254,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }
   }, [mixerState.deckB.volume]);
 
+  // Update audio volume when videoMuted state changes (from Video Widget mute buttons)
+  useEffect(() => {
+    if (mixerState.deckA.audioState?.audio && mixerState.deckA.contentType === 'video_clip') {
+      mixerState.deckA.audioState.audio.volume = mixerState.deckA.videoMuted ? 0 : (mixerState.deckA.volume / 100);
+    }
+  }, [mixerState.deckA.videoMuted, mixerState.deckA.volume, mixerState.deckA.audioState?.audio, mixerState.deckA.contentType]);
+
+  useEffect(() => {
+    if (mixerState.deckB.audioState?.audio && mixerState.deckB.contentType === 'video_clip') {
+      mixerState.deckB.audioState.audio.volume = mixerState.deckB.videoMuted ? 0 : (mixerState.deckB.volume / 100);
+    }
+  }, [mixerState.deckB.videoMuted, mixerState.deckB.volume, mixerState.deckB.audioState?.audio, mixerState.deckB.contentType]);
+
   // Update current time for waveforms
   useEffect(() => {
     const updateCurrentTime = () => {
@@ -1697,6 +1710,22 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       // Audio analyzer nodes for WebGL audio reactive effects
       deckAAnalyzer: mixerState.deckA.audioState?.analyzerNode || null,
       deckBAnalyzer: mixerState.deckB.audioState?.analyzerNode || null,
+      // Toggle functions for video audio mute from Video Widget
+      toggleDeckAMute: () => {
+        setMixerState(prev => ({
+          ...prev,
+          deckA: { ...prev.deckA, videoMuted: !prev.deckA.videoMuted }
+        }));
+      },
+      toggleDeckBMute: () => {
+        setMixerState(prev => ({
+          ...prev,
+          deckB: { ...prev.deckB, videoMuted: !prev.deckB.videoMuted }
+        }));
+      },
+      // Clear deck functions for Video Widget dismissal
+      clearDeckA,
+      clearDeckB,
     };
 
     return () => {

@@ -51,7 +51,11 @@ const helpVideos: HelpVideo[] = [
   }
 ];
 
-export default function HelpWidget() {
+interface HelpWidgetProps {
+  hideIcon?: boolean;
+}
+
+export default function HelpWidget({ hideIcon = false }: HelpWidgetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLargeMode, setIsLargeMode] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -304,8 +308,8 @@ export default function HelpWidget() {
 
   return (
     <div className="fixed top-1/2 right-6 -translate-y-1/2 z-[999] help-widget">
-      {/* Help Icon Button - Always Visible */}
-      {!isExpanded && (
+      {/* Help Icon Button - Hidden when hideIcon prop is true */}
+      {!isExpanded && !hideIcon && (
         <button
           onClick={() => setIsExpanded(true)}
           className="p-1.5 hover:bg-[#1E293B] rounded transition-colors"

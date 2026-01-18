@@ -112,6 +112,12 @@ export default function SimplifiedDeckCompact({
           return;
         }
 
+        // 🎬 Video redirect notification - let user know video goes to Video Widget
+        if (item.track.content_type === 'video_clip') {
+          console.log(`🎬 Video clip detected on Deck ${deck} - will display in Video Widget`);
+          showToast(`🎬 Video loaded to Deck ${deck}! Check the Video Widget for playback.`, 'success', 3000);
+        }
+
         // Use proper image optimization
         const optimizedImageUrl = getOptimizedTrackImage(item.track, 64);
 
