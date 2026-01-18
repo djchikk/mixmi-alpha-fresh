@@ -14,6 +14,7 @@ import { fetchGlobeTracksFromSupabase, fallbackGlobeNodes } from "@/lib/globeDat
 import { supabase } from "@/lib/supabase";
 import { createLocationClusters, expandCluster, isClusterNode, ClusterNode } from "@/lib/globe/simpleCluster";
 import Crate from "@/components/shared/Crate";
+import CrossfaderControlCompact from "@/components/mixer/compact/CrossfaderControlCompact";
 import WidgetLauncher from "@/components/WidgetLauncher";
 import ResetConfirmModal from "@/components/modals/ResetConfirmModal";
 import { NullIslandModal } from "@/components/globe/NullIslandModal";
@@ -181,6 +182,9 @@ export default function HomePage() {
   const [webglRidiculousMode, setWebglRidiculousMode] = useState(false);
   const [webglSaturation, setWebglSaturation] = useState(1.0);
   const [isWebglFXPanelOpen, setIsWebglFXPanelOpen] = useState(false);
+
+  // Video crossfader - independent from audio mixer crossfader
+  const [videoCrossfaderPosition, setVideoCrossfaderPosition] = useState(50); // 0-100, 50 = center
 
   // Pinned cards (draggable sticky notes)
   const [pinnedCards, setPinnedCards] = useState<Array<{
@@ -2155,7 +2159,7 @@ export default function HomePage() {
               deckBTrack={mixerState.deckBTrack}
               deckAPlaying={mixerState.deckAPlaying}
               deckBPlaying={mixerState.deckBPlaying}
-              crossfaderPosition={mixerState.crossfaderPosition}
+              crossfaderPosition={videoCrossfaderPosition}
               crossfadeMode={crossfadeMode}
               effects={{
                 activeEffect: webglActiveEffect,
@@ -2179,6 +2183,24 @@ export default function HomePage() {
             onEffectChange={setWebglActiveEffect}
             onOpenSettings={() => setIsWebglFXPanelOpen(true)}
           />
+
+          {/* Video Crossfader - only shows when both decks have videos */}
+          {mixerState.deckATrack?.content_type === 'video_clip' && mixerState.deckBTrack?.content_type === 'video_clip' && (
+            <div
+              className="bg-black/90 backdrop-blur-sm px-4 py-2"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-[#5BB5F9] uppercase">A</span>
+                <CrossfaderControlCompact
+                  position={videoCrossfaderPosition}
+                  onPositionChange={setVideoCrossfaderPosition}
+                  className="flex-1"
+                />
+                <span className="text-[10px] font-bold text-[#38BDF8] uppercase">B</span>
+              </div>
+            </div>
+          )}
 
           {/* WebGL FX Panel - extends below control bar */}
           {isWebglFXPanelOpen && (
