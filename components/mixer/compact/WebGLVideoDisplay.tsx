@@ -8,10 +8,11 @@ import { Track } from '../types'
 import { VhsGlitchEffect } from '@/lib/shaderEffects/VhsGlitchEffect'
 import { AsciiEffect } from '@/lib/shaderEffects/AsciiEffect'
 import { DitherEffect } from '@/lib/shaderEffects/DitherEffect'
+import { HalftoneEffect } from '@/lib/shaderEffects/HalftoneEffect'
 import { Vector2 } from 'three'
 
 export type CrossfadeMode = 'slide' | 'blend' | 'cut'
-export type WebGLEffectType = 'vhs' | 'ascii' | 'dither' | null
+export type WebGLEffectType = 'vhs' | 'ascii' | 'dither' | 'halftone' | null
 
 interface WebGLVideoEffects {
   activeEffect: WebGLEffectType
@@ -413,6 +414,18 @@ export default function WebGLVideoDisplay({
               audioReactive={effects.audioReactive}
               ridiculousMode={effects.ridiculousMode || false}
               saturation={effects.saturation ?? 1.0}
+            />
+          )}
+          {effects.activeEffect === 'halftone' && (
+            <HalftoneEffect
+              intensity={effects.intensity}
+              granularity={effects.granularity}
+              wetDry={effects.wetDry}
+              audioLevel={effects.audioLevel || 0}
+              audioReactive={effects.audioReactive}
+              ridiculousMode={effects.ridiculousMode || false}
+              saturation={effects.saturation ?? 1.0}
+              resolution={{ x: 408, y: 408 }}
             />
           )}
         </EffectComposer>

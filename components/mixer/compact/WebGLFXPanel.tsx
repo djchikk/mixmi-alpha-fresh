@@ -15,6 +15,7 @@ interface WebGLFXPanelProps {
   wetDry: number
   onWetDryChange: (value: number) => void
   audioReactive: boolean
+  onAudioReactiveChange: (enabled: boolean) => void
   audioLevel: number  // 0-1, for VU meter display
   ditherColor: string
   onDitherColorChange: (color: string) => void
@@ -23,6 +24,164 @@ interface WebGLFXPanelProps {
   saturation: number
   onSaturationChange: (value: number) => void
   className?: string
+}
+
+// FX-style button component (matches the effect buttons exactly)
+function FXButton({
+  active,
+  onClick,
+  color = 'blue',
+  children
+}: {
+  active: boolean
+  onClick: () => void
+  color?: 'blue' | 'fuchsia'
+  children?: React.ReactNode
+}) {
+  // Gradient colors matching FX button style
+  const colors = {
+    blue: {
+      gradient: 'radial-gradient(circle at center, #FFFFFF 0%, #93C5FD 30%, #3B82F6 100%)',
+      glow: 'rgba(59, 130, 246, 0.5)'
+    },
+    fuchsia: {
+      gradient: 'radial-gradient(circle at center, #FFFFFF 0%, #F0ABFC 30%, #D946EF 100%)',
+      glow: 'rgba(217, 70, 239, 0.5)'
+    }
+  }
+  const c = colors[color]
+
+  return (
+    <button
+      onClick={onClick}
+      className="relative overflow-hidden transition-all active:scale-95"
+      style={{
+        width: '28px',
+        height: '28px',
+        borderRadius: '5px',
+        backgroundColor: '#000000',
+        boxShadow: active ? `0 0 10px ${c.glow}` : 'none'
+      }}
+    >
+      {/* Gradient fill */}
+      <div
+        className="absolute inset-0 transition-opacity duration-200"
+        style={{
+          background: c.gradient,
+          opacity: active ? 1 : 0.65
+        }}
+      />
+      {/* Content centered */}
+      <div className="absolute inset-0 flex items-center justify-center z-10">
+        {children}
+      </div>
+    </button>
+  )
+}
+
+// Dark circular VU Needle Meter component
+function VUMeter({ level, active }: { level: number; active: boolean }) {
+  // Needle rotation: -50deg (min) to +30deg (max) - asymmetric like real VU
+  const rotation = -50 + (level * 80)
+
+  return (
+    <div
+      className={`relative transition-opacity ${
+        active ? 'opacity-100' : 'opacity-40'
+      }`}
+      style={{
+        width: '52px',
+        height: '52px',
+        borderRadius: '50%',
+        // Dark face with subtle gradient
+        background: 'radial-gradient(circle at 30% 30%, #2a2a2a 0%, #0a0a0a 70%, #000000 100%)',
+        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(255,255,255,0.05)'
+      }}
+    >
+      {/* SVG for scale and labels */}
+      <svg viewBox="0 0 52 52" className="absolute inset-0 w-full h-full">
+        {/* dB LEVEL label */}
+        <text x="26" y="12" textAnchor="middle" fontSize="4" fill="#888" fontFamily="sans-serif" letterSpacing="0.5">
+          dB LEVEL
+        </text>
+
+        {/* Scale arc - yellow/gold zone (normal) */}
+        <path
+          d="M 8 38 Q 14 18 26 14"
+          fill="none"
+          stroke="#D4A84B"
+          strokeWidth="1"
+        />
+        {/* Scale arc - red zone (hot) */}
+        <path
+          d="M 26 14 Q 38 18 44 38"
+          fill="none"
+          stroke="#DC2626"
+          strokeWidth="1"
+        />
+
+        {/* Scale numbers - gold for normal, red for hot */}
+        <text x="10" y="36" fontSize="4" fill="#D4A84B" fontFamily="sans-serif">20</text>
+        <text x="13" y="28" fontSize="4" fill="#D4A84B" fontFamily="sans-serif">10</text>
+        <text x="18" y="22" fontSize="3.5" fill="#D4A84B" fontFamily="sans-serif">5</text>
+        <text x="24" y="19" fontSize="4" fill="#D4A84B" fontFamily="sans-serif">0</text>
+        <text x="32" y="22" fontSize="3.5" fill="#DC2626" fontFamily="sans-serif">3</text>
+        <text x="38" y="28" fontSize="4" fill="#DC2626" fontFamily="sans-serif">+</text>
+
+        {/* VU text */}
+        <text x="26" y="44" textAnchor="middle" fontSize="6" fontWeight="bold" fill="#D4A84B" fontFamily="serif">
+          VU
+        </text>
+      </svg>
+
+      {/* Needle */}
+      <div
+        className="absolute transition-transform duration-75"
+        style={{
+          bottom: '10px',
+          left: '50%',
+          width: '1.5px',
+          height: '22px',
+          marginLeft: '-0.75px',
+          transformOrigin: 'bottom center',
+          transform: `rotate(${rotation}deg)`,
+          background: active
+            ? 'linear-gradient(to top, #D4A84B 0%, #F5D67A 100%)'
+            : 'linear-gradient(to top, #555 0%, #777 100%)',
+          borderRadius: '1px'
+        }}
+      />
+
+      {/* Needle pivot - gold oval */}
+      <div
+        className="absolute"
+        style={{
+          bottom: '8px',
+          left: '50%',
+          width: '8px',
+          height: '4px',
+          marginLeft: '-4px',
+          borderRadius: '50%',
+          backgroundColor: active ? '#D4A84B' : '#555',
+          boxShadow: '0 0 2px rgba(0,0,0,0.5)'
+        }}
+      />
+
+      {/* Peak LED indicator */}
+      <div
+        className="absolute"
+        style={{
+          top: '10px',
+          right: '8px',
+          width: '4px',
+          height: '4px',
+          borderRadius: '50%',
+          backgroundColor: level > 0.8 ? '#DC2626' : '#4a1a1a',
+          boxShadow: level > 0.8 ? '0 0 4px #DC2626' : 'none'
+        }}
+      />
+    </div>
+  )
 }
 
 const WebGLFXPanel = memo(function WebGLFXPanel({
@@ -36,6 +195,7 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
   wetDry,
   onWetDryChange,
   audioReactive,
+  onAudioReactiveChange,
   audioLevel,
   ditherColor,
   onDitherColorChange,
@@ -66,8 +226,43 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
       {/* Controls - Only show when effect is active */}
       {showControls && (
         <div className="px-3 py-2 space-y-1.5 relative">
-          {/* Knob Controls Row with optional Boost button */}
-          <div className="flex justify-center items-start gap-4 py-2" onMouseDown={(e) => e.stopPropagation()}>
+          {/* Controls Row - REACT/VU/11 on left, knobs on right */}
+          <div className="flex justify-center items-center gap-2 py-2" onMouseDown={(e) => e.stopPropagation()}>
+            {/* REACT button - matches FX button style, blue */}
+            <FXButton
+              active={audioReactive}
+              onClick={() => onAudioReactiveChange(!audioReactive)}
+              color="blue"
+            >
+              {/* Audio wave icon */}
+              <svg viewBox="0 0 24 24" className="w-4 h-4" style={{ color: '#000000' }}>
+                <path
+                  fill="none"
+                  d="M12 4v16M8 7v10M4 10v4M16 7v10M20 10v4"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </FXButton>
+
+            {/* VU Meter */}
+            <VUMeter level={audioLevel} active={audioReactive} />
+
+            {/* 11 Boost button - matches FX button style, fuchsia */}
+            <FXButton
+              active={ridiculousMode}
+              onClick={() => onRidiculousModeChange(!ridiculousMode)}
+              color="fuchsia"
+            >
+              <span className="text-[11px] font-black" style={{ color: '#000000' }}>
+                11
+              </span>
+            </FXButton>
+
+            {/* Small spacer */}
+            <div className="w-1" />
+
             <Knob
               value={intensity}
               onChange={onIntensityChange}
@@ -94,25 +289,6 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
               min={0}
               max={2}
             />
-            {/* Boost "11" Button - Only show when audio reactive is on */}
-            {audioReactive && (
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-[7px] font-bold uppercase text-slate-400 tracking-wide">
-                  BOOST
-                </span>
-                <button
-                  onClick={() => onRidiculousModeChange(!ridiculousMode)}
-                  className={`w-8 h-8 rounded-md font-black text-[11px] transition-all ${
-                    ridiculousMode
-                      ? 'bg-gradient-to-r from-fuchsia-500 via-red-500 to-yellow-500 text-white shadow-lg shadow-fuchsia-500/30 animate-pulse'
-                      : 'bg-slate-800/50 border border-fuchsia-400/30 text-fuchsia-400 hover:border-fuchsia-400/60'
-                  }`}
-                  title="Turn it up to 11!"
-                >
-                  11
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Dither Color - Only show when dither is active */}
@@ -187,7 +363,7 @@ const WebGLFXPanel = memo(function WebGLFXPanel({
                   <br />Sandy Hoover (Mixmi)
                 </div>
                 <div>
-                  <span className="text-slate-500">VHS, ASCII, DTHR shaders based on:</span>
+                  <span className="text-slate-500">VHS, ASCII, DTHR, HALF shaders based on:</span>
                   <br />Pablo Stanley / <a href="https://efecto.app" target="_blank" rel="noopener noreferrer" className="text-[#5BB5F9] hover:underline">efecto.app</a>
                 </div>
                 <div className="pt-1 border-t border-slate-700/50">

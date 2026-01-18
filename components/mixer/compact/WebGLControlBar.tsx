@@ -10,9 +10,6 @@ interface WebGLControlBarProps {
   onCrossfadeModeChange: (mode: CrossfadeMode) => void
   activeEffect: WebGLEffectType
   onEffectChange: (effect: WebGLEffectType) => void
-  audioReactive: boolean
-  onAudioReactiveChange: (enabled: boolean) => void
-  audioLevel: number // 0-1 for VU meter
   onOpenSettings: () => void
 }
 
@@ -21,9 +18,6 @@ const WebGLControlBar = memo(function WebGLControlBar({
   onCrossfadeModeChange,
   activeEffect,
   onEffectChange,
-  audioReactive,
-  onAudioReactiveChange,
-  audioLevel,
   onOpenSettings
 }: WebGLControlBarProps) {
 
@@ -36,14 +30,6 @@ const WebGLControlBar = memo(function WebGLControlBar({
       onOpenSettings()
     }
   }, [activeEffect, onEffectChange, onOpenSettings])
-
-  const handleReactiveToggle = useCallback(() => {
-    const newReactive = !audioReactive
-    onAudioReactiveChange(newReactive)
-    if (newReactive && !activeEffect) {
-      onEffectChange('vhs')
-    }
-  }, [audioReactive, activeEffect, onAudioReactiveChange, onEffectChange])
 
   return (
     <div
@@ -125,7 +111,7 @@ const WebGLControlBar = memo(function WebGLControlBar({
               <span className="text-[7px] font-bold uppercase text-slate-500">ASCII</span>
             </div>
 
-            {/* Dither - Yellow-green */}
+            {/* Dither - Yellow */}
             <div className="flex flex-col items-center gap-0.5">
               <button
                 onClick={() => handleEffectToggle('dither')}
@@ -150,57 +136,29 @@ const WebGLControlBar = memo(function WebGLControlBar({
               <span className="text-[7px] font-bold uppercase text-slate-500">DTHR</span>
             </div>
 
-            {/* Audio Reactive - Green with VU Meter on right */}
-            <div className="flex flex-col items-center gap-0.5 relative">
+            {/* Halftone - Green */}
+            <div className="flex flex-col items-center gap-0.5">
               <button
-                onClick={handleReactiveToggle}
+                onClick={() => handleEffectToggle('halftone')}
                 className="relative overflow-hidden transition-all active:scale-95"
                 style={{
                   width: '28px',
                   height: '28px',
                   borderRadius: '5px',
                   backgroundColor: '#000000',
-                  boxShadow: audioReactive ? '0 0 10px rgba(107, 255, 170, 0.5)' : 'none'
+                  boxShadow: activeEffect === 'halftone' ? '0 0 10px rgba(107, 255, 170, 0.5)' : 'none'
                 }}
-                title="Audio Reactive - Click to toggle"
+                title="Halftone - Click to toggle"
               >
                 <div
                   className="absolute inset-0 transition-opacity duration-200"
                   style={{
                     background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
-                    opacity: audioReactive ? 1 : 0.65
+                    opacity: activeEffect === 'halftone' ? 1 : 0.65
                   }}
                 />
               </button>
-              <span className="text-[7px] font-bold uppercase text-slate-500">REACT</span>
-              {/* Vertical VU Meter - absolutely positioned to the right */}
-              {audioReactive && (
-                <div className="absolute left-full top-0 ml-1 flex flex-col-reverse gap-0.5 h-7">
-                  {Array.from({ length: 8 }).map((_, i) => {
-                    const threshold = (i + 1) / 8
-                    const isActive = audioLevel >= threshold
-                    // Green for low, yellow for mid, red for high
-                    let color = 'bg-emerald-500'
-                    if (i >= 6) color = 'bg-red-500'
-                    else if (i >= 4) color = 'bg-yellow-500'
-
-                    return (
-                      <div
-                        key={i}
-                        className={`w-1.5 h-1.5 rounded-sm transition-all duration-75 ${
-                          isActive ? color : 'bg-slate-700/50'
-                        }`}
-                        style={{
-                          opacity: isActive ? 1 : 0.3,
-                          boxShadow: isActive && i >= 6 ? '0 0 3px rgba(239, 68, 68, 0.6)' :
-                                     isActive && i >= 4 ? '0 0 3px rgba(234, 179, 8, 0.4)' :
-                                     isActive ? '0 0 3px rgba(16, 185, 129, 0.4)' : 'none'
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              )}
+              <span className="text-[7px] font-bold uppercase text-slate-500">HALF</span>
             </div>
           </div>
         </div>
