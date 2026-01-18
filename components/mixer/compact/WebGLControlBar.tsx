@@ -36,28 +36,8 @@ const WebGLControlBar = memo(function WebGLControlBar({
       className="bg-black/90 backdrop-blur-sm px-4 py-3 rounded-b-lg"
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-center gap-6">
-        {/* Mix Mode Section */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase text-white/90">MIX:</span>
-          <div className="flex gap-1">
-            {(['slide', 'blend', 'cut'] as CrossfadeMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => onCrossfadeModeChange(mode)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase transition-all border ${
-                  crossfadeMode === mode
-                    ? 'bg-[#81E4F2]/10 text-[#81E4F2] border-[#81E4F2]/40 shadow-sm shadow-[#81E4F2]/20'
-                    : 'bg-slate-700/40 text-slate-400 border-transparent hover:bg-slate-600/50'
-                }`}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* FX Section */}
+      <div className="flex items-center justify-center">
+        {/* FX Section - Mix mode removed, defaulting to blend */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold uppercase text-white/90">FX:</span>
           <div className="flex gap-3">

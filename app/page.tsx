@@ -171,7 +171,7 @@ export default function HomePage() {
   // Video mixer controls state - WebGL effects
   type CrossfadeMode = 'slide' | 'blend' | 'cut';
   type WebGLEffectType = 'vhs' | 'ascii' | 'dither' | null;
-  const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('slide');
+  const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('blend');
   const [webglActiveEffect, setWebglActiveEffect] = useState<WebGLEffectType>(null);
   const [webglIntensity, setWebglIntensity] = useState(0.5);
   const [webglGranularity, setWebglGranularity] = useState(0.5);

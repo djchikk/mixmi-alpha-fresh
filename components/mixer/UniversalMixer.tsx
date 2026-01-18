@@ -1795,9 +1795,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   className="w-[20px] h-[20px] rounded border-2 border-[#5BB5F9]/60 overflow-hidden bg-slate-800 shadow-sm shadow-[#5BB5F9]/20"
                   title="Video A in Video Mixer"
                 >
-                  {mixerState.deckA.track?.cover_image_url ? (
+                  {(mixerState.deckA.track?.cover_image_url || (mixerState.deckA.track as any)?.thumb_64_url || (mixerState.deckA.track as any)?.thumb_160_url || (mixerState.deckA.track as any)?.imageUrl) ? (
                     <img
-                      src={mixerState.deckA.track.cover_image_url}
+                      src={mixerState.deckA.track.cover_image_url || (mixerState.deckA.track as any)?.thumb_64_url || (mixerState.deckA.track as any)?.thumb_160_url || (mixerState.deckA.track as any)?.imageUrl}
                       alt="Video A"
                       className="w-full h-full object-cover"
                     />
@@ -1928,9 +1928,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   className="w-[20px] h-[20px] rounded border-2 border-[#38BDF8]/60 overflow-hidden bg-slate-800 shadow-sm shadow-[#38BDF8]/20"
                   title="Video B in Video Mixer"
                 >
-                  {mixerState.deckB.track?.cover_image_url ? (
+                  {(mixerState.deckB.track?.cover_image_url || (mixerState.deckB.track as any)?.thumb_64_url || (mixerState.deckB.track as any)?.thumb_160_url || (mixerState.deckB.track as any)?.imageUrl) ? (
                     <img
-                      src={mixerState.deckB.track.cover_image_url}
+                      src={mixerState.deckB.track.cover_image_url || (mixerState.deckB.track as any)?.thumb_64_url || (mixerState.deckB.track as any)?.thumb_160_url || (mixerState.deckB.track as any)?.imageUrl}
                       alt="Video B"
                       className="w-full h-full object-cover"
                     />
