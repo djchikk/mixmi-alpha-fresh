@@ -351,7 +351,7 @@ export default function WebGLVideoDisplay({
   const deckBUrl = deckBHasVideo ? (deckBTrack as any).video_url : null
 
   return (
-    <div className="webgl-video-display rounded-lg overflow-hidden bg-black relative" style={{ height: '408px' }}>
+    <div className="webgl-video-display rounded-lg overflow-hidden bg-black relative" style={{ height: '272px' }}>
       <Canvas
         camera={{ position: [0, 0, 1], fov: 90 }}
         style={{ background: '#000000' }}
@@ -396,7 +396,7 @@ export default function WebGLVideoDisplay({
               granularity={effects.granularity}
               wetDry={effects.wetDry}
               colorMode={true}
-              resolution={new Vector2(408, 408)}
+              resolution={new Vector2(272, 272)}
               audioLevel={effects.audioLevel || 0}
               audioReactive={effects.audioReactive}
               ridiculousMode={effects.ridiculousMode || false}
@@ -425,7 +425,7 @@ export default function WebGLVideoDisplay({
               audioReactive={effects.audioReactive}
               ridiculousMode={effects.ridiculousMode || false}
               saturation={effects.saturation ?? 1.0}
-              resolution={{ x: 408, y: 408 }}
+              resolution={{ x: 272, y: 272 }}
             />
           )}
         </EffectComposer>

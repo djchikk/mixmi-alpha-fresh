@@ -60,61 +60,68 @@ const LoopControlsCompact = memo(function LoopControlsCompact({
   };
 
   return (
-    <div className={`loop-controls-container flex items-center gap-2 ${reverse ? 'flex-row-reverse' : ''} ${disabled ? 'opacity-30 pointer-events-none' : ''} ${className}`}>
-      {/* Loop Toggle Button */}
-      <button
-        onClick={disabled ? undefined : onLoopToggle}
-        disabled={disabled}
-        className={`w-5 h-5 rounded-full flex items-center justify-center transition-all border-2 ${
-          disabled
-            ? 'border-slate-700 text-slate-600 cursor-not-allowed'
-            : loopEnabled
-            ? 'bg-slate-800 hover:scale-105'
-            : 'border-slate-600 text-slate-500 hover:border-slate-500 hover:text-slate-400 hover:scale-105'
-        }`}
-        style={loopEnabled ? {
-          borderColor: 'rgba(129, 228, 242, 0.6)',
-          color: '#81E4F2',
-          boxShadow: '0 4px 6px -1px rgba(129, 228, 242, 0.2)'
-        } : {}}
-        title={disabled ? 'Load a track to enable loop controls' : loopEnabled ? 'Disable Loop' : 'Enable Loop'}
-      >
-        <Repeat size={12} className={`transition-colors ${
-          disabled ? 'text-slate-600' : loopEnabled ? '' : 'text-slate-500'
-        }`} />
-      </button>
-
-      {/* Loop Length Selector */}
+    <div className={`loop-controls-container flex items-center ${reverse ? 'flex-row-reverse' : ''} ${disabled ? 'opacity-30 pointer-events-none' : ''} ${className}`}>
+      {/* Integrated Loop Pill - Icon + Length in one control */}
       <div className="loop-selector-compact relative" ref={dropdownRef}>
         <div
-          className={`flex items-center gap-2 px-2 py-1 border rounded-full cursor-pointer transition-colors h-5 ${
-            loopEnabled
-              ? 'bg-slate-800 border-slate-600 hover:border-slate-500'
-              : 'bg-slate-800/50 border-slate-700 opacity-50'
+          className={`flex items-center gap-1.5 px-2 py-1 border rounded-full transition-colors h-5 ${
+            disabled
+              ? 'bg-slate-800/30 border-slate-700'
+              : loopEnabled
+              ? 'bg-slate-800 border-[#81E4F2]/40'
+              : 'bg-slate-800/50 border-slate-700'
           }`}
-          onClick={() => loopEnabled && setDropdownOpen(!dropdownOpen)}
+          style={loopEnabled ? {
+            boxShadow: '0 0 8px rgba(129, 228, 242, 0.15)'
+          } : {}}
         >
+          {/* Loop Toggle Icon - integrated into pill */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!disabled) onLoopToggle();
+            }}
+            disabled={disabled}
+            className={`flex items-center justify-center transition-all hover:scale-110 ${
+              disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+            }`}
+            title={disabled ? 'Load a track to enable loop controls' : loopEnabled ? 'Disable Loop' : 'Enable Loop'}
+          >
+            <Repeat size={11} className={`transition-colors ${
+              disabled ? 'text-slate-600' : loopEnabled ? 'text-[#81E4F2]' : 'text-slate-500 hover:text-slate-400'
+            }`} />
+          </button>
+
+          {/* Decrease Arrow */}
           <span
-            className={`loop-arrow text-xs cursor-pointer select-none transition-colors relative z-10 pointer-events-auto ${
-              loopEnabled ? 'text-slate-500 hover:text-slate-400' : 'text-slate-600'
+            className={`loop-arrow text-xs cursor-pointer select-none transition-colors ${
+              disabled ? 'text-slate-600 cursor-not-allowed' : loopEnabled ? 'text-slate-400 hover:text-slate-300' : 'text-slate-600'
             }`}
             onClick={(e) => {
               e.stopPropagation();
-              if (loopEnabled) handleLoopDecrease();
+              if (!disabled && loopEnabled) handleLoopDecrease();
             }}
           >◀</span>
-          <span className={`text-xs font-semibold min-w-[20px] text-center ${
-            loopEnabled ? 'text-slate-200' : 'text-slate-500'
-          }`}>
+
+          {/* Loop Length Display - clickable for dropdown */}
+          <span
+            className={`text-xs font-semibold min-w-[20px] text-center cursor-pointer ${
+              disabled ? 'text-slate-600' : loopEnabled ? 'text-slate-200 hover:text-white' : 'text-slate-500'
+            }`}
+            onClick={() => !disabled && loopEnabled && setDropdownOpen(!dropdownOpen)}
+            title={loopEnabled ? 'Click for loop length options' : ''}
+          >
             {loopLength === 0.125 ? '1/8' : loopLength < 1 ? `${loopLength * 4}/4` : loopLength}
           </span>
+
+          {/* Increase Arrow */}
           <span
-            className={`loop-arrow text-xs cursor-pointer select-none transition-colors relative z-10 pointer-events-auto ${
-              loopEnabled ? 'text-slate-500 hover:text-slate-400' : 'text-slate-600'
+            className={`loop-arrow text-xs cursor-pointer select-none transition-colors ${
+              disabled ? 'text-slate-600 cursor-not-allowed' : loopEnabled ? 'text-slate-400 hover:text-slate-300' : 'text-slate-600'
             }`}
             onClick={(e) => {
               e.stopPropagation();
-              if (loopEnabled) handleLoopIncrease();
+              if (!disabled && loopEnabled) handleLoopIncrease();
             }}
           >▶</span>
         </div>

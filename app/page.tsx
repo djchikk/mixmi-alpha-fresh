@@ -2097,9 +2097,9 @@ export default function HomePage() {
           style={{
             left: videoDisplayPosition.x === 0 ? '50%' : `${videoDisplayPosition.x}px`,
             top: videoDisplayPosition.y === 0 ? 'auto' : `${videoDisplayPosition.y}px`,
-            bottom: videoDisplayPosition.y === 0 ? '508px' : 'auto',
+            bottom: videoDisplayPosition.y === 0 ? '380px' : 'auto',
             transform: videoDisplayPosition.x === 0 ? 'translateX(-50%)' : 'none',
-            width: '408px',
+            width: '272px',
             zIndex: isDraggingVideo ? 200 : 40,
             cursor: isDraggingVideo ? 'grabbing' : 'grab'
           }}
@@ -2146,7 +2146,7 @@ export default function HomePage() {
           <div
             className="transition-all duration-300 ease-in-out overflow-hidden"
             style={{
-              maxHeight: isVideoViewerCollapsed ? '0px' : '408px',
+              maxHeight: isVideoViewerCollapsed ? '0px' : '272px',
               opacity: isVideoViewerCollapsed ? 0 : 1
             }}
           >
