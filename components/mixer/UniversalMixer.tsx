@@ -1787,9 +1787,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             <div className="w-[600px] relative">
 
           {/* Transport and Loop Controls Row */}
-          <div className="flex justify-center items-center gap-3 mb-5">
-            {/* Deck A Controls - Fixed width container to prevent shifting */}
-            <div className="w-[100px] flex justify-center mr-2">
+          <div className="flex justify-center items-center gap-2 mb-5">
+            {/* Deck A Loop Controls - compact, close to SYNC */}
+            <div className="flex justify-end">
               {mixerState.deckA.contentType !== 'radio_station' && (
                 <LoopControlsCompact
                   loopLength={mixerState.deckA.loopLength}
@@ -1886,8 +1886,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               SYNC
             </button>
 
-            {/* Deck B Controls - Fixed width container to prevent shifting */}
-            <div className="w-[100px] flex justify-center ml-2">
+            {/* Deck B Loop Controls - compact, close to SYNC */}
+            <div className="flex justify-start">
               {mixerState.deckB.contentType !== 'radio_station' && (
                 <LoopControlsCompact
                   loopLength={mixerState.deckB.loopLength}
