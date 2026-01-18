@@ -1788,6 +1788,26 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
           {/* Transport and Loop Controls Row */}
           <div className="flex justify-center items-center gap-2 mb-5">
+            {/* Deck A Video Breadcrumb - shows when video is in Video Widget */}
+            <div className="w-[24px] flex justify-center">
+              {mixerState.deckA.track?.content_type === 'video_clip' && (
+                <div
+                  className="w-[20px] h-[20px] rounded border-2 border-[#5BB5F9]/60 overflow-hidden bg-slate-800 shadow-sm shadow-[#5BB5F9]/20"
+                  title="Video A in Video Mixer"
+                >
+                  {mixerState.deckA.track?.cover_image_url ? (
+                    <img
+                      src={mixerState.deckA.track.cover_image_url}
+                      alt="Video A"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[8px] text-[#5BB5F9]">▶</div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Deck A Loop Controls - compact, close to SYNC */}
             <div className="flex justify-end">
               {mixerState.deckA.contentType !== 'radio_station' && (
@@ -1898,6 +1918,26 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   disabled={!mixerState.deckB.track}
                   reverse={true}
                 />
+              )}
+            </div>
+
+            {/* Deck B Video Breadcrumb - shows when video is in Video Widget */}
+            <div className="w-[24px] flex justify-center">
+              {mixerState.deckB.track?.content_type === 'video_clip' && (
+                <div
+                  className="w-[20px] h-[20px] rounded border-2 border-[#38BDF8]/60 overflow-hidden bg-slate-800 shadow-sm shadow-[#38BDF8]/20"
+                  title="Video B in Video Mixer"
+                >
+                  {mixerState.deckB.track?.cover_image_url ? (
+                    <img
+                      src={mixerState.deckB.track.cover_image_url}
+                      alt="Video B"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[8px] text-[#38BDF8]">▶</div>
+                  )}
+                </div>
               )}
             </div>
           </div>
