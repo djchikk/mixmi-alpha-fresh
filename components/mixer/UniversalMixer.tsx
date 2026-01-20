@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useDrop } from 'react-dnd';
 import { Track } from '../types';
 import { useMixerAudio } from '@/hooks/useMixerAudio';
 import { applyCrossfader, SimpleLoopSync } from '@/lib/mixerAudio';
@@ -12,7 +13,7 @@ import LoopControlsCompact from './compact/LoopControlsCompact';
 import SectionNavigator from './compact/SectionNavigator';
 import VerticalVolumeSlider from './compact/VerticalVolumeSlider';
 import DeckFXPanel from './compact/DeckFXPanel';
-import { Music, Radio, ChevronDown, Volume2, VolumeX } from 'lucide-react';
+import { Music, Radio, ChevronDown, Volume2, VolumeX, Video, X } from 'lucide-react';
 import { useMixer } from '@/contexts/MixerContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -66,6 +67,93 @@ interface UniversalMixerState {
   crossfaderPosition: number;
   syncActive: boolean;
   masterDeckId: 'A' | 'B'; // 🎯 NEW: Which deck is master for sync
+  // 🎬 Video tracks - independent from audio decks
+  videoATrack: Track | null;
+  videoBTrack: Track | null;
+  videoAVolume: number; // 0-100 (0 = muted)
+  videoBVolume: number; // 0-100 (0 = muted)
+}
+
+// Video Thumbnail component with drop zone support
+interface VideoThumbnailProps {
+  track: Track | null;
+  slot: 'A' | 'B';
+  onDrop: (track: Track) => void;
+  onClear: () => void;
+  position: 'left' | 'right';
+}
+
+function VideoThumbnail({ track, slot, onDrop, onClear, position }: VideoThumbnailProps) {
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+    accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD'],
+    drop: (item: { track: any }) => {
+      if (item.track?.content_type === 'video_clip') {
+        onDrop(item.track);
+      }
+    },
+    canDrop: (item: { track: any }) => {
+      return item.track?.content_type === 'video_clip';
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  }), [onDrop]);
+
+  const isDropTarget = isOver && canDrop;
+  const positionClass = position === 'left' ? 'left-[14px]' : 'right-[14px]';
+
+  return (
+    <div className={`absolute ${positionClass} top-0 z-10 group`} ref={drop}>
+      <div
+        className={`w-[44px] h-[44px] rounded-lg border-2 overflow-hidden transition-all relative ${
+          isDropTarget
+            ? 'border-[#5BB5F9] shadow-lg shadow-[#5BB5F9]/50 scale-110 bg-[#5BB5F9]/20'
+            : track
+              ? 'border-[#5BB5F9] shadow-md shadow-[#5BB5F9]/30'
+              : canDrop && isOver
+                ? 'border-[#5BB5F9]/60'
+                : 'border-[#5BB5F9]/30 border-dashed'
+        } bg-slate-800/80`}
+        title={track ? `Video ${slot} - Playing in Video Widget` : `Drop video here for Video ${slot}`}
+      >
+        {track ? (
+          <>
+            <img
+              src={(track as any)?.thumb_64_url || track?.cover_image_url || (track as any)?.imageUrl}
+              alt={`Video ${slot}`}
+              className="w-full h-full object-cover"
+            />
+            {/* Dismiss button - appears on hover */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onClear();
+              }}
+              className="absolute top-0 right-0 w-[16px] h-[16px] bg-black/70 rounded-bl-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600/80"
+              title={`Clear Video ${slot}`}
+            >
+              <X size={10} strokeWidth={2} className="text-white" />
+            </button>
+          </>
+        ) : (
+          <div className={`w-full h-full flex flex-col items-center justify-center transition-all ${
+            isDropTarget ? 'text-[#5BB5F9] scale-110' : 'text-[#5BB5F9]/50'
+          }`}>
+            <Video size={isDropTarget ? 20 : 16} strokeWidth={1.5} />
+            <span className={`mt-0.5 uppercase tracking-wide ${isDropTarget ? 'text-[8px] font-bold' : 'text-[6px]'}`}>
+              {isDropTarget ? 'Drop!' : 'Video'}
+            </span>
+          </div>
+        )}
+
+        {/* Glow overlay when dragging video over */}
+        {isDropTarget && !track && (
+          <div className="absolute inset-0 rounded-lg bg-[#5BB5F9]/20 animate-pulse pointer-events-none" />
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function UniversalMixer({ className = "" }: UniversalMixerProps) {
@@ -107,7 +195,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     masterBPM: 120,
     crossfaderPosition: 50,
     syncActive: false,
-    masterDeckId: 'A' // Default to Deck A as master
+    masterDeckId: 'A', // Default to Deck A as master
+    // 🎬 Video tracks - independent from audio decks
+    videoATrack: null,
+    videoBTrack: null,
+    videoAVolume: 100, // Full volume by default
+    videoBVolume: 100  // Full volume by default
   });
 
   // Sync engine reference
@@ -658,6 +751,21 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       return;
     }
 
+    // Detect content type
+    const contentType = (track as any).content_type || 'loop';
+
+    // 🎬 VIDEO ROUTING: Videos go to Video Widget, not deck
+    if (contentType === 'video_clip') {
+      console.log('🎬 Video clip detected - routing to Video Widget (Deck A slot)');
+      setMixerState(prev => ({
+        ...prev,
+        videoATrack: track,
+        videoAVolume: 100 // Full volume by default
+      }));
+      showToast('Video loaded to Video A', 'success', 2000);
+      return; // Don't load to deck - videos are handled by Video Widget
+    }
+
     if (mixerState.deckA.loading) {
       console.log('⚠️ Deck A already loading, skipping');
       return;
@@ -666,13 +774,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // Reset "just grabbed" state when loading new content
     setDeckAJustGrabbed(false);
 
-    // Detect content type
-    const contentType = (track as any).content_type || 'loop';
     const isRadio = contentType === 'radio_station';
 
     console.log(`🎵 Content type: ${contentType}, isRadio: ${isRadio}`);
 
-    // For radio stations, use stream_url; for video clips, use video_url; for others, use audioUrl
+    // For radio stations, use stream_url; for others, use audioUrl
     let audioUrl;
     if (isRadio) {
       const rawStreamUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
@@ -680,10 +786,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       audioUrl = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
       console.log('📻 Radio station detected, using proxied URL:', audioUrl);
       console.log('📻 Original stream URL:', rawStreamUrl);
-    } else if (contentType === 'video_clip') {
-      // For video clips, use video_url as audio source (MP4 contains both audio and video)
-      audioUrl = track.audioUrl || (track as any).audio_url || (track as any).video_url;
-      console.log('🎬 Video clip detected, using video_url for audio:', audioUrl);
     } else {
       audioUrl = track.audioUrl || (track as any).audio_url;
     }
@@ -853,6 +955,21 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       return;
     }
 
+    // Detect content type
+    const contentType = (track as any).content_type || 'loop';
+
+    // 🎬 VIDEO ROUTING: Videos go to Video Widget, not deck
+    if (contentType === 'video_clip') {
+      console.log('🎬 Video clip detected - routing to Video Widget (Deck B slot)');
+      setMixerState(prev => ({
+        ...prev,
+        videoBTrack: track,
+        videoBVolume: 100 // Full volume by default
+      }));
+      showToast('Video loaded to Video B', 'success', 2000);
+      return; // Don't load to deck - videos are handled by Video Widget
+    }
+
     if (mixerState.deckB.loading) {
       console.log('⚠️ Deck B already loading, skipping');
       return;
@@ -861,13 +978,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     // Reset "just grabbed" state when loading new content
     setDeckBJustGrabbed(false);
 
-    // Detect content type
-    const contentType = (track as any).content_type || 'loop';
     const isRadio = contentType === 'radio_station';
 
     console.log(`🎵 Content type: ${contentType}, isRadio: ${isRadio}`);
 
-    // For radio stations, use stream_url; for video clips, use video_url; for others, use audioUrl
+    // For radio stations, use stream_url; for others, use audioUrl
     let audioUrl;
     if (isRadio) {
       const rawStreamUrl = (track as any).stream_url || track.audioUrl || (track as any).audio_url;
@@ -875,10 +990,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       audioUrl = `/api/radio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
       console.log('📻 Radio station detected, using proxied URL:', audioUrl);
       console.log('📻 Original stream URL:', rawStreamUrl);
-    } else if (contentType === 'video_clip') {
-      // For video clips, use video_url as audio source (MP4 contains both audio and video)
-      audioUrl = track.audioUrl || (track as any).audio_url || (track as any).video_url;
-      console.log('🎬 Video clip detected, using video_url for audio:', audioUrl);
     } else {
       audioUrl = track.audioUrl || (track as any).audio_url;
     }
@@ -1700,32 +1811,87 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   // Expose mixer state for VideoDisplayArea
   useEffect(() => {
     (window as any).mixerState = {
+      // Audio deck state (for breadcrumb thumbnails in mixer)
       deckATrack: mixerState.deckA.track,
       deckBTrack: mixerState.deckB.track,
       deckAPlaying: mixerState.deckA.playing,
-      deckAMuted: mixerState.deckA.videoMuted,
       deckBPlaying: mixerState.deckB.playing,
-      deckBMuted: mixerState.deckB.videoMuted,
       crossfaderPosition: mixerState.crossfaderPosition,
       // Audio analyzer nodes for WebGL audio reactive effects
       deckAAnalyzer: mixerState.deckA.audioState?.analyzerNode || null,
       deckBAnalyzer: mixerState.deckB.audioState?.analyzerNode || null,
-      // Toggle functions for video audio mute from Video Widget
-      toggleDeckAMute: () => {
-        setMixerState(prev => ({
-          ...prev,
-          deckA: { ...prev.deckA, videoMuted: !prev.deckA.videoMuted }
-        }));
-      },
-      toggleDeckBMute: () => {
-        setMixerState(prev => ({
-          ...prev,
-          deckB: { ...prev.deckB, videoMuted: !prev.deckB.videoMuted }
-        }));
-      },
-      // Clear deck functions for Video Widget dismissal
+      // Clear deck functions
       clearDeckA,
       clearDeckB,
+
+      // 🎬 VIDEO TRACK STATE - Independent from audio decks
+      videoATrack: mixerState.videoATrack,
+      videoBTrack: mixerState.videoBTrack,
+      // Video volume state (0-100, where 0 = muted)
+      videoAVolume: mixerState.videoAVolume,
+      videoBVolume: mixerState.videoBVolume,
+      // Computed muted states for compatibility
+      videoAMuted: mixerState.videoAVolume === 0,
+      videoBMuted: mixerState.videoBVolume === 0,
+      // Volume setters
+      setVideoAVolume: (volume: number) => {
+        setMixerState(prev => ({
+          ...prev,
+          videoAVolume: Math.max(0, Math.min(100, volume))
+        }));
+      },
+      setVideoBVolume: (volume: number) => {
+        setMixerState(prev => ({
+          ...prev,
+          videoBVolume: Math.max(0, Math.min(100, volume))
+        }));
+      },
+      // Mute toggles (toggle between 0 and 100)
+      toggleVideoAMute: () => {
+        setMixerState(prev => ({
+          ...prev,
+          videoAVolume: prev.videoAVolume === 0 ? 100 : 0
+        }));
+      },
+      toggleVideoBMute: () => {
+        setMixerState(prev => ({
+          ...prev,
+          videoBVolume: prev.videoBVolume === 0 ? 100 : 0
+        }));
+      },
+      // Clear video functions
+      clearVideoA: () => {
+        setMixerState(prev => ({
+          ...prev,
+          videoATrack: null,
+          videoAVolume: 100
+        }));
+      },
+      clearVideoB: () => {
+        setMixerState(prev => ({
+          ...prev,
+          videoBTrack: null,
+          videoBVolume: 100
+        }));
+      },
+
+      // Legacy aliases for backwards compatibility
+      deckAMuted: mixerState.videoAVolume === 0,
+      deckBMuted: mixerState.videoBVolume === 0,
+      deckAVolume: mixerState.videoAVolume,
+      deckBVolume: mixerState.videoBVolume,
+      setDeckAVolume: (volume: number) => {
+        setMixerState(prev => ({
+          ...prev,
+          videoAVolume: Math.max(0, Math.min(100, volume))
+        }));
+      },
+      setDeckBVolume: (volume: number) => {
+        setMixerState(prev => ({
+          ...prev,
+          videoBVolume: Math.max(0, Math.min(100, volume))
+        }));
+      },
     };
 
     return () => {
@@ -1736,11 +1902,14 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     mixerState.deckB.track,
     mixerState.deckA.playing,
     mixerState.deckB.playing,
-    mixerState.deckA.videoMuted,
-    mixerState.deckB.videoMuted,
     mixerState.crossfaderPosition,
     mixerState.deckA.audioState?.analyzerNode,
     mixerState.deckB.audioState?.analyzerNode,
+    // Video track state
+    mixerState.videoATrack,
+    mixerState.videoBTrack,
+    mixerState.videoAVolume,
+    mixerState.videoBVolume,
   ]);
 
   // Check if any deck has radio content - radio can't sync
@@ -1815,28 +1984,38 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           <div className="flex justify-center">
             <div className="w-[600px] relative">
 
-          {/* Transport and Loop Controls Row */}
-          <div className="flex justify-center items-center gap-2 mb-5">
-            {/* Deck A Video Breadcrumb - shows when video is in Video Widget */}
-            <div className="w-[24px] flex justify-center">
-              {mixerState.deckA.track?.content_type === 'video_clip' && (
-                <div
-                  className="w-[20px] h-[20px] rounded border-2 border-[#5BB5F9]/60 overflow-hidden bg-slate-800 shadow-sm shadow-[#5BB5F9]/20"
-                  title="Video A in Video Mixer"
-                >
-                  {(mixerState.deckA.track?.cover_image_url || (mixerState.deckA.track as any)?.thumb_64_url || (mixerState.deckA.track as any)?.thumb_160_url || (mixerState.deckA.track as any)?.imageUrl) ? (
-                    <img
-                      src={mixerState.deckA.track.cover_image_url || (mixerState.deckA.track as any)?.thumb_64_url || (mixerState.deckA.track as any)?.thumb_160_url || (mixerState.deckA.track as any)?.imageUrl}
-                      alt="Video A"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[8px] text-[#5BB5F9]">▶</div>
-                  )}
-                </div>
-              )}
-            </div>
+          {/* Video A Thumbnail - Top Left, aligned with Deck A */}
+          <VideoThumbnail
+            track={mixerState.videoATrack}
+            slot="A"
+            position="left"
+            onDrop={(track) => {
+              setMixerState(prev => ({ ...prev, videoATrack: track, videoAVolume: 100 }));
+              showToast('Video loaded to Video A', 'success', 2000);
+            }}
+            onClear={() => {
+              setMixerState(prev => ({ ...prev, videoATrack: null, videoAVolume: 100 }));
+              showToast('Video A cleared', 'info', 1500);
+            }}
+          />
 
+          {/* Video B Thumbnail - Top Right, aligned with Deck B */}
+          <VideoThumbnail
+            track={mixerState.videoBTrack}
+            slot="B"
+            position="right"
+            onDrop={(track) => {
+              setMixerState(prev => ({ ...prev, videoBTrack: track, videoBVolume: 100 }));
+              showToast('Video loaded to Video B', 'success', 2000);
+            }}
+            onClear={() => {
+              setMixerState(prev => ({ ...prev, videoBTrack: null, videoBVolume: 100 }));
+              showToast('Video B cleared', 'info', 1500);
+            }}
+          />
+
+          {/* Transport and Loop Controls Row - z-10 to stay above deck drop zones */}
+          <div className="flex justify-center items-center gap-2 mb-5 relative z-10">
             {/* Deck A Loop Controls - compact, close to SYNC */}
             <div className="flex justify-end">
               {mixerState.deckA.contentType !== 'radio_station' && (
@@ -2068,37 +2247,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 })()}
               </div>
 
-              {/* Deck A Video Mute Button (Below Deck Image, left-aligned) */}
-              {mixerState.deckA.contentType === 'video_clip' && (
-                <div className="absolute left-[20px] bottom-[12px] w-[72px] h-[20px]">
-                  <button
-                    onClick={() => {
-                      const newMuted = !mixerState.deckA.videoMuted;
-                      // Update state
-                      setMixerState(prev => ({
-                        ...prev,
-                        deckA: { ...prev.deckA, videoMuted: newMuted }
-                      }));
-                      // Control the audio element volume (respect deck volume when unmuting)
-                      if (mixerState.deckA.audioState?.audio) {
-                        mixerState.deckA.audioState.audio.volume = newMuted ? 0 : (mixerState.deckA.volume / 100);
-                      }
-                    }}
-                    className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800 hover:bg-slate-700"
-                    style={{
-                      borderColor: mixerState.deckA.videoMuted ? '#ef4444' : '#5BB5F9',
-                      color: mixerState.deckA.videoMuted ? '#ef4444' : '#5BB5F9'
-                    }}
-                    title={mixerState.deckA.videoMuted ? 'Unmute video audio' : 'Mute video audio'}
-                  >
-                    {mixerState.deckA.videoMuted ? <VolumeX size={10} /> : <Volume2 size={10} />}
-                    <span className="text-[9px] font-bold">
-                      {mixerState.deckA.videoMuted ? 'MUTED' : 'AUDIO'}
-                    </span>
-                  </button>
-                </div>
-              )}
-
               {/* Deck A Radio Play Button (Below Deck Image, left-aligned) */}
               {(mixerState.deckA.contentType === 'radio_station' || mixerState.deckA.contentType === 'grabbed_radio') && (
                 <div className="absolute left-[20px] bottom-[12px] w-[72px] h-[20px]">
@@ -2259,48 +2407,6 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   );
                 })()}
               </div>
-
-              {/* Deck B Video Mute Button (Below Deck Image, right-aligned) */}
-              {mixerState.deckB.contentType === 'video_clip' && (
-                <div className="absolute right-[20px] bottom-[12px] w-[72px] h-[20px]">
-                  <button
-                    onClick={() => {
-                      const newMuted = !mixerState.deckB.videoMuted;
-                      console.log('🔇 Deck B mute clicked:', {
-                        newMuted,
-                        hasAudioState: !!mixerState.deckB.audioState,
-                        hasAudio: !!mixerState.deckB.audioState?.audio,
-                        currentVolume: mixerState.deckB.audioState?.audio?.volume,
-                        deckVolume: mixerState.deckB.volume
-                      });
-                      // Update state
-                      setMixerState(prev => ({
-                        ...prev,
-                        deckB: { ...prev.deckB, videoMuted: newMuted }
-                      }));
-                      // Control the audio element volume (respect deck volume when unmuting)
-                      if (mixerState.deckB.audioState?.audio) {
-                        const targetVolume = newMuted ? 0 : (mixerState.deckB.volume / 100);
-                        mixerState.deckB.audioState.audio.volume = targetVolume;
-                        console.log('🔇 Set Deck B audio volume to:', targetVolume);
-                      } else {
-                        console.log('🔇 No audio element found for Deck B');
-                      }
-                    }}
-                    className="w-full h-full flex items-center justify-center gap-1 px-2 rounded border transition-all bg-slate-800 hover:bg-slate-700"
-                    style={{
-                      borderColor: mixerState.deckB.videoMuted ? '#ef4444' : '#5BB5F9',
-                      color: mixerState.deckB.videoMuted ? '#ef4444' : '#5BB5F9'
-                    }}
-                    title={mixerState.deckB.videoMuted ? 'Unmute video audio' : 'Mute video audio'}
-                  >
-                    {mixerState.deckB.videoMuted ? <VolumeX size={10} /> : <Volume2 size={10} />}
-                    <span className="text-[9px] font-bold">
-                      {mixerState.deckB.videoMuted ? 'MUTED' : 'AUDIO'}
-                    </span>
-                  </button>
-                </div>
-              )}
 
               {/* Deck B Radio Play Button (Below Deck Image, right-aligned) */}
               {(mixerState.deckB.contentType === 'radio_station' || mixerState.deckB.contentType === 'grabbed_radio') && (

@@ -351,17 +351,17 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
             height={360}
           />
 
-          {/* DECK A Label - top left */}
+          {/* DECK A Label - top left (smaller) */}
           {hasVideoA && (
-            <div className="absolute top-3 left-3 bg-black/80 px-3 py-1 rounded">
-              <span className="text-[#81E4F2] text-xs font-bold">DECK A</span>
+            <div className="absolute top-2 left-2 bg-black/80 px-1.5 py-0.5 rounded">
+              <span className="text-[#81E4F2] text-[10px] font-bold">DECK A</span>
             </div>
           )}
 
-          {/* DECK B Label - top right (only when both videos loaded) */}
+          {/* DECK B Label - top right (only when both videos loaded, smaller) */}
           {hasBothVideos && (
-            <div className="absolute top-3 right-3 bg-black/80 px-3 py-1 rounded">
-              <span className="text-[#81E4F2] text-xs font-bold">DECK B</span>
+            <div className="absolute top-2 right-2 bg-black/80 px-1.5 py-0.5 rounded">
+              <span className="text-[#81E4F2] text-[10px] font-bold">DECK B</span>
             </div>
           )}
 
@@ -377,85 +377,27 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
         </div>
       )}
 
-      {/* MIX Mode Row */}
+      {/* MIX Mode Row - centered */}
       <div className="px-4 py-3 border-t border-slate-800">
-        <div className="flex items-center gap-3">
-          <span className="text-slate-500 text-xs font-bold uppercase">Mix:</span>
-          <div className="flex gap-2">
-            <MixModeButton
-              mode="slide"
-              currentMode={crossfadeMode}
-              onClick={() => onCrossfadeModeChange('slide')}
-              label="Slide"
-            />
-            <MixModeButton
-              mode="blend"
-              currentMode={crossfadeMode}
-              onClick={() => onCrossfadeModeChange('blend')}
-              label="Blend"
-            />
-            <MixModeButton
-              mode="cut"
-              currentMode={crossfadeMode}
-              onClick={() => onCrossfadeModeChange('cut')}
-              label="Cut"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* FX Row */}
-      <div className="px-4 py-3 border-t border-slate-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-slate-500 text-xs font-bold uppercase">FX:</span>
-            <div className="flex gap-2">
-              {/* VHS - Pink/Magenta */}
-              <FXButton
-                active={activeEffect === 'vhs'}
-                onClick={() => handleEffectToggle('vhs')}
-                gradient="radial-gradient(circle at center, #FFFFFF 0%, #F3C2F7 30%, #EC84F3 100%)"
-                glow="rgba(236, 132, 243, 0.6)"
-                label="VHS"
-              />
-              {/* ASCII - Orange */}
-              <FXButton
-                active={activeEffect === 'ascii'}
-                onClick={() => handleEffectToggle('ascii')}
-                gradient="radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)"
-                glow="rgba(255, 171, 107, 0.6)"
-                label="ASCII"
-              />
-              {/* Dither - Yellow */}
-              <FXButton
-                active={activeEffect === 'dither'}
-                onClick={() => handleEffectToggle('dither')}
-                gradient="radial-gradient(circle at center, #FFFFFF 0%, #FFF9A3 30%, #FFE66B 100%)"
-                glow="rgba(255, 230, 107, 0.6)"
-                label="DTHR"
-              />
-              {/* Halftone - Green */}
-              <FXButton
-                active={activeEffect === 'halftone'}
-                onClick={() => handleEffectToggle('halftone')}
-                gradient="radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)"
-                glow="rgba(107, 255, 170, 0.6)"
-                label="HALF"
-              />
-            </div>
-          </div>
-
-          {/* REACT button with meter */}
-          <div className="flex items-center gap-1.5">
-            <FXButton
-              active={audioReactive}
-              onClick={() => onAudioReactiveChange(!audioReactive)}
-              gradient="radial-gradient(circle at center, #FFFFFF 0%, #93C5FD 30%, #3B82F6 100%)"
-              glow="rgba(59, 130, 246, 0.6)"
-              label="REACT"
-            />
-            <AudioLevelMeter level={audioLevel} active={audioReactive} />
-          </div>
+        <div className="flex items-center justify-center gap-2">
+          <MixModeButton
+            mode="slide"
+            currentMode={crossfadeMode}
+            onClick={() => onCrossfadeModeChange('slide')}
+            label="Slide"
+          />
+          <MixModeButton
+            mode="blend"
+            currentMode={crossfadeMode}
+            onClick={() => onCrossfadeModeChange('blend')}
+            label="Blend"
+          />
+          <MixModeButton
+            mode="cut"
+            currentMode={crossfadeMode}
+            onClick={() => onCrossfadeModeChange('cut')}
+            label="Cut"
+          />
         </div>
       </div>
 
@@ -513,6 +455,58 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
         </div>
       )}
 
+      {/* FX Row */}
+      <div className="px-4 py-3 border-t border-slate-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* VHS - Pink/Magenta */}
+            <FXButton
+              active={activeEffect === 'vhs'}
+              onClick={() => handleEffectToggle('vhs')}
+              gradient="radial-gradient(circle at center, #FFFFFF 0%, #F3C2F7 30%, #EC84F3 100%)"
+              glow="rgba(236, 132, 243, 0.6)"
+              label="VHS"
+            />
+            {/* ASCII - Orange */}
+            <FXButton
+              active={activeEffect === 'ascii'}
+              onClick={() => handleEffectToggle('ascii')}
+              gradient="radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)"
+              glow="rgba(255, 171, 107, 0.6)"
+              label="ASCII"
+            />
+            {/* Dither - Yellow */}
+            <FXButton
+              active={activeEffect === 'dither'}
+              onClick={() => handleEffectToggle('dither')}
+              gradient="radial-gradient(circle at center, #FFFFFF 0%, #FFF9A3 30%, #FFE66B 100%)"
+              glow="rgba(255, 230, 107, 0.6)"
+              label="DTHR"
+            />
+            {/* Halftone - Green */}
+            <FXButton
+              active={activeEffect === 'halftone'}
+              onClick={() => handleEffectToggle('halftone')}
+              gradient="radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)"
+              glow="rgba(107, 255, 170, 0.6)"
+              label="HALF"
+            />
+          </div>
+
+          {/* REACT button with meter */}
+          <div className="flex items-center gap-1.5">
+            <FXButton
+              active={audioReactive}
+              onClick={() => onAudioReactiveChange(!audioReactive)}
+              gradient="radial-gradient(circle at center, #FFFFFF 0%, #93C5FD 30%, #3B82F6 100%)"
+              glow="rgba(59, 130, 246, 0.6)"
+              label="REACT"
+            />
+            <AudioLevelMeter level={audioLevel} active={audioReactive} />
+          </div>
+        </div>
+      </div>
+
       {/* Knobs Row (only when FX is active) */}
       {showFXPanel && (
         <div className="px-4 py-4 border-t border-slate-800">
@@ -543,14 +537,14 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
               min={0}
               max={2}
             />
-            {/* BOOST / 11 Button */}
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-[7px] font-bold uppercase text-slate-400 tracking-wide">
-                BOOST
-              </span>
-              <button
-                onClick={() => onRidiculousModeChange(!ridiculousMode)}
-                className={`relative transition-all active:scale-95`}
+            {/* XL Button - extreme mode */}
+            <button
+              onClick={() => onRidiculousModeChange(!ridiculousMode)}
+              className="flex flex-col items-center gap-1 transition-all active:scale-95"
+              title={ridiculousMode ? 'XL Mode ON - Click to disable' : 'XL Mode OFF - Click to enable extreme mode'}
+            >
+              <div
+                className="flex items-center justify-center"
                 style={{
                   width: '44px',
                   height: '44px',
@@ -559,16 +553,15 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
                   border: ridiculousMode ? '2px solid #a78bfa' : '2px solid #4c1d95',
                   boxShadow: ridiculousMode ? '0 0 12px rgba(139, 92, 246, 0.5)' : 'none'
                 }}
-                title={ridiculousMode ? 'BOOST ON - Click to disable' : 'BOOST OFF - Click to enable extreme mode'}
               >
                 <span
-                  className="text-lg font-black"
+                  className="text-base font-black"
                   style={{ color: ridiculousMode ? '#fff' : '#7c3aed' }}
                 >
-                  11
+                  XL
                 </span>
-              </button>
-            </div>
+              </div>
+            </button>
           </div>
         </div>
       )}

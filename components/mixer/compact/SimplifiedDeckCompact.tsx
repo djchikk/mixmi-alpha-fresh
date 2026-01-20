@@ -229,25 +229,14 @@ export default function SimplifiedDeckCompact({
               <div className="loading-spinner" />
               <span className="deck-empty-text">Loading...</span>
             </div>
-          ) : currentTrack ? (
+          ) : currentTrack && contentType !== 'video_clip' ? (
+            /* Only show track content for non-video content (videos go to Video Widget) */
             <div
               className="relative w-full h-full group"
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
             >
-              {/* Render video for video_clip content, otherwise image */}
-              {contentType === 'video_clip' && (currentTrack as any).video_url ? (
-                <video
-                  ref={videoRef}
-                  src={(currentTrack as any).video_url}
-                  className="w-full h-full object-cover"
-                  loop
-                  muted
-                  playsInline
-                />
-              ) : (
-                <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
-              )}
+              <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
 
               {/* Pack position badge - top left - uses content type color */}
               {currentTrack.pack_position && (

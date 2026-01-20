@@ -11,6 +11,56 @@ interface WebGLControlBarProps {
   activeEffect: WebGLEffectType
   onEffectChange: (effect: WebGLEffectType) => void
   onOpenSettings: () => void
+  // Audio reactive controls
+  audioReactive?: boolean
+  onAudioReactiveChange?: (enabled: boolean) => void
+  ridiculousMode?: boolean
+  onRidiculousModeChange?: (enabled: boolean) => void
+}
+
+// Compact FX button - 20x20px
+function FXButton({
+  active,
+  onClick,
+  gradient,
+  glow,
+  title,
+  children
+}: {
+  active: boolean
+  onClick: () => void
+  gradient: string
+  glow: string
+  title: string
+  children?: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="relative overflow-hidden transition-all active:scale-95"
+      style={{
+        width: '20px',
+        height: '20px',
+        borderRadius: '4px',
+        backgroundColor: '#000000',
+        boxShadow: active ? `0 0 8px ${glow}` : 'none'
+      }}
+      title={title}
+    >
+      <div
+        className="absolute inset-0 transition-opacity duration-200"
+        style={{
+          background: gradient,
+          opacity: active ? 1 : 0.55
+        }}
+      />
+      {children && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          {children}
+        </div>
+      )}
+    </button>
+  )
 }
 
 const WebGLControlBar = memo(function WebGLControlBar({
@@ -18,7 +68,11 @@ const WebGLControlBar = memo(function WebGLControlBar({
   onCrossfadeModeChange,
   activeEffect,
   onEffectChange,
-  onOpenSettings
+  onOpenSettings,
+  audioReactive = false,
+  onAudioReactiveChange,
+  ridiculousMode = false,
+  onRidiculousModeChange
 }: WebGLControlBarProps) {
 
   const handleEffectToggle = useCallback((effectType: WebGLEffectType) => {
@@ -33,115 +87,83 @@ const WebGLControlBar = memo(function WebGLControlBar({
 
   return (
     <div
-      className="bg-black/90 backdrop-blur-sm px-4 py-3 rounded-b-lg"
+      className="bg-black/90 backdrop-blur-sm px-3 py-2 rounded-b-lg"
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-center">
-        {/* FX Section - Mix mode removed, defaulting to blend */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase text-white/90">FX:</span>
-          <div className="flex gap-3">
-            {/* VHS - Pink */}
-            <div className="flex flex-col items-center gap-0.5">
-              <button
-                onClick={() => handleEffectToggle('vhs')}
-                className="relative overflow-hidden transition-all active:scale-95"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '5px',
-                  backgroundColor: '#000000',
-                  boxShadow: activeEffect === 'vhs' ? '0 0 10px rgba(236, 132, 243, 0.5)' : 'none'
-                }}
-                title="VHS Glitch - Click to toggle"
-              >
-                <div
-                  className="absolute inset-0 transition-opacity duration-200"
-                  style={{
-                    background: 'radial-gradient(circle at center, #FFFFFF 0%, #F3C2F7 30%, #EC84F3 100%)',
-                    opacity: activeEffect === 'vhs' ? 1 : 0.65
-                  }}
-                />
-              </button>
-              <span className="text-[7px] font-bold uppercase text-slate-500">VHS</span>
-            </div>
+      <div className="flex items-center justify-center gap-3">
+        {/* REACT button - audio reactive toggle */}
+        <FXButton
+          active={audioReactive}
+          onClick={() => onAudioReactiveChange?.(!audioReactive)}
+          gradient="radial-gradient(circle at center, #FFFFFF 0%, #93C5FD 30%, #3B82F6 100%)"
+          glow="rgba(59, 130, 246, 0.5)"
+          title={audioReactive ? "Audio Reactive ON - Click to disable" : "Audio Reactive OFF - Click to enable"}
+        >
+          {/* Audio wave icon */}
+          <svg viewBox="0 0 24 24" className="w-3 h-3" style={{ color: '#000000' }}>
+            <path
+              fill="none"
+              d="M12 4v16M8 7v10M4 10v4M16 7v10M20 10v4"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+          </svg>
+        </FXButton>
 
-            {/* ASCII - Orange */}
-            <div className="flex flex-col items-center gap-0.5">
-              <button
-                onClick={() => handleEffectToggle('ascii')}
-                className="relative overflow-hidden transition-all active:scale-95"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '5px',
-                  backgroundColor: '#000000',
-                  boxShadow: activeEffect === 'ascii' ? '0 0 10px rgba(255, 171, 107, 0.5)' : 'none'
-                }}
-                title="ASCII - Click to toggle"
-              >
-                <div
-                  className="absolute inset-0 transition-opacity duration-200"
-                  style={{
-                    background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)',
-                    opacity: activeEffect === 'ascii' ? 1 : 0.65
-                  }}
-                />
-              </button>
-              <span className="text-[7px] font-bold uppercase text-slate-500">ASCII</span>
-            </div>
+        {/* FX Buttons - compact row */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] font-bold uppercase text-white/70 mr-0.5">FX</span>
 
-            {/* Dither - Yellow */}
-            <div className="flex flex-col items-center gap-0.5">
-              <button
-                onClick={() => handleEffectToggle('dither')}
-                className="relative overflow-hidden transition-all active:scale-95"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '5px',
-                  backgroundColor: '#000000',
-                  boxShadow: activeEffect === 'dither' ? '0 0 10px rgba(255, 230, 107, 0.5)' : 'none'
-                }}
-                title="Dither - Click to toggle"
-              >
-                <div
-                  className="absolute inset-0 transition-opacity duration-200"
-                  style={{
-                    background: 'radial-gradient(circle at center, #FFFFFF 0%, #FFF9A3 30%, #FFE66B 100%)',
-                    opacity: activeEffect === 'dither' ? 1 : 0.65
-                  }}
-                />
-              </button>
-              <span className="text-[7px] font-bold uppercase text-slate-500">DTHR</span>
-            </div>
+          {/* VHS - Pink */}
+          <FXButton
+            active={activeEffect === 'vhs'}
+            onClick={() => handleEffectToggle('vhs')}
+            gradient="radial-gradient(circle at center, #FFFFFF 0%, #F3C2F7 30%, #EC84F3 100%)"
+            glow="rgba(236, 132, 243, 0.5)"
+            title="VHS Glitch"
+          />
 
-            {/* Halftone - Green */}
-            <div className="flex flex-col items-center gap-0.5">
-              <button
-                onClick={() => handleEffectToggle('halftone')}
-                className="relative overflow-hidden transition-all active:scale-95"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '5px',
-                  backgroundColor: '#000000',
-                  boxShadow: activeEffect === 'halftone' ? '0 0 10px rgba(107, 255, 170, 0.5)' : 'none'
-                }}
-                title="Halftone - Click to toggle"
-              >
-                <div
-                  className="absolute inset-0 transition-opacity duration-200"
-                  style={{
-                    background: 'radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)',
-                    opacity: activeEffect === 'halftone' ? 1 : 0.65
-                  }}
-                />
-              </button>
-              <span className="text-[7px] font-bold uppercase text-slate-500">HALF</span>
-            </div>
-          </div>
+          {/* ASCII - Orange */}
+          <FXButton
+            active={activeEffect === 'ascii'}
+            onClick={() => handleEffectToggle('ascii')}
+            gradient="radial-gradient(circle at center, #FFFFFF 0%, #FFD4A3 30%, #FFAB6B 100%)"
+            glow="rgba(255, 171, 107, 0.5)"
+            title="ASCII"
+          />
+
+          {/* Dither - Yellow */}
+          <FXButton
+            active={activeEffect === 'dither'}
+            onClick={() => handleEffectToggle('dither')}
+            gradient="radial-gradient(circle at center, #FFFFFF 0%, #FFF9A3 30%, #FFE66B 100%)"
+            glow="rgba(255, 230, 107, 0.5)"
+            title="Dither"
+          />
+
+          {/* Halftone - Green */}
+          <FXButton
+            active={activeEffect === 'halftone'}
+            onClick={() => handleEffectToggle('halftone')}
+            gradient="radial-gradient(circle at center, #FFFFFF 0%, #A3FFB8 30%, #6BFFAA 100%)"
+            glow="rgba(107, 255, 170, 0.5)"
+            title="Halftone"
+          />
         </div>
+
+        {/* 11 button - ridiculous/extreme mode */}
+        <FXButton
+          active={ridiculousMode}
+          onClick={() => onRidiculousModeChange?.(!ridiculousMode)}
+          gradient="radial-gradient(circle at center, #FFFFFF 0%, #F0ABFC 30%, #D946EF 100%)"
+          glow="rgba(217, 70, 239, 0.5)"
+          title={ridiculousMode ? "EXTREME MODE ON - Click to disable" : "EXTREME MODE OFF - Click to enable"}
+        >
+          <span className="text-[9px] font-black" style={{ color: '#000000' }}>
+            11
+          </span>
+        </FXButton>
       </div>
     </div>
   )
