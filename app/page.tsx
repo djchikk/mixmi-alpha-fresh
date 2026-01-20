@@ -119,6 +119,11 @@ const WebGLControlBar = dynamic(() => import('@/components/mixer/compact/WebGLCo
   ssr: false
 });
 
+// Dynamically import VideoMixerLarge - the large video mixer panel
+const VideoMixerLarge = dynamic(() => import('@/components/mixer/VideoMixerLarge'), {
+  ssr: false
+});
+
 export default function HomePage() {
   // Alpha app - no auth required for globe viewing
   const [selectedNode, setSelectedNode] = useState<TrackNode | null>(null);
@@ -170,7 +175,7 @@ export default function HomePage() {
 
   // Video mixer controls state - WebGL effects
   type CrossfadeMode = 'slide' | 'blend' | 'cut';
-  type WebGLEffectType = 'vhs' | 'ascii' | 'dither' | null;
+  type WebGLEffectType = 'vhs' | 'ascii' | 'dither' | 'halftone' | null;
   const [crossfadeMode, setCrossfadeMode] = useState<CrossfadeMode>('blend');
   const [webglActiveEffect, setWebglActiveEffect] = useState<WebGLEffectType>(null);
   const [webglIntensity, setWebglIntensity] = useState(0.5);
@@ -441,8 +446,7 @@ export default function HomePage() {
   // Auto-position video display to right of globe when first shown
   useEffect(() => {
     if (typeof window !== 'undefined' && mixerState && !hasManuallyPositionedVideo) {
-      const hasVideo = mixerState.deckATrack?.content_type === 'video_clip' ||
-                       mixerState.deckBTrack?.content_type === 'video_clip';
+      const hasVideo = mixerState.videoATrack || mixerState.videoBTrack;
 
       // Only auto-position if video appears and hasn't been manually positioned
       if (hasVideo && videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) {
@@ -2094,179 +2098,45 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Video Display Area - Draggable video mixer display */}
+      {/* Video Mixer Large - New spacious video mixer panel */}
       {/* Shows when: mixer visible, videos loaded, AND not collapsed (collapsed = hidden, use sidebar icon to show) */}
-      {isMixerVisible && mixerState && (mixerState.deckATrack?.content_type === 'video_clip' || mixerState.deckBTrack?.content_type === 'video_clip') && !isVideoViewerCollapsed && (
-        <div
-          className="fixed"
-          style={{
-            left: videoDisplayPosition.x === 0 ? '50%' : `${videoDisplayPosition.x}px`,
-            top: videoDisplayPosition.y === 0 ? 'auto' : `${videoDisplayPosition.y}px`,
-            bottom: videoDisplayPosition.y === 0 ? '380px' : 'auto',
-            transform: videoDisplayPosition.x === 0 ? 'translateX(-50%)' : 'none',
-            width: '272px',
-            zIndex: isDraggingVideo ? 200 : 40,
-            cursor: isDraggingVideo ? 'grabbing' : 'grab'
-          }}
-          onMouseDown={handleVideoMouseDown}
-          onMouseEnter={() => setIsVideoMixerHovered(true)}
-          onMouseLeave={() => setIsVideoMixerHovered(false)}
-        >
-          {/* Drag handle - auto-hides when not hovered */}
-          <div
-            className={`bg-gradient-to-r from-[#5BB5F9]/90 to-[#38BDF8]/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-t-lg flex items-center justify-center transition-opacity duration-200 relative ${
-              isVideoMixerHovered || (videoDisplayPosition.x === 0 && videoDisplayPosition.y === 0) ? 'opacity-100' : 'opacity-0'
-            }`}
-            style={{ cursor: 'grab' }}
-          >
-            {/* VIDEO MIXER label - absolute positioned left */}
-            <span className="absolute left-3 top-1/2 -translate-y-1/2">VIDEO MIXER</span>
-
-            {/* DRAG TO MOVE - centered */}
-            <span className="text-white/60 text-[10px]">DRAG TO MOVE</span>
-
-            {/* Hide button - collapses to sidebar icon */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsVideoViewerCollapsed(true);
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-white/20 rounded p-0.5 transition-colors pointer-events-auto"
-              title="Hide (click sidebar icon to show)"
-            >
-              <X className="w-4 h-4" strokeWidth={2.5} />
-            </button>
-          </div>
-
-          {/* Video display */}
-          <div className="relative">
-            <WebGLVideoDisplay
-              deckATrack={mixerState.deckATrack}
-              deckBTrack={mixerState.deckBTrack}
-              deckAPlaying={mixerState.deckAPlaying}
-              deckBPlaying={mixerState.deckBPlaying}
-              crossfaderPosition={videoCrossfaderPosition}
-              crossfadeMode={crossfadeMode}
-              effects={{
-                activeEffect: webglActiveEffect,
-                intensity: webglIntensity,
-                granularity: webglGranularity,
-                wetDry: webglWetDry,
-                audioReactive: webglAudioReactive,
-                ditherColor: webglDitherColor,
-                audioLevel: webglAudioLevel,
-                ridiculousMode: webglRidiculousMode,
-                saturation: webglSaturation
-              }}
-            />
-
-            {/* Video Audio Mute Controls - overlay on video display */}
-            {mixerState.deckATrack?.content_type === 'video_clip' && (
-              <button
-                onClick={() => (window as any).mixerState?.toggleDeckAMute?.()}
-                className={`absolute top-2 left-20 px-2 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition-all ${
-                  mixerState.deckAMuted
-                    ? 'bg-red-500/80 text-white'
-                    : 'bg-black/70 text-cyan-400 hover:bg-black/90'
-                }`}
-                title={mixerState.deckAMuted ? 'Unmute Video A audio' : 'Mute Video A audio'}
-              >
-                {mixerState.deckAMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-              </button>
-            )}
-            {mixerState.deckBTrack?.content_type === 'video_clip' && (
-              <button
-                onClick={() => (window as any).mixerState?.toggleDeckBMute?.()}
-                className={`absolute top-2 right-20 px-2 py-1 rounded text-[10px] font-bold flex items-center gap-1 transition-all ${
-                  mixerState.deckBMuted
-                    ? 'bg-red-500/80 text-white'
-                    : 'bg-black/70 text-blue-400 hover:bg-black/90'
-                }`}
-                title={mixerState.deckBMuted ? 'Unmute Video B audio' : 'Mute Video B audio'}
-              >
-                {mixerState.deckBMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-              </button>
-            )}
-
-            {/* Video Dismiss Buttons - X to remove video from slot */}
-            {mixerState.deckATrack?.content_type === 'video_clip' && (
-              <button
-                onClick={() => (window as any).mixerState?.clearDeckA?.()}
-                className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-black/70 hover:bg-red-500/80 text-white/70 hover:text-white transition-all"
-                title="Remove Video A"
-              >
-                <X size={12} strokeWidth={2.5} />
-              </button>
-            )}
-            {mixerState.deckBTrack?.content_type === 'video_clip' && (
-              <button
-                onClick={() => (window as any).mixerState?.clearDeckB?.()}
-                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded bg-black/70 hover:bg-red-500/80 text-white/70 hover:text-white transition-all"
-                title="Remove Video B"
-              >
-                <X size={12} strokeWidth={2.5} />
-              </button>
-            )}
-          </div>
-
-          {/* Inline Control Bar - MIX and FX controls */}
-          <WebGLControlBar
-            crossfadeMode={crossfadeMode}
-            onCrossfadeModeChange={setCrossfadeMode}
-            activeEffect={webglActiveEffect}
-            onEffectChange={setWebglActiveEffect}
-            onOpenSettings={() => setIsWebglFXPanelOpen(true)}
-          />
-
-          {/* Video Crossfader - only shows when both decks have videos */}
-          {mixerState.deckATrack?.content_type === 'video_clip' && mixerState.deckBTrack?.content_type === 'video_clip' && (
-            <div
-              className="bg-black/90 backdrop-blur-sm px-4 py-2"
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-[#5BB5F9] uppercase">A</span>
-                <CrossfaderControlCompact
-                  position={videoCrossfaderPosition}
-                  onPositionChange={setVideoCrossfaderPosition}
-                  className="flex-1"
-                />
-                <span className="text-[10px] font-bold text-[#38BDF8] uppercase">B</span>
-              </div>
-            </div>
-          )}
-
-          {/* WebGL FX Panel - extends below control bar */}
-          {isWebglFXPanelOpen && (
-            <div className="relative z-50">
-              <WebGLFXPanel
-                isOpen={isWebglFXPanelOpen}
-                onClose={() => setIsWebglFXPanelOpen(false)}
-                activeEffect={webglActiveEffect}
-                intensity={webglIntensity}
-                onIntensityChange={setWebglIntensity}
-                granularity={webglGranularity}
-                onGranularityChange={setWebglGranularity}
-                wetDry={webglWetDry}
-                onWetDryChange={setWebglWetDry}
-                audioReactive={webglAudioReactive}
-                onAudioReactiveChange={setWebglAudioReactive}
-                audioLevel={webglAudioLevel}
-                ditherColor={webglDitherColor}
-                onDitherColorChange={setWebglDitherColor}
-                ridiculousMode={webglRidiculousMode}
-                onRidiculousModeChange={setWebglRidiculousMode}
-                saturation={webglSaturation}
-                onSaturationChange={setWebglSaturation}
-              />
-            </div>
-          )}
-        </div>
+      {isMixerVisible && mixerState && (mixerState.videoATrack || mixerState.videoBTrack) && !isVideoViewerCollapsed && (
+        <VideoMixerLarge
+          videoATrack={mixerState.videoATrack}
+          videoBTrack={mixerState.videoBTrack}
+          videoAVolume={mixerState.videoAVolume || 100}
+          videoBVolume={mixerState.videoBVolume || 100}
+          onVideoAVolumeChange={(vol) => (window as any).mixerState?.setVideoAVolume?.(vol)}
+          onVideoBVolumeChange={(vol) => (window as any).mixerState?.setVideoBVolume?.(vol)}
+          videoCrossfaderPosition={videoCrossfaderPosition}
+          onVideoCrossfaderChange={setVideoCrossfaderPosition}
+          crossfadeMode={crossfadeMode}
+          onCrossfadeModeChange={setCrossfadeMode}
+          activeEffect={webglActiveEffect}
+          onEffectChange={setWebglActiveEffect}
+          intensity={webglIntensity}
+          onIntensityChange={setWebglIntensity}
+          granularity={webglGranularity}
+          onGranularityChange={setWebglGranularity}
+          wetDry={webglWetDry}
+          onWetDryChange={setWebglWetDry}
+          saturation={webglSaturation}
+          onSaturationChange={setWebglSaturation}
+          ditherColor={webglDitherColor}
+          onDitherColorChange={setWebglDitherColor}
+          audioReactive={webglAudioReactive}
+          onAudioReactiveChange={setWebglAudioReactive}
+          audioLevel={webglAudioLevel}
+          ridiculousMode={webglRidiculousMode}
+          onRidiculousModeChange={setWebglRidiculousMode}
+          isCollapsed={false}
+          onCollapsedChange={() => {}}
+          onHide={() => setIsVideoViewerCollapsed(true)}
+          position={videoDisplayPosition}
+          onPositionChange={setVideoDisplayPosition}
+          onClearVideoA={() => (window as any).mixerState?.clearVideoA?.()}
+          onClearVideoB={() => (window as any).mixerState?.clearVideoB?.()}
+        />
       )}
 
       {/* Universal Mixer - Always centered */}
@@ -2289,7 +2159,7 @@ export default function HomePage() {
       <HelpWidget hideIcon={true} />
 
       {/* Video Widget Icon - Shows when videos are loaded, toggles Video Widget visibility */}
-      {mixerState && (mixerState.deckATrack?.content_type === 'video_clip' || mixerState.deckBTrack?.content_type === 'video_clip') && (
+      {mixerState && (mixerState.videoATrack || mixerState.videoBTrack) && (
         <div className="fixed top-1/2 right-6 -translate-y-1/2 z-[998]">
           <button
             onClick={() => setIsVideoViewerCollapsed(!isVideoViewerCollapsed)}

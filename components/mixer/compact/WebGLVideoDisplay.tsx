@@ -31,9 +31,12 @@ interface WebGLVideoDisplayProps {
   deckBTrack: Track | null
   deckAPlaying: boolean
   deckBPlaying: boolean
+  deckAVolume?: number  // Video A volume 0-100
+  deckBVolume?: number  // Video B volume 0-100
   crossfaderPosition: number // 0-100, where 50 is center
   crossfadeMode?: CrossfadeMode
   effects?: WebGLVideoEffects
+  height?: number  // Display height in pixels (default 272)
 }
 
 const defaultEffects: WebGLVideoEffects = {
@@ -48,6 +51,7 @@ const defaultEffects: WebGLVideoEffects = {
 interface VideoPlaneProps {
   videoUrl: string | null
   isPlaying: boolean
+  volume?: number  // Audio volume 0-100
   opacity: number
   clipLeft?: number  // 0-1, portion to clip from left
   clipRight?: number // 0-1, portion to clip from right
@@ -66,6 +70,7 @@ interface VideoPlaneProps {
 function VideoPlane({
   videoUrl,
   isPlaying,
+  volume = 100,
   opacity,
   clipLeft = 0,
   clipRight = 0,
@@ -95,7 +100,8 @@ function VideoPlane({
     video.src = videoUrl
     video.crossOrigin = 'anonymous'
     video.loop = true
-    video.muted = true
+    video.muted = volume === 0  // Mute if volume is 0
+    video.volume = volume / 100  // Convert 0-100 to 0-1
     video.playsInline = true
     video.preload = 'auto'
 
@@ -138,6 +144,14 @@ function VideoPlane({
       video.pause()
     }
   }, [isPlaying, videoReady])
+
+  // Sync volume
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.muted = volume === 0
+    video.volume = volume / 100
+  }, [volume])
 
   // Update texture each frame
   useFrame(() => {
@@ -221,6 +235,8 @@ interface VideoSceneProps {
   deckBUrl: string | null
   deckAPlaying: boolean
   deckBPlaying: boolean
+  deckAVolume: number
+  deckBVolume: number
   deckAHasVideo: boolean
   deckBHasVideo: boolean
   crossfaderPosition: number
@@ -235,6 +251,8 @@ function VideoScene({
   deckBUrl,
   deckAPlaying,
   deckBPlaying,
+  deckAVolume,
+  deckBVolume,
   deckAHasVideo,
   deckBHasVideo,
   crossfaderPosition,
@@ -293,6 +311,7 @@ function VideoScene({
       <VideoPlane
         videoUrl={deckAUrl}
         isPlaying={deckAPlaying}
+        volume={deckAVolume}
         opacity={deckAOpacity}
         clipLeft={deckAClipLeft}
         clipRight={deckAClipRight}
@@ -311,6 +330,7 @@ function VideoScene({
       <VideoPlane
         videoUrl={deckBUrl}
         isPlaying={deckBPlaying}
+        volume={deckBVolume}
         opacity={deckBOpacity}
         clipLeft={deckBClipLeft}
         clipRight={deckBClipRight}
@@ -334,9 +354,12 @@ export default function WebGLVideoDisplay({
   deckBTrack,
   deckAPlaying,
   deckBPlaying,
+  deckAVolume = 100,
+  deckBVolume = 100,
   crossfaderPosition,
   crossfadeMode = 'slide',
-  effects = defaultEffects
+  effects = defaultEffects,
+  height = 272
 }: WebGLVideoDisplayProps) {
   // Check if decks have video content
   const deckAHasVideo = Boolean(deckATrack?.content_type === 'video_clip' && (deckATrack as any).video_url)
@@ -351,7 +374,7 @@ export default function WebGLVideoDisplay({
   const deckBUrl = deckBHasVideo ? (deckBTrack as any).video_url : null
 
   return (
-    <div className="webgl-video-display rounded-lg overflow-hidden bg-black relative" style={{ height: '272px' }}>
+    <div className="webgl-video-display rounded-lg overflow-hidden bg-black relative" style={{ height: `${height}px` }}>
       <Canvas
         camera={{ position: [0, 0, 1], fov: 90 }}
         style={{ background: '#000000' }}
@@ -368,6 +391,8 @@ export default function WebGLVideoDisplay({
           deckBUrl={deckBUrl}
           deckAPlaying={deckAPlaying}
           deckBPlaying={deckBPlaying}
+          deckAVolume={deckAVolume}
+          deckBVolume={deckBVolume}
           deckAHasVideo={deckAHasVideo}
           deckBHasVideo={deckBHasVideo}
           crossfaderPosition={crossfaderPosition}
@@ -396,7 +421,7 @@ export default function WebGLVideoDisplay({
               granularity={effects.granularity}
               wetDry={effects.wetDry}
               colorMode={true}
-              resolution={new Vector2(272, 272)}
+              resolution={new Vector2(height, height)}
               audioLevel={effects.audioLevel || 0}
               audioReactive={effects.audioReactive}
               ridiculousMode={effects.ridiculousMode || false}
@@ -425,23 +450,11 @@ export default function WebGLVideoDisplay({
               audioReactive={effects.audioReactive}
               ridiculousMode={effects.ridiculousMode || false}
               saturation={effects.saturation ?? 1.0}
-              resolution={{ x: 272, y: 272 }}
+              resolution={{ x: height, y: height }}
             />
           )}
         </EffectComposer>
       </Canvas>
-
-      {/* Deck Labels - HTML overlay */}
-      {deckAHasVideo && (
-        <div className="absolute top-2 left-2 bg-black/70 text-cyan-400 px-2 py-1 rounded text-xs font-bold pointer-events-none">
-          DECK A
-        </div>
-      )}
-      {deckBHasVideo && (
-        <div className="absolute top-2 right-2 bg-black/70 text-blue-400 px-2 py-1 rounded text-xs font-bold pointer-events-none">
-          DECK B
-        </div>
-      )}
 
       {/* Center Split Line for slide mode */}
       {deckAHasVideo && deckBHasVideo && crossfadeMode === 'slide' && (
