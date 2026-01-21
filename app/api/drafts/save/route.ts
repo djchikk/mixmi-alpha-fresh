@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
 
     const file = formData.get('file') as File;
     const walletAddress = formData.get('walletAddress') as string;
+    const username = formData.get('username') as string | null; // Persona username for attribution
     const title = formData.get('title') as string || 'Mic Recording';
     const cycleCount = parseInt(formData.get('cycleCount') as string || '1');
     const bpm = parseFloat(formData.get('bpm') as string || '120');
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
       fileType: file?.type,
       fileSize: file?.size,
       walletAddress: walletAddress?.substring(0, 15) + '...',
+      username,
       title,
       cycleCount,
       bpm,
@@ -121,7 +123,7 @@ export async function POST(request: NextRequest) {
     // Create ip_tracks record
     const trackData = {
       title: existingPackId ? `${title} - Take ${packPosition}` : title,
-      artist: walletAddress.substring(0, 10) + '...', // Placeholder, can be updated
+      artist: username || walletAddress.substring(0, 10) + '...', // Use persona username if available
       content_type: contentType,
       bpm: bpm,
       audio_url: audioUrl,

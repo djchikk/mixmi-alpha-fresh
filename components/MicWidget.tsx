@@ -34,7 +34,7 @@ type RecordingState =
 
 export default function MicWidget({ className = '' }: MicWidgetProps) {
   // Auth & Mixer Context
-  const { walletAddress, suiAddress, isAuthenticated } = useAuth();
+  const { walletAddress, suiAddress, isAuthenticated, activePersona } = useAuth();
   const { addTrackToCollection } = useMixer();
 
   // UI State
@@ -358,6 +358,9 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
         ? (window as any).getMixerBPM()
         : 120;
 
+      // Get username from active persona
+      const username = activePersona?.username || activePersona?.display_name || null;
+
       // Prepare form data
       const formData = new FormData();
       formData.append('file', recordedBlob, `mic-recording-${Date.now()}.webm`);
@@ -366,12 +369,17 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
       formData.append('cycleCount', cycleCount.toString());
       formData.append('bpm', bpm.toString());
 
+      // Include username for proper attribution
+      if (username) {
+        formData.append('username', username);
+      }
+
       // If we have a pack ID (from previous takes), include it for bundling
       if (currentPackId) {
         formData.append('packId', currentPackId);
       }
 
-      console.log('🎤 Saving draft...', { bpm, cycleCount, hasPackId: !!currentPackId });
+      console.log('🎤 Saving draft...', { bpm, cycleCount, username, hasPackId: !!currentPackId });
 
       const response = await fetch('/api/drafts/save', {
         method: 'POST',
