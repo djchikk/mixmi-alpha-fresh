@@ -70,8 +70,9 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
-  // Get effective wallet address (SUI for zkLogin, STX for wallet auth)
-  const effectiveWallet = suiAddress || walletAddress;
+  // Get effective wallet address - prefer persona's wallet for proper attribution
+  // Priority: persona wallet_address > persona sui_address > account suiAddress > account walletAddress
+  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
 
   // Register global toggle function for Crate icon
   useEffect(() => {
