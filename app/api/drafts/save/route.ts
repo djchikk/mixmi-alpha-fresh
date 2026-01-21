@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
 
 // Force dynamic to prevent build-time evaluation
 export const dynamic = 'force-dynamic';
@@ -120,8 +121,12 @@ export async function POST(request: NextRequest) {
       contentType = 'loop'; // Individual track in pack
     }
 
+    // Generate UUID for the track
+    const trackId = randomUUID();
+
     // Create ip_tracks record
     const trackData = {
+      id: trackId,
       title: existingPackId ? `${title} - Take ${packPosition}` : title,
       artist: username || walletAddress.substring(0, 10) + '...', // Use persona username if available
       content_type: contentType,
