@@ -833,6 +833,20 @@ export default function Crate({ className = '' }: CrateProps) {
                 </div>
               )}
               
+              {/* Draft badge - always visible for drafts (top-left corner) */}
+              {track.is_draft && (
+                <div
+                  className="absolute top-0.5 left-0.5 px-1 py-0.5 rounded text-[6px] font-bold uppercase tracking-wide z-20"
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                    color: '#A084F9',
+                    border: '1px dashed #A084F9'
+                  }}
+                >
+                  Draft
+                </div>
+              )}
+
               {/* Dark overlay on hover */}
               {hoveredTrackId === track.id && (
                 <div className="absolute inset-0 bg-black bg-opacity-70 pointer-events-none" />
@@ -841,8 +855,8 @@ export default function Crate({ className = '' }: CrateProps) {
               {/* Unified hover overlay - same for all contexts */}
               {hoveredTrackId === track.id && (
                 <>
-                  {/* Info icon - opens TrackDetailsModal - top left */}
-                  <div className="absolute top-1 left-1">
+                  {/* Info icon - opens TrackDetailsModal - top left (shifted if draft badge present) */}
+                  <div className={`absolute top-1 ${track.is_draft ? 'left-8' : 'left-1'}`}>
                     <InfoIcon
                       size="sm"
                       onClick={(e) => {
@@ -858,20 +872,6 @@ export default function Crate({ className = '' }: CrateProps) {
                       title="View track details"
                     />
                   </div>
-
-                  {/* Draft badge - top left */}
-                  {track.is_draft && (
-                    <div
-                      className="absolute top-0.5 left-0.5 px-1 py-0.5 rounded text-[7px] font-bold uppercase tracking-wide z-10"
-                      style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        color: '#A084F9',
-                        border: '1px dashed #A084F9'
-                      }}
-                    >
-                      Draft
-                    </div>
-                  )}
 
                   {/* Remove from crate button - top right */}
                   <button
