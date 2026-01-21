@@ -1,8 +1,8 @@
 # Universal Mixer Documentation
 
 **Component:** `components/mixer/UniversalMixer.tsx`
-**Lines of Code:** 2,129 (refactored from 2,285)
-**Last Updated:** November 24, 2025
+**Lines of Code:** ~2,500 (expanded for video separation)
+**Last Updated:** January 20, 2026
 **Status:** Production-ready for loops, songs, radio, and video clips
 
 ---
@@ -16,19 +16,20 @@
 5. [Button Standardization System](#button-standardization-system)
 6. [Content-Type Color Theming](#content-type-color-theming)
 7. [Video Integration](#video-integration)
-8. [Sync Logic & Priority System](#sync-logic--priority-system)
-9. [Radio GRAB Feature](#radio-grab-feature)
-10. [Synchronized Loop Restart](#synchronized-loop-restart)
-11. [Pack Handling](#pack-handling)
-12. [Memory Management](#memory-management)
-13. [State Management](#state-management)
-14. [UI Components](#ui-components)
-15. [Instant FX System](#instant-fx-system)
-16. [Section Navigator](#section-navigator)
-17. [Integration Points](#integration-points)
-18. [Recent Changes](#recent-changes)
-19. [Edge Cases](#edge-cases)
-20. [Future Enhancements](#future-enhancements)
+8. [Audio/Video Separation Architecture](#audiovideo-separation-architecture)
+9. [Sync Logic & Priority System](#sync-logic--priority-system)
+10. [Radio GRAB Feature](#radio-grab-feature)
+11. [Synchronized Loop Restart](#synchronized-loop-restart)
+12. [Pack Handling](#pack-handling)
+13. [Memory Management](#memory-management)
+14. [State Management](#state-management)
+15. [UI Components](#ui-components)
+16. [Instant FX System](#instant-fx-system)
+17. [Section Navigator](#section-navigator)
+18. [Integration Points](#integration-points)
+19. [Recent Changes](#recent-changes)
+20. [Edge Cases](#edge-cases)
+21. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -561,6 +562,209 @@ const deckAHasVideo = Boolean(
 - `UniversalMixer.tsx:2097-2124` - Deck B Video Mute button
 - `VideoDisplayArea.tsx` - Complete video display system
 - `MasterTransportControlsCompact.tsx:30,53,191` - bothVideos prop integration
+
+---
+
+## Audio/Video Separation Architecture
+
+### Overview (January 2026)
+
+The mixer underwent a significant architectural evolution to **decouple audio and video mixing** while maintaining a unified interface. This separation allows users to mix audio content (loops, songs, radio) independently from video content, with each having its own dedicated controls and visual feedback.
+
+### Design Philosophy
+
+**Before separation:** Video clips loaded into audio decks competed for the same UI space, creating confusion about what controlled what.
+
+**After separation:**
+- Audio decks handle audio content exclusively (loops, songs, radio, grabbed radio)
+- Video thumbnails provide dedicated drop zones for video clips
+- Each system has independent crossfaders and controls
+- Visual feedback clearly indicates which content type is being dragged
+
+### Component Architecture
+
+```
+UniversalMixer.tsx
+├── VideoThumbnail (x2)           # Dedicated video drop zones
+│   ├── Video A (top-left)        # Aligned with Deck A
+│   └── Video B (top-right)       # Aligned with Deck B
+├── SimplifiedDeckCompact (x2)    # Audio-only deck thumbnails
+│   ├── Deck A (72px square)
+│   └── Deck B (72px square)
+├── MasterTransportControlsCompact # Play/BPM/Sync
+├── Audio Crossfader              # Controls audio balance
+└── Video Display Area            # Renders video with effects
+    └── Independent Video Crossfader
+```
+
+**Companion Component:**
+```
+VideoMixerLarge.tsx (360px panel)
+├── Draggable header
+├── Video thumbnail slots (A/B)
+├── Independent crossfader
+├── FX control panel
+│   ├── Effect selector (VHS, Dither, ASCII, Halftone)
+│   ├── Intensity/Granularity knobs
+│   └── XL mode toggle
+└── Mode selector (Slide/Blend/Cut)
+```
+
+### Video Thumbnail Component
+
+**Location:** `UniversalMixer.tsx:77-175`
+
+The `VideoThumbnail` component provides dedicated drop zones for video clips:
+
+```typescript
+interface VideoThumbnailProps {
+  track: Track | null;
+  slot: 'A' | 'B';
+  onDrop: (track: Track) => void;
+  onClear: () => void;
+  position: 'left' | 'right';
+  onDragOver?: (isOver: boolean) => void;
+}
+```
+
+**Key behaviors:**
+- Only accepts `video_clip` content type
+- Positioned at top corners (44×44px)
+- Shows video color (#5BB5F9) when video is being dragged
+- Dismiss X button appears on hover
+- Empty state pulses in sync with audio deck empty states (5s)
+
+### Drag Feedback System
+
+The mixer container provides visual feedback when content is being dragged:
+
+**Audio content dragging:**
+- Container border: Cyan (`rgba(129, 228, 242, 0.4)`)
+- Brightness boost: 1.15
+- Triggered by: `isDeckDragOver` state from SimplifiedDeckCompact
+
+**Video content dragging:**
+- Container border: Video blue (`rgba(91, 181, 249, 0.4)`)
+- Brightness boost: 1.15
+- Triggered by: `isVideoDragOver` state from VideoThumbnail
+
+```typescript
+// Container style logic
+style={{
+  filter: (isDeckDragOver || isVideoDragOver) ? 'brightness(1.15)' : 'brightness(1)',
+  borderColor: isVideoDragOver
+    ? 'rgba(91, 181, 249, 0.4)' // Video color
+    : isDeckDragOver
+      ? 'rgba(129, 228, 242, 0.4)' // Cyan for audio
+      : 'rgba(51, 65, 85, 0.5)'
+}}
+```
+
+### Audio Deck Video Exclusion
+
+Audio decks (SimplifiedDeckCompact) explicitly exclude video drag feedback:
+
+```typescript
+// In SimplifiedDeckCompact useDrop collect
+const isVideoDrag = item?.track?.content_type === 'video_clip';
+
+// Drop target class excludes video drags
+className={`... ${isOver && canDrop && !isDragging && !isVideoDrag ? 'drop-target-active' : ''}`}
+
+// Notify parent excludes video drags
+onDragOver?.(isOver && !isVideoDrag);
+```
+
+This prevents audio decks from "reaching out" for video content, keeping the separation clear.
+
+### Video Breadcrumb Thumbnails
+
+When a video is loaded to an audio deck (for its audio track), a small breadcrumb thumbnail appears in the transport row:
+
+```typescript
+{mixerState.deckA.track?.content_type === 'video_clip' && (
+  <div className="w-[20px] h-[20px] rounded border-2 border-[#38BDF8]/60">
+    <img src={track.cover_image_url} />
+  </div>
+)}
+```
+
+This indicates the video's audio is playing through the audio deck while the video itself displays in the Video Widget.
+
+### State Management
+
+**Audio deck state:**
+```typescript
+deckA: {
+  track: Track | null;
+  playing: boolean;
+  audioState: AudioState;
+  contentType: string; // 'loop', 'full_song', 'radio_station', etc.
+}
+```
+
+**Video state (separate):**
+```typescript
+videoATrack: Track | null;
+videoBTrack: Track | null;
+videoAVolume: number;
+videoBVolume: number;
+videoCrossfaderPosition: number;
+```
+
+### VideoMixerLarge Component
+
+**Location:** `components/mixer/VideoMixerLarge.tsx`
+
+A standalone 360px-wide panel for expanded video control:
+
+**Features:**
+- Draggable positioning (stores position in localStorage)
+- Independent video crossfader
+- Full FX panel with knobs for Intensity, Granularity, Wet/Dry
+- XL mode toggle (independent of audio mixer)
+- Effect presets: VHS Glitch, Dither, ASCII, Halftone
+
+**Integration:**
+```typescript
+// In app/page.tsx
+<VideoMixerLarge
+  videoATrack={mixerState.videoATrack}
+  videoBTrack={mixerState.videoBTrack}
+  crossfaderPosition={videoCrossfaderPosition}
+  onCrossfaderChange={setVideoCrossfaderPosition}
+  // ... effect props
+/>
+```
+
+### Benefits of Separation
+
+1. **Clarity**: Users understand which controls affect audio vs video
+2. **Flexibility**: Mix audio independently from video visuals
+3. **Performance**: Video rendering doesn't block audio processing
+4. **Extensibility**: Easy to add more video effects without affecting audio
+5. **Mobile-friendly**: Collapsible video panel saves screen space
+
+### Visual Summary
+
+```
+┌─────────────────────────────────────────────────────┐
+│  [Video A]              MIXER              [Video B] │  ← Video thumbnails
+│     44px                                     44px    │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│   ◀ 🔄8 ▶  [MSTR]  [▶] 130 [SYNC]  [SYNC]  ◀ 🔄8 ▶  │  ← Transport + Sync
+│                     BPM                             │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│   [Deck A]        ═══════════════        [Deck B]   │  ← Audio decks (72px)
+│    72×72          Audio Crossfader         72×72    │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+
+Video clips → Video Thumbnails (top)
+Audio content → Audio Decks (bottom)
+```
 
 ---
 
@@ -1398,6 +1602,44 @@ window.dispatchEvent(new CustomEvent('audioSourcePlaying', {
 
 ## Recent Changes
 
+### Major Updates (January 2026)
+
+#### 1. Audio/Video Separation Architecture (January 20, 2026)
+- **NEW**: Dedicated video thumbnail drop zones (44×44px, top corners)
+- **NEW**: `VideoThumbnail` component with independent drop handling
+- **NEW**: Video drag feedback uses video color (#5BB5F9) on mixer container
+- **NEW**: Audio drag feedback uses cyan (#81E4F2) on mixer container
+- **Audio decks exclude video drags**: No "reaching out" for wrong content type
+- **Video breadcrumb thumbnails**: Show in transport row when video audio plays through deck
+
+#### 2. VideoMixerLarge Component (January 2026)
+- **NEW**: Standalone 360px draggable video mixer panel
+- **Independent crossfader**: Separate from audio crossfader
+- **Full FX panel**: Intensity, Granularity, Wet/Dry knobs
+- **XL mode toggle**: Independent from audio mixer XL mode
+- **Effect presets**: VHS Glitch, Dither, ASCII, Halftone
+- **Draggable positioning**: Stores position in localStorage
+
+#### 3. Sync Button Visual Improvements (January 20, 2026)
+- **Master deck indicator**: Shows "MSTR" with yellow border (#FBBF24)
+- **Non-master deck**: Shows "SYNC" with grey styling
+- **Clear visual hierarchy**: Easy to identify which deck controls tempo
+
+#### 4. Loop Control Simplification (January 2026)
+- **Unified toggle**: Entire loop icon toggles loop on/off
+- **Triangles for length**: ◀ and ▶ buttons change loop length
+- **Cyan when enabled**: Loop icon is #81E4F2 when active
+- **Grey when disabled**: Subtle appearance when loop is off
+- **5s pulse animation**: Synced with video empty state pulse
+
+#### 5. Empty State Polish (January 2026)
+- **Music icon**: Empty audio decks show Music2 icon (not plus)
+- **Synchronized pulsing**: Audio and video empty states pulse together (5s)
+- **Grey tones**: Pulses from slate-400 to slate-300 (not cyan)
+- **Video dismiss button**: X appears on hover for video thumbnails
+
+---
+
 ### Major Updates (November 2025)
 
 #### 1. Video Integration & Button Standardization (November 24, 2025)
@@ -1805,7 +2047,7 @@ The recent additions (Synchronized Loop Restart, Radio Fixes, Code Refactoring, 
 
 ---
 
-*Documentation updated November 24, 2025*
+*Documentation updated January 20, 2026*
 *For: mixmi alpha platform*
 *Component: Universal Mixer*
 *Authors: Sandy Hoover + Claude Code*
