@@ -59,6 +59,7 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null); // For latency measurement
 
   // Timing refs for sync
   const cyclesRecordedRef = useRef(0);
@@ -69,6 +70,149 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   // Audio preview ref
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+
+  // Get system audio latency from AudioContext
+  const getSystemLatency = (): number => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+    const ctx = audioContextRef.current;
+    // baseLatency: processing latency, outputLatency: output device latency
+    const baseLatency = ctx.baseLatency || 0;
+    const outputLatency = (ctx as any).outputLatency || 0;
+    const totalLatency = baseLatency + outputLatency;
+    console.log(`🎤 System latency: base=${(baseLatency * 1000).toFixed(1)}ms, output=${(outputLatency * 1000).toFixed(1)}ms, total=${(totalLatency * 1000).toFixed(1)}ms`);
+    return totalLatency; // in seconds
+  };
+
+  // Trim audio by removing the latency offset from the beginning
+  const trimAudioForLatency = async (blob: Blob, latencySeconds: number): Promise<Blob> => {
+    if (latencySeconds <= 0) {
+      console.log('🎤 No latency compensation needed');
+      return blob;
+    }
+
+    try {
+      console.log(`🎤 Trimming ${(latencySeconds * 1000).toFixed(1)}ms from recording start...`);
+
+      // Create AudioContext for decoding
+      const audioContext = new AudioContext();
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      // Calculate samples to trim
+      const sampleRate = audioBuffer.sampleRate;
+      const samplesToTrim = Math.floor(latencySeconds * sampleRate);
+      const newLength = audioBuffer.length - samplesToTrim;
+
+      if (newLength <= 0) {
+        console.warn('🎤 Latency longer than recording, skipping trim');
+        await audioContext.close();
+        return blob;
+      }
+
+      // Create new buffer with trimmed audio
+      const trimmedBuffer = audioContext.createBuffer(
+        audioBuffer.numberOfChannels,
+        newLength,
+        sampleRate
+      );
+
+      // Copy samples after the trim point
+      for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+        const sourceData = audioBuffer.getChannelData(channel);
+        const destData = trimmedBuffer.getChannelData(channel);
+        for (let i = 0; i < newLength; i++) {
+          destData[i] = sourceData[i + samplesToTrim];
+        }
+      }
+
+      // Encode trimmed audio back to webm using MediaRecorder
+      const trimmedBlob = await encodeAudioBuffer(trimmedBuffer, sampleRate);
+
+      await audioContext.close();
+      console.log(`🎤 Trimmed recording: ${(blob.size / 1024).toFixed(1)}KB → ${(trimmedBlob.size / 1024).toFixed(1)}KB`);
+      return trimmedBlob;
+    } catch (err) {
+      console.error('🎤 Failed to trim audio for latency:', err);
+      return blob; // Return original if trimming fails
+    }
+  };
+
+  // Encode AudioBuffer back to WebM blob
+  const encodeAudioBuffer = (audioBuffer: AudioBuffer, sampleRate: number): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      // Create offline context to render the buffer
+      const offlineContext = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.length,
+        sampleRate
+      );
+
+      const source = offlineContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(offlineContext.destination);
+      source.start();
+
+      offlineContext.startRendering().then(renderedBuffer => {
+        // Convert to WAV format (more reliable than trying to encode webm)
+        const wavBlob = audioBufferToWav(renderedBuffer);
+        resolve(wavBlob);
+      }).catch(reject);
+    });
+  };
+
+  // Convert AudioBuffer to WAV Blob
+  const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const format = 1; // PCM
+    const bitDepth = 16;
+
+    const bytesPerSample = bitDepth / 8;
+    const blockAlign = numChannels * bytesPerSample;
+
+    const dataLength = buffer.length * blockAlign;
+    const bufferLength = 44 + dataLength;
+
+    const arrayBuffer = new ArrayBuffer(bufferLength);
+    const view = new DataView(arrayBuffer);
+
+    // WAV header
+    const writeString = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, bufferLength - 8, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true); // fmt chunk size
+    view.setUint16(20, format, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitDepth, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataLength, true);
+
+    // Audio data
+    let offset = 44;
+    for (let i = 0; i < buffer.length; i++) {
+      for (let channel = 0; channel < numChannels; channel++) {
+        const sample = buffer.getChannelData(channel)[i];
+        const clampedSample = Math.max(-1, Math.min(1, sample));
+        const int16Sample = clampedSample < 0 ? clampedSample * 0x8000 : clampedSample * 0x7FFF;
+        view.setInt16(offset, int16Sample, true);
+        offset += 2;
+      }
+    }
+
+    return new Blob([arrayBuffer], { type: 'audio/wav' });
+  };
 
   // Get effective wallet address - prefer persona's wallet for proper attribution
   // Priority: persona wallet_address > persona sui_address > account suiAddress > account walletAddress
@@ -127,7 +271,7 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     };
   }, []);
 
-  // Cleanup recorded URL when component unmounts
+  // Cleanup recorded URL and AudioContext when component unmounts
   useEffect(() => {
     return () => {
       if (recordedUrl) {
@@ -135,6 +279,9 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
       }
     };
   }, [recordedUrl]);
@@ -234,16 +381,33 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
       mediaRecorder.onstop = () => {
         console.log('🎤 MicWidget: MediaRecorder stopped, processing...');
         setRecordingState('processing');
-
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const url = URL.createObjectURL(blob);
-
-        setRecordedBlob(blob);
-        setRecordedUrl(url);
-        setRecordingState('complete');
         isRecordingRef.current = false;
 
-        console.log(`🎤 MicWidget: Recording complete - ${(blob.size / 1024).toFixed(1)}KB`);
+        const rawBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log(`🎤 MicWidget: Raw recording - ${(rawBlob.size / 1024).toFixed(1)}KB`);
+
+        // Apply latency compensation asynchronously
+        (async () => {
+          try {
+            // Get system latency and trim the recording
+            const latency = getSystemLatency();
+            const compensatedBlob = await trimAudioForLatency(rawBlob, latency);
+
+            const url = URL.createObjectURL(compensatedBlob);
+            setRecordedBlob(compensatedBlob);
+            setRecordedUrl(url);
+            setRecordingState('complete');
+
+            console.log(`🎤 MicWidget: Recording complete with latency compensation`);
+          } catch (err) {
+            console.error('🎤 MicWidget: Latency compensation failed, using raw recording:', err);
+            // Fall back to raw recording if compensation fails
+            const url = URL.createObjectURL(rawBlob);
+            setRecordedBlob(rawBlob);
+            setRecordedUrl(url);
+            setRecordingState('complete');
+          }
+        })();
       };
 
       mediaRecorder.onerror = (event) => {
