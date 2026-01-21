@@ -351,17 +351,17 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
             height={360}
           />
 
-          {/* DECK A Label - top left (smaller) */}
+          {/* DECK A Label - top left (tiny, vertically centered) */}
           {hasVideoA && (
-            <div className="absolute top-2 left-2 bg-black/80 px-1.5 py-0.5 rounded">
-              <span className="text-[#81E4F2] text-[10px] font-bold">DECK A</span>
+            <div className="absolute top-2 left-2 bg-black/50 px-1.5 py-0.5 rounded flex items-center justify-center" style={{ height: '14px' }}>
+              <span className="text-[#81E4F2] text-[8px] font-bold leading-none">DECK A</span>
             </div>
           )}
 
-          {/* DECK B Label - top right (only when both videos loaded, smaller) */}
+          {/* DECK B Label - top right (only when both videos loaded, tiny, vertically centered) */}
           {hasBothVideos && (
-            <div className="absolute top-2 right-2 bg-black/80 px-1.5 py-0.5 rounded">
-              <span className="text-[#81E4F2] text-[10px] font-bold">DECK B</span>
+            <div className="absolute top-2 right-2 bg-black/50 px-1.5 py-0.5 rounded flex items-center justify-center" style={{ height: '14px' }}>
+              <span className="text-[#81E4F2] text-[8px] font-bold leading-none">DECK B</span>
             </div>
           )}
 
@@ -417,26 +417,67 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
             </button>
             <span className="text-[10px] font-bold text-slate-500">A</span>
 
-            {/* Crossfader */}
+            {/* Crossfader - DJ hardware style */}
             <div
               ref={crossfaderRef}
-              className="flex-1 h-10 relative cursor-pointer"
+              className="flex-1 h-12 relative cursor-pointer"
               onMouseDown={handleCrossfaderMouseDown}
             >
-              {/* Track */}
-              <div className="absolute top-1/2 left-4 right-4 h-1 bg-slate-700 -translate-y-1/2 rounded">
+              {/* Track markers - brighter, short lines */}
+              <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 flex justify-between items-center">
+                {/* Left marker */}
+                <div className="w-px h-2 bg-slate-500" />
+                {/* Quarter marker */}
+                <div className="w-px h-1.5 bg-slate-600" />
                 {/* Center marker */}
-                <div className="absolute left-1/2 top-1/2 w-0.5 h-3 bg-slate-500 -translate-x-1/2 -translate-y-1/2" />
+                <div className="w-px h-3 bg-slate-400" />
+                {/* Three-quarter marker */}
+                <div className="w-px h-1.5 bg-slate-600" />
+                {/* Right marker */}
+                <div className="w-px h-2 bg-slate-500" />
               </div>
-              {/* Handle */}
+
+              {/* Track groove */}
+              <div className="absolute top-1/2 left-4 right-4 h-1 bg-slate-800 -translate-y-1/2 rounded-full shadow-inner" />
+
+              {/* Handle - narrow 3D DJ fader knob */}
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-4 h-8 bg-slate-600 border-2 border-slate-400 rounded-lg cursor-grab hover:border-[#81E4F2] transition-colors"
+                className="absolute top-1/2 cursor-grab active:cursor-grabbing transition-all hover:scale-105"
                 style={{
                   left: `calc(16px + (100% - 48px) * ${localCrossfaderPosition / 100})`,
-                  transform: 'translate(-50%, -50%)'
+                  transform: 'translate(-50%, -50%)',
+                  width: '18px',
+                  height: '36px',
                 }}
               >
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-4 bg-[#81E4F2]" />
+                {/* Knob body with 3D effect */}
+                <div
+                  className="w-full h-full rounded-md relative"
+                  style={{
+                    background: 'linear-gradient(180deg, #4a4a4a 0%, #2a2a2a 40%, #1a1a1a 100%)',
+                    boxShadow: `
+                      inset 0 1px 0 rgba(255,255,255,0.15),
+                      inset 0 -1px 0 rgba(0,0,0,0.3),
+                      0 2px 4px rgba(0,0,0,0.5),
+                      0 4px 8px rgba(0,0,0,0.3)
+                    `,
+                    border: '1px solid #3a3a3a'
+                  }}
+                >
+                  {/* Top highlight edge */}
+                  <div
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
+                    style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)' }}
+                  />
+                  {/* Center grip line - brighter */}
+                  <div
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full"
+                    style={{
+                      background: 'linear-gradient(180deg, #8a8a8a 0%, #6a6a6a 50%, #4a4a4a 100%)',
+                      boxShadow: '0 0 2px rgba(255,255,255,0.2)'
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -455,9 +496,10 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
         </div>
       )}
 
-      {/* FX Row */}
+      {/* FX Row - center justified */}
       <div className="px-4 py-3 border-t border-slate-800">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-center gap-4">
+          {/* Effect buttons group */}
           <div className="flex items-center gap-2">
             {/* VHS - Pink/Magenta */}
             <FXButton
@@ -493,8 +535,11 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
             />
           </div>
 
-          {/* REACT button with meter */}
-          <div className="flex items-center gap-1.5">
+          {/* REACT button with meter on left, aligned to button only */}
+          <div className="flex items-start gap-1.5">
+            <div className="pt-1.5">
+              <AudioLevelMeter level={audioLevel} active={audioReactive} />
+            </div>
             <FXButton
               active={audioReactive}
               onClick={() => onAudioReactiveChange(!audioReactive)}
@@ -502,7 +547,6 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
               glow="rgba(59, 130, 246, 0.6)"
               label="REACT"
             />
-            <AudioLevelMeter level={audioLevel} active={audioReactive} />
           </div>
         </div>
       </div>
@@ -592,7 +636,7 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
             />
             {/* Preset colors */}
             <div className="flex gap-1.5">
-              {['#5BB5F9', '#FFFFFF', '#FFE66B', '#6BFFAA'].map((color) => (
+              {['#00aaaa', '#f86844', '#ffcc00', '#8bac0f'].map((color) => (
                 <button
                   key={color}
                   onClick={() => onDitherColorChange(color)}

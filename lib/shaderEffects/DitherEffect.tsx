@@ -63,6 +63,10 @@ const fragmentShader = `
     // Audio reactive boost: when enabled, audio level modulates the effect
     float audioBoost = uAudioReactive ? uAudioLevel : 0.0;
 
+    // XL mode boost: adds static intensity boost even without audio reactive
+    float xlBoost = uRidiculousMode ? 0.5 : 0.0;
+    audioBoost += xlBoost;
+
     // Calculate pixelation from granularity (higher = larger blocks = coarser)
     // Range: 1 pixel (fine) to 8 pixels (blocky)
     // Audio reactive: pixelation increases with audio level for pulsing blocky effect
@@ -104,40 +108,58 @@ const fragmentShader = `
     vec3 finalColor = mix(inputColor.rgb, ditheredColor, uWetDry);
 
     // === RIDICULOUS MODE EFFECTS ===
-    if (uRidiculousMode && uAudioReactive) {
-      // Invert the dither pattern on strong beats (swap black/white)
-      if (uAudioLevel > 0.65) {
+    if (uRidiculousMode) {
+      // Static XL effects (work without audio reactive)
+      // Subtle random pixel flips for texture
+      float staticFlipNoise = random(uv * 100.0 + floor(uTime * 3.0));
+      if (staticFlipNoise > 0.95) {
         finalColor = 1.0 - finalColor;
       }
 
-      // Threshold chaos - randomly flip pixels based on audio
-      float flipChance = uAudioLevel * 0.4;
-      float flipNoise = random(uv * 100.0 + uTime);
-      if (flipNoise < flipChance) {
-        finalColor = 1.0 - finalColor;
-      }
-
-      // Strobe flash on peaks
-      if (uAudioLevel > 0.8 && random(vec2(floor(uTime * 12.0), 0.0)) > 0.5) {
-        finalColor = vec3(1.0);
-      }
-
-      // Horizontal tear/glitch lines
-      float tearLine = random(vec2(floor(uv.y * 30.0), floor(uTime * 6.0)));
-      if (tearLine > 0.85 && uAudioLevel > 0.4) {
-        // Offset this line horizontally
-        vec2 tearUV = uv + vec2((tearLine - 0.5) * 0.2, 0.0);
+      // Occasional horizontal tear lines (subtle)
+      float staticTearLine = random(vec2(floor(uv.y * 30.0), floor(uTime * 2.0)));
+      if (staticTearLine > 0.92) {
+        vec2 tearUV = uv + vec2((staticTearLine - 0.5) * 0.1, 0.0);
         vec4 tearColor = texture2D(inputBuffer, tearUV);
         float tearLuma = dot(tearColor.rgb, vec3(0.299, 0.587, 0.114));
-        finalColor = mix(uColor1, uColor2, step(0.5, tearLuma));
+        finalColor = mix(finalColor, mix(uColor1, uColor2, step(0.5, tearLuma)), 0.5);
       }
 
-      // Random blocks of inverted dither
-      float blockX = floor(uv.x * 8.0);
-      float blockY = floor(uv.y * 8.0);
-      float blockNoise = random(vec2(blockX + blockY * 8.0, floor(uTime * 5.0)));
-      if (blockNoise > 0.9 - uAudioLevel * 0.3) {
-        finalColor = 1.0 - finalColor;
+      // Audio reactive XL effects (only when REACT is on)
+      if (uAudioReactive) {
+        // Invert the dither pattern on strong beats
+        if (uAudioLevel > 0.65) {
+          finalColor = 1.0 - finalColor;
+        }
+
+        // Threshold chaos - randomly flip pixels based on audio
+        float flipChance = uAudioLevel * 0.4;
+        float flipNoise = random(uv * 100.0 + uTime);
+        if (flipNoise < flipChance) {
+          finalColor = 1.0 - finalColor;
+        }
+
+        // Strobe flash on peaks
+        if (uAudioLevel > 0.8 && random(vec2(floor(uTime * 12.0), 0.0)) > 0.5) {
+          finalColor = vec3(1.0);
+        }
+
+        // Horizontal tear/glitch lines
+        float tearLine = random(vec2(floor(uv.y * 30.0), floor(uTime * 6.0)));
+        if (tearLine > 0.85 && uAudioLevel > 0.4) {
+          vec2 tearUV = uv + vec2((tearLine - 0.5) * 0.2, 0.0);
+          vec4 tearColor = texture2D(inputBuffer, tearUV);
+          float tearLuma = dot(tearColor.rgb, vec3(0.299, 0.587, 0.114));
+          finalColor = mix(uColor1, uColor2, step(0.5, tearLuma));
+        }
+
+        // Random blocks of inverted dither
+        float blockX = floor(uv.x * 8.0);
+        float blockY = floor(uv.y * 8.0);
+        float blockNoise = random(vec2(blockX + blockY * 8.0, floor(uTime * 5.0)));
+        if (blockNoise > 0.9 - uAudioLevel * 0.3) {
+          finalColor = 1.0 - finalColor;
+        }
       }
     }
 

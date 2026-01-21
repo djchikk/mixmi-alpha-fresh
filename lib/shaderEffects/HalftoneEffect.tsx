@@ -40,10 +40,16 @@ const fragmentShader = `
     float effectiveIntensity = intensity;
     float effectiveGranularity = granularity;
 
+    // XL mode boost: applies even without audio reactive
+    if (ridiculousMode) {
+      effectiveIntensity = clamp(intensity + 0.3, 0.0, 1.5);
+      effectiveGranularity = clamp(granularity + 0.2, 0.0, 1.0);
+    }
+
     if (audioReactive) {
       float audioBoost = ridiculousMode ? audioLevel * 3.0 : audioLevel;
-      effectiveIntensity = clamp(intensity + audioBoost * 0.4, 0.0, 1.5);
-      effectiveGranularity = clamp(granularity + audioBoost * 0.3, 0.0, 1.0);
+      effectiveIntensity = clamp(effectiveIntensity + audioBoost * 0.4, 0.0, 1.5);
+      effectiveGranularity = clamp(effectiveGranularity + audioBoost * 0.3, 0.0, 1.0);
     }
 
     // Cell size based on granularity (smaller = more dots)
@@ -51,6 +57,10 @@ const fragmentShader = `
 
     // Grid angle - classic halftone uses 45 degrees
     float angle = 0.785398; // 45 degrees in radians
+    // XL mode: slow subtle angle rotation even without audio
+    if (ridiculousMode) {
+      angle += sin(time * 0.3) * 0.05;
+    }
     if (audioReactive) {
       angle += sin(time * 0.5) * 0.1 * audioLevel;
     }
@@ -77,7 +87,11 @@ const fragmentShader = `
     // Invert luma for dot size (darker = bigger dots)
     float dotSize = (1.0 - luma) * cellSize * 0.5 * effectiveIntensity;
 
-    // Add subtle pulsing to dot size with audio
+    // Add subtle pulsing to dot size
+    if (ridiculousMode && !audioReactive) {
+      // XL mode without audio: subtle breathing effect
+      dotSize *= 1.0 + sin(time * 2.0) * 0.1;
+    }
     if (audioReactive) {
       dotSize *= 1.0 + audioLevel * 0.3;
     }

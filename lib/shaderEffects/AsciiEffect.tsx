@@ -84,6 +84,10 @@ const fragmentShader = `
     // Audio reactive boost: when enabled, audio level modulates the effect
     float audioBoost = uAudioReactive ? uAudioLevel : 0.0;
 
+    // XL mode boost: adds static intensity boost even without audio reactive
+    float xlBoost = uRidiculousMode ? 0.5 : 0.0;
+    audioBoost += xlBoost;
+
     // Calculate cell size from granularity (higher granularity = larger cells = coarser)
     // Range: 2 pixels (fine) to 16 pixels (coarse)
     // Audio reactive: cell size increases with audio level for pulsing effect
@@ -148,44 +152,58 @@ const fragmentShader = `
     vec3 finalColor = mix(inputColor.rgb, asciiColor, uWetDry);
 
     // === RIDICULOUS MODE EFFECTS ===
-    if (uRidiculousMode && uAudioReactive) {
-      // Negative flash on strong beats (not white, inverted)
-      if (uAudioLevel > 0.75 && random(vec2(floor(uTime * 10.0), 0.0)) > 0.5) {
-        finalColor = 1.0 - finalColor;
-      }
+    if (uRidiculousMode) {
+      // Static XL effects (work without audio reactive)
+      // Slow color tint cycling
+      float staticTintPhase = uTime * 0.5;
+      vec3 staticTint = vec3(
+        0.8 + 0.2 * sin(staticTintPhase),
+        0.8 + 0.2 * sin(staticTintPhase + 2.094),
+        0.8 + 0.2 * sin(staticTintPhase + 4.188)
+      );
+      finalColor = finalColor * staticTint * 1.2;
 
-      // "Matrix rain" - vertical streaks that fall down
+      // Subtle Matrix rain effect
       float rainColumn = floor(uv.x * 40.0);
       float rainSpeed = random(vec2(rainColumn, 0.0)) * 2.0 + 1.0;
-      float rainPhase = fract(uv.y + uTime * rainSpeed * 0.5);
+      float rainPhase = fract(uv.y + uTime * rainSpeed * 0.3);
       float rainBrightness = smoothstep(0.0, 0.3, rainPhase) * smoothstep(1.0, 0.5, rainPhase);
-      if (random(vec2(rainColumn, floor(uTime * 3.0))) > 0.7 - uAudioLevel * 0.3) {
-        finalColor = mix(finalColor, finalColor * (0.5 + rainBrightness), uAudioLevel * 0.7);
+      if (random(vec2(rainColumn, floor(uTime * 2.0))) > 0.8) {
+        finalColor = mix(finalColor, finalColor * (0.7 + rainBrightness * 0.5), 0.3);
       }
 
-      // Color tint cycling - shifts through cyan/magenta/yellow
-      float tintPhase = uTime * 2.0 + uAudioLevel * 3.0;
-      vec3 tint = vec3(
-        0.5 + 0.5 * sin(tintPhase),
-        0.5 + 0.5 * sin(tintPhase + 2.094),
-        0.5 + 0.5 * sin(tintPhase + 4.188)
-      );
-      finalColor = mix(finalColor, finalColor * tint * 1.5, uAudioLevel * 0.5);
+      // Audio reactive XL effects (only when REACT is on)
+      if (uAudioReactive) {
+        // Negative flash on strong beats
+        if (uAudioLevel > 0.75 && random(vec2(floor(uTime * 10.0), 0.0)) > 0.5) {
+          finalColor = 1.0 - finalColor;
+        }
 
-      // Scanline intensity boost - makes them much more visible
-      float scanlinePulse = sin(uv.y * 200.0 + uTime * 20.0) * 0.5 + 0.5;
-      finalColor *= 1.0 - (scanlinePulse * uAudioLevel * 0.4);
+        // Enhanced color tint cycling
+        float tintPhase = uTime * 2.0 + uAudioLevel * 3.0;
+        vec3 tint = vec3(
+          0.5 + 0.5 * sin(tintPhase),
+          0.5 + 0.5 * sin(tintPhase + 2.094),
+          0.5 + 0.5 * sin(tintPhase + 4.188)
+        );
+        finalColor = mix(finalColor, finalColor * tint * 1.5, uAudioLevel * 0.5);
 
-      // Random block glitches - small squares that invert
-      float blockX = floor(uv.x * 16.0);
-      float blockY = floor(uv.y * 16.0);
-      float blockNoise = random(vec2(blockX + blockY * 16.0, floor(uTime * 8.0)));
-      if (blockNoise > 0.92 - uAudioLevel * 0.15) {
-        finalColor = 1.0 - finalColor;
+        // Scanline intensity boost
+        float scanlinePulse = sin(uv.y * 200.0 + uTime * 20.0) * 0.5 + 0.5;
+        finalColor *= 1.0 - (scanlinePulse * uAudioLevel * 0.4);
+
+        // Random block glitches
+        float blockX = floor(uv.x * 16.0);
+        float blockY = floor(uv.y * 16.0);
+        float blockNoise = random(vec2(blockX + blockY * 16.0, floor(uTime * 8.0)));
+        if (blockNoise > 0.92 - uAudioLevel * 0.15) {
+          finalColor = 1.0 - finalColor;
+        }
+
+        // Brightness pump with audio
+        finalColor *= 0.8 + uAudioLevel * 0.5;
       }
 
-      // Subtle brightness pump with audio
-      finalColor *= 0.8 + uAudioLevel * 0.5;
       finalColor = clamp(finalColor, 0.0, 1.0);
     }
 

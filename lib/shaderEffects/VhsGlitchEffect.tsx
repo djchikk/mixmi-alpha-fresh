@@ -73,6 +73,10 @@ const fragmentShader = `
     // Audio reactive boost: when enabled, audio level amplifies the effect
     float audioBoost = uAudioReactive ? (1.0 + uAudioLevel * 2.0) : 1.0;
 
+    // XL mode boost: adds static intensity boost even without audio reactive
+    float xlBoost = uRidiculousMode ? 1.8 : 1.0;
+    audioBoost *= xlBoost;
+
     // Derived parameters from intensity and granularity (boosted by audio)
     float grain = intensity * 2.0 * audioBoost;
     float glitchBlocks = intensity * 0.15 * audioBoost;
@@ -146,30 +150,49 @@ const fragmentShader = `
     }
 
     // === RIDICULOUS MODE EFFECTS ===
-    if (uRidiculousMode && uAudioReactive) {
-      // Invert colors on strong beats
-      if (uAudioLevel > 0.7) {
-        color = 1.0 - color;
-      }
+    if (uRidiculousMode) {
+      // Static XL effects (work without audio reactive)
+      // Extra saturation push
+      float gray2 = dot(color, vec3(0.299, 0.587, 0.114));
+      color = mix(vec3(gray2), color, 1.5);
 
-      // Extreme saturation boost
-      float gray = dot(color, vec3(0.299, 0.587, 0.114));
-      color = mix(vec3(gray), color, 1.0 + uAudioLevel * 3.0);
-
-      // Hue rotation based on audio
-      float hueShift = uAudioLevel * 6.28318; // Full rotation at max
-      float cosH = cos(hueShift);
-      float sinH = sin(hueShift);
-      mat3 hueMatrix = mat3(
-        0.299 + 0.701*cosH + 0.168*sinH, 0.587 - 0.587*cosH + 0.330*sinH, 0.114 - 0.114*cosH - 0.497*sinH,
-        0.299 - 0.299*cosH - 0.328*sinH, 0.587 + 0.413*cosH + 0.035*sinH, 0.114 - 0.114*cosH + 0.292*sinH,
-        0.299 - 0.300*cosH + 1.250*sinH, 0.587 - 0.588*cosH - 1.050*sinH, 0.114 + 0.886*cosH - 0.203*sinH
+      // Slight hue shift for extra punch
+      float staticHue = t * 0.1;
+      float cosS = cos(staticHue);
+      float sinS = sin(staticHue);
+      mat3 staticHueMatrix = mat3(
+        0.299 + 0.701*cosS + 0.168*sinS, 0.587 - 0.587*cosS + 0.330*sinS, 0.114 - 0.114*cosS - 0.497*sinS,
+        0.299 - 0.299*cosS - 0.328*sinS, 0.587 + 0.413*cosS + 0.035*sinS, 0.114 - 0.114*cosS + 0.292*sinS,
+        0.299 - 0.300*cosS + 1.250*sinS, 0.587 - 0.588*cosS - 1.050*sinS, 0.114 + 0.886*cosS - 0.203*sinS
       );
-      color = hueMatrix * color;
+      color = staticHueMatrix * color;
 
-      // Random color channel swap on peaks
-      if (uAudioLevel > 0.8 && rand(vec2(floor(t * 5.0), 0.0)) > 0.5) {
-        color = color.gbr;
+      // Audio reactive XL effects (only when REACT is on)
+      if (uAudioReactive) {
+        // Invert colors on strong beats
+        if (uAudioLevel > 0.7) {
+          color = 1.0 - color;
+        }
+
+        // Extra audio-driven saturation boost
+        float gray3 = dot(color, vec3(0.299, 0.587, 0.114));
+        color = mix(vec3(gray3), color, 1.0 + uAudioLevel * 3.0);
+
+        // Hue rotation based on audio
+        float hueShift = uAudioLevel * 6.28318; // Full rotation at max
+        float cosH = cos(hueShift);
+        float sinH = sin(hueShift);
+        mat3 hueMatrix = mat3(
+          0.299 + 0.701*cosH + 0.168*sinH, 0.587 - 0.587*cosH + 0.330*sinH, 0.114 - 0.114*cosH - 0.497*sinH,
+          0.299 - 0.299*cosH - 0.328*sinH, 0.587 + 0.413*cosH + 0.035*sinH, 0.114 - 0.114*cosH + 0.292*sinH,
+          0.299 - 0.300*cosH + 1.250*sinS, 0.587 - 0.588*cosH - 1.050*sinH, 0.114 + 0.886*cosH - 0.203*sinH
+        );
+        color = hueMatrix * color;
+
+        // Random color channel swap on peaks
+        if (uAudioLevel > 0.8 && rand(vec2(floor(t * 5.0), 0.0)) > 0.5) {
+          color = color.gbr;
+        }
       }
     }
 

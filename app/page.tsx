@@ -2130,7 +2130,7 @@ export default function HomePage() {
           ridiculousMode={webglRidiculousMode}
           onRidiculousModeChange={setWebglRidiculousMode}
           isCollapsed={false}
-          onCollapsedChange={() => {}}
+          onCollapsedChange={() => setIsVideoViewerCollapsed(true)}
           onHide={() => setIsVideoViewerCollapsed(true)}
           position={videoDisplayPosition}
           onPositionChange={setVideoDisplayPosition}
@@ -2159,32 +2159,66 @@ export default function HomePage() {
       <HelpWidget hideIcon={true} />
 
       {/* Video Widget Icon - Shows when videos are loaded, toggles Video Widget visibility */}
+      {/* Features live video thumbnail background when video is playing */}
       {mixerState && (mixerState.videoATrack || mixerState.videoBTrack) && (
-        <div className="fixed top-1/2 right-6 -translate-y-1/2 z-[998]">
+        <div className="fixed top-1/2 right-6 -translate-y-1/2 z-40">
           <button
             onClick={() => setIsVideoViewerCollapsed(!isVideoViewerCollapsed)}
-            className={`p-2 rounded-lg transition-all duration-200 hover:scale-105 ${
-              isVideoViewerCollapsed
-                ? 'bg-[#5BB5F9]/20 hover:bg-[#5BB5F9]/30'
-                : 'bg-[#5BB5F9]/40 shadow-lg shadow-[#5BB5F9]/20'
-            }`}
-            title={isVideoViewerCollapsed ? 'Show Video Widget' : 'Hide Video Widget'}
+            className="relative overflow-hidden rounded-lg transition-all duration-200 hover:scale-105"
+            style={{
+              width: '48px',
+              height: '48px',
+              boxShadow: isVideoViewerCollapsed
+                ? 'none'
+                : '0 0 12px rgba(91, 181, 249, 0.3)'
+            }}
+            title={isVideoViewerCollapsed ? 'Show Video Mixer' : 'Hide Video Mixer'}
           >
-            <Video
-              className={`w-6 h-6 transition-colors ${
-                isVideoViewerCollapsed ? 'text-[#5BB5F9]/70' : 'text-[#5BB5F9]'
-              }`}
-              strokeWidth={2}
-            />
+            {/* Live video thumbnail background */}
+            <div className="absolute inset-0 rounded-lg overflow-hidden">
+              <WebGLVideoDisplay
+                deckATrack={mixerState.videoATrack}
+                deckBTrack={mixerState.videoBTrack}
+                deckAPlaying={true}
+                deckBPlaying={true}
+                deckAVolume={mixerState.videoAVolume || 100}
+                deckBVolume={mixerState.videoBVolume || 100}
+                crossfaderPosition={videoCrossfaderPosition}
+                crossfadeMode={crossfadeMode}
+                effects={{
+                  activeEffect: webglActiveEffect,
+                  intensity: webglIntensity,
+                  granularity: webglGranularity,
+                  wetDry: webglWetDry,
+                  audioReactive: webglAudioReactive,
+                  ditherColor: webglDitherColor,
+                  audioLevel: webglAudioLevel,
+                  ridiculousMode: webglRidiculousMode,
+                  saturation: webglSaturation
+                }}
+                height={48}
+              />
+            </div>
+            {/* Overlay with icon */}
+            <div className={`absolute inset-0 flex items-center justify-center transition-colors ${
+              isVideoViewerCollapsed
+                ? 'bg-black/60'
+                : 'bg-black/30'
+            }`}>
+              <Video
+                className={`w-5 h-5 transition-colors ${
+                  isVideoViewerCollapsed ? 'text-white/70' : 'text-white'
+                }`}
+                strokeWidth={2}
+              />
+            </div>
+            {/* Border */}
+            <div className={`absolute inset-0 rounded-lg border-2 transition-colors ${
+              isVideoViewerCollapsed
+                ? 'border-[#5BB5F9]/30'
+                : 'border-[#5BB5F9]/60'
+            }`} />
           </button>
-          {/* Label below icon */}
-          <div className={`
-            absolute top-full left-1/2 -translate-x-1/2 mt-1.5
-            text-[8px] font-bold uppercase tracking-wider whitespace-nowrap
-            transition-opacity duration-200 text-[#5BB5F9]/70
-          `}>
-            VIDEO
-          </div>
         </div>
       )}
 
