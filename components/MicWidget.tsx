@@ -71,42 +71,63 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
-  // Get system audio latency from AudioContext
-  const getSystemLatency = (): number => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
+  // Detect where actual audio content begins (above silence threshold)
+  const detectAudioOnset = (audioBuffer: AudioBuffer, silenceThreshold: number = 0.01): number => {
+    // Check first channel for onset (mono or left channel of stereo)
+    const channelData = audioBuffer.getChannelData(0);
+    const sampleRate = audioBuffer.sampleRate;
+
+    // Use a small window to detect sustained signal (not just a spike)
+    const windowSize = Math.floor(sampleRate * 0.005); // 5ms window
+
+    for (let i = 0; i < channelData.length - windowSize; i++) {
+      // Check if this window has audio above threshold
+      let windowMax = 0;
+      for (let j = 0; j < windowSize; j++) {
+        windowMax = Math.max(windowMax, Math.abs(channelData[i + j]));
+      }
+
+      if (windowMax > silenceThreshold) {
+        // Found audio! Back up slightly to catch attack transient
+        const attackBuffer = Math.floor(sampleRate * 0.003); // 3ms before onset
+        const onsetSample = Math.max(0, i - attackBuffer);
+        const onsetMs = (onsetSample / sampleRate) * 1000;
+        console.log(`🎤 Audio onset detected at ${onsetMs.toFixed(1)}ms (sample ${onsetSample})`);
+        return onsetSample;
+      }
     }
-    const ctx = audioContextRef.current;
-    // baseLatency: processing latency, outputLatency: output device latency
-    const baseLatency = ctx.baseLatency || 0;
-    const outputLatency = (ctx as any).outputLatency || 0;
-    const totalLatency = baseLatency + outputLatency;
-    console.log(`🎤 System latency: base=${(baseLatency * 1000).toFixed(1)}ms, output=${(outputLatency * 1000).toFixed(1)}ms, total=${(totalLatency * 1000).toFixed(1)}ms`);
-    return totalLatency; // in seconds
+
+    console.log('🎤 No audio onset detected (silent recording?)');
+    return 0; // No onset found, don't trim
   };
 
-  // Trim audio by removing the latency offset from the beginning
-  const trimAudioForLatency = async (blob: Blob, latencySeconds: number): Promise<Blob> => {
-    if (latencySeconds <= 0) {
-      console.log('🎤 No latency compensation needed');
-      return blob;
-    }
-
+  // Trim audio by detecting where actual sound begins
+  const trimToAudioOnset = async (blob: Blob): Promise<Blob> => {
     try {
-      console.log(`🎤 Trimming ${(latencySeconds * 1000).toFixed(1)}ms from recording start...`);
+      console.log('🎤 Analyzing recording for audio onset...');
 
       // Create AudioContext for decoding
       const audioContext = new AudioContext();
       const arrayBuffer = await blob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-      // Calculate samples to trim
+      // Detect where audio actually starts
+      const onsetSample = detectAudioOnset(audioBuffer);
+
+      if (onsetSample === 0) {
+        console.log('🎤 No trimming needed - audio starts at beginning');
+        await audioContext.close();
+        return blob;
+      }
+
       const sampleRate = audioBuffer.sampleRate;
-      const samplesToTrim = Math.floor(latencySeconds * sampleRate);
-      const newLength = audioBuffer.length - samplesToTrim;
+      const trimMs = (onsetSample / sampleRate) * 1000;
+      console.log(`🎤 Trimming ${trimMs.toFixed(1)}ms of silence from start...`);
+
+      const newLength = audioBuffer.length - onsetSample;
 
       if (newLength <= 0) {
-        console.warn('🎤 Latency longer than recording, skipping trim');
+        console.warn('🎤 Recording too short after trim, skipping');
         await audioContext.close();
         return blob;
       }
@@ -118,23 +139,23 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
         sampleRate
       );
 
-      // Copy samples after the trim point
+      // Copy samples after the onset point
       for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
         const sourceData = audioBuffer.getChannelData(channel);
         const destData = trimmedBuffer.getChannelData(channel);
         for (let i = 0; i < newLength; i++) {
-          destData[i] = sourceData[i + samplesToTrim];
+          destData[i] = sourceData[i + onsetSample];
         }
       }
 
-      // Encode trimmed audio back to webm using MediaRecorder
+      // Encode trimmed audio
       const trimmedBlob = await encodeAudioBuffer(trimmedBuffer, sampleRate);
 
       await audioContext.close();
-      console.log(`🎤 Trimmed recording: ${(blob.size / 1024).toFixed(1)}KB → ${(trimmedBlob.size / 1024).toFixed(1)}KB`);
+      console.log(`🎤 Trimmed recording: ${(blob.size / 1024).toFixed(1)}KB → ${(trimmedBlob.size / 1024).toFixed(1)}KB (removed ${trimMs.toFixed(1)}ms)`);
       return trimmedBlob;
     } catch (err) {
-      console.error('🎤 Failed to trim audio for latency:', err);
+      console.error('🎤 Failed to trim audio:', err);
       return blob; // Return original if trimming fails
     }
   };
@@ -386,22 +407,21 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
         const rawBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         console.log(`🎤 MicWidget: Raw recording - ${(rawBlob.size / 1024).toFixed(1)}KB`);
 
-        // Apply latency compensation asynchronously
+        // Auto-trim silence from start by detecting audio onset
         (async () => {
           try {
-            // Get system latency and trim the recording
-            const latency = getSystemLatency();
-            const compensatedBlob = await trimAudioForLatency(rawBlob, latency);
+            // Detect where actual audio begins and trim silence
+            const trimmedBlob = await trimToAudioOnset(rawBlob);
 
-            const url = URL.createObjectURL(compensatedBlob);
-            setRecordedBlob(compensatedBlob);
+            const url = URL.createObjectURL(trimmedBlob);
+            setRecordedBlob(trimmedBlob);
             setRecordedUrl(url);
             setRecordingState('complete');
 
-            console.log(`🎤 MicWidget: Recording complete with latency compensation`);
+            console.log(`🎤 MicWidget: Recording complete with auto-trim`);
           } catch (err) {
-            console.error('🎤 MicWidget: Latency compensation failed, using raw recording:', err);
-            // Fall back to raw recording if compensation fails
+            console.error('🎤 MicWidget: Auto-trim failed, using raw recording:', err);
+            // Fall back to raw recording if trimming fails
             const url = URL.createObjectURL(rawBlob);
             setRecordedBlob(rawBlob);
             setRecordedUrl(url);
