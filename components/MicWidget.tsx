@@ -337,6 +337,13 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     }
   };
 
+  // Check if a media stream is still valid and active
+  const isStreamValid = (stream: MediaStream | null): boolean => {
+    if (!stream) return false;
+    const tracks = stream.getAudioTracks();
+    return tracks.length > 0 && tracks.every(track => track.readyState === 'live');
+  };
+
   // Arm the recording (wait for next loop restart)
   const armRecording = async () => {
     setError(null);
@@ -348,8 +355,13 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     }
     setRecordedBlob(null);
 
-    // Get mic access if we don't have it - this will trigger the browser permission prompt
-    if (!streamRef.current) {
+    // Get mic access if we don't have it OR if the stream is no longer valid
+    if (!isStreamValid(streamRef.current)) {
+      // Clean up any existing invalid stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
       const stream = await requestMicAccess();
       if (!stream) return; // Permission denied or error
     }
@@ -524,6 +536,14 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     setCurrentCycle(0);
     setIsPreviewPlaying(false);
     setError(null);
+
+    // If this recording wasn't saved, reset the pack tracking too
+    // (user is starting fresh, not adding another take to a saved pack)
+    if (!savedDraftId) {
+      setCurrentPackId(null);
+      setTakeCount(0);
+      console.log('🎤 Recording discarded - pack tracking reset');
+    }
     setSavedDraftId(null);
   };
 
