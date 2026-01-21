@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Square, Download, X, Loader2, Play, Pause } from 'lucide-react';
+import { Mic, MicOff, Square, Download, X, Loader2, Play, Pause, Save, Upload } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMixer } from '@/contexts/MixerContext';
 
 /**
  * MicWidget - Microphone Recording Widget
@@ -12,10 +14,10 @@ import { Mic, MicOff, Square, Download, X, Loader2, Play, Pause } from 'lucide-r
  * - Supports 1, 2, 4, 8 cycle counts
  * - Provides local download of recorded audio
  *
- * Future phases:
- * - Draft content system integration
- * - Multi-take loop pack creation
- * - Dashboard integration
+ * Phase 2: Draft content system
+ * - Save recordings as drafts to Supabase
+ * - Multi-take auto-bundling into draft loop packs
+ * - Draft tracks appear in crate with dashed borders
  */
 
 interface MicWidgetProps {
@@ -31,6 +33,10 @@ type RecordingState =
   | 'complete';      // Recording complete, ready for download
 
 export default function MicWidget({ className = '' }: MicWidgetProps) {
+  // Auth & Mixer Context
+  const { walletAddress, suiAddress, isAuthenticated } = useAuth();
+  const { addTrackToCollection } = useMixer();
+
   // UI State
   const [isExpanded, setIsExpanded] = useState(false);
   const [cycleCount, setCycleCount] = useState(1); // 1, 2, 4, or 8 cycles
@@ -42,6 +48,12 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [hasMicPermission, setHasMicPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Draft saving state
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
+  const [currentPackId, setCurrentPackId] = useState<string | null>(null); // For multi-take bundling
+  const [takeCount, setTakeCount] = useState(0); // Track how many takes in current session
 
   // Audio refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -57,6 +69,9 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   // Audio preview ref
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+
+  // Get effective wallet address (SUI for zkLogin, STX for wallet auth)
+  const effectiveWallet = suiAddress || walletAddress;
 
   // Register global toggle function for Crate icon
   useEffect(() => {
@@ -324,6 +339,105 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     setCurrentCycle(0);
     setIsPreviewPlaying(false);
     setError(null);
+    setSavedDraftId(null);
+  };
+
+  // Save recording as draft to Supabase
+  const saveDraft = async () => {
+    if (!recordedBlob || !effectiveWallet) {
+      setError('No recording or not signed in');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      // Get BPM from mixer
+      const bpm = typeof window !== 'undefined' && (window as any).getMixerBPM
+        ? (window as any).getMixerBPM()
+        : 120;
+
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('file', recordedBlob, `mic-recording-${Date.now()}.webm`);
+      formData.append('walletAddress', effectiveWallet);
+      formData.append('title', `Mic Recording ${takeCount + 1}`);
+      formData.append('cycleCount', cycleCount.toString());
+      formData.append('bpm', bpm.toString());
+
+      // If we have a pack ID (from previous takes), include it for bundling
+      if (currentPackId) {
+        formData.append('packId', currentPackId);
+      }
+
+      console.log('🎤 Saving draft...', { bpm, cycleCount, hasPackId: !!currentPackId });
+
+      const response = await fetch('/api/drafts/save', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save draft');
+      }
+
+      const result = await response.json();
+      console.log('🎤 Draft saved:', result);
+
+      // Store the pack ID for future multi-take bundling
+      if (result.packId && !currentPackId) {
+        setCurrentPackId(result.packId);
+        console.log('🎤 Pack ID set for multi-take bundling:', result.packId);
+      }
+
+      // Increment take count
+      setTakeCount(prev => prev + 1);
+
+      // Store the saved draft ID
+      setSavedDraftId(result.track.id);
+
+      // Add to crate - convert API response to IPTrack format
+      if (result.track) {
+        const draftTrack = {
+          id: result.track.id,
+          title: result.track.title,
+          artist: result.track.artist,
+          content_type: result.track.content_type || 'loop',
+          bpm: result.track.bpm,
+          audio_url: result.track.audioUrl,
+          is_draft: true,
+          primary_uploader_wallet: result.track.primary_uploader_wallet,
+          pack_id: result.track.pack_id,
+          pack_position: result.track.pack_position,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          sample_type: 'vocals',
+          tags: [],
+          composition_split_1_wallet: effectiveWallet,
+          composition_split_1_percentage: 100,
+          production_split_1_wallet: effectiveWallet,
+          production_split_1_percentage: 100,
+        };
+        addTrackToCollection(draftTrack as any);
+        console.log('🎤 Draft added to crate');
+      }
+
+    } catch (err: any) {
+      console.error('🎤 Failed to save draft:', err);
+      setError(err.message || 'Failed to save draft');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Start a new pack (reset pack tracking for fresh session)
+  const startNewPack = () => {
+    setCurrentPackId(null);
+    setTakeCount(0);
+    resetRecording();
+    console.log('🎤 Started new recording session (pack reset)');
   };
 
   // Get status text for current state
@@ -369,6 +483,19 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
             <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
               Mic Record
             </span>
+            {/* Show take count when in multi-take session */}
+            {takeCount > 0 && (
+              <span
+                className="text-[9px] px-1.5 py-0.5 rounded font-bold"
+                style={{
+                  backgroundColor: 'rgba(160, 132, 249, 0.3)',
+                  color: '#A084F9',
+                  border: '1px dashed #A084F9'
+                }}
+              >
+                Take {takeCount + 1}
+              </span>
+            )}
           </div>
 
           {/* Status Display */}
@@ -459,30 +586,92 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
 
           {/* Preview & Download - only show when complete */}
           {recordingState === 'complete' && recordedUrl && (
-            <div className="flex justify-center gap-2 pt-2 border-t border-gray-800">
-              <button
-                onClick={togglePreview}
-                className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white transition-all"
-              >
-                {isPreviewPlaying ? (
-                  <>
-                    <Pause className="w-3 h-3" />
-                    <span>Pause</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3 h-3" />
-                    <span>Preview</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={downloadRecording}
-                className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-green-600 hover:bg-green-500 text-white transition-all"
-              >
-                <Download className="w-3 h-3" />
-                <span>Save</span>
-              </button>
+            <div className="flex flex-col gap-2 pt-2 border-t border-gray-800">
+              {/* Preview button row */}
+              <div className="flex justify-center gap-2">
+                <button
+                  onClick={togglePreview}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white transition-all"
+                >
+                  {isPreviewPlaying ? (
+                    <>
+                      <Pause className="w-3 h-3" />
+                      <span>Pause</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3 h-3" />
+                      <span>Preview</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={downloadRecording}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white transition-all"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Download</span>
+                </button>
+              </div>
+
+              {/* Save Draft button - only for authenticated users */}
+              {isAuthenticated && effectiveWallet && !savedDraftId && (
+                <button
+                  onClick={saveDraft}
+                  disabled={isSaving}
+                  className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded text-xs font-semibold transition-all"
+                  style={{
+                    backgroundColor: isSaving ? '#4B5563' : '#A084F9',
+                    color: 'white',
+                    border: '2px dashed rgba(255,255,255,0.3)'
+                  }}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3 h-3" />
+                      <span>Save as Draft{takeCount > 0 ? ` (Take ${takeCount + 1})` : ''}</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Saved confirmation */}
+              {savedDraftId && (
+                <div className="text-center">
+                  <div className="text-xs text-green-400 mb-2">
+                    ✓ Draft saved{currentPackId ? ` (Take ${takeCount})` : ''}
+                  </div>
+                  <div className="flex justify-center gap-2">
+                    <button
+                      onClick={resetRecording}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-[#A084F9] hover:bg-[#A084F9]/80 text-white transition-all"
+                    >
+                      <Mic className="w-3 h-3" />
+                      <span>Record Another Take</span>
+                    </button>
+                    {takeCount > 1 && (
+                      <button
+                        onClick={startNewPack}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white transition-all"
+                      >
+                        <span>New Session</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Not signed in message */}
+              {!isAuthenticated && (
+                <div className="text-xs text-gray-500 text-center">
+                  Sign in to save drafts
+                </div>
+              )}
             </div>
           )}
         </div>

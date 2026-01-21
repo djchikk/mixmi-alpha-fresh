@@ -368,6 +368,27 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     };
   }, [mixerState.deckA.playing, mixerState.deckB.playing]);
 
+  // 🎤 Expose mixer BPM for MicWidget draft saving
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).getMixerBPM = () => {
+        // Priority: playing deck's BPM, then master BPM, then default 120
+        if (mixerState.deckA.playing && mixerState.deckA.track?.bpm) {
+          return mixerState.deckA.track.bpm;
+        }
+        if (mixerState.deckB.playing && mixerState.deckB.track?.bpm) {
+          return mixerState.deckB.track.bpm;
+        }
+        return mixerState.masterBPM || 120;
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).getMixerBPM;
+      }
+    };
+  }, [mixerState.deckA.playing, mixerState.deckA.track?.bpm, mixerState.deckB.playing, mixerState.deckB.track?.bpm, mixerState.masterBPM]);
+
   // Update volume when state changes
   useEffect(() => {
     if (mixerState.deckA.audioState?.audio) {

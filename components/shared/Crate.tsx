@@ -81,6 +81,7 @@ interface ExpandedPackTrackProps {
   handleTrackClick: (track: any) => void;
   getBorderColor: (track: any) => string;
   getBorderThickness: (track: any) => string;
+  getBorderStyle: (track: any) => string;
 }
 
 function ExpandedPackTrack({
@@ -90,7 +91,8 @@ function ExpandedPackTrack({
   playingTrack,
   handleTrackClick,
   getBorderColor,
-  getBorderThickness
+  getBorderThickness,
+  getBorderStyle
 }: ExpandedPackTrackProps) {
   const [isPackTrackHovered, setIsPackTrackHovered] = React.useState(false);
   const [{ isDragging: isPackTrackDragging }, packDrag] = useDrag(() => ({
@@ -137,7 +139,7 @@ function ExpandedPackTrack({
       }}
     >
       <div
-        className={`cursor-grab transition-all ${getBorderColor(packTrack)} ${getBorderThickness(packTrack)}`}
+        className={`cursor-grab transition-all ${getBorderColor(packTrack)} ${getBorderThickness(packTrack)} ${getBorderStyle(packTrack)}`}
         style={{
           width: '64px',
           height: '64px',
@@ -534,6 +536,11 @@ export default function Crate({ className = '' }: CrateProps) {
     return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
+  // Determine border style - dashed for drafts, solid for finalized
+  const getBorderStyle = (track: any) => {
+    return track.is_draft ? 'border-dashed' : 'border-solid';
+  };
+
 
   // Collapsed state - minimal bar
   if (isCollapsed) {
@@ -791,7 +798,7 @@ export default function Crate({ className = '' }: CrateProps) {
               onClick={() => handleTrackClick(track)}
               onMouseEnter={() => setHoveredTrackId(track.id)}
               onMouseLeave={() => setHoveredTrackId(null)}
-              className={`cursor-pointer transition-all ${getBorderColor(track)} ${getBorderThickness(track)}`}
+              className={`cursor-pointer transition-all ${getBorderColor(track)} ${getBorderThickness(track)} ${getBorderStyle(track)}`}
               style={{
                 width: '64px',
                 height: '64px',
@@ -851,6 +858,20 @@ export default function Crate({ className = '' }: CrateProps) {
                       title="View track details"
                     />
                   </div>
+
+                  {/* Draft badge - top left */}
+                  {track.is_draft && (
+                    <div
+                      className="absolute top-0.5 left-0.5 px-1 py-0.5 rounded text-[7px] font-bold uppercase tracking-wide z-10"
+                      style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        color: '#A084F9',
+                        border: '1px dashed #A084F9'
+                      }}
+                    >
+                      Draft
+                    </div>
+                  )}
 
                   {/* Remove from crate button - top right */}
                   <button
@@ -986,6 +1007,7 @@ export default function Crate({ className = '' }: CrateProps) {
                     handleTrackClick={handleTrackClick}
                     getBorderColor={getBorderColor}
                     getBorderThickness={getBorderThickness}
+                    getBorderStyle={getBorderStyle}
                   />
                 ))}
               </div>

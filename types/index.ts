@@ -156,6 +156,9 @@ export interface IPTrack {
   // Provenance tracking (where this content came from)
   derived_from_track_id?: string; // UUID of track this was extracted from (e.g., loop from a song)
   
+  // Draft system (for mic recordings)
+  is_draft?: boolean; // True for mic recordings that haven't been finalized
+
   // Metadata
   created_at: string;
   updated_at: string;
