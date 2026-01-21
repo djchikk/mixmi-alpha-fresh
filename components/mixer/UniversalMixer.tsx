@@ -81,9 +81,10 @@ interface VideoThumbnailProps {
   onDrop: (track: Track) => void;
   onClear: () => void;
   position: 'left' | 'right';
+  onDragOver?: (isOver: boolean) => void;
 }
 
-function VideoThumbnail({ track, slot, onDrop, onClear, position }: VideoThumbnailProps) {
+function VideoThumbnail({ track, slot, onDrop, onClear, position, onDragOver }: VideoThumbnailProps) {
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD'],
     drop: (item: { track: any }) => {
@@ -102,6 +103,11 @@ function VideoThumbnail({ track, slot, onDrop, onClear, position }: VideoThumbna
 
   const isDropTarget = isOver && canDrop;
   const isVideoDragging = canDrop; // Video is being dragged somewhere
+
+  // Notify parent when video is being dragged (for container feedback)
+  React.useEffect(() => {
+    onDragOver?.(isVideoDragging);
+  }, [isVideoDragging, onDragOver]);
   const positionClass = position === 'left' ? 'left-[14px]' : 'right-[14px]';
 
   return (
@@ -174,6 +180,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const [isHovered, setIsHovered] = useState(false);
   const [syncWarningVisible, setSyncWarningVisible] = useState(false);
   const [isDeckDragOver, setIsDeckDragOver] = useState(false); // Track when dragging over either deck
+  const [isVideoDragOver, setIsVideoDragOver] = useState(false); // Track when dragging video content
 
   // Initialize mixer state with volume controls
   const [mixerState, setMixerState] = useState<UniversalMixerState>({
@@ -1945,8 +1952,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       style={{
         padding: isCollapsed ? '0.5rem 1rem' : '1.5rem',
         transition: 'padding 0.3s, filter 0.15s, border-color 0.15s',
-        filter: isDeckDragOver ? 'brightness(1.15)' : 'brightness(1)',
-        borderColor: isDeckDragOver ? 'rgba(129, 228, 242, 0.4)' : 'rgba(51, 65, 85, 0.5)'
+        filter: (isDeckDragOver || isVideoDragOver) ? 'brightness(1.15)' : 'brightness(1)',
+        borderColor: isVideoDragOver
+          ? 'rgba(91, 181, 249, 0.4)' // Video color #5BB5F9
+          : isDeckDragOver
+            ? 'rgba(129, 228, 242, 0.4)' // Cyan for audio
+            : 'rgba(51, 65, 85, 0.5)'
       }}
     >
       {/* Collapse/Expand Button */}
@@ -2010,6 +2021,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               setMixerState(prev => ({ ...prev, videoATrack: null, videoAVolume: 100 }));
               showToast('Video A cleared', 'info', 1500);
             }}
+            onDragOver={setIsVideoDragOver}
           />
 
           {/* Video B Thumbnail - Top Right, aligned with Deck B */}
@@ -2025,6 +2037,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
               setMixerState(prev => ({ ...prev, videoBTrack: null, videoBVolume: 100 }));
               showToast('Video B cleared', 'info', 1500);
             }}
+            onDragOver={setIsVideoDragOver}
           />
 
           {/* Transport and Loop Controls Row - z-10 to stay above deck drop zones */}
@@ -2047,12 +2060,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             <button
               onClick={() => handleDeckSync('A')}
               disabled={!mixerState.syncActive || hasRadio || bothVideos}
-              className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider border ${
+              className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider ${
                 hasRadio || bothVideos || !mixerState.syncActive
-                  ? 'text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
+                  ? 'border text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
                   : mixerState.masterDeckId === 'A'
-                  ? 'text-[#81E4F2] border-amber-500/50 bg-amber-500/10 hover:border-amber-500/70 cursor-pointer'
-                  : 'text-slate-400 border-slate-600 bg-slate-800/40 hover:border-slate-500 hover:text-slate-300 cursor-pointer'
+                  ? 'border border-[#FBBF24] bg-[#FBBF24]/20 text-[#FBBF24] cursor-pointer'
+                  : 'border text-slate-400 border-slate-600 bg-slate-800/40 hover:border-slate-500 hover:text-slate-300 cursor-pointer'
               }`}
               title={
                 hasRadio
@@ -2062,11 +2075,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   : !mixerState.syncActive
                   ? 'Enable sync from master control first'
                   : mixerState.masterDeckId === 'A'
-                  ? 'Deck A is master'
+                  ? 'Deck A is master (controls tempo)'
                   : 'Switch to Deck A as master'
               }
             >
-              SYNC
+              {mixerState.syncActive && mixerState.masterDeckId === 'A' ? 'MSTR' : 'SYNC'}
             </button>
 
             <div className="flex flex-col items-center gap-1 relative">
@@ -2105,12 +2118,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
             <button
               onClick={() => handleDeckSync('B')}
               disabled={!mixerState.syncActive || hasRadio || bothVideos}
-              className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider border ${
+              className={`px-1.5 py-0.5 rounded text-[7px] font-bold transition-all uppercase tracking-wider ${
                 hasRadio || bothVideos || !mixerState.syncActive
-                  ? 'text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
+                  ? 'border text-slate-600 border-slate-700 bg-slate-800/20 opacity-40 cursor-not-allowed'
                   : mixerState.masterDeckId === 'B'
-                  ? 'text-[#81E4F2] border-amber-500/50 bg-amber-500/10 hover:border-amber-500/70 cursor-pointer'
-                  : 'text-slate-400 border-slate-600 bg-slate-800/40 hover:border-slate-500 hover:text-slate-300 cursor-pointer'
+                  ? 'border border-[#FBBF24] bg-[#FBBF24]/20 text-[#FBBF24] cursor-pointer'
+                  : 'border text-slate-400 border-slate-600 bg-slate-800/40 hover:border-slate-500 hover:text-slate-300 cursor-pointer'
               }`}
               title={
                 hasRadio
@@ -2120,11 +2133,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                   : !mixerState.syncActive
                   ? 'Enable sync from master control first'
                   : mixerState.masterDeckId === 'B'
-                  ? 'Deck B is master'
+                  ? 'Deck B is master (controls tempo)'
                   : 'Switch to Deck B as master'
               }
             >
-              SYNC
+              {mixerState.syncActive && mixerState.masterDeckId === 'B' ? 'MSTR' : 'SYNC'}
             </button>
 
             {/* Deck B Loop Controls - compact, close to SYNC */}
