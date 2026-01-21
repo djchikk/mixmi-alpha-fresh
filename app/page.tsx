@@ -94,6 +94,11 @@ const CartWidget = dynamic(() => import('@/components/CartWidget'), {
   ssr: false
 });
 
+// Dynamically import MicWidget - microphone recording widget
+const MicWidget = dynamic(() => import('@/components/MicWidget'), {
+  ssr: false
+});
+
 // DemoButton removed - demo functionality accessible via code but button hidden
 // const DemoButton = dynamic(() => import('@/components/DemoButton'), {
 //   ssr: false
@@ -2151,6 +2156,9 @@ export default function HomePage() {
 
       {/* Simple Radio Player - Always available, shows when station loaded */}
       <SimpleRadioPlayer />
+
+      {/* Mic Widget - Recording synced to mixer loops */}
+      <MicWidget />
 
       {/* Simple Playlist Player - Always available, bottom-left corner */}
       <SimplePlaylistPlayer />

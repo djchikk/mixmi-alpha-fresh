@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useMixer } from '@/contexts/MixerContext';
 import { useDrop, useDrag } from 'react-dnd';
 import { IPTrack } from '@/types';
-import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft, Radio } from 'lucide-react';
+import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft, Radio, Mic, MicOff } from 'lucide-react';
 import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
@@ -1042,6 +1042,35 @@ export default function Crate({ className = '' }: CrateProps) {
             →
           </button>
         )}
+      </div>
+
+      {/* Right side: Mic recording icon */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        flexShrink: 0,
+        paddingLeft: '12px'
+      }}>
+        <button
+          onClick={() => {
+            if ((window as any).toggleMicWidget) {
+              (window as any).toggleMicWidget();
+            }
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '6px',
+            borderRadius: '6px',
+            transition: 'all 0.2s'
+          }}
+          className="hover:bg-white/10"
+          title="Record with microphone"
+        >
+          <Mic className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
+        </button>
       </div>
 
       {/* CSS for animations and scrollbar hiding */}

@@ -947,6 +947,11 @@ class PreciseLooper {
             console.log(`🎯 Deck ${this.deckId} triggering synchronized loop restart callback`);
             this.onLoopRestart();
           }
+
+          // 🎤 NEW: Notify MicWidget of loop restart (for synchronized recording)
+          if (typeof window !== 'undefined' && (window as any).onMixerLoopRestart) {
+            (window as any).onMixerLoopRestart(this.deckId);
+          }
         } catch (error) {
           console.warn(`⚠️ Deck ${this.deckId} loop reset failed:`, error);
         }

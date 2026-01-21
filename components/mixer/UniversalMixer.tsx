@@ -354,6 +354,20 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   }, []); // Run only on unmount
 
 
+  // 🎤 Expose mixer playing state for MicWidget sync
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).isMixerPlaying = () => {
+        return mixerState.deckA.playing || mixerState.deckB.playing;
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).isMixerPlaying;
+      }
+    };
+  }, [mixerState.deckA.playing, mixerState.deckB.playing]);
+
   // Update volume when state changes
   useEffect(() => {
     if (mixerState.deckA.audioState?.audio) {
