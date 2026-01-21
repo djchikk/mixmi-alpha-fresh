@@ -50,7 +50,7 @@ interface Track {
 }
 
 interface ContentFilter {
-  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'video_clip' | 'hidden';
+  type: 'all' | 'full_song' | 'loop' | 'loop_pack' | 'ep' | 'radio_station' | 'station_pack' | 'video_clip' | 'drafts' | 'hidden';
 }
 
 export default function AccountPage() {
@@ -217,6 +217,10 @@ export default function AccountPage() {
       case 'video_clip':
         filtered = tracks.filter(track => track.content_type === 'video_clip' && !track.is_deleted);
         break;
+      case 'drafts':
+        // Show all draft recordings (mic recordings not yet finalized)
+        filtered = tracks.filter(track => track.is_draft === true && !track.is_deleted);
+        break;
       case 'hidden':
         // For hidden, show all deleted items including child items
         filtered = tracks.filter(track => track.is_deleted === true);
@@ -250,6 +254,8 @@ export default function AccountPage() {
         return tracks.filter(track => track.content_type === 'station_pack' && !track.is_deleted).length;
       case 'video_clip':
         return tracks.filter(track => track.content_type === 'video_clip' && !track.is_deleted).length;
+      case 'drafts':
+        return tracks.filter(track => track.is_draft === true && !track.is_deleted).length;
       case 'hidden':
         return tracks.filter(track => track.is_deleted === true).length;
       default:
@@ -332,6 +338,7 @@ export default function AccountPage() {
                       activeFilter.type === 'radio_station' ? 'Radio Stations' :
                       activeFilter.type === 'station_pack' ? 'Station Packs' :
                       activeFilter.type === 'video_clip' ? 'Videos' :
+                      activeFilter.type === 'drafts' ? 'Drafts' :
                       activeFilter.type === 'hidden' ? 'Hidden' : 'All'
                     } (${getFilterCount(activeFilter)})`
                 }
@@ -428,6 +435,17 @@ export default function AccountPage() {
                   }`}
                 >
                   Videos ({getFilterCount({ type: 'video_clip' })})
+                </button>
+
+                <button
+                  onClick={() => { setActiveFilter({ type: 'drafts' }); setShowFilters(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    activeFilter.type === 'drafts'
+                      ? 'bg-[#A084F9] text-white font-medium border-2 border-dashed border-white/30'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600 border-2 border-dashed border-[#A084F9]/50'
+                  }`}
+                >
+                  Drafts ({getFilterCount({ type: 'drafts' })})
                 </button>
 
                 <button
@@ -772,6 +790,11 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
     return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
+  // Get border style - dashed for drafts, solid for finalized content
+  const getBorderStyle = (track: Track) => {
+    return track.is_draft ? 'border-dashed' : 'border-solid';
+  };
+
 // Helper functions for Library tab (same as above, extracted for reuse)
 const getLibraryBorderColor = (track: Track) => {
   if (track.content_type === 'full_song') return 'border-[#A8E66B]';
@@ -1040,6 +1063,10 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
 
   const getLibraryBorderThickness = (track: Track) => {
     return 'border-2';
+  };
+
+  const getLibraryBorderStyle = (track: Track) => {
+    return track.is_draft ? 'border-dashed' : 'border-solid';
   };
 
   useEffect(() => {

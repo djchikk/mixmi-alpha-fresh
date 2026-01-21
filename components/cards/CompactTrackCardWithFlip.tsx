@@ -373,6 +373,11 @@ export default function CompactTrackCardWithFlip({
     return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
+  // Get border style - dashed for drafts, solid for finalized content
+  const getBorderStyle = () => {
+    return (track as any).is_draft ? 'border-dashed' : 'border-solid';
+  };
+
 
   // Handle play click - supports audio_url (tracks), stream_url (radio), and video_url (videos)
   const handlePlayClick = (e: React.MouseEvent) => {
@@ -451,7 +456,7 @@ export default function CompactTrackCardWithFlip({
         {/* Compact Card Container - 160x160px */}
         <div
           ref={drag}
-          className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${getBorderColor()} ${getBorderThickness()} bg-slate-800`}
+          className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${getBorderColor()} ${getBorderThickness()} ${getBorderStyle()} bg-slate-800`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           style={{
@@ -490,6 +495,20 @@ export default function CompactTrackCardWithFlip({
                     playsInline
                     onEnded={() => setIsVideoPlaying(false)}
                   />
+                )}
+
+                {/* Draft Badge - for mic recordings not yet finalized */}
+                {(track as any).is_draft && (
+                  <div
+                    className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide"
+                    style={{
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      color: '#A084F9',
+                      border: '1px dashed #A084F9'
+                    }}
+                  >
+                    Draft
+                  </div>
                 )}
 
                 {/* Track number badge - for individual tracks that are part of a pack/EP */}
