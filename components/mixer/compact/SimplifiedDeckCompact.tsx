@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDrop, useDrag } from 'react-dnd';
 import { Track } from '../types';
 import { useToast } from '@/contexts/ToastContext';
-import { GripVertical, Radio } from 'lucide-react';
+import { GripVertical, Radio, Music2 } from 'lucide-react';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 
 interface SimplifiedDeckProps {
@@ -84,7 +84,7 @@ export default function SimplifiedDeckCompact({
   }), [currentTrack, deck, onTrackClear]);
 
   // Drop functionality for collection tracks
-  const [{ isOver, canDrop, isGlobeDrag }, drop] = useDrop(() => ({
+  const [{ isOver, canDrop, isGlobeDrag, isVideoDrag }, drop] = useDrop(() => ({
     accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD', 'RADIO_TRACK'],
     drop: (item: { track: any; sourceDeck?: string; sourceIndex: number }) => {
       console.log(`🎯 Deck ${deck} received drop:`, item);
@@ -158,18 +158,20 @@ export default function SimplifiedDeckCompact({
     },
     collect: (monitor) => {
       const item = monitor.getItem() as { track: any; source?: string } | null;
+      const isVideoDrag = item?.track?.content_type === 'video_clip';
       return {
         isOver: monitor.isOver(),
         canDrop: monitor.canDrop(),
         isGlobeDrag: item?.source === 'globe',
+        isVideoDrag,
       };
     },
   }));
 
-  // Notify parent when drag is over this deck
+  // Notify parent when drag is over this deck (but not for video drags)
   useEffect(() => {
-    onDragOver?.(isOver);
-  }, [isOver, onDragOver]);
+    onDragOver?.(isOver && !isVideoDrag);
+  }, [isOver, isVideoDrag, onDragOver]);
 
   // Detect when a new track is loaded or cleared
   useEffect(() => {
@@ -217,7 +219,7 @@ export default function SimplifiedDeckCompact({
 
         <div
           key={currentTrack?.id || 'empty'}
-          className={`carousel-track current pointer-events-auto ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging ? 'drop-target-active' : ''}`}
+          className={`carousel-track current pointer-events-auto ${currentTrack ? 'has-track' : ''} ${isPlaying ? 'playing' : ''} ${isNewTrackLoaded ? 'new-track-loaded' : ''} ${isOver && canDrop && !isDragging && !isVideoDrag ? 'drop-target-active' : ''}`}
           style={{
             '--border-color': borderColor,
             zIndex: 2,
@@ -312,13 +314,13 @@ export default function SimplifiedDeckCompact({
               className="deck-empty"
               title="Drag loops from the globe, crate, playlist, or search"
             >
-              <span className="deck-empty-icon">+</span>
+              <Music2 size={18} strokeWidth={1.5} className="deck-empty-icon" />
               <span className="deck-empty-text">Drop Here</span>
             </div>
           )}
 
-          {/* Subtle content-type colored fill overlay when dragging over */}
-          {isOver && canDrop && !isDragging && (
+          {/* Subtle content-type colored fill overlay when dragging over (not for videos) */}
+          {isOver && canDrop && !isDragging && !isVideoDrag && (
             <div
               className="absolute inset-0 rounded-lg pointer-events-none"
               style={{ backgroundColor: `${borderColor}30` }}
@@ -394,18 +396,24 @@ export default function SimplifiedDeckCompact({
         }
         
         .deck-empty-icon {
-          font-size: 16px;
-          color: #475569;
           margin-bottom: 4px;
-          opacity: 0.8;
+          animation: pulse-grey 5s ease-in-out infinite;
         }
-        
+
+        @keyframes pulse-grey {
+          0%, 100% {
+            color: rgba(148, 163, 184, 0.5); /* slate-400 at 50% */
+          }
+          50% {
+            color: rgba(203, 213, 225, 0.8); /* slate-300 at 80% */
+          }
+        }
+
         .deck-empty-text {
-          color: #64748B;
           font-size: 8px;
-          opacity: 0.9;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          animation: pulse-grey 5s ease-in-out infinite;
         }
         
         .carousel-track.drop-target-active {

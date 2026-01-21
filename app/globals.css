@@ -427,3 +427,31 @@ body.intro-complete .demo-button {
     color: #e1e5f0;
   }
 }
+
+/* Video & Audio Deck Empty State Pulsing - Synced animations */
+@keyframes deck-empty-pulse {
+  0%, 100% {
+    color: rgba(148, 163, 184, 0.5); /* slate-400 at 50% */
+  }
+  50% {
+    color: rgba(203, 213, 225, 0.8); /* slate-300 at 80% */
+  }
+}
+
+@keyframes video-border-pulse {
+  0%, 100% {
+    border-color: rgba(91, 181, 249, 0.3); /* #5BB5F9 at 30% */
+  }
+  50% {
+    border-color: rgba(91, 181, 249, 0.6); /* #5BB5F9 at 60% */
+  }
+}
+
+.video-empty-pulse {
+  animation: video-border-pulse 5s ease-in-out infinite;
+  border-color: rgba(91, 181, 249, 0.3);
+}
+
+.video-empty-content {
+  animation: deck-empty-pulse 5s ease-in-out infinite;
+}

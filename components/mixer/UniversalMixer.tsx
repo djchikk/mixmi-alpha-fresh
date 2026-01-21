@@ -101,47 +101,60 @@ function VideoThumbnail({ track, slot, onDrop, onClear, position }: VideoThumbna
   }), [onDrop]);
 
   const isDropTarget = isOver && canDrop;
+  const isVideoDragging = canDrop; // Video is being dragged somewhere
   const positionClass = position === 'left' ? 'left-[14px]' : 'right-[14px]';
 
   return (
-    <div className={`absolute ${positionClass} top-0 z-10 group`} ref={drop}>
+    <div
+      className={`absolute ${positionClass} top-0 z-50 group/video p-3 -m-3`}
+      ref={drop}
+    >
       <div
-        className={`w-[44px] h-[44px] rounded-lg border-2 overflow-hidden transition-all relative ${
+        className={`w-[44px] h-[44px] rounded-lg border-2 overflow-hidden transition-all duration-200 relative ${
           isDropTarget
             ? 'border-[#5BB5F9] shadow-lg shadow-[#5BB5F9]/50 scale-110 bg-[#5BB5F9]/20'
-            : track
-              ? 'border-[#5BB5F9] shadow-md shadow-[#5BB5F9]/30'
-              : canDrop && isOver
-                ? 'border-[#5BB5F9]/60'
-                : 'border-[#5BB5F9]/30 border-dashed'
+            : isVideoDragging && !track
+              ? 'border-[#5BB5F9] border-solid scale-105 shadow-md shadow-[#5BB5F9]/30'
+              : track
+                ? 'border-[#5BB5F9] shadow-md shadow-[#5BB5F9]/30'
+                : 'border-dashed video-empty-pulse'
         } bg-slate-800/80`}
         title={track ? `Video ${slot} - Playing in Video Widget` : `Drop video here for Video ${slot}`}
       >
         {track ? (
-          <>
+          <div className="relative w-full h-full">
             <img
               src={(track as any)?.thumb_64_url || track?.cover_image_url || (track as any)?.imageUrl}
               alt={`Video ${slot}`}
               className="w-full h-full object-cover"
             />
-            {/* Dismiss button - appears on hover */}
+            {/* Dark overlay on hover */}
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/video:opacity-100 transition-opacity pointer-events-none" />
+            {/* Dismiss button - centered, appears on hover */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 onClear();
               }}
-              className="absolute top-0 right-0 w-[16px] h-[16px] bg-black/70 rounded-bl-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600/80"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[20px] h-[20px] bg-black/80 rounded-full flex items-center justify-center opacity-0 group-hover/video:opacity-100 transition-all hover:bg-red-600 hover:scale-110 cursor-pointer"
               title={`Clear Video ${slot}`}
             >
-              <X size={10} strokeWidth={2} className="text-white" />
+              <X size={10} strokeWidth={3} className="text-white" />
             </button>
-          </>
+          </div>
         ) : (
           <div className={`w-full h-full flex flex-col items-center justify-center transition-all ${
-            isDropTarget ? 'text-[#5BB5F9] scale-110' : 'text-[#5BB5F9]/50'
+            isDropTarget
+              ? 'text-[#5BB5F9] scale-110'
+              : isVideoDragging
+                ? 'text-[#5BB5F9]/80'
+                : 'video-empty-content'
           }`}>
-            <Video size={isDropTarget ? 20 : 16} strokeWidth={1.5} />
-            <span className={`mt-0.5 uppercase tracking-wide ${isDropTarget ? 'text-[8px] font-bold' : 'text-[6px]'}`}>
+            <Video size={isDropTarget ? 20 : isVideoDragging ? 18 : 16} strokeWidth={1.5} />
+            <span className={`mt-0.5 uppercase tracking-wide ${
+              isDropTarget ? 'text-[8px] font-bold' : isVideoDragging ? 'text-[7px] font-semibold' : 'text-[6px]'
+            }`}>
               {isDropTarget ? 'Drop!' : 'Video'}
             </span>
           </div>
@@ -2212,7 +2225,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 {mixerState.deckA.track && (
                   <button
                     onClick={handleDeckAFXToggle}
-                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 border-[#365FC3] text-[#365FC3] bg-transparent hover:bg-[#365FC3]/15 hover:border-[#4195EF]"
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 border-[#81E4F2]/60 text-[#81E4F2] bg-transparent hover:bg-[#81E4F2]/15 hover:border-[#81E4F2]"
                     title="Instant FX"
                   >
                     {mixerState.deckA.fxPanelOpen ? (
@@ -2536,7 +2549,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 {mixerState.deckB.track && (
                   <button
                     onClick={handleDeckBFXToggle}
-                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 border-[#365FC3] text-[#365FC3] bg-transparent hover:bg-[#365FC3]/15 hover:border-[#4195EF]"
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all border-2 border-[#81E4F2]/60 text-[#81E4F2] bg-transparent hover:bg-[#81E4F2]/15 hover:border-[#81E4F2]"
                     title="Instant FX"
                   >
                     {mixerState.deckB.fxPanelOpen ? (
