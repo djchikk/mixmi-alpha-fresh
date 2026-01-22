@@ -534,7 +534,7 @@ export default function Crate({ className = '' }: CrateProps) {
   // Determine border thickness - thicker for multi-content (loop packs, EPs, and station packs) and drafts
   const getBorderThickness = (track: any) => {
     // Drafts get thick border so dashed pattern is visible at small sizes
-    if (track.is_draft) return 'border-[3px]';
+    if (track.is_draft) return 'border-4';
     return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
