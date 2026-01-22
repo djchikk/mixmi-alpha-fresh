@@ -101,59 +101,148 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     return 0; // No onset found, don't trim
   };
 
-  // Trim audio by detecting where actual sound begins
-  const trimToAudioOnset = async (blob: Blob): Promise<Blob> => {
+  // Trim audio by detecting where actual sound begins, maintaining exact loop duration
+  // by padding with silence at the end if needed
+  const trimToAudioOnset = async (blob: Blob, bpm: number, cycles: number): Promise<Blob> => {
     try {
-      console.log('🎤 Analyzing recording for audio onset...');
+      console.log(`🎤 ========== AUDIO PROCESSING DEBUG ==========`);
+      console.log(`🎤 Input: BPM=${bpm}, Cycles=${cycles}`);
+      console.log(`🎤 Raw blob size: ${blob.size} bytes`);
 
       // Create AudioContext for decoding
       const audioContext = new AudioContext();
       const arrayBuffer = await blob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
+      const sampleRate = audioBuffer.sampleRate;
+      const rawDurationSeconds = audioBuffer.length / sampleRate;
+
+      console.log(`🎤 Decoded audio: ${audioBuffer.length} samples @ ${sampleRate}Hz = ${rawDurationSeconds.toFixed(4)}s`);
+
       // Detect where audio actually starts
-      const onsetSample = detectAudioOnset(audioBuffer);
+      const rawOnsetSample = detectAudioOnset(audioBuffer);
+      const rawOnsetSeconds = rawOnsetSample / sampleRate;
+      console.log(`🎤 Raw onset detected at sample ${rawOnsetSample} (${(rawOnsetSeconds * 1000).toFixed(1)}ms)`);
+
+      // IMPORTANT: Cap the trim amount to max 500ms - anything more is likely actual content
+      // The onset detection is meant to handle system latency (~50-200ms), not find where user started singing
+      const maxTrimMs = 500;
+      const maxTrimSamples = Math.floor((maxTrimMs / 1000) * sampleRate);
+      const onsetSample = Math.min(rawOnsetSample, maxTrimSamples);
+      const onsetSeconds = onsetSample / sampleRate;
+
+      if (rawOnsetSample > maxTrimSamples) {
+        console.log(`🎤 Onset was ${(rawOnsetSeconds * 1000).toFixed(1)}ms but capped to ${maxTrimMs}ms (latency compensation only)`);
+      }
+      console.log(`🎤 Final trim amount: ${(onsetSeconds * 1000).toFixed(1)}ms`);
+
+      // Calculate expected loop duration in samples
+      // 1 cycle = 8 bars = 32 beats at the given BPM
+      const secondsPerBeat = 60 / bpm;
+      const secondsPerCycle = secondsPerBeat * 32; // 8 bars = 32 beats
+      const expectedDurationSeconds = secondsPerCycle * cycles;
+      const expectedDurationSamples = Math.round(expectedDurationSeconds * sampleRate);
+
+      console.log(`🎤 Expected: ${expectedDurationSeconds.toFixed(4)}s (${expectedDurationSamples} samples)`);
+      console.log(`🎤 Raw vs Expected: ${(rawDurationSeconds - expectedDurationSeconds).toFixed(4)}s difference`);
+      console.log(`🎤 Raw vs Expected: ${((rawDurationSeconds / expectedDurationSeconds) * 100).toFixed(2)}% of expected`);
 
       if (onsetSample === 0) {
-        console.log('🎤 No trimming needed - audio starts at beginning');
+        // No latency detected - check if we need to trim/pad to exact length
+        if (audioBuffer.length === expectedDurationSamples) {
+          console.log('🎤 No trimming needed - audio already exact length');
+          await audioContext.close();
+          return blob;
+        }
+
+        // Create buffer with exact expected duration
+        console.log(`🎤 Adjusting to exact loop duration (${audioBuffer.length > expectedDurationSamples ? 'trimming' : 'padding'})...`);
+        const adjustedBuffer = audioContext.createBuffer(
+          audioBuffer.numberOfChannels,
+          expectedDurationSamples,
+          sampleRate
+        );
+
+        // Copy available samples, rest will be silence (zeros by default)
+        const samplesToCopy = Math.min(audioBuffer.length, expectedDurationSamples);
+        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+          const sourceData = audioBuffer.getChannelData(channel);
+          const destData = adjustedBuffer.getChannelData(channel);
+          for (let i = 0; i < samplesToCopy; i++) {
+            destData[i] = sourceData[i];
+          }
+          // Remaining samples are already 0 (silence) by default
+        }
+
+        const adjustedBlob = await encodeAudioBuffer(adjustedBuffer, sampleRate);
         await audioContext.close();
-        return blob;
+        console.log(`🎤 Adjusted to exact loop: ${(blob.size / 1024).toFixed(1)}KB → ${(adjustedBlob.size / 1024).toFixed(1)}KB`);
+        return adjustedBlob;
       }
 
-      const sampleRate = audioBuffer.sampleRate;
       const trimMs = (onsetSample / sampleRate) * 1000;
-      console.log(`🎤 Trimming ${trimMs.toFixed(1)}ms of silence from start...`);
+      console.log(`🎤 Onset detected at ${trimMs.toFixed(1)}ms - will trim start and pad end with ${trimMs.toFixed(1)}ms silence`);
 
-      const newLength = audioBuffer.length - onsetSample;
+      // Calculate how many samples of actual audio we have from onset
+      const availableFromOnset = audioBuffer.length - onsetSample;
 
-      if (newLength <= 0) {
-        console.warn('🎤 Recording too short after trim, skipping');
+      if (availableFromOnset <= 0) {
+        console.warn('🎤 Recording too short after onset, skipping trim');
         await audioContext.close();
         return blob;
       }
 
-      // Create new buffer with trimmed audio
-      const trimmedBuffer = audioContext.createBuffer(
+      // Create buffer with EXACT expected duration - this ensures sync compatibility
+      // We'll copy audio from onset and pad with silence at the end if needed
+      const outputBuffer = audioContext.createBuffer(
         audioBuffer.numberOfChannels,
-        newLength,
+        expectedDurationSamples,  // Always exact expected duration
         sampleRate
       );
 
-      // Copy samples after the onset point
+      // Copy samples from onset point, up to expected duration or available audio
+      const samplesToCopy = Math.min(availableFromOnset, expectedDurationSamples);
+
       for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
         const sourceData = audioBuffer.getChannelData(channel);
-        const destData = trimmedBuffer.getChannelData(channel);
-        for (let i = 0; i < newLength; i++) {
+        const destData = outputBuffer.getChannelData(channel);
+
+        // Copy audio from onset
+        for (let i = 0; i < samplesToCopy; i++) {
           destData[i] = sourceData[i + onsetSample];
         }
+        // Remaining samples (if any) are already 0 (silence) by default in the new buffer
       }
 
-      // Encode trimmed audio
-      const trimmedBlob = await encodeAudioBuffer(trimmedBuffer, sampleRate);
+      // Calculate padding amount for logging
+      const paddingSamples = expectedDurationSamples - samplesToCopy;
+      const paddingMs = (paddingSamples / sampleRate) * 1000;
+
+      // Encode the output buffer
+      console.log(`🎤 Output buffer: ${outputBuffer.length} samples @ ${sampleRate}Hz = ${(outputBuffer.length / sampleRate).toFixed(4)}s`);
+      const outputBlob = await encodeAudioBuffer(outputBuffer, sampleRate);
+
+      // Verify the encoded blob by decoding it again
+      console.log(`🎤 Encoded blob size: ${outputBlob.size} bytes`);
+
+      // Debug: decode the output to verify duration
+      try {
+        const verifyContext = new AudioContext();
+        const verifyBuffer = await outputBlob.arrayBuffer();
+        const verifyAudio = await verifyContext.decodeAudioData(verifyBuffer);
+        const verifyDuration = verifyAudio.length / verifyAudio.sampleRate;
+        console.log(`🎤 VERIFY: Re-decoded audio = ${verifyAudio.length} samples @ ${verifyAudio.sampleRate}Hz = ${verifyDuration.toFixed(4)}s`);
+        console.log(`🎤 VERIFY: Expected ${expectedDurationSeconds.toFixed(4)}s, got ${verifyDuration.toFixed(4)}s`);
+        console.log(`🎤 VERIFY: Difference = ${((verifyDuration - expectedDurationSeconds) * 1000).toFixed(2)}ms (${((verifyDuration / expectedDurationSeconds) * 100).toFixed(3)}%)`);
+        await verifyContext.close();
+      } catch (verifyErr) {
+        console.warn('🎤 Could not verify encoded audio:', verifyErr);
+      }
 
       await audioContext.close();
-      console.log(`🎤 Trimmed recording: ${(blob.size / 1024).toFixed(1)}KB → ${(trimmedBlob.size / 1024).toFixed(1)}KB (removed ${trimMs.toFixed(1)}ms)`);
-      return trimmedBlob;
+      console.log(`🎤 Processed: trimmed ${trimMs.toFixed(1)}ms from start, padded ${paddingMs.toFixed(1)}ms at end`);
+      console.log(`🎤 ========== END AUDIO PROCESSING ==========`);
+      return outputBlob;
     } catch (err) {
       console.error('🎤 Failed to trim audio:', err);
       return blob; // Return original if trimming fails
@@ -422,8 +511,19 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
         // Auto-trim silence from start by detecting audio onset
         (async () => {
           try {
-            // Detect where actual audio begins and trim silence
-            const trimmedBlob = await trimToAudioOnset(rawBlob);
+            // Get current BPM from mixer for accurate loop trimming
+            const currentBPM = typeof window !== 'undefined' && (window as any).getMixerBPM
+              ? (window as any).getMixerBPM()
+              : 120;
+            const currentCycles = targetCyclesRef.current;
+
+            // Also log what the mixer reports as master BPM for comparison
+            const masterBPM = typeof window !== 'undefined' && (window as any).mixerState?.masterBPM;
+            console.log(`🎤 MicWidget: getMixerBPM()=${currentBPM}, mixerState.masterBPM=${masterBPM}`);
+            console.log(`🎤 MicWidget: Processing with BPM ${currentBPM}, ${currentCycles} cycle(s)`);
+
+            // Detect where actual audio begins and trim to exact loop duration
+            const trimmedBlob = await trimToAudioOnset(rawBlob, currentBPM, currentCycles);
 
             const url = URL.createObjectURL(trimmedBlob);
             setRecordedBlob(trimmedBlob);
