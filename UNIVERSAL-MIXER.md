@@ -2,7 +2,7 @@
 
 **Component:** `components/mixer/UniversalMixer.tsx`
 **Lines of Code:** ~2,500 (expanded for video separation)
-**Last Updated:** January 20, 2026
+**Last Updated:** January 21, 2026
 **Status:** Production-ready for loops, songs, radio, and video clips
 
 ---
@@ -27,9 +27,11 @@
 16. [Instant FX System](#instant-fx-system)
 17. [Section Navigator](#section-navigator)
 18. [Integration Points](#integration-points)
-19. [Recent Changes](#recent-changes)
-20. [Edge Cases](#edge-cases)
-21. [Future Enhancements](#future-enhancements)
+19. [Mic Recording (Precision Recording System)](#mic-recording-precision-recording-system)
+20. [Auto-Sync Improvements](#auto-sync-improvements)
+21. [Recent Changes](#recent-changes)
+22. [Edge Cases](#edge-cases)
+23. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -1600,11 +1602,276 @@ window.dispatchEvent(new CustomEvent('audioSourcePlaying', {
 
 ---
 
+## Mic Recording (Precision Recording System)
+
+### Overview (January 21, 2026)
+
+The mixer includes a **precision mic recording system** using AudioWorklet for sample-accurate recording. This replaces MediaRecorder which had ~100-150ms inherent latency that caused recordings to drift out of sync.
+
+### Architecture
+
+```
+MicWidget.tsx
+├── Uses PrecisionRecorder class
+│   └── Manages AudioWorklet processor
+│       └── recording-processor.js (runs on audio thread)
+└── Outputs WAV files with exact sample counts
+```
+
+**Key Files:**
+- `components/MicWidget.tsx` - Recording UI and workflow
+- `lib/audio/PrecisionRecorder.ts` - AudioWorklet manager class
+- `public/audio-worklets/recording-processor.js` - Audio thread processor
+
+### Why AudioWorklet?
+
+**MediaRecorder limitations:**
+- ~100-150ms start latency (not documented, discovered through testing)
+- Variable timing due to browser event loop
+- WebM/Opus encoding adds further timing uncertainty
+- Designed for general recording, not musical applications
+
+**AudioWorklet advantages:**
+- Runs on dedicated audio thread, not main JS thread
+- Sample-accurate capture correlated with AudioContext.currentTime
+- Exact sample count targeting (stops at precise duration)
+- No encoding latency - raw samples captured directly
+
+### How It Works
+
+#### 1. Initialization
+
+```typescript
+// PrecisionRecorder.ts
+async initialize(): Promise<void> {
+  // Create AudioContext
+  this.audioContext = new AudioContext();
+
+  // Load the AudioWorklet module
+  await this.audioContext.audioWorklet.addModule('/audio-worklets/recording-processor.js');
+
+  // Get mic stream with settings optimized for music
+  this.micStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: false,  // Don't process the audio
+      noiseSuppression: false,  // Keep natural sound
+      autoGainControl: false,   // Don't adjust levels
+    }
+  });
+
+  // Connect mic -> worklet (not to destination - we don't want to hear ourselves)
+  this.micSource.connect(this.workletNode);
+}
+```
+
+#### 2. Recording with Exact Duration
+
+```typescript
+async startRecording(config: RecordingConfig): Promise<RecordingResult> {
+  // Calculate exact sample count for the loop duration
+  // 1 cycle = 8 bars = 32 beats
+  const beatsPerCycle = 32;
+  const secondsPerBeat = 60 / config.bpm;
+  const durationSeconds = config.cycles * beatsPerCycle * secondsPerBeat;
+  this.expectedSamples = Math.round(durationSeconds * this.audioContext.sampleRate);
+
+  // Tell worklet to start recording with target sample count
+  this.workletNode.port.postMessage({
+    command: 'start',
+    targetSamples: this.expectedSamples
+  });
+}
+```
+
+#### 3. AudioWorklet Processor
+
+```javascript
+// recording-processor.js (runs on audio thread)
+class RecordingProcessor extends AudioWorkletProcessor {
+  process(inputs, outputs, parameters) {
+    if (this.isRecording && input && input.length > 0) {
+      const channelData = input[0]; // Mono - just first channel
+
+      // Check if we've hit target sample count
+      if (this.targetSamples !== null) {
+        const remaining = this.targetSamples - this.samplesRecorded;
+        if (remaining <= 0) {
+          this.finishRecording('targetReached');
+          return true;
+        }
+      }
+
+      // Store this chunk
+      const chunk = new Float32Array(channelData.length);
+      chunk.set(channelData);
+      this.recordedChunks.push(chunk);
+      this.samplesRecorded += channelData.length;
+    }
+    return true;
+  }
+}
+```
+
+#### 4. WAV Output
+
+```typescript
+// Creates buffer with EXACT expected duration
+private createExactDurationBuffer(samples: Float32Array, sampleRate: number): AudioBuffer {
+  const buffer = this.audioContext.createBuffer(1, this.expectedSamples, sampleRate);
+  const channelData = buffer.getChannelData(0);
+
+  if (samples.length >= this.expectedSamples) {
+    // Trim excess samples
+    channelData.set(samples.subarray(0, this.expectedSamples));
+  } else {
+    // Pad with silence
+    channelData.set(samples);
+  }
+  return buffer;
+}
+
+// Convert to 16-bit PCM WAV
+private audioBufferToWav(buffer: AudioBuffer): Blob {
+  // ... WAV header + sample data
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+```
+
+### Recording Workflow
+
+1. **User selects cycle count** (1, 2, or 4 cycles = 8, 16, or 32 bars)
+2. **User clicks Record** - recording starts immediately (no count-in needed)
+3. **AudioWorklet captures exactly N samples** based on BPM and cycle count
+4. **Recording auto-stops** when target reached
+5. **WAV blob created** with exact duration
+6. **User can save as draft** or discard
+
+### Sound Quality
+
+**Before (MediaRecorder):**
+- WebM/Opus encoding
+- Variable bitrate
+- Some quality loss
+
+**After (AudioWorklet):**
+- Uncompressed 16-bit PCM WAV
+- Full fidelity capture
+- Exact sample preservation
+
+### Integration with Draft System
+
+```typescript
+// MicWidget saves to /api/drafts/save
+const formData = new FormData();
+formData.append('file', result.wavBlob, `recording-${Date.now()}.wav`);
+formData.append('bpm', bpm.toString());
+formData.append('cycleCount', cycles.toString());
+// ...
+
+const response = await fetch('/api/drafts/save', {
+  method: 'POST',
+  body: formData
+});
+```
+
+---
+
+## Auto-Sync Improvements
+
+### Overview (January 21, 2026)
+
+The auto-sync system was enhanced to ensure reliable synchronization when tracks are loaded, especially on first page load.
+
+### Problems Solved
+
+**Issue 1: Tracks out of sync after loading**
+- Audio elements started at different positions
+- Required manual "toggle sync off/on" to align
+
+**Issue 2: First page load sync failures**
+- AudioContext not fully initialized
+- Audio elements not buffered yet
+- Sync engine created before audio ready
+
+### Solution: Wait for Audio Ready + Reset Positions
+
+```typescript
+// UniversalMixer.tsx - Auto-sync useEffect
+if (bothDecksLoaded && bothDecksHaveAudio && syncNotActive) {
+
+  // 1. Wait for both audio elements to be ready
+  // readyState >= 2 means HAVE_CURRENT_DATA (enough data to play)
+  const waitForAudioReady = () => {
+    return new Promise<void>((resolve) => {
+      const checkReady = () => {
+        const aReady = audioA && audioA.readyState >= 2;
+        const bReady = audioB && audioB.readyState >= 2;
+        if (aReady && bReady) {
+          resolve();
+        } else {
+          setTimeout(checkReady, 50); // Poll every 50ms
+        }
+      };
+      checkReady();
+    });
+  };
+
+  // 2. Wait with 2 second timeout
+  await Promise.race([waitForAudioReady(), timeoutPromise]);
+
+  // 3. Reset both audio elements to position 0
+  if (audioA) audioA.currentTime = 0;
+  if (audioB) audioB.currentTime = 0;
+
+  // 4. Small delay for positions to settle
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // 5. Create and enable sync engine
+  syncEngineRef.current = new SimpleLoopSync(/* ... */);
+  syncEngineRef.current.enableSync();
+}
+```
+
+### Key Improvements
+
+| Before | After |
+|--------|-------|
+| Sync created immediately | Waits for audio readyState >= 2 |
+| Positions not reset | Both decks reset to currentTime = 0 |
+| No settle delay | 100ms delay for positions to stabilize |
+| No timeout | 2 second timeout prevents infinite wait |
+
+### Console Logging
+
+```
+🎛️ AUTO-SYNC: Both decks loaded with audio, enabling sync before playback...
+🎛️ AUTO-SYNC: Audio ready check - A: 4, B: 4
+🎛️ AUTO-SYNC: Creating sync with Deck A as master
+✅ AUTO-SYNC: Sync enabled successfully - decks ready to play in sync
+```
+
+---
+
 ## Recent Changes
 
 ### Major Updates (January 2026)
 
-#### 1. Audio/Video Separation Architecture (January 20, 2026)
+#### 1. Precision Recording System (January 21, 2026)
+- **NEW**: AudioWorklet-based mic recording replaces MediaRecorder
+- **NEW**: `PrecisionRecorder` class in `lib/audio/PrecisionRecorder.ts`
+- **NEW**: `recording-processor.js` AudioWorklet processor
+- **Sample-accurate recording**: Exact sample count targeting
+- **WAV output**: Uncompressed 16-bit PCM for full quality
+- **No latency**: AudioWorklet runs on audio thread
+
+#### 2. Auto-Sync Reliability Improvements (January 21, 2026)
+- **Waits for audio ready**: Checks `readyState >= 2` before syncing
+- **Position reset**: Both decks reset to `currentTime = 0`
+- **Settle delay**: 100ms delay for positions to stabilize
+- **Timeout protection**: 2 second max wait prevents hangs
+- **Result**: Reliable sync on first page load and track changes
+
+#### 3. Audio/Video Separation Architecture (January 20, 2026)
 - **NEW**: Dedicated video thumbnail drop zones (44×44px, top corners)
 - **NEW**: `VideoThumbnail` component with independent drop handling
 - **NEW**: Video drag feedback uses video color (#5BB5F9) on mixer container
@@ -2047,7 +2314,7 @@ The recent additions (Synchronized Loop Restart, Radio Fixes, Code Refactoring, 
 
 ---
 
-*Documentation updated January 20, 2026*
+*Documentation updated January 21, 2026*
 *For: mixmi alpha platform*
 *Component: Universal Mixer*
 *Authors: Sandy Hoover + Claude Code*
