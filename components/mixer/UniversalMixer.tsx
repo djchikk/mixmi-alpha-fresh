@@ -539,22 +539,50 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     if (bothDecksLoaded && bothDecksHaveAudio && syncNotActive && neitherDeckIsRadio && userHasNotDisabledSync) {
       console.log('🎛️ AUTO-SYNC: Both decks loaded with audio, enabling sync before playback...');
 
+      const audioA = mixerState.deckA.audioState?.audio;
+      const audioB = mixerState.deckB.audioState?.audio;
       const audioContext = mixerState.deckA.audioState.audioContext;
       const masterDeckId = determineMasterDeck();
 
-      console.log(`🎛️ AUTO-SYNC: Creating sync with Deck ${masterDeckId} as master`);
+      // 🎯 FIX: Wait for both audio elements to be ready before syncing
+      // readyState >= 2 means HAVE_CURRENT_DATA (enough data to play current frame)
+      const waitForAudioReady = () => {
+        return new Promise<void>((resolve) => {
+          const checkReady = () => {
+            const aReady = audioA && audioA.readyState >= 2;
+            const bReady = audioB && audioB.readyState >= 2;
+            console.log(`🎛️ AUTO-SYNC: Audio ready check - A: ${audioA?.readyState}, B: ${audioB?.readyState}`);
+            if (aReady && bReady) {
+              resolve();
+            } else {
+              // Check again in 50ms
+              setTimeout(checkReady, 50);
+            }
+          };
+          checkReady();
+        });
+      };
 
-      // 🎯 FIX: Reset both audio elements to position 0 before enabling sync
-      // This ensures they start aligned, similar to toggling sync off/on
-      if (mixerState.deckA.audioState?.audio) {
-        mixerState.deckA.audioState.audio.currentTime = 0;
-      }
-      if (mixerState.deckB.audioState?.audio) {
-        mixerState.deckB.audioState.audio.currentTime = 0;
-      }
+      let cancelled = false;
 
-      // Small delay to let audio elements settle at position 0
-      const syncTimeout = setTimeout(() => {
+      const enableSync = async () => {
+        // Wait for audio to be ready (with 2 second timeout)
+        const timeoutPromise = new Promise<void>((resolve) => setTimeout(resolve, 2000));
+        await Promise.race([waitForAudioReady(), timeoutPromise]);
+
+        if (cancelled) return;
+
+        console.log(`🎛️ AUTO-SYNC: Creating sync with Deck ${masterDeckId} as master`);
+
+        // Reset both audio elements to position 0 before enabling sync
+        if (audioA) audioA.currentTime = 0;
+        if (audioB) audioB.currentTime = 0;
+
+        // Small delay to let audio elements settle at position 0
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        if (cancelled) return;
+
         syncEngineRef.current = new SimpleLoopSync(
           audioContext,
           { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
@@ -567,9 +595,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         });
 
         setMixerState(prev => ({ ...prev, syncActive: true }));
-      }, 100); // 100ms delay for audio elements to initialize
+      };
 
-      return () => clearTimeout(syncTimeout);
+      enableSync();
+
+      return () => { cancelled = true; };
     }
   }, [
     mixerState.deckA.track,
