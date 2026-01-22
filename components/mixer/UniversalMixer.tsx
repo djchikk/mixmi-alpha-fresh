@@ -544,18 +544,32 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
       console.log(`🎛️ AUTO-SYNC: Creating sync with Deck ${masterDeckId} as master`);
 
-      syncEngineRef.current = new SimpleLoopSync(
-        audioContext,
-        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
-        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
-        masterDeckId
-      );
+      // 🎯 FIX: Reset both audio elements to position 0 before enabling sync
+      // This ensures they start aligned, similar to toggling sync off/on
+      if (mixerState.deckA.audioState?.audio) {
+        mixerState.deckA.audioState.audio.currentTime = 0;
+      }
+      if (mixerState.deckB.audioState?.audio) {
+        mixerState.deckB.audioState.audio.currentTime = 0;
+      }
 
-      syncEngineRef.current.enableSync().then(() => {
-        console.log('✅ AUTO-SYNC: Sync enabled successfully - decks ready to play in sync');
-      });
+      // Small delay to let audio elements settle at position 0
+      const syncTimeout = setTimeout(() => {
+        syncEngineRef.current = new SimpleLoopSync(
+          audioContext,
+          { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
+          { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
+          masterDeckId
+        );
 
-      setMixerState(prev => ({ ...prev, syncActive: true }));
+        syncEngineRef.current.enableSync().then(() => {
+          console.log('✅ AUTO-SYNC: Sync enabled successfully - decks ready to play in sync');
+        });
+
+        setMixerState(prev => ({ ...prev, syncActive: true }));
+      }, 100); // 100ms delay for audio elements to initialize
+
+      return () => clearTimeout(syncTimeout);
     }
   }, [
     mixerState.deckA.track,
