@@ -531,8 +531,10 @@ export default function Crate({ className = '' }: CrateProps) {
     }
   };
 
-  // Determine border thickness - thicker for multi-content (loop packs, EPs, and station packs)
+  // Determine border thickness - thicker for multi-content (loop packs, EPs, and station packs) and drafts
   const getBorderThickness = (track: any) => {
+    // Drafts get thick border so dashed pattern is visible at small sizes
+    if (track.is_draft) return 'border-[3px]';
     return (track.content_type === 'loop_pack' || track.content_type === 'ep' || track.content_type === 'station_pack') ? 'border-4' : 'border-2';
   };
 
@@ -836,9 +838,9 @@ export default function Crate({ className = '' }: CrateProps) {
               {/* Draft badge - always visible for drafts (top-left corner) */}
               {track.is_draft && (
                 <div
-                  className="absolute top-0.5 left-0.5 px-1 py-0.5 rounded text-[6px] font-bold uppercase tracking-wide z-20"
+                  className="absolute -top-1 -left-1 px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider z-20"
                   style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
                     color: '#A084F9',
                     border: '1px dashed #A084F9'
                   }}
