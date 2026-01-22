@@ -49,9 +49,6 @@ export default function Header() {
   // State for persona picker expansion
   const [showPersonaList, setShowPersonaList] = useState(false);
 
-  // Debug logging
-  console.log('🎨 Header auth state:', { isAuthenticated, walletAddress, suiAddress, authType, effectiveAddress });
-
   // Alpha version - no profile sync status needed
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [username, setUsername] = useState<string | null>(null);

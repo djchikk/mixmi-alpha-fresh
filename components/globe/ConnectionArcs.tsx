@@ -205,17 +205,12 @@ export function ConnectionArcs({ selectedNode, allNodes }: ConnectionArcsProps) 
   
   // No arcs to render
   if (arcs.length === 0) {
-    console.log('⚠️ No arcs to render');
     return null;
   }
-  
-  console.log(`🎨 Rendering ${arcs.length} arcs`);
   
   return (
     <group>
       {arcs.map((arc, index) => {
-        console.log(`📐 Arc ${index}: ${arc.fromLocation} → ${arc.toLocation}`);
-        
         return (
           <React.Fragment key={arc.id}>
             {/* Simple line segments approach */}
