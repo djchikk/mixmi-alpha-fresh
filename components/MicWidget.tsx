@@ -4,20 +4,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Square, Download, X, Loader2, Play, Pause, Save, Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixer } from '@/contexts/MixerContext';
+import { PrecisionRecorder, RecordingResult } from '@/lib/audio/PrecisionRecorder';
 
 /**
  * MicWidget - Microphone Recording Widget
  *
- * Phase 1: Basic recording synced to mixer loop cycles
- * - Records vocals/audio from user's microphone
- * - Syncs recording start/stop to loop cycle boundaries
- * - Supports 1, 2, 4, 8 cycle counts
- * - Provides local download of recorded audio
+ * Uses AudioWorklet-based PrecisionRecorder for sample-accurate recording
+ * that syncs properly with mixer loops.
  *
- * Phase 2: Draft content system
+ * Features:
+ * - Sample-accurate recording via AudioWorklet (no MediaRecorder latency)
+ * - Syncs recording start to loop cycle boundaries
+ * - Supports 1, 2, 4, 8 cycle counts
+ * - Exact loop duration for perfect sync
  * - Save recordings as drafts to Supabase
  * - Multi-take auto-bundling into draft loop packs
- * - Draft tracks appear in crate with dashed borders
  */
 
 interface MicWidgetProps {
@@ -55,278 +56,36 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const [currentPackId, setCurrentPackId] = useState<string | null>(null); // For multi-take bundling
   const [takeCount, setTakeCount] = useState(0); // Track how many takes in current session
 
-  // Audio refs
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null); // For latency measurement
+  // Precision Recorder instance
+  const recorderRef = useRef<PrecisionRecorder | null>(null);
 
   // Timing refs for sync
-  const cyclesRecordedRef = useRef(0);
   const targetCyclesRef = useRef(1);
-  const isRecordingRef = useRef(false);
   const recordingStateRef = useRef<RecordingState>('idle'); // Ref to track state for callback
+  const currentBpmRef = useRef(120); // Store BPM when armed
 
   // Audio preview ref
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
-  // Detect where actual audio content begins (above silence threshold)
-  const detectAudioOnset = (audioBuffer: AudioBuffer, silenceThreshold: number = 0.01): number => {
-    // Check first channel for onset (mono or left channel of stereo)
-    const channelData = audioBuffer.getChannelData(0);
-    const sampleRate = audioBuffer.sampleRate;
+  // Get effective wallet address - prefer persona's wallet for proper attribution
+  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
 
-    // Use a small window to detect sustained signal (not just a spike)
-    const windowSize = Math.floor(sampleRate * 0.005); // 5ms window
-
-    for (let i = 0; i < channelData.length - windowSize; i++) {
-      // Check if this window has audio above threshold
-      let windowMax = 0;
-      for (let j = 0; j < windowSize; j++) {
-        windowMax = Math.max(windowMax, Math.abs(channelData[i + j]));
-      }
-
-      if (windowMax > silenceThreshold) {
-        // Found audio! Back up slightly to catch attack transient
-        const attackBuffer = Math.floor(sampleRate * 0.003); // 3ms before onset
-        const onsetSample = Math.max(0, i - attackBuffer);
-        const onsetMs = (onsetSample / sampleRate) * 1000;
-        console.log(`🎤 Audio onset detected at ${onsetMs.toFixed(1)}ms (sample ${onsetSample})`);
-        return onsetSample;
-      }
-    }
-
-    console.log('🎤 No audio onset detected (silent recording?)');
-    return 0; // No onset found, don't trim
-  };
-
-  // Trim audio by detecting where actual sound begins, maintaining exact loop duration
-  // by padding with silence at the end if needed
-  const trimToAudioOnset = async (blob: Blob, bpm: number, cycles: number): Promise<Blob> => {
-    try {
-      console.log(`🎤 ========== AUDIO PROCESSING DEBUG ==========`);
-      console.log(`🎤 Input: BPM=${bpm}, Cycles=${cycles}`);
-      console.log(`🎤 Raw blob size: ${blob.size} bytes`);
-
-      // Create AudioContext for decoding
-      const audioContext = new AudioContext();
-      const arrayBuffer = await blob.arrayBuffer();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-      const sampleRate = audioBuffer.sampleRate;
-      const rawDurationSeconds = audioBuffer.length / sampleRate;
-
-      console.log(`🎤 Decoded audio: ${audioBuffer.length} samples @ ${sampleRate}Hz = ${rawDurationSeconds.toFixed(4)}s`);
-
-      // Detect where audio actually starts
-      const rawOnsetSample = detectAudioOnset(audioBuffer);
-      const rawOnsetSeconds = rawOnsetSample / sampleRate;
-      console.log(`🎤 Raw onset detected at sample ${rawOnsetSample} (${(rawOnsetSeconds * 1000).toFixed(1)}ms)`);
-
-      // IMPORTANT: Cap the trim amount to max 500ms - anything more is likely actual content
-      // The onset detection is meant to handle system latency (~50-200ms), not find where user started singing
-      const maxTrimMs = 500;
-      const maxTrimSamples = Math.floor((maxTrimMs / 1000) * sampleRate);
-      const onsetSample = Math.min(rawOnsetSample, maxTrimSamples);
-      const onsetSeconds = onsetSample / sampleRate;
-
-      if (rawOnsetSample > maxTrimSamples) {
-        console.log(`🎤 Onset was ${(rawOnsetSeconds * 1000).toFixed(1)}ms but capped to ${maxTrimMs}ms (latency compensation only)`);
-      }
-      console.log(`🎤 Final trim amount: ${(onsetSeconds * 1000).toFixed(1)}ms`);
-
-      // Calculate expected loop duration in samples
-      // 1 cycle = 8 bars = 32 beats at the given BPM
-      const secondsPerBeat = 60 / bpm;
-      const secondsPerCycle = secondsPerBeat * 32; // 8 bars = 32 beats
-      const expectedDurationSeconds = secondsPerCycle * cycles;
-      const expectedDurationSamples = Math.round(expectedDurationSeconds * sampleRate);
-
-      console.log(`🎤 Expected: ${expectedDurationSeconds.toFixed(4)}s (${expectedDurationSamples} samples)`);
-      console.log(`🎤 Raw vs Expected: ${(rawDurationSeconds - expectedDurationSeconds).toFixed(4)}s difference`);
-      console.log(`🎤 Raw vs Expected: ${((rawDurationSeconds / expectedDurationSeconds) * 100).toFixed(2)}% of expected`);
-
-      if (onsetSample === 0) {
-        // No latency detected - check if we need to trim/pad to exact length
-        if (audioBuffer.length === expectedDurationSamples) {
-          console.log('🎤 No trimming needed - audio already exact length');
-          await audioContext.close();
-          return blob;
-        }
-
-        // Create buffer with exact expected duration
-        console.log(`🎤 Adjusting to exact loop duration (${audioBuffer.length > expectedDurationSamples ? 'trimming' : 'padding'})...`);
-        const adjustedBuffer = audioContext.createBuffer(
-          audioBuffer.numberOfChannels,
-          expectedDurationSamples,
-          sampleRate
-        );
-
-        // Copy available samples, rest will be silence (zeros by default)
-        const samplesToCopy = Math.min(audioBuffer.length, expectedDurationSamples);
-        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-          const sourceData = audioBuffer.getChannelData(channel);
-          const destData = adjustedBuffer.getChannelData(channel);
-          for (let i = 0; i < samplesToCopy; i++) {
-            destData[i] = sourceData[i];
-          }
-          // Remaining samples are already 0 (silence) by default
-        }
-
-        const adjustedBlob = await encodeAudioBuffer(adjustedBuffer, sampleRate);
-        await audioContext.close();
-        console.log(`🎤 Adjusted to exact loop: ${(blob.size / 1024).toFixed(1)}KB → ${(adjustedBlob.size / 1024).toFixed(1)}KB`);
-        return adjustedBlob;
-      }
-
-      const trimMs = (onsetSample / sampleRate) * 1000;
-      console.log(`🎤 Onset detected at ${trimMs.toFixed(1)}ms - will trim start and pad end with ${trimMs.toFixed(1)}ms silence`);
-
-      // Calculate how many samples of actual audio we have from onset
-      const availableFromOnset = audioBuffer.length - onsetSample;
-
-      if (availableFromOnset <= 0) {
-        console.warn('🎤 Recording too short after onset, skipping trim');
-        await audioContext.close();
-        return blob;
-      }
-
-      // Create buffer with EXACT expected duration - this ensures sync compatibility
-      // We'll copy audio from onset and pad with silence at the end if needed
-      const outputBuffer = audioContext.createBuffer(
-        audioBuffer.numberOfChannels,
-        expectedDurationSamples,  // Always exact expected duration
-        sampleRate
-      );
-
-      // Copy samples from onset point, up to expected duration or available audio
-      const samplesToCopy = Math.min(availableFromOnset, expectedDurationSamples);
-
-      for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-        const sourceData = audioBuffer.getChannelData(channel);
-        const destData = outputBuffer.getChannelData(channel);
-
-        // Copy audio from onset
-        for (let i = 0; i < samplesToCopy; i++) {
-          destData[i] = sourceData[i + onsetSample];
-        }
-        // Remaining samples (if any) are already 0 (silence) by default in the new buffer
-      }
-
-      // Calculate padding amount for logging
-      const paddingSamples = expectedDurationSamples - samplesToCopy;
-      const paddingMs = (paddingSamples / sampleRate) * 1000;
-
-      // Encode the output buffer
-      console.log(`🎤 Output buffer: ${outputBuffer.length} samples @ ${sampleRate}Hz = ${(outputBuffer.length / sampleRate).toFixed(4)}s`);
-      const outputBlob = await encodeAudioBuffer(outputBuffer, sampleRate);
-
-      // Verify the encoded blob by decoding it again
-      console.log(`🎤 Encoded blob size: ${outputBlob.size} bytes`);
-
-      // Debug: decode the output to verify duration
-      try {
-        const verifyContext = new AudioContext();
-        const verifyBuffer = await outputBlob.arrayBuffer();
-        const verifyAudio = await verifyContext.decodeAudioData(verifyBuffer);
-        const verifyDuration = verifyAudio.length / verifyAudio.sampleRate;
-        console.log(`🎤 VERIFY: Re-decoded audio = ${verifyAudio.length} samples @ ${verifyAudio.sampleRate}Hz = ${verifyDuration.toFixed(4)}s`);
-        console.log(`🎤 VERIFY: Expected ${expectedDurationSeconds.toFixed(4)}s, got ${verifyDuration.toFixed(4)}s`);
-        console.log(`🎤 VERIFY: Difference = ${((verifyDuration - expectedDurationSeconds) * 1000).toFixed(2)}ms (${((verifyDuration / expectedDurationSeconds) * 100).toFixed(3)}%)`);
-        await verifyContext.close();
-      } catch (verifyErr) {
-        console.warn('🎤 Could not verify encoded audio:', verifyErr);
-      }
-
-      await audioContext.close();
-      console.log(`🎤 Processed: trimmed ${trimMs.toFixed(1)}ms from start, padded ${paddingMs.toFixed(1)}ms at end`);
-      console.log(`🎤 ========== END AUDIO PROCESSING ==========`);
-      return outputBlob;
-    } catch (err) {
-      console.error('🎤 Failed to trim audio:', err);
-      return blob; // Return original if trimming fails
-    }
-  };
-
-  // Encode AudioBuffer back to WebM blob
-  const encodeAudioBuffer = (audioBuffer: AudioBuffer, sampleRate: number): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      // Create offline context to render the buffer
-      const offlineContext = new OfflineAudioContext(
-        audioBuffer.numberOfChannels,
-        audioBuffer.length,
-        sampleRate
-      );
-
-      const source = offlineContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(offlineContext.destination);
-      source.start();
-
-      offlineContext.startRendering().then(renderedBuffer => {
-        // Convert to WAV format (more reliable than trying to encode webm)
-        const wavBlob = audioBufferToWav(renderedBuffer);
-        resolve(wavBlob);
-      }).catch(reject);
-    });
-  };
-
-  // Convert AudioBuffer to WAV Blob
-  const audioBufferToWav = (buffer: AudioBuffer): Blob => {
-    const numChannels = buffer.numberOfChannels;
-    const sampleRate = buffer.sampleRate;
-    const format = 1; // PCM
-    const bitDepth = 16;
-
-    const bytesPerSample = bitDepth / 8;
-    const blockAlign = numChannels * bytesPerSample;
-
-    const dataLength = buffer.length * blockAlign;
-    const bufferLength = 44 + dataLength;
-
-    const arrayBuffer = new ArrayBuffer(bufferLength);
-    const view = new DataView(arrayBuffer);
-
-    // WAV header
-    const writeString = (offset: number, str: string) => {
-      for (let i = 0; i < str.length; i++) {
-        view.setUint8(offset + i, str.charCodeAt(i));
-      }
+  // Initialize recorder on mount
+  useEffect(() => {
+    recorderRef.current = new PrecisionRecorder();
+    recorderRef.current.onStateChange = (state) => {
+      console.log(`🎤 PrecisionRecorder state: ${state}`);
+    };
+    recorderRef.current.onError = (error) => {
+      console.error('🎤 PrecisionRecorder error:', error);
+      setError(error.message);
     };
 
-    writeString(0, 'RIFF');
-    view.setUint32(4, bufferLength - 8, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true); // fmt chunk size
-    view.setUint16(20, format, true);
-    view.setUint16(22, numChannels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * blockAlign, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, bitDepth, true);
-    writeString(36, 'data');
-    view.setUint32(40, dataLength, true);
-
-    // Audio data
-    let offset = 44;
-    for (let i = 0; i < buffer.length; i++) {
-      for (let channel = 0; channel < numChannels; channel++) {
-        const sample = buffer.getChannelData(channel)[i];
-        const clampedSample = Math.max(-1, Math.min(1, sample));
-        const int16Sample = clampedSample < 0 ? clampedSample * 0x8000 : clampedSample * 0x7FFF;
-        view.setInt16(offset, int16Sample, true);
-        offset += 2;
-      }
-    }
-
-    return new Blob([arrayBuffer], { type: 'audio/wav' });
-  };
-
-  // Get effective wallet address - prefer persona's wallet for proper attribution
-  // Priority: persona wallet_address > persona sui_address > account suiAddress > account walletAddress
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+    return () => {
+      recorderRef.current?.cleanup();
+    };
+  }, []);
 
   // Register global toggle function for Crate icon
   useEffect(() => {
@@ -350,8 +109,6 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   // Register global callback for loop restart sync
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Register callback that mixer can call on loop restart
-      // Uses ref to always have current state without re-registering
       (window as any).onMixerLoopRestart = (deckId: 'A' | 'B') => {
         const currentState = recordingStateRef.current;
         console.log(`🎤 MicWidget: Loop restart on Deck ${deckId}, state: ${currentState}`);
@@ -359,16 +116,9 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
         if (currentState === 'armed') {
           console.log('🎤 MicWidget: Starting recording from armed state');
           startActualRecording();
-        } else if (currentState === 'recording' && isRecordingRef.current) {
-          cyclesRecordedRef.current += 1;
-          setCurrentCycle(cyclesRecordedRef.current);
-          console.log(`🎤 MicWidget: Cycle ${cyclesRecordedRef.current}/${targetCyclesRef.current} completed`);
-
-          if (cyclesRecordedRef.current >= targetCyclesRef.current) {
-            console.log('🎤 MicWidget: Target cycles reached - Stopping recording');
-            stopRecording();
-          }
         }
+        // Note: With PrecisionRecorder, we don't track cycles manually
+        // The recorder stops automatically when it reaches targetSamples
       };
 
       console.log('🎤 MicWidget: Registered loop restart callback');
@@ -381,57 +131,14 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     };
   }, []);
 
-  // Cleanup recorded URL and AudioContext when component unmounts
+  // Cleanup recorded URL when component unmounts
   useEffect(() => {
     return () => {
       if (recordedUrl) {
         URL.revokeObjectURL(recordedUrl);
       }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
-      }
     };
   }, [recordedUrl]);
-
-  // Request microphone access
-  const requestMicAccess = async (): Promise<MediaStream | null> => {
-    try {
-      setError(null);
-      console.log('🎤 MicWidget: Requesting mic access...');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
-      setHasMicPermission(true);
-      streamRef.current = stream;
-      console.log('🎤 MicWidget: Mic access granted');
-      return stream;
-    } catch (err: any) {
-      console.error('🎤 MicWidget: Mic access denied:', err);
-      setHasMicPermission(false);
-      if (err.name === 'NotAllowedError') {
-        setError('Mic access denied. Click the lock icon in your address bar → Site settings → Microphone → Allow');
-      } else if (err.name === 'NotFoundError') {
-        setError('No microphone found. Please connect a microphone.');
-      } else {
-        setError('Could not access microphone. Please check your browser settings.');
-      }
-      return null;
-    }
-  };
-
-  // Check if a media stream is still valid and active
-  const isStreamValid = (stream: MediaStream | null): boolean => {
-    if (!stream) return false;
-    const tracks = stream.getAudioTracks();
-    return tracks.length > 0 && tracks.every(track => track.readyState === 'live');
-  };
 
   // Arm the recording (wait for next loop restart)
   const armRecording = async () => {
@@ -444,15 +151,21 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     }
     setRecordedBlob(null);
 
-    // Get mic access if we don't have it OR if the stream is no longer valid
-    if (!isStreamValid(streamRef.current)) {
-      // Clean up any existing invalid stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
+    // Initialize recorder if needed
+    try {
+      await recorderRef.current?.ensureReady();
+      setHasMicPermission(true);
+    } catch (err: any) {
+      console.error('🎤 MicWidget: Failed to initialize recorder:', err);
+      setHasMicPermission(false);
+      if (err.name === 'NotAllowedError') {
+        setError('Mic access denied. Click the lock icon in your address bar → Site settings → Microphone → Allow');
+      } else if (err.name === 'NotFoundError') {
+        setError('No microphone found. Please connect a microphone.');
+      } else {
+        setError('Could not access microphone. Please check your browser settings.');
       }
-      const stream = await requestMicAccess();
-      if (!stream) return; // Permission denied or error
+      return;
     }
 
     // Check if mixer is playing (via global function)
@@ -462,126 +175,73 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
         setError('Start the mixer first, then arm recording');
         return;
       }
-    } else {
-      // If we can't check, warn but allow
-      console.log('🎤 MicWidget: Cannot check mixer state, proceeding anyway');
     }
+
+    // Get and store BPM now (while mixer is playing)
+    const bpm = typeof window !== 'undefined' && (window as any).getMixerBPM
+      ? (window as any).getMixerBPM()
+      : 120;
+    currentBpmRef.current = bpm;
 
     // Set up recording state
     targetCyclesRef.current = cycleCount;
-    cyclesRecordedRef.current = 0;
     setCurrentCycle(0);
 
     // Transition to armed state
     setRecordingState('armed');
-    console.log(`🎤 MicWidget: Armed for ${cycleCount} cycle(s) - Waiting for loop restart`);
+    console.log(`🎤 MicWidget: Armed for ${cycleCount} cycle(s) at ${bpm} BPM - Waiting for loop restart`);
   };
 
   // Actually start recording (called on loop restart)
-  const startActualRecording = () => {
-    if (!streamRef.current) {
-      console.error('🎤 MicWidget: No stream available');
+  const startActualRecording = async () => {
+    if (!recorderRef.current) {
+      console.error('🎤 MicWidget: No recorder available');
       setRecordingState('idle');
       return;
     }
 
     try {
-      audioChunksRef.current = [];
-
-      const mediaRecorder = new MediaRecorder(streamRef.current, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm'
-      });
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        console.log('🎤 MicWidget: MediaRecorder stopped, processing...');
-        setRecordingState('processing');
-        isRecordingRef.current = false;
-
-        const rawBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        console.log(`🎤 MicWidget: Raw recording - ${(rawBlob.size / 1024).toFixed(1)}KB`);
-
-        // Auto-trim silence from start by detecting audio onset
-        (async () => {
-          try {
-            // Get current BPM from mixer for accurate loop trimming
-            const currentBPM = typeof window !== 'undefined' && (window as any).getMixerBPM
-              ? (window as any).getMixerBPM()
-              : 120;
-            const currentCycles = targetCyclesRef.current;
-
-            // Also log what the mixer reports as master BPM for comparison
-            const masterBPM = typeof window !== 'undefined' && (window as any).mixerState?.masterBPM;
-            console.log(`🎤 MicWidget: getMixerBPM()=${currentBPM}, mixerState.masterBPM=${masterBPM}`);
-            console.log(`🎤 MicWidget: Processing with BPM ${currentBPM}, ${currentCycles} cycle(s)`);
-
-            // Detect where actual audio begins and trim to exact loop duration
-            const trimmedBlob = await trimToAudioOnset(rawBlob, currentBPM, currentCycles);
-
-            const url = URL.createObjectURL(trimmedBlob);
-            setRecordedBlob(trimmedBlob);
-            setRecordedUrl(url);
-            setRecordingState('complete');
-
-            console.log(`🎤 MicWidget: Recording complete with auto-trim`);
-          } catch (err) {
-            console.error('🎤 MicWidget: Auto-trim failed, using raw recording:', err);
-            // Fall back to raw recording if trimming fails
-            const url = URL.createObjectURL(rawBlob);
-            setRecordedBlob(rawBlob);
-            setRecordedUrl(url);
-            setRecordingState('complete');
-          }
-        })();
-      };
-
-      mediaRecorder.onerror = (event) => {
-        console.error('🎤 MicWidget: MediaRecorder error:', event);
-        setError('Recording failed. Please try again.');
-        setRecordingState('idle');
-        isRecordingRef.current = false;
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(100); // Collect data every 100ms
-
-      isRecordingRef.current = true;
       setRecordingState('recording');
       setCurrentCycle(0);
 
-      console.log('🎤 MicWidget: Recording started');
-    } catch (err) {
-      console.error('🎤 MicWidget: Failed to start recording:', err);
-      setError('Failed to start recording. Please try again.');
+      const bpm = currentBpmRef.current;
+      const cycles = targetCyclesRef.current;
+
+      console.log(`🎤 MicWidget: Starting precision recording - BPM: ${bpm}, Cycles: ${cycles}`);
+
+      // Start recording - it will automatically stop at exact duration
+      const result = await recorderRef.current.startRecording({
+        bpm,
+        bars: 8, // 8 bars per cycle
+        cycles
+      });
+
+      // Recording complete
+      console.log(`🎤 MicWidget: Recording complete!`);
+      console.log(`🎤   Expected: ${result.expectedSamples} samples`);
+      console.log(`🎤   Actual: ${result.actualSamples} samples`);
+      console.log(`🎤   Duration: ${result.durationSeconds.toFixed(4)}s`);
+
+      // Create URL for preview
+      const url = URL.createObjectURL(result.wavBlob);
+      setRecordedBlob(result.wavBlob);
+      setRecordedUrl(url);
+      setRecordingState('complete');
+
+    } catch (err: any) {
+      console.error('🎤 MicWidget: Recording failed:', err);
+      setError(err.message || 'Recording failed');
       setRecordingState('idle');
     }
-  };
-
-  // Stop recording manually or when cycles complete
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    isRecordingRef.current = false;
   };
 
   // Cancel recording/armed state
   const cancelRecording = () => {
     if (recordingState === 'recording') {
-      stopRecording();
+      recorderRef.current?.stopRecording();
     }
     setRecordingState('idle');
     setCurrentCycle(0);
-    cyclesRecordedRef.current = 0;
-
-    // Keep the stream alive for future recordings
     console.log('🎤 MicWidget: Recording cancelled');
   };
 
@@ -590,7 +250,7 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     if (!recordedBlob || !recordedUrl) return;
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = `mic-recording-${cycleCount}x-${timestamp}.webm`;
+    const filename = `mic-recording-${cycleCount}x-${timestamp}.wav`;
 
     const a = document.createElement('a');
     a.href = recordedUrl;
@@ -638,7 +298,6 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     setError(null);
 
     // If this recording wasn't saved, reset the pack tracking too
-    // (user is starting fresh, not adding another take to a saved pack)
     if (!savedDraftId) {
       setCurrentPackId(null);
       setTakeCount(0);
@@ -658,17 +317,14 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
     setError(null);
 
     try {
-      // Get BPM from mixer
-      const bpm = typeof window !== 'undefined' && (window as any).getMixerBPM
-        ? (window as any).getMixerBPM()
-        : 120;
+      const bpm = currentBpmRef.current;
 
       // Get username from active persona
       const username = activePersona?.username || activePersona?.display_name || null;
 
       // Prepare form data
       const formData = new FormData();
-      formData.append('file', recordedBlob, `mic-recording-${Date.now()}.webm`);
+      formData.append('file', recordedBlob, `mic-recording-${Date.now()}.wav`);
       formData.append('walletAddress', effectiveWallet);
       formData.append('title', `Mic Recording ${takeCount + 1}`);
       formData.append('cycleCount', cycleCount.toString());
@@ -761,7 +417,7 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
       case 'armed':
         return 'Waiting for loop...';
       case 'recording':
-        return `Recording ${currentCycle}/${cycleCount}`;
+        return `Recording ${cycleCount} cycle(s)...`;
       case 'processing':
         return 'Processing...';
       case 'complete':
