@@ -518,7 +518,7 @@ export function useIPTrackSubmit({
         artist: formData.artist,
         description: formData.description,
         tags: formData.tags,
-        content_type: formData.content_type === 'loop_pack' ? 'loop' : formData.content_type, // Save loop packs as loops for now
+        content_type: formData.content_type, // Preserve actual content_type (loop_pack, ep, etc.)
         loop_category: formData.content_type === 'loop' ? formData.loop_category : null,
         sample_type: formData.content_type === 'loop' ? 'instrumentals' : 'FULL SONGS',
         // BPM handling: optional for songs, user-provided integers only for loops/packs
