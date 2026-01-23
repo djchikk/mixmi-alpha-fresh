@@ -23,6 +23,7 @@ interface CompactTrackCardWithFlipProps {
   onPurchase?: (track: IPTrack) => void;
   onEditTrack?: (track: IPTrack) => void;
   onDeleteTrack?: (trackId: string) => void;
+  onPublishTrack?: (trackId: string) => void;
 }
 
 // Draggable track component for expanded drawer
@@ -112,7 +113,8 @@ export default function CompactTrackCardWithFlip({
   showEditControls,
   onPurchase,
   onEditTrack,
-  onDeleteTrack
+  onDeleteTrack,
+  onPublishTrack
 }: CompactTrackCardWithFlipProps) {
   // Alpha version - no mixer collection functionality
   const { showToast } = useToast();
@@ -130,6 +132,9 @@ export default function CompactTrackCardWithFlip({
   // Video playback state
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+
+  // Publish state (for drafts)
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Ref for audio auto-stop timeout (so we can clear it)
   const audioTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -430,16 +435,59 @@ export default function CompactTrackCardWithFlip({
   // Handle delete click with confirmation
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Show confirmation dialog
     const confirmed = window.confirm(
       `Remove "${track.title}" from your store?\n\n` +
       `This will permanently remove it from your store, but you can still find it in your vault under the "Deleted" filter.`
     );
-    
+
     if (confirmed) {
       onDeleteTrack?.(track.id);
       showToast('Track removed from store', 'success');
+    }
+  };
+
+  // Handle publish click - publishes draft to store
+  const handlePublishClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (isPublishing) return;
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Publish "${track.title}" to your store?\n\n` +
+      `This will make it visible to everyone on the globe.`
+    );
+
+    if (!confirmed) return;
+
+    setIsPublishing(true);
+
+    try {
+      const response = await fetch('/api/drafts/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trackId: track.id,
+          walletAddress: track.primary_uploader_wallet
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to publish');
+      }
+
+      showToast(`"${track.title}" published to your store!`, 'success');
+      onPublishTrack?.(track.id);
+
+    } catch (error: any) {
+      console.error('Publish error:', error);
+      showToast(error.message || 'Failed to publish', 'error');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -663,6 +711,23 @@ export default function CompactTrackCardWithFlip({
                     )}
 
                     {/* Payment Pending Warning - REMOVED: No longer needed for simplified payment model */}
+
+                    {/* Publish Button - for drafts in dashboard only */}
+                    {showEditControls && (track as any).is_draft && (
+                      <button
+                        onClick={handlePublishClick}
+                        disabled={isPublishing}
+                        className="absolute bottom-10 left-2 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all hover:scale-105 disabled:opacity-50"
+                        style={{
+                          backgroundColor: '#A084F9',
+                          color: '#FFFFFF',
+                          border: '1px solid rgba(255,255,255,0.3)'
+                        }}
+                        title="Publish to your store"
+                      >
+                        {isPublishing ? 'Publishing...' : 'Publish'}
+                      </button>
+                    )}
 
                     {/* Bottom Section: Price/Remix Icon, Content Type Badge, BPM */}
                     <div className="absolute bottom-2 left-0 right-0 flex items-center justify-between">

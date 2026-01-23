@@ -852,6 +852,9 @@ const getLibraryBorderThickness = (track: Track) => {
                   setEditingTrack(t as any);
                   setIsOptionsModalOpen(true);
                 }}
+                onPublishTrack={() => {
+                  onRefresh();
+                }}
               />
             ))}
           </div>
