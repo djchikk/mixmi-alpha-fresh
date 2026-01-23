@@ -53,6 +53,10 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           download_price_stx: (track as any).download_price_stx, // Per-item price for cart
           license: track.license,
           primary_uploader_wallet: track.primary_uploader_wallet,
+          // Draft and pack info for proper display
+          is_draft: (track as any).is_draft,
+          pack_id: (track as any).pack_id,
+          pack_position: (track as any).pack_position,
           // AI assistance flags for Creation display
           ai_assisted_idea: (track as any).ai_assisted_idea,
           ai_assisted_implementation: (track as any).ai_assisted_implementation
@@ -827,11 +831,20 @@ export default function Crate({ className = '' }: CrateProps) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  flexDirection: 'column',
+                  gap: '2px',
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                 }}>
                   <svg className="w-6 h-6 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                   </svg>
+                  {/* Show take number for draft mic recordings */}
+                  {track.is_draft && track.title && (
+                    <span className="text-white text-[10px] font-bold opacity-70">
+                      {track.pack_position ? `Take ${track.pack_position}` :
+                       track.title.match(/(\d+)/) ? `Take ${track.title.match(/(\d+)/)?.[1]}` : ''}
+                    </span>
+                  )}
                 </div>
               )}
               

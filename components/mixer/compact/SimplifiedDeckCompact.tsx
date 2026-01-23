@@ -135,6 +135,7 @@ export default function SimplifiedDeckCompact({
           bpm: item.track.bpm, // Preserve original bpm (may be null for undetected)
           content_type: item.track.content_type,
           pack_position: item.track.pack_position, // Preserve for number badges
+          is_draft: (item.track as any).is_draft, // Preserve draft status for badge
           notes: item.track.notes, // Preserve notes for CC text overlay
           // Preserve stream_url for radio stations (needed for proxying)
           ...(item.track.content_type === 'radio_station' && item.track.stream_url && {
@@ -238,10 +239,36 @@ export default function SimplifiedDeckCompact({
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
             >
-              <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
+              {/* Image or gradient fallback for tracks without images */}
+              {currentTrack.imageUrl ? (
+                <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                >
+                  <svg className="w-6 h-6 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                  </svg>
+                </div>
+              )}
 
-              {/* Pack position badge - top left - uses content type color */}
-              {currentTrack.pack_position && (
+              {/* Draft badge - top left for draft tracks */}
+              {(currentTrack as any).is_draft && (
+                <div
+                  className="absolute top-0.5 left-0.5 px-1 py-0.5 rounded text-[6px] font-bold uppercase tracking-wide pointer-events-none z-10"
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    color: '#A084F9',
+                    border: '1px dashed #A084F9'
+                  }}
+                >
+                  Draft
+                </div>
+              )}
+
+              {/* Pack position badge - top left (shifted if draft badge present) - uses content type color */}
+              {currentTrack.pack_position && !(currentTrack as any).is_draft && (
                 <div
                   className="absolute top-1 left-1 w-5 h-5 rounded text-xs font-bold flex items-center justify-center pointer-events-none z-10"
                   style={{
