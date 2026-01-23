@@ -15,10 +15,10 @@ import { PrecisionRecorder, RecordingResult } from '@/lib/audio/PrecisionRecorde
  * Features:
  * - Sample-accurate recording via AudioWorklet (no MediaRecorder latency)
  * - Syncs recording start to loop cycle boundaries
- * - Supports 1, 2, 4, 8 cycle counts
+ * - Records exactly 8 bars (1 cycle) per take
  * - Exact loop duration for perfect sync
  * - Save recordings as drafts to Supabase
- * - Multi-take auto-bundling into draft loop packs
+ * - Multi-take bundling: record multiple takes to build a loop pack (max 5)
  */
 
 interface MicWidgetProps {
@@ -40,7 +40,7 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
 
   // UI State
   const [isExpanded, setIsExpanded] = useState(false);
-  const [cycleCount, setCycleCount] = useState(1); // 1, 2, 4, or 8 cycles
+  const cycleCount = 1; // Fixed: 1 cycle = 8 bars per loop (loop pack constraint)
 
   // Recording State
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -413,11 +413,11 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const getStatusText = () => {
     switch (recordingState) {
       case 'idle':
-        return 'Select cycles and click Arm';
+        return 'Click Arm to start';
       case 'armed':
         return 'Waiting for loop...';
       case 'recording':
-        return `Recording ${cycleCount} cycle(s)...`;
+        return 'Recording 8 bars...';
       case 'processing':
         return 'Processing...';
       case 'complete':
@@ -498,25 +498,11 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
             </div>
           )}
 
-          {/* Cycle Count Selector - only show when idle or complete */}
+          {/* Loop info - always 8 bars */}
           {(recordingState === 'idle' || recordingState === 'complete') && (
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <span className="text-xs text-gray-400">Cycles:</span>
-              <div className="flex gap-1">
-                {[1, 2, 4, 8].map((count) => (
-                  <button
-                    key={count}
-                    onClick={() => setCycleCount(count)}
-                    className={`w-7 h-6 text-xs font-bold rounded transition-all ${
-                      cycleCount === count
-                        ? 'bg-[#81E4F2] text-slate-900'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
+            <div className="flex items-center justify-center gap-1 mb-3">
+              <span className="text-xs text-gray-400">Recording:</span>
+              <span className="text-xs font-bold text-[#A084F9]">8 bars</span>
             </div>
           )}
 
