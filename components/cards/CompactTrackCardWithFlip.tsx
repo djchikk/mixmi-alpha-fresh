@@ -480,6 +480,23 @@ export default function CompactTrackCardWithFlip({
         throw new Error(result.error || 'Failed to publish');
       }
 
+      // Fetch the updated track data to get current artwork/metadata
+      const { data: updatedTrack } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('id', track.id)
+        .single();
+
+      // Update the track in the crate if it exists there
+      if (updatedTrack && (window as any).updateInCollection) {
+        (window as any).updateInCollection(track.id, {
+          ...updatedTrack,
+          is_draft: false,
+          imageUrl: updatedTrack.cover_image_url,
+          audioUrl: updatedTrack.audio_url
+        });
+      }
+
       showToast(`"${track.title}" published to your store!`, 'success');
       onPublishTrack?.(track.id);
 

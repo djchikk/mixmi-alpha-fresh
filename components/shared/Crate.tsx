@@ -245,7 +245,7 @@ export default function Crate({ className = '' }: CrateProps) {
   const router = useRouter();
   const pathname = usePathname();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { collection, addTrackToCollection, removeTrackFromCollection, clearCollection } = useMixer();
+  const { collection, addTrackToCollection, updateTrackInCollection, removeTrackFromCollection, clearCollection } = useMixer();
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -342,6 +342,11 @@ export default function Crate({ className = '' }: CrateProps) {
       clearCollection();
     };
 
+    (window as any).updateInCollection = (trackId: string, updates: any) => {
+      console.log('🔄 Crate: Updating track in collection:', trackId, updates);
+      updateTrackInCollection(trackId, updates);
+    };
+
     // Expose pack expansion function
     (window as any).expandPackInCrate = async (packTrack: any) => {
       console.log('📦 Crate: Auto-expanding pack:', packTrack.id);
@@ -401,10 +406,11 @@ export default function Crate({ className = '' }: CrateProps) {
       delete (window as any).addToCollection;
       delete (window as any).removeFromCollection;
       delete (window as any).clearCollection;
+      delete (window as any).updateInCollection;
       delete (window as any).expandPackInCrate;
       delete (window as any).addPackToCrate;
     };
-  }, [collection, addTrackToCollection, removeTrackFromCollection, clearCollection, packTracks]);
+  }, [collection, addTrackToCollection, updateTrackInCollection, removeTrackFromCollection, clearCollection, packTracks]);
 
   // Handle track preview
   const handleTrackClick = (track: any) => {

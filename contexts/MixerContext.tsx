@@ -34,6 +34,7 @@ interface MixerContextType {
   // Actions
   loadTrackToDeck: (ipTrack: IPTrack, deck: 'A' | 'B') => void;
   addTrackToCollection: (ipTrack: IPTrack) => void;
+  updateTrackInCollection: (trackId: string, updates: Partial<IPTrack>) => void;
   removeTrackFromCollection: (index: number) => void;
   clearCollection: () => void;
   addTrackToCrate: (ipTrack: IPTrack, deck: 'A' | 'B') => void;
@@ -175,6 +176,22 @@ export const MixerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   }, []);
 
+  const updateTrackInCollection = useCallback((trackId: string, updates: Partial<IPTrack>) => {
+    setCollection(prev => prev.map(track => {
+      if (track.id === trackId) {
+        // Merge updates into existing track
+        return {
+          ...track,
+          ...updates,
+          // Handle image URL updates
+          imageUrl: updates.cover_image_url || (updates as any).imageUrl || track.imageUrl,
+          cover_image_url: updates.cover_image_url || track.cover_image_url,
+        };
+      }
+      return track;
+    }));
+  }, []);
+
   const removeTrackFromCollection = useCallback((index: number) => {
     setCollection(prev => prev.filter((_, i) => i !== index));
   }, []);
@@ -267,6 +284,7 @@ export const MixerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       loadedTracks,
       loadTrackToDeck,
       addTrackToCollection,
+      updateTrackInCollection,
       removeTrackFromCollection,
       clearCollection,
       addTrackToCrate,
