@@ -717,11 +717,12 @@ export default function CompactTrackCardWithFlip({
                       <button
                         onClick={handlePublishClick}
                         disabled={isPublishing}
-                        className="absolute bottom-8 left-2 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all hover:scale-105 disabled:opacity-50"
+                        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all hover:scale-105 disabled:opacity-50 animate-pulse"
                         style={{
                           backgroundColor: '#A084F9',
                           color: '#FFFFFF',
-                          border: '1px solid rgba(255,255,255,0.3)'
+                          border: '1px solid rgba(255,255,255,0.3)',
+                          animation: isPublishing ? 'none' : 'pulse 2s ease-in-out infinite'
                         }}
                         title="Publish to your store"
                       >
