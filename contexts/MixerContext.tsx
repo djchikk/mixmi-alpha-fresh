@@ -70,6 +70,8 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     video_url: ipTrack.video_url, // Preserve video_url for video clips
     notes: ipTrack.notes, // Preserve notes for CC text overlay
     pack_position: ipTrack.pack_position, // Preserve pack position for numbering
+    pack_id: ipTrack.pack_id, // Preserve pack ID for bundling
+    is_draft: ipTrack.is_draft, // Preserve draft status for styling
     content_type: ipTrack.content_type || 'loop', // Preserve original content type!
     price_stx: ipTrack.price_stx, // Preserve price for cart functionality
     download_price_stx: ipTrack.download_price_stx, // Preserve new pricing model
