@@ -277,12 +277,13 @@ export default function CreatorStorePage() {
 
       setIsLoading(true);
       try {
-        // Fetch all tracks (including failed ones)
+        // Fetch all published tracks (excluding drafts and deleted)
         const { data: allTracks, error: fetchError } = await supabase
           .from('ip_tracks')
           .select('*')
           .eq('primary_uploader_wallet', actualWalletAddress)
           .is('deleted_at', null)
+          .or('is_draft.is.null,is_draft.eq.false')
           .order('created_at', { ascending: false });
 
         if (fetchError) {
