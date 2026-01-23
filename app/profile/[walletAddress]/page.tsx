@@ -158,7 +158,7 @@ export default function UserProfilePage() {
         } else if (foundPersonaData) {
           // No user_profiles record, but we found a persona - construct profile from persona data
           console.log('No user_profile found, using persona data as fallback:', foundPersonaData.username);
-          const personaWallet = foundPersonaData.wallet_address || foundPersonaData.sui_address;
+          const personaWallet = foundPersonaData.sui_address || foundPersonaData.wallet_address;
           setTargetWallet(personaWallet);
           setProfileData({
             profile: {

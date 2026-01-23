@@ -182,12 +182,13 @@ export default function CreatorStorePage() {
             console.log('Found persona:', personaData.username, 'wallet:', personaData.wallet_address, 'sui:', personaData.sui_address);
             setLinkedAccountId(personaData.account_id);
 
-            // Use wallet_address from persona if available, fall back to sui_address
-            if (personaData.wallet_address) {
-              walletFromPersona = personaData.wallet_address;
-              setActualWalletAddress(walletFromPersona);
-            } else if (personaData.sui_address) {
+            // Use sui_address from persona if available, fall back to wallet_address
+            // (SUI addresses are preferred after migration to SUI blockchain)
+            if (personaData.sui_address) {
               walletFromPersona = personaData.sui_address;
+              setActualWalletAddress(walletFromPersona);
+            } else if (personaData.wallet_address) {
+              walletFromPersona = personaData.wallet_address;
               setActualWalletAddress(walletFromPersona);
             }
 
