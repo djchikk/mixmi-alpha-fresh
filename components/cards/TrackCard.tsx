@@ -47,7 +47,7 @@ export default function TrackCard({
   const { loadTrackToDeck, addTrackToCollection } = useMixer();
   const { walletAddress, suiAddress, activePersona } = useAuth();
   // Priority: active persona's wallet > persona's SUI > account SUI > account STX
-  const effectiveAddress = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const effectiveAddress = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
   const { showToast } = useToast();
   
   const [isFlipped, setIsFlipped] = useState(false);

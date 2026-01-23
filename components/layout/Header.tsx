@@ -40,8 +40,8 @@ export default function Header() {
     setActivePersona
   } = useAuth();
 
-  // Priority: active persona's wallet > persona's SUI > account SUI > account STX
-  const effectiveAddress = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  // Priority: active persona's SUI > persona's wallet > account SUI > account STX
+  const effectiveAddress = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
 
   // Display address: prefer SUI address for display (migration to SUI)
   const displayAddress = suiAddress || walletAddress;

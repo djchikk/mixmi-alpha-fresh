@@ -57,11 +57,10 @@ export default function AccountPage() {
   const router = useRouter();
   const { isAuthenticated, walletAddress, suiAddress, personas, activePersona, setActivePersona, refreshPersonas } = useAuth();
 
-  // For data lookup, use persona's wallet if available, otherwise use direct wallet
-  // This allows zkLogin users to access data from their linked wallet
-  // Also check sui_address for personas with content linked to SUI addresses
-  // IMPORTANT: Prefer suiAddress over walletAddress for zkLogin users (walletAddress may be stale Stacks address)
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  // For data lookup, use persona's SUI address if available, then fallback to wallet
+  // This allows zkLogin users to access data from their SUI address
+  // IMPORTANT: Prefer sui_address over wallet_address for zkLogin users
+  const effectiveWallet = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
 
   const [activeTab, setActiveTab] = useState<Tab>("settings");
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -1274,10 +1273,9 @@ function SettingsTab({
   refreshPersonas: () => Promise<void>;
   onProfileImageUpdate?: (url: string | null, thumbUrl: string | null) => void;
 }) {
-  // For data lookup, use persona's wallet if available, otherwise use direct wallet
-  // Also check sui_address for personas with content linked to SUI addresses
-  // IMPORTANT: Prefer suiAddress over walletAddress for zkLogin users
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  // For data lookup, use persona's SUI address if available, then fallback to wallet
+  // IMPORTANT: Prefer sui_address over wallet_address for zkLogin users
+  const effectiveWallet = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
 
   const [loading, setLoading] = useState(true);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);

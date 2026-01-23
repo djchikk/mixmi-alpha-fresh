@@ -21,7 +21,7 @@ interface StoreCardProps {
 export default function StoreCard({ storeCard, targetWallet, isOwnProfile, onEdit, onDelete }: StoreCardProps) {
   const { isAuthenticated, walletAddress, suiAddress, activePersona } = useAuth();
   // Priority: active persona's wallet > persona's SUI > account SUI > account STX
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const effectiveWallet = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
   const [trackCount, setTrackCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);

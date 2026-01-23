@@ -14,7 +14,7 @@ export default function UploadStudioPage() {
 
   // Determine the effective wallet address (zkLogin users may only have suiAddress)
   // Priority: active persona's wallet > active persona's sui > root suiAddress > legacy walletAddress
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const effectiveWallet = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
   const hasValidAuth = isAuthenticated && !!effectiveWallet;
 
   // Check if user is authenticated and approved for alpha

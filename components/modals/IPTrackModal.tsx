@@ -54,7 +54,7 @@ export default function IPTrackModal({
   // For uploads, we REQUIRE a SUI address (zkLogin users only)
   // When a persona is active, use their wallet or sui_address for content ownership
   const canUpload = !!suiAddress;
-  const walletToUse = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || ''; // Prefer active persona's wallet/sui
+  const walletToUse = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || ''; // Prefer active persona's SUI address
 
   // Check if user is logged in with Stacks but needs to migrate
   const needsSuiMigration = globalWalletConnected && !suiAddress;

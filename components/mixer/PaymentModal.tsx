@@ -50,7 +50,7 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const { isAuthenticated, connectWallet, walletAddress, suiAddress, activePersona } = useAuth();
   // Priority: active persona's wallet > persona's SUI > account SUI > account STX
-  const effectiveAddress = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const effectiveAddress = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
   const { addToCart } = useCart();
   const { loadedTracks } = useMixer();
   const [selectedOption, setSelectedOption] = useState<'loop-only' | 'loop-plus-sources'>('loop-only');

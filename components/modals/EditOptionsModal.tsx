@@ -31,7 +31,7 @@ export default function EditOptionsModal({
   const { walletAddress, suiAddress, activePersona } = useAuth();
 
   // Use the effective wallet (persona wallet for zkLogin users)
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const effectiveWallet = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
 
   if (!isOpen) return null;
 

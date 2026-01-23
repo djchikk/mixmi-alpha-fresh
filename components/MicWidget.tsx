@@ -70,8 +70,8 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
-  // Get effective wallet address - prefer persona's wallet for proper attribution
-  const effectiveWallet = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  // Get effective wallet address - prefer persona's SUI address for proper attribution
+  const effectiveWallet = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
 
   // Initialize recorder on mount
   useEffect(() => {

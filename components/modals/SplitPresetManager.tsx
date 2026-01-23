@@ -117,7 +117,7 @@ function SavePresetModal({ isOpen, onClose, onSave, currentPresetData }: SavePre
 export default function SplitPresetManagerUI({ presets, onLoadPreset, onSavePreset, onDeletePreset, currentFormData }: SplitPresetManagerUIProps) {
   const { walletAddress, suiAddress, activePersona } = useAuth();
   // Priority: active persona's wallet > persona's SUI > account SUI > account STX
-  const effectiveAddress = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const effectiveAddress = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
   const [showSaveModal, setShowSaveModal] = useState(false);
 
   // Handle loading a preset

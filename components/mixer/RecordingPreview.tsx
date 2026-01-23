@@ -201,7 +201,7 @@ export default function RecordingPreview({
 }: RecordingPreviewProps) {
   const { walletAddress, suiAddress, activePersona } = useAuth();
   // Priority: active persona's wallet > persona's SUI > account SUI > account STX
-  const effectiveAddress = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const effectiveAddress = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
   const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoopPlaying, setIsLoopPlaying] = useState(false);

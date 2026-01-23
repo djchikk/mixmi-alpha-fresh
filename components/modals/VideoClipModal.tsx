@@ -22,7 +22,7 @@ export default function VideoClipModal({
 }: VideoClipModalProps) {
   const { walletAddress, suiAddress, isAuthenticated, activePersona } = useAuth();
   // Priority: active persona's wallet > persona's SUI > account SUI > account STX
-  const effectiveAddress = activePersona?.wallet_address || activePersona?.sui_address || suiAddress || walletAddress;
+  const effectiveAddress = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
   const { showToast } = useToast();
 
   // Form state
