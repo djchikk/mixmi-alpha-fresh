@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Square, Download, X, Loader2, Play, Pause, Save, Upload } from 'lucide-react';
+import { Mic, MicOff, Square, Download, X, Loader2, Play, Pause, Save, Upload, Package } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixer } from '@/contexts/MixerContext';
 import { PrecisionRecorder, RecordingResult } from '@/lib/audio/PrecisionRecorder';
@@ -55,6 +55,8 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
   const [currentPackId, setCurrentPackId] = useState<string | null>(null); // For multi-take bundling
   const [takeCount, setTakeCount] = useState(0); // Track how many takes in current session
+  const [isPackaging, setIsPackaging] = useState(false);
+  const [isPackaged, setIsPackaged] = useState(false);
 
   // Precision Recorder instance
   const recorderRef = useRef<PrecisionRecorder | null>(null);
@@ -405,8 +407,65 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
   const startNewPack = () => {
     setCurrentPackId(null);
     setTakeCount(0);
+    setIsPackaged(false);
     resetRecording();
     console.log('🎤 Started new recording session (pack reset)');
+  };
+
+  // Package takes into a draft loop pack
+  const packageAsPack = async () => {
+    if (!currentPackId || !effectiveWallet || takeCount < 2) {
+      setError('Need at least 2 takes to create a loop pack');
+      return;
+    }
+
+    setIsPackaging(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/drafts/package', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          packId: currentPackId,
+          walletAddress: effectiveWallet,
+          title: `Draft Loop Pack (${takeCount} takes)`
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to package');
+      }
+
+      const result = await response.json();
+      console.log('📦 Pack created:', result);
+
+      setIsPackaged(true);
+
+      // Add pack to crate
+      if (result.pack) {
+        const packTrack = {
+          id: result.pack.id,
+          title: result.pack.title,
+          artist: result.pack.artist,
+          content_type: 'loop_pack',
+          bpm: result.pack.bpm,
+          is_draft: true,
+          primary_uploader_wallet: effectiveWallet,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        addTrackToCollection(packTrack as any);
+        console.log('📦 Pack added to crate');
+      }
+
+    } catch (err: any) {
+      console.error('📦 Packaging failed:', err);
+      setError(err.message || 'Failed to package');
+    } finally {
+      setIsPackaging(false);
+    }
   };
 
   // Get status text for current state
@@ -596,28 +655,76 @@ export default function MicWidget({ className = '' }: MicWidgetProps) {
               )}
 
               {/* Saved confirmation */}
-              {savedDraftId && (
+              {savedDraftId && !isPackaged && (
                 <div className="text-center">
                   <div className="text-xs text-green-400 mb-2">
                     ✓ Draft saved{currentPackId ? ` (Take ${takeCount})` : ''}
                   </div>
-                  <div className="flex justify-center gap-2">
+
+                  {/* Package button - show when 2-5 takes */}
+                  {takeCount >= 2 && takeCount <= 5 && (
                     <button
-                      onClick={resetRecording}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-[#A084F9] hover:bg-[#A084F9]/80 text-white transition-all"
+                      onClick={packageAsPack}
+                      disabled={isPackaging}
+                      className="flex items-center justify-center gap-1.5 w-full px-3 py-2 mb-2 rounded text-xs font-semibold transition-all bg-[#A8E66B] hover:bg-[#A8E66B]/80 text-slate-900"
                     >
-                      <Mic className="w-3 h-3" />
-                      <span>Record Another Take</span>
+                      {isPackaging ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Packaging...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Package className="w-3 h-3" />
+                          <span>Package as Loop Pack ({takeCount} loops)</span>
+                        </>
+                      )}
                     </button>
-                    {takeCount > 1 && (
+                  )}
+
+                  {/* Max takes warning */}
+                  {takeCount >= 5 && (
+                    <div className="text-[10px] text-amber-400 mb-2">
+                      Maximum 5 loops per pack
+                    </div>
+                  )}
+
+                  <div className="flex justify-center gap-2">
+                    {takeCount < 5 && (
                       <button
-                        onClick={startNewPack}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white transition-all"
+                        onClick={resetRecording}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-[#A084F9] hover:bg-[#A084F9]/80 text-white transition-all"
                       >
-                        <span>New Session</span>
+                        <Mic className="w-3 h-3" />
+                        <span>Record Take {takeCount + 1}</span>
                       </button>
                     )}
+                    <button
+                      onClick={startNewPack}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white transition-all"
+                    >
+                      <span>New Session</span>
+                    </button>
                   </div>
+                </div>
+              )}
+
+              {/* Packaged confirmation */}
+              {isPackaged && (
+                <div className="text-center">
+                  <div className="text-xs text-green-400 mb-2">
+                    ✓ Loop pack created! ({takeCount} loops)
+                  </div>
+                  <div className="text-[10px] text-gray-400 mb-2">
+                    View in Dashboard → My Work → Drafts
+                  </div>
+                  <button
+                    onClick={startNewPack}
+                    className="flex items-center justify-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-[#A084F9] hover:bg-[#A084F9]/80 text-white transition-all"
+                  >
+                    <Mic className="w-3 h-3" />
+                    <span>Start New Recording</span>
+                  </button>
                 </div>
               )}
 
