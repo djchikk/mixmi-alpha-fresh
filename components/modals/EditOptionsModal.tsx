@@ -9,6 +9,10 @@ interface Track {
   title: string;
   artist: string;
   is_deleted?: boolean;
+  content_type?: string;
+  audio_url?: string;
+  enhanced_audio_url?: string;
+  enhancement_type?: string;
 }
 
 interface EditOptionsModalProps {
@@ -16,6 +20,7 @@ interface EditOptionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEditDetails: () => void;
+  onEnhance?: () => void;
   onRefresh: () => void;
 }
 
@@ -24,8 +29,13 @@ export default function EditOptionsModal({
   isOpen,
   onClose,
   onEditDetails,
+  onEnhance,
   onRefresh
 }: EditOptionsModalProps) {
+  // Check if this content type supports enhancement (loops and songs only)
+  const supportsEnhancement = ['loop', 'full_song'].includes(track.content_type || '');
+  const hasAudio = !!track.audio_url;
+  const isAlreadyEnhanced = !!track.enhanced_audio_url;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { walletAddress, suiAddress, activePersona } = useAuth();
@@ -150,6 +160,38 @@ export default function EditOptionsModal({
                 </div>
               </div>
             </button>
+
+            {/* Enhance Sound - only for loops and songs with audio */}
+            {supportsEnhancement && hasAudio && onEnhance && (
+              <button
+                onClick={() => {
+                  onEnhance();
+                }}
+                className="w-full p-4 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors text-left border border-slate-600 hover:border-amber-400 group"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">✨</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-medium group-hover:text-amber-400">
+                        Enhance Sound
+                      </span>
+                      {isAlreadyEnhanced && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">
+                          Enhanced
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {isAlreadyEnhanced
+                        ? `Currently: ${track.enhancement_type || 'enhanced'} • Re-enhance or remove`
+                        : 'Polish your audio with AI'
+                      }
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )}
 
             {/* Hide/Show from Store */}
             <button

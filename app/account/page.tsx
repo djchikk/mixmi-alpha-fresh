@@ -11,6 +11,7 @@ import IPTrackModal from "@/components/modals/IPTrackModal";
 import RadioStationModal from "@/components/modals/RadioStationModal";
 import TrackDetailsModal from "@/components/modals/TrackDetailsModal";
 import EditOptionsModal from "@/components/modals/EditOptionsModal";
+import EnhanceSoundModal from "@/components/modals/EnhanceSoundModal";
 import ContentTypeSelector from "@/components/modals/ContentTypeSelector";
 import InfoIcon from "@/components/shared/InfoIcon";
 import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFlip";
@@ -641,6 +642,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEnhanceModalOpen, setIsEnhanceModalOpen] = useState(false);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [detailsTrack, setDetailsTrack] = useState<Track | null>(null);
@@ -657,6 +659,11 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
   const handleOpenEditModal = () => {
     setIsOptionsModalOpen(false);
     setIsEditModalOpen(true);
+  };
+
+  const handleOpenEnhanceModal = () => {
+    setIsOptionsModalOpen(false);
+    setIsEnhanceModalOpen(true);
   };
 
   const handleCancelEdit = () => {
@@ -868,6 +875,7 @@ const getLibraryBorderThickness = (track: Track) => {
           isOpen={isOptionsModalOpen}
           onClose={handleCancelEdit}
           onEditDetails={handleOpenEditModal}
+          onEnhance={handleOpenEnhanceModal}
           onRefresh={onRefresh}
         />
       )}
@@ -912,6 +920,32 @@ const getLibraryBorderThickness = (track: Track) => {
           onClose={() => {
             setIsDetailsModalOpen(false);
             setDetailsTrack(null);
+          }}
+        />
+      )}
+
+      {/* Enhance Sound Modal */}
+      {editingTrack && (
+        <EnhanceSoundModal
+          track={editingTrack as any}
+          isOpen={isEnhanceModalOpen}
+          onClose={() => {
+            setIsEnhanceModalOpen(false);
+            setEditingTrack(null);
+          }}
+          onEnhancementApplied={(trackId, enhancedUrl, enhancementType) => {
+            console.log('Enhancement applied:', { trackId, enhancedUrl, enhancementType });
+            // TODO: In Phase 2, this will update the database
+            setIsEnhanceModalOpen(false);
+            setEditingTrack(null);
+            onRefresh();
+          }}
+          onEnhancementRemoved={(trackId) => {
+            console.log('Enhancement removed:', trackId);
+            // TODO: In Phase 2, this will update the database
+            setIsEnhanceModalOpen(false);
+            setEditingTrack(null);
+            onRefresh();
           }}
         />
       )}
