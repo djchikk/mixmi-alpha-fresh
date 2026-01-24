@@ -237,65 +237,43 @@ export default function EnhanceSoundModal({
     }
   }, [playingEnhanced, isPlaying]);
 
-  // Real enhancement process via FFmpeg API
+  // Client-side enhancement using Web Audio API
   const startEnhancement = useCallback(async (type: EnhancementType) => {
+    if (!track.audio_url) {
+      setProcessingError('No audio URL available');
+      return;
+    }
+
     setSelectedType(type);
     setModalState('processing');
     setProcessingProgress(0);
     setProcessingError(null);
 
-    // Simulate progress while waiting for API (FFmpeg doesn't give progress for short files)
-    const progressInterval = setInterval(() => {
-      setProcessingProgress(prev => {
-        if (prev >= 85) {
-          return 85; // Cap at 85% until API returns
-        }
-        return prev + Math.random() * 10;
-      });
-    }, 500);
-
     try {
-      // Call the real enhancement API
-      const response = await fetch('/api/enhance/process', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          trackId: track.id,
-          enhancementType: type,
-        }),
-      });
+      // Dynamic import of the enhance module (client-side only)
+      const { enhanceAudio } = await import('@/lib/audio/enhance');
 
-      clearInterval(progressInterval);
+      // Process audio with progress callback
+      const { enhancedUrl } = await enhanceAudio(
+        track.audio_url,
+        type,
+        (progress) => setProcessingProgress(progress)
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Enhancement failed');
-      }
+      console.log('Enhancement complete:', { type, enhancedUrl });
 
-      const data = await response.json();
-
-      if (!data.success || !data.enhancedAudioUrl) {
-        throw new Error('No enhanced audio URL returned');
-      }
-
-      console.log('Enhancement complete:', data);
-
-      setProcessingProgress(100);
-      setPreviewEnhancedUrl(data.enhancedAudioUrl);
+      setPreviewEnhancedUrl(enhancedUrl);
 
       // Short delay then show preview
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 200));
       setModalState('preview');
 
     } catch (error) {
-      clearInterval(progressInterval);
       console.error('Enhancement error:', error);
       setProcessingError(error instanceof Error ? error.message : 'Enhancement failed');
       setProcessingProgress(0);
     }
-  }, [track.id]);
+  }, [track.audio_url]);
 
   // Apply enhancement
   const applyEnhancement = useCallback(() => {
