@@ -34,20 +34,20 @@ const unbounded = Unbounded({
 });
 
 export const metadata: Metadata = {
-  title: "mixmi - Discover • Mix • Create",
-  description: "Vibes from everywhere. Create, mix, share. Get paid. Fair.",
+  title: "mixmi",
+  description: "Where every remix remembers where it came from",
   metadataBase: new URL('https://www.mixmi.app'),
   openGraph: {
     title: "mixmi",
-    description: "Vibes from everywhere. Create, mix, share. Get paid. Fair.",
+    description: "Where every remix remembers where it came from",
     url: "https://www.mixmi.app",
     siteName: "mixmi",
     images: [
       {
-        url: "/og-image.png",
+        url: "/logos/mixmi-open-graph-01-2026.png",
         width: 1200,
-        height: 630,
-        alt: "mixmi - Vibes from everywhere",
+        height: 1200,
+        alt: "mixmi - Where every remix remembers where it came from",
       },
     ],
     locale: "en_US",
@@ -56,8 +56,10 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "mixmi",
-    description: "Vibes from everywhere. Create, mix, share. Get paid. Fair.",
-    images: ["/og-image.png"],
+    description: "Where every remix remembers where it came from",
+    images: ["/logos/mixmi-open-graph-01-2026.png"],
+    creator: "@mixmiapp",
+    site: "@mixmiapp",
   },
 };
 

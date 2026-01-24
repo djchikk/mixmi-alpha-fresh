@@ -1,60 +1,98 @@
 # Mic Recording & Draft System
 
-**Last Updated:** January 21, 2026
+**Last Updated:** January 23, 2026
 
-Documentation for the microphone recording feature and draft save system.
+Complete documentation for the microphone recording feature, draft management, packaging, and publishing system.
 
 ---
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [User Workflow](#user-workflow)
+2. [User Journey](#user-journey)
 3. [Technical Architecture](#technical-architecture)
 4. [MicWidget Component](#micwidget-component)
 5. [Precision Recording System](#precision-recording-system)
 6. [Draft Save API](#draft-save-api)
-7. [Database Schema](#database-schema)
-8. [Multi-Take Bundling](#multi-take-bundling)
-9. [Draft Display & Styling](#draft-display--styling)
-10. [Integration Points](#integration-points)
-11. [Testing Checklist](#testing-checklist)
-12. [Known Issues & TODOs](#known-issues--todos)
+7. [Multi-Take Bundling](#multi-take-bundling)
+8. [Packaging Takes into Loop Packs](#packaging-takes-into-loop-packs)
+9. [Publishing Drafts](#publishing-drafts)
+10. [Draft Display & Styling](#draft-display--styling)
+11. [Database Schema](#database-schema)
+12. [Integration Points](#integration-points)
+13. [Testing Checklist](#testing-checklist)
 
 ---
 
 ## Overview
 
-The mic recording system allows users to record vocals, instruments, or any audio synced to mixer loops. Recordings are saved as **drafts** that can be:
+The mic recording system allows users to record vocals, instruments, or any audio perfectly synced to mixer loops. Recordings are saved as **drafts** that flow through a complete lifecycle:
 
-- Played back immediately
-- Downloaded as WAV files
-- Saved to Supabase for later use
-- Bundled into **loop packs** (multiple takes)
-- Eventually published as finalized tracks
+```
+Record → Save Draft → (Optional: Bundle Takes) → Package as Loop Pack → Edit Metadata → Publish
+```
 
 ### Key Features
 
 - **Sample-accurate recording** via AudioWorklet (no MediaRecorder latency)
 - **Sync to mixer loops** - recording starts on loop boundary
-- **Exact duration** - recordings are precisely 1, 2, 4, or 8 cycles
+- **Fixed 8-bar loops** - recordings are exactly 1 cycle (8 bars) for loop pack compatibility
 - **WAV output** - uncompressed 16-bit PCM for quality
-- **Multi-take bundling** - sequential takes become a loop pack
-- **Draft management** - view, preview, delete in account page
+- **Multi-take sessions** - sequential takes bundled together
+- **Loop pack packaging** - 2-5 takes become a publishable loop pack
+- **Full publishing workflow** - add metadata, artwork, then publish to store
+- **Crate integration** - drafts appear with visual distinction, update on publish
+
+### Constraints
+
+- **Loops are 8 bars** - fixed duration per recording
+- **Max 5 loops per pack** - loop pack limit
+- **Minimum 2 takes for packaging** - single takes remain individual loops
 
 ---
 
-## User Workflow
+## User Journey
 
-### Basic Recording Flow
+### Complete Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         MIC RECORDING JOURNEY                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. SETUP                                                               │
+│     └─► Load loops in mixer → Start playback → Click mic icon in Crate │
+│                                                                         │
+│  2. RECORD                                                              │
+│     └─► Click "Arm" → Wait for loop restart → Auto-records 8 bars     │
+│                                                                         │
+│  3. REVIEW                                                              │
+│     └─► Preview recording → Download WAV (optional) → Save as Draft   │
+│                                                                         │
+│  4. MULTI-TAKE (optional)                                               │
+│     └─► Record another take → Both bundled → Repeat up to 5 takes     │
+│                                                                         │
+│  5. PACKAGE (when 2-5 takes saved)                                      │
+│     └─► Click "Package as Loop Pack" → Creates draft loop pack         │
+│                                                                         │
+│  6. EDIT                                                                │
+│     └─► Open in Dashboard → Edit title, artwork, BPM, splits           │
+│                                                                         │
+│  7. PUBLISH                                                             │
+│     └─► Click "Publish" → Live on store → Crate card updates           │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Recording Flow (Detailed)
 
 ```
 1. User loads loops in mixer and starts playback
 2. User clicks mic icon in Crate to open MicWidget
-3. User selects cycle count (1, 2, 4, or 8)
-4. User clicks "Arm" button
-5. Widget shows "Waiting for loop..." (armed state)
-6. On next loop restart, recording begins automatically
+3. User clicks "Arm" button
+4. Widget shows "Waiting for loop..." (armed state)
+5. On next loop restart, recording begins automatically
+6. Widget shows "Recording 8 bars..." with visual feedback
 7. Recording auto-stops at exact cycle boundary
 8. User can:
    - Preview the recording
@@ -66,23 +104,33 @@ The mic recording system allows users to record vocals, instruments, or any audi
 ### Multi-Take Session Flow
 
 ```
-1. User records first take → saves as draft
+1. User records first take → saves as draft "Mic Recording 1"
 2. Widget shows "Take 2" indicator
-3. User records another take → saves as draft
-4. Both takes are bundled under same pack_id
-5. User can:
-   - Continue adding takes (all bundled together)
-   - Click "New Session" to start fresh pack
+3. User records another take → saves as "Mic Recording 2 - Take 2"
+4. Both takes bundled under same pack_id
+5. Widget shows "Package as Loop Pack" button (2+ takes)
+6. User can:
+   - Continue adding takes (up to 5)
+   - Package current takes into a loop pack
+   - Click "New Session" to start fresh
 ```
 
-### Draft Management Flow
+### Publishing Flow
 
 ```
-1. Drafts appear in Crate with dashed border + "Draft" badge
-2. Drafts can be dragged to mixer decks
-3. Account page has "Drafts" filter to view all drafts
-4. Drafts can be published/finalized (future feature)
-5. Drafts can be deleted (hidden) from account page
+1. Drafts appear in Dashboard with dashed border + "Draft" badge
+2. User clicks edit button on draft → Opens edit modal
+3. User adds:
+   - Title and description
+   - Cover artwork
+   - BPM (if different from recording)
+   - Collaboration splits
+   - Tags
+4. User saves edits (still a draft)
+5. User clicks "Publish" button on dashboard card
+6. Confirmation dialog appears
+7. Track published → visible on store/globe
+8. Crate card updates automatically (artwork, no more draft badge)
 ```
 
 ---
@@ -102,34 +150,85 @@ public/audio-worklets/
 ├── recording-processor.js           # AudioWorklet (runs on audio thread)
 
 app/api/drafts/
-├── save/route.ts                    # Draft save endpoint
+├── save/route.ts                    # Save individual draft takes
+├── package/route.ts                 # Package takes into loop pack
+├── publish/route.ts                 # Publish draft to store
 
 contexts/
-├── MixerContext.tsx                 # addTrackToCollection for crate
+├── MixerContext.tsx                 # Collection management, updateTrackInCollection
 ├── AuthContext.tsx                  # User & persona info for attribution
+
+components/shared/
+├── Crate.tsx                        # Draft display, styling, global functions
+
+components/cards/
+├── CompactTrackCardWithFlip.tsx     # Dashboard card with publish button
+
+components/mixer/compact/
+├── SimplifiedDeckCompact.tsx        # Deck display for drafts
 ```
 
 ### Data Flow
 
 ```
-MicWidget
-    │
-    ├─► PrecisionRecorder.startRecording(config)
-    │       │
-    │       ├─► AudioWorklet (recording-processor.js)
-    │       │       └─► Captures exact N samples
-    │       │
-    │       └─► Returns RecordingResult (audioBuffer, wavBlob)
-    │
-    ├─► User clicks "Save as Draft"
-    │       │
-    │       └─► POST /api/drafts/save
-    │               │
-    │               ├─► Upload WAV to Supabase Storage
-    │               └─► Insert record in ip_tracks (is_draft: true)
-    │
-    └─► addTrackToCollection(draftTrack)
-            └─► Draft appears in Crate
+┌──────────────────────────────────────────────────────────────────────────┐
+│                           RECORDING DATA FLOW                            │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  MicWidget                                                               │
+│      │                                                                   │
+│      ├─► PrecisionRecorder.startRecording(config)                        │
+│      │       │                                                           │
+│      │       ├─► AudioWorklet (recording-processor.js)                   │
+│      │       │       └─► Captures exact N samples on audio thread        │
+│      │       │                                                           │
+│      │       └─► Returns RecordingResult (audioBuffer, wavBlob)          │
+│      │                                                                   │
+│      ├─► User clicks "Save as Draft"                                     │
+│      │       │                                                           │
+│      │       └─► POST /api/drafts/save                                   │
+│      │               │                                                   │
+│      │               ├─► Upload WAV to Supabase Storage                  │
+│      │               └─► Insert record in ip_tracks (is_draft: true)     │
+│      │                                                                   │
+│      └─► addTrackToCollection(draftTrack)                                │
+│              └─► Draft appears in Crate with dashed border               │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────┤
+│                          PACKAGING DATA FLOW                             │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  MicWidget (2+ takes saved)                                              │
+│      │                                                                   │
+│      └─► User clicks "Package as Loop Pack"                              │
+│              │                                                           │
+│              └─► POST /api/drafts/package                                │
+│                      │                                                   │
+│                      ├─► Create loop_pack container (is_draft: true)     │
+│                      ├─► Update child tracks → point to container        │
+│                      └─► Return pack info                                │
+│                                                                          │
+│              └─► addTrackToCollection(packTrack)                         │
+│                      └─► Draft pack appears in Crate                     │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────┤
+│                          PUBLISHING DATA FLOW                            │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Dashboard (draft card)                                                  │
+│      │                                                                   │
+│      └─► User clicks "Publish" button                                    │
+│              │                                                           │
+│              └─► POST /api/drafts/publish                                │
+│                      │                                                   │
+│                      ├─► Set is_draft: false on track                    │
+│                      └─► If pack: also publish child tracks              │
+│                                                                          │
+│              └─► Fetch updated track from database                       │
+│              └─► window.updateInCollection(trackId, updates)             │
+│                      └─► Crate card updates with new artwork             │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -144,7 +243,7 @@ MicWidget
 type RecordingState =
   | 'idle'           // Not recording, ready
   | 'armed'          // Waiting for next loop restart to begin
-  | 'recording'      // Actively recording
+  | 'recording'      // Actively recording 8 bars
   | 'processing'     // Processing recorded audio
   | 'complete';      // Recording complete, ready for actions
 ```
@@ -152,22 +251,38 @@ type RecordingState =
 ### Key State Variables
 
 ```typescript
-// Recording state
+// Recording (fixed at 1 cycle = 8 bars)
+const cycleCount = 1; // Fixed: 1 cycle = 8 bars per loop
 const [recordingState, setRecordingState] = useState<RecordingState>('idle');
-const [cycleCount, setCycleCount] = useState(1);  // 1, 2, 4, or 8 cycles
 const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
 const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
 
-// Draft saving state
+// Draft saving
 const [isSaving, setIsSaving] = useState(false);
 const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
-const [currentPackId, setCurrentPackId] = useState<string | null>(null);  // Multi-take
+
+// Multi-take bundling
+const [currentPackId, setCurrentPackId] = useState<string | null>(null);
 const [takeCount, setTakeCount] = useState(0);
+
+// Packaging
+const [isPackaging, setIsPackaging] = useState(false);
+const [isPackaged, setIsPackaged] = useState(false);
+```
+
+### User Attribution
+
+```typescript
+// Priority: SUI address preferred (for zkLogin users)
+const effectiveWallet = activePersona?.sui_address
+  || activePersona?.wallet_address
+  || suiAddress
+  || walletAddress;
+
+const username = activePersona?.username || activePersona?.display_name || null;
 ```
 
 ### Global Integration
-
-The widget registers global callbacks for mixer integration:
 
 ```typescript
 // Toggle visibility from Crate icon
@@ -179,19 +294,6 @@ The widget registers global callbacks for mixer integration:
     startActualRecording();
   }
 };
-```
-
-### User Attribution
-
-Recordings are attributed to the active persona:
-
-```typescript
-const effectiveWallet = activePersona?.wallet_address
-  || activePersona?.sui_address
-  || suiAddress
-  || walletAddress;
-
-const username = activePersona?.username || activePersona?.display_name || null;
 ```
 
 ---
@@ -218,23 +320,16 @@ const username = activePersona?.username || activePersona?.display_name || null;
 
 ```typescript
 export class PrecisionRecorder {
-  // Initialize: create AudioContext, load worklet, get mic stream
   async initialize(): Promise<void>;
-
-  // Start recording for exact duration
   async startRecording(config: RecordingConfig): Promise<RecordingResult>;
-
-  // Manual stop (if needed)
   stopRecording(): void;
-
-  // Clean up resources
   async cleanup(): Promise<void>;
 }
 
 interface RecordingConfig {
   bpm: number;
-  bars: number;    // Bars per cycle (always 8)
-  cycles: number;  // 1, 2, 4, or 8
+  bars: number;    // Always 8 (1 cycle)
+  cycles: number;  // Always 1 (for loop pack compatibility)
 }
 
 interface RecordingResult {
@@ -295,10 +390,10 @@ class RecordingProcessor extends AudioWorkletProcessor {
 **Request (FormData):**
 ```
 file: Blob              # WAV audio file
-walletAddress: string   # Uploader wallet address
-title: string           # Optional title (default: "Mic Recording")
-username: string        # Optional persona username for attribution
-cycleCount: string      # Number of cycles recorded
+walletAddress: string   # Uploader wallet address (SUI or STX)
+title: string           # Title (e.g., "Mic Recording 1")
+username: string        # Optional persona username for artist attribution
+cycleCount: string      # Number of cycles recorded (always "1")
 bpm: string             # BPM at time of recording
 packId: string          # Optional - for multi-take bundling
 ```
@@ -317,9 +412,9 @@ packId: string          # Optional - for multi-take bundling
     "is_draft": true,
     "pack_id": "uuid or null",
     "pack_position": 1,
-    "primary_uploader_wallet": "SP..."
+    "primary_uploader_wallet": "0x..."
   },
-  "packId": "uuid"  // For next take bundling
+  "packId": "uuid"
 }
 ```
 
@@ -328,50 +423,6 @@ packId: string          # Optional - for multi-take bundling
 ```
 Supabase Storage: user-content bucket
 Path: audio/drafts/draft-{wallet10chars}-{timestamp}.wav
-```
-
-### PATCH /api/drafts/save
-
-Converts first draft to a pack when second take is added:
-
-```json
-// Request
-{ "firstTrackId": "uuid", "walletAddress": "SP..." }
-
-// Response
-{ "success": true, "packId": "uuid" }
-```
-
----
-
-## Database Schema
-
-### ip_tracks Table (Draft Fields)
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `is_draft` | boolean | true for unsaved/unpublished recordings |
-| `pack_id` | uuid | Groups multi-take recordings together |
-| `pack_position` | integer | Order within pack (1, 2, 3...) |
-| `content_type` | text | 'loop' for individual, 'loop_pack' for bundle |
-| `primary_uploader_wallet` | text | Wallet address of recorder |
-| `bpm` | numeric | BPM at time of recording |
-
-### Draft Record Example
-
-```sql
-INSERT INTO ip_tracks (
-  id, title, artist, content_type, bpm, audio_url,
-  is_draft, primary_uploader_wallet, pack_id, pack_position,
-  composition_split_1_wallet, composition_split_1_percentage,
-  production_split_1_wallet, production_split_1_percentage
-) VALUES (
-  'abc-123', 'Mic Recording 1', 'tokyo-denpa', 'loop', 125,
-  'https://supabase.../audio/drafts/draft-SP1234...-1234567890.wav',
-  true, 'SP1234...', null, null,
-  'SP1234...', 100,  -- 100% composition to uploader
-  'SP1234...', 100   -- 100% production to uploader
-);
 ```
 
 ---
@@ -387,20 +438,20 @@ INSERT INTO ip_tracks (
 5. **Second track saved:** With `pack_id: firstTrackId`, `pack_position: 2`
 6. **Subsequent takes:** Increment `pack_position`
 
-### State Tracking in MicWidget
+### State Tracking
 
 ```typescript
 // Track current pack for bundling
 const [currentPackId, setCurrentPackId] = useState<string | null>(null);
 const [takeCount, setTakeCount] = useState(0);
 
-// After first save, store pack ID
+// After first save
 if (result.packId && !currentPackId) {
   setCurrentPackId(result.packId);
 }
 setTakeCount(prev => prev + 1);
 
-// On save, include pack ID if exists
+// On subsequent saves
 if (currentPackId) {
   formData.append('packId', currentPackId);
 }
@@ -409,17 +460,158 @@ if (currentPackId) {
 const startNewPack = () => {
   setCurrentPackId(null);
   setTakeCount(0);
+  setIsPackaged(false);
 };
 ```
 
-### Visual Feedback
+---
 
+## Packaging Takes into Loop Packs
+
+**Location:** `app/api/drafts/package/route.ts`
+
+### POST /api/drafts/package
+
+Packages 2-5 individual draft takes into a draft loop pack container.
+
+**Request:**
+```json
+{
+  "packId": "uuid",           // First track's ID (shared pack_id)
+  "walletAddress": "0x...",   // Owner's wallet address
+  "title": "Draft Loop Pack (4 takes)"  // Optional title
+}
 ```
-Take 1: "Save as Draft"
-Take 2: "Save as Draft (Take 2)" + "Take 2" badge in header
-Take 3: "Save as Draft (Take 3)" + "Take 3" badge
-...
-After save: "Record Another Take" or "New Session" buttons
+
+**Response:**
+```json
+{
+  "success": true,
+  "pack": {
+    "id": "new-uuid",
+    "title": "Draft Loop Pack (4 takes)",
+    "artist": "username",
+    "content_type": "loop_pack",
+    "bpm": 125,
+    "is_draft": true,
+    "trackCount": 4
+  },
+  "tracks": [
+    { "id": "uuid", "title": "Mic Recording 1", "pack_position": 1 },
+    { "id": "uuid", "title": "Mic Recording 2 - Take 2", "pack_position": 2 },
+    ...
+  ]
+}
+```
+
+### What Packaging Does
+
+1. Fetches all draft tracks with the given `pack_id`
+2. Validates: 2-5 tracks required
+3. Creates new `loop_pack` container record with:
+   - `content_type: 'loop_pack'`
+   - `is_draft: true`
+   - `audio_url`: First track's audio (as preview)
+   - 100% splits to uploader (default)
+4. Updates all child tracks to point to new container
+5. Returns pack info for crate display
+
+### UI in MicWidget
+
+```tsx
+{/* Package Button - shown when 2-5 takes saved */}
+{takeCount >= 2 && takeCount <= 5 && !isPackaged && (
+  <button
+    onClick={packageAsPack}
+    disabled={isPackaging}
+    className="w-full py-2 rounded-lg font-medium bg-[#A084F9] text-white"
+  >
+    {isPackaging ? 'Packaging...' : `Package as Loop Pack (${takeCount} takes)`}
+  </button>
+)}
+```
+
+---
+
+## Publishing Drafts
+
+**Location:** `app/api/drafts/publish/route.ts`
+
+### POST /api/drafts/publish
+
+**Request:**
+```json
+{
+  "trackId": "uuid",
+  "walletAddress": "0x..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "track": {
+    "id": "uuid",
+    "title": "My Loop Pack",
+    "content_type": "loop_pack",
+    "is_draft": false
+  }
+}
+```
+
+### What Publishing Does
+
+1. Verifies ownership (`primary_uploader_wallet` matches)
+2. Sets `is_draft: false` on the track
+3. If it's a pack (`loop_pack`, `ep`, `station_pack`): also publishes all child tracks
+4. Returns success
+
+### UI in Dashboard
+
+The Publish button appears in the hover overlay on draft cards:
+
+```tsx
+{/* Publish Button - for drafts in dashboard only */}
+{showEditControls && (track as any).is_draft && (
+  <button
+    onClick={handlePublishClick}
+    disabled={isPublishing}
+    className="absolute bottom-8 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wide animate-pulse"
+    style={{
+      backgroundColor: '#A084F9',
+      color: '#FFFFFF',
+      animation: isPublishing ? 'none' : 'pulse 2s ease-in-out infinite'
+    }}
+  >
+    {isPublishing ? 'Publishing...' : 'Publish'}
+  </button>
+)}
+```
+
+### Crate Update on Publish
+
+After publishing, the crate card updates automatically:
+
+```typescript
+// In handlePublishClick (CompactTrackCardWithFlip.tsx)
+
+// Fetch updated track data
+const { data: updatedTrack } = await supabase
+  .from('ip_tracks')
+  .select('*')
+  .eq('id', track.id)
+  .single();
+
+// Update the track in the crate
+if (updatedTrack && (window as any).updateInCollection) {
+  (window as any).updateInCollection(track.id, {
+    ...updatedTrack,
+    is_draft: false,
+    imageUrl: updatedTrack.cover_image_url,
+    audioUrl: updatedTrack.audio_url
+  });
+}
 ```
 
 ---
@@ -431,22 +623,25 @@ After save: "Record Another Take" or "New Session" buttons
 **Location:** `components/shared/Crate.tsx`
 
 ```typescript
-// Dashed border for drafts
+// Border thickness - thick for drafts and packs
+const getBorderThickness = (track: any) => {
+  if (track.is_draft) return 'border-4';
+  return isPack(track) ? 'border-4' : 'border-2';
+};
+
+// Border style - dashed for drafts
 const getBorderStyle = (track: any) => {
   return track.is_draft ? 'border-dashed' : 'border-solid';
 };
-
-// Applied to track thumbnail
-className={`${getBorderColor(track)} ${getBorderThickness(track)} ${getBorderStyle(track)}`}
 ```
 
-**Draft Badge (top-left corner):**
+**Draft Badge:**
 ```tsx
 {track.is_draft && (
   <div
-    className="absolute top-0.5 left-0.5 px-1 py-0.5 rounded text-[6px] font-bold uppercase"
+    className="absolute -top-1 -left-1 px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider z-20"
     style={{
-      backgroundColor: 'rgba(0, 0, 0, 0.85)',
+      backgroundColor: 'rgba(0, 0, 0, 0.95)',
       color: '#A084F9',
       border: '1px dashed #A084F9'
     }}
@@ -456,13 +651,56 @@ className={`${getBorderColor(track)} ${getBorderThickness(track)} ${getBorderSty
 )}
 ```
 
-### Account Page Styling
+**Take Number (for drafts without images):**
+```tsx
+{track.is_draft && track.title && (
+  <span className="text-white text-[10px] font-bold opacity-70">
+    {track.pack_position ? `Take ${track.pack_position}` :
+     track.title.match(/(\d+)/) ? `Take ${track.title.match(/(\d+)/)?.[1]}` : ''}
+  </span>
+)}
+```
 
-**Location:** `app/account/page.tsx`
+### Deck Styling
 
-- "Drafts" filter button with dashed border
-- Same dashed border on draft track cards
-- Drafts filter shows count: `Drafts (3)`
+**Location:** `components/mixer/compact/SimplifiedDeckCompact.tsx`
+
+```tsx
+{/* Gradient fallback for tracks without images */}
+{!currentTrack.imageUrl && (
+  <div
+    className="w-full h-full flex items-center justify-center"
+    style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+  >
+    <svg className="w-6 h-6 text-white opacity-50" ...>
+      {/* Music note icon */}
+    </svg>
+  </div>
+)}
+
+{/* Draft badge on deck */}
+{(currentTrack as any).is_draft && (
+  <div
+    className="absolute top-0.5 left-0.5 px-1 py-0.5 rounded text-[6px] font-bold uppercase tracking-wide pointer-events-none z-10"
+    style={{
+      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+      color: '#A084F9',
+      border: '1px dashed #A084F9'
+    }}
+  >
+    Draft
+  </div>
+)}
+```
+
+### Dashboard Styling
+
+**Location:** `components/cards/CompactTrackCardWithFlip.tsx`
+
+- Same dashed border pattern
+- "Draft" badge in top-left corner
+- Publish button with pulse animation (centered, bottom area of hover overlay)
+- Drafts filter in account page shows count
 
 ### Color Coding
 
@@ -471,37 +709,110 @@ className={`${getBorderColor(track)} ${getBorderThickness(track)} ${getBorderSty
 | Draft badge text | Lavender | #A084F9 |
 | Draft badge border | Lavender dashed | #A084F9 |
 | Draft card border | Content-type color, dashed | varies |
+| Publish button | Lavender | #A084F9 |
+| Gradient (no image) | Purple gradient | #667eea → #764ba2 |
+
+---
+
+## Database Schema
+
+### ip_tracks Table (Draft-Related Fields)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `is_draft` | boolean | `true` for unpublished recordings |
+| `pack_id` | uuid | Groups multi-take recordings together |
+| `pack_position` | integer | Order within pack (1, 2, 3...) |
+| `content_type` | text | `'loop'` for individual, `'loop_pack'` for bundle |
+| `primary_uploader_wallet` | text | SUI or STX wallet address of recorder |
+| `bpm` | numeric | BPM at time of recording |
+
+### Draft Record Example
+
+```sql
+-- Individual draft loop
+INSERT INTO ip_tracks (
+  id, title, artist, content_type, bpm, audio_url,
+  is_draft, primary_uploader_wallet, pack_id, pack_position,
+  composition_split_1_wallet, composition_split_1_percentage,
+  production_split_1_wallet, production_split_1_percentage
+) VALUES (
+  'abc-123', 'Mic Recording 1', 'fluffy-chick', 'loop', 125,
+  'https://supabase.../audio/drafts/draft-0x1234...-1234567890.wav',
+  true, '0x1234...', null, null,
+  '0x1234...', 100,
+  '0x1234...', 100
+);
+
+-- Draft loop pack container
+INSERT INTO ip_tracks (
+  id, title, artist, content_type, bpm, audio_url,
+  is_draft, primary_uploader_wallet
+) VALUES (
+  'pack-456', 'Draft Loop Pack', 'fluffy-chick', 'loop_pack', 125,
+  'https://supabase.../audio/drafts/draft-0x1234...-1234567890.wav',
+  true, '0x1234...'
+);
+
+-- Child tracks point to pack
+UPDATE ip_tracks SET pack_id = 'pack-456', pack_position = 1 WHERE id = 'abc-123';
+UPDATE ip_tracks SET pack_id = 'pack-456', pack_position = 2 WHERE id = 'def-456';
+```
 
 ---
 
 ## Integration Points
 
-### Mixer Context
+### MixerContext
 
 ```typescript
-// MixerContext provides crate management
-const { addTrackToCollection } = useMixer();
-
-// Add draft to crate after save
-addTrackToCollection(draftTrack);
+// Collection management
+const {
+  addTrackToCollection,      // Add draft to crate
+  updateTrackInCollection,   // Update after publish
+  removeTrackFromCollection,
+  clearCollection
+} = useMixer();
 ```
 
-### Auth Context
+### Global Window Functions
 
 ```typescript
-// AuthContext provides user info
+// Crate exposes these globally (Crate.tsx)
+(window as any).addToCollection = (track) => { ... };
+(window as any).updateInCollection = (trackId, updates) => { ... };
+(window as any).removeFromCollection = (trackId) => { ... };
+
+// MicWidget exposes these
+(window as any).toggleMicWidget = () => { ... };
+(window as any).onMixerLoopRestart = (deckId) => { ... };
+
+// Mixer exposes BPM
+(window as any).getMixerBPM = () => mixerState.masterBPM;
+```
+
+### AuthContext
+
+```typescript
+// User info for attribution
 const { walletAddress, suiAddress, isAuthenticated, activePersona } = useAuth();
 
-// Use persona for attribution
-const effectiveWallet = activePersona?.wallet_address || ...;
-const username = activePersona?.username || ...;
+// Effective wallet (SUI preferred for zkLogin)
+const effectiveWallet = activePersona?.sui_address
+  || activePersona?.wallet_address
+  || suiAddress
+  || walletAddress;
 ```
 
 ### Mixer Sync
 
 ```typescript
 // MicWidget registers callback
-(window as any).onMixerLoopRestart = (deckId) => { ... };
+(window as any).onMixerLoopRestart = (deckId) => {
+  if (recordingState === 'armed') {
+    startActualRecording();
+  }
+};
 
 // Mixer calls it on loop boundary (lib/mixerAudio.ts)
 if ((window as any).onMixerLoopRestart) {
@@ -509,79 +820,58 @@ if ((window as any).onMixerLoopRestart) {
 }
 ```
 
-### BPM Access
-
-```typescript
-// MicWidget gets BPM from mixer
-const bpm = (window as any).getMixerBPM?.() || 120;
-
-// Mixer exposes BPM (UniversalMixer.tsx)
-(window as any).getMixerBPM = () => mixerState.masterBPM;
-```
-
 ---
 
 ## Testing Checklist
 
-### Single Recording
-
+### Recording
 - [ ] Arm recording while mixer is playing
 - [ ] Recording starts on loop boundary
-- [ ] Recording auto-stops at correct duration
+- [ ] Recording auto-stops at 8 bars
 - [ ] Preview plays correctly
 - [ ] Download produces valid WAV
 - [ ] Draft saves to Supabase
-- [ ] Draft appears in Crate with badge
-- [ ] Draft has dashed border
+
+### Draft Display
+- [ ] Draft appears in Crate with dashed border
+- [ ] Draft shows "Draft" badge
+- [ ] Draft shows "Take X" label (when no image)
 - [ ] Draft can be dragged to mixer deck
+- [ ] Deck shows gradient + "Draft" badge for drafts
 - [ ] Draft syncs properly when played
 
-### Multi-Take Bundling
-
+### Multi-Take
 - [ ] First take saves normally
 - [ ] "Take 2" badge appears
 - [ ] Second take bundles with first (same pack_id)
 - [ ] Both takes appear in Crate
 - [ ] Pack position increments correctly
 - [ ] "New Session" resets pack tracking
-- [ ] Pack appears correctly in Account page
+
+### Packaging
+- [ ] Package button appears at 2+ takes
+- [ ] Package button hidden at 5+ takes
+- [ ] Packaging creates loop_pack container
+- [ ] Child tracks point to container
+- [ ] Pack appears in Crate
+- [ ] Pack has correct content_type
+
+### Publishing
+- [ ] Edit modal opens for draft
+- [ ] Metadata can be added (title, artwork, etc.)
+- [ ] Publish button visible on draft cards
+- [ ] Confirmation dialog appears
+- [ ] Track publishes successfully
+- [ ] Crate card updates (artwork, no draft badge)
+- [ ] Track visible on store/globe
 
 ### Edge Cases
-
 - [ ] Recording without mixer playing shows error
 - [ ] Recording without mic permission shows helpful message
 - [ ] Canceling armed state works
 - [ ] Stopping during recording works
 - [ ] Discarding unsaved recording resets state
 - [ ] Network error during save shows error message
-
----
-
-## Known Issues & TODOs
-
-### TODO: Loop Pack Scenario
-Multi-take bundling is implemented but needs testing:
-- Verify pack_id is correctly shared between takes
-- Verify PATCH endpoint converts first track properly
-- Verify pack displays correctly in Account page
-
-### TODO: Draft Styling in Crate
-User reported Crate may not show draft styling consistently:
-- Verify `is_draft` flag is present on track data
-- Verify dashed border is rendering
-- Compare with Account page styling
-
-### TODO: Draft Publishing
-No UI yet for:
-- Converting draft to published track
-- Setting metadata (title, tags, etc.)
-- Setting collaboration splits
-- Finalizing and removing draft status
-
-### TODO: Draft Deletion
-- Add delete button to draft cards in Crate
-- Soft delete (set `is_deleted: true`)
-- Confirm dialog before deletion
 
 ---
 
@@ -613,6 +903,6 @@ data chunk
 
 ---
 
-*Documentation created January 21, 2026*
+*Documentation updated January 23, 2026*
 *For: mixmi alpha platform*
 *Authors: Sandy Hoover + Claude Code*
