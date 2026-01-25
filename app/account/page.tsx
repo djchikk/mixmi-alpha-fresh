@@ -48,6 +48,10 @@ interface Track {
   download_price_stx?: number;
   pack_id?: string;
   pack_position?: number;
+  // Audio Enhancement
+  enhanced_audio_url?: string;
+  enhancement_type?: 'auto' | 'voice' | 'clean' | 'warm' | 'studio' | 'punchy';
+  enhancement_applied_at?: string;
 }
 
 interface ContentFilter {
@@ -940,9 +944,21 @@ const getLibraryBorderThickness = (track: Track) => {
             setEditingTrack(null);
             onRefresh();
           }}
-          onEnhancementRemoved={(trackId) => {
-            console.log('Enhancement removed:', trackId);
-            // TODO: In Phase 2, this will update the database
+          onEnhancementRemoved={async (trackId) => {
+            console.log('Removing enhancement:', trackId);
+            try {
+              const response = await fetch('/api/enhance/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trackId }),
+              });
+              if (!response.ok) {
+                const error = await response.json();
+                console.error('Failed to remove enhancement:', error);
+              }
+            } catch (error) {
+              console.error('Error removing enhancement:', error);
+            }
             setIsEnhanceModalOpen(false);
             setEditingTrack(null);
             onRefresh();

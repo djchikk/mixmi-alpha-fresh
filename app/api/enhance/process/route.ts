@@ -16,9 +16,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-type EnhancementType = 'auto' | 'voice' | 'clean' | 'warm' | 'studio';
+type EnhancementType = 'auto' | 'voice' | 'clean' | 'warm' | 'studio' | 'punchy';
 
-const VALID_TYPES: EnhancementType[] = ['auto', 'voice', 'clean', 'warm', 'studio'];
+const VALID_TYPES: EnhancementType[] = ['auto', 'voice', 'clean', 'warm', 'studio', 'punchy'];
 
 export async function POST(request: NextRequest) {
   console.log('🎛️ Enhancement process endpoint hit');

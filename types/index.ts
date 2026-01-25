@@ -159,9 +159,9 @@ export interface IPTrack {
   // Draft system (for mic recordings)
   is_draft?: boolean; // True for mic recordings that haven't been finalized
 
-  // Audio Enhancement (Auphonic)
+  // Audio Enhancement (FFmpeg)
   enhanced_audio_url?: string; // URL to enhanced version in Supabase Storage
-  enhancement_type?: 'auto' | 'voice' | 'clean' | 'warm' | 'studio'; // Type of enhancement applied
+  enhancement_type?: 'auto' | 'voice' | 'clean' | 'warm' | 'studio' | 'punchy'; // Type of enhancement applied
   enhancement_applied_at?: string; // ISO timestamp when enhancement was applied
   enhancement_auphonic_uuid?: string; // Reference to Auphonic production UUID
 

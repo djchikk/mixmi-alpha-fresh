@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Play, Pause, Sparkles, Volume2, Loader2 } from 'lucide-react';
 
 // Enhancement types available
-type EnhancementType = 'auto' | 'voice' | 'clean' | 'warm' | 'studio';
+type EnhancementType = 'auto' | 'voice' | 'clean' | 'warm' | 'studio' | 'punchy';
 
 // Modal states
 type ModalState = 'select' | 'processing' | 'preview';
@@ -59,6 +59,12 @@ const ENHANCEMENT_OPTIONS: {
     name: 'Studio Master',
     description: 'Full professional mastering treatment',
     icon: '🎚️',
+  },
+  {
+    type: 'punchy',
+    name: 'Punchy',
+    description: 'Crisp transients with sub-bass boost',
+    icon: '💥',
   },
 ];
 
