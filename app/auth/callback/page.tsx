@@ -91,6 +91,7 @@ export default function AuthCallbackPage() {
         setStatusMessage('Verifying credentials...');
         // Must use extended format for the prover
         const extendedEphemeralPublicKey = getExtendedEphemeralPublicKey(ephemeralKeyPair.getPublicKey());
+        console.log('🔐 Using EXTENDED ephemeral public key (length:', extendedEphemeralPublicKey.length, ')');
 
         const zkProof = await getZkProof(
           jwt,
