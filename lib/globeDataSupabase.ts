@@ -18,6 +18,7 @@ function generateNullIslandCoordinates(): { lat: number; lng: number } {
 
 // Convert IP tracks to globe nodes
 export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
+  // Convert IP track to TrackNode format for globe display
   // Check if we have multiple locations
   if (track.locations && Array.isArray(track.locations) && track.locations.length > 0) {
     // Create a node for each location
