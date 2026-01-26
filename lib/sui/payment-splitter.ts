@@ -126,6 +126,11 @@ export async function buildSplitPaymentTransaction({
   };
 }
 
+export interface SplitPaymentForSponsorshipResult {
+  tx: Transaction;
+  kindBytes: Uint8Array;
+}
+
 /**
  * Build a transaction for sponsorship (without gas info)
  *
@@ -136,7 +141,7 @@ export async function buildSplitPaymentForSponsorship({
   senderAddress,
   recipients,
   network,
-}: SplitPaymentParams): Promise<Uint8Array> {
+}: SplitPaymentParams): Promise<SplitPaymentForSponsorshipResult> {
   if (recipients.length === 0) {
     throw new Error('No recipients provided');
   }
@@ -184,7 +189,7 @@ export async function buildSplitPaymentForSponsorship({
     onlyTransactionKind: true,
   });
 
-  return kindBytes;
+  return { tx, kindBytes };
 }
 
 /**

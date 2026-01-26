@@ -5,11 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { getZkLoginSession } from '@/lib/zklogin/session';
 import { getZkLoginSignature } from '@mysten/sui/zklogin';
-import { Transaction } from '@mysten/sui/transactions';
 import {
-  getSuiClient,
   getCurrentNetwork,
-  getUsdcType,
   usdcToUnits,
   getUsdcCoins,
   buildSplitPaymentForSponsorship,
@@ -177,11 +174,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           // Direct payment
           const existing = recipients.find(r => r.address === split.suiAddress);
           if (existing) {
-            existing.amount += amount;
+            existing.amountUsdc += amount;
           } else {
             recipients.push({
               address: split.suiAddress,
-              amount,
+              amountUsdc: amount,
               label: split.name || split.wallet || 'Collaborator',
             });
           }
@@ -207,11 +204,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           // Direct payment
           const existing = recipients.find(r => r.address === split.suiAddress);
           if (existing) {
-            existing.amount += amount;
+            existing.amountUsdc += amount;
           } else {
             recipients.push({
               address: split.suiAddress,
-              amount,
+              amountUsdc: amount,
               label: split.name || split.wallet || 'Collaborator',
             });
           }
@@ -235,11 +232,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         for (const treasury of treasuryAmounts.filter(t => t.accountId === track.uploaderAccountId)) {
           const existing = recipients.find(r => r.address === track.uploaderSuiAddress);
           if (existing) {
-            existing.amount += treasury.amount;
+            existing.amountUsdc += treasury.amount;
           } else {
             recipients.push({
               address: track.uploaderSuiAddress,
-              amount: treasury.amount,
+              amountUsdc: treasury.amount,
               label: 'Treasury (held for collaborators)',
             });
           }
@@ -253,7 +250,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (platformAddress) {
         recipients.push({
           address: platformAddress,
-          amount: platformTotal,
+          amountUsdc: platformTotal,
           label: 'Platform',
         });
       }
@@ -267,8 +264,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // 3. Check USDC balance
     const network = getCurrentNetwork();
-    const client = getSuiClient(network);
-    const coins = await getUsdcCoins(client, suiAddress, network);
+    const coins = await getUsdcCoins(suiAddress, network);
 
     const totalUsdc = cart.reduce((sum, item) => sum + item.price_usdc, 0);
     const totalUnits = usdcToUnits(totalUsdc);

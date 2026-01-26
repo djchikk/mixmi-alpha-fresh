@@ -30,6 +30,7 @@ export {
   type PaymentRecipient,
   type SplitPaymentParams,
   type SplitPaymentResult,
+  type SplitPaymentForSponsorshipResult,
   type AggregatedPayment,
 } from './payment-splitter';
 
