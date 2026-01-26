@@ -136,6 +136,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     console.log('💎 [SUI] Session maxEpoch:', zkSession.maxEpoch, '| Session created:', new Date(zkSession.createdAt).toISOString());
     console.log('💎 [SUI] Cart items:', cart.length);
 
+    // Check current epoch vs session maxEpoch
+    try {
+      const epochResponse = await fetch(`https://fullnode.${process.env.NEXT_PUBLIC_SUI_NETWORK || 'testnet'}.sui.io:443`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'suix_getLatestSuiSystemState',
+          params: [],
+        }),
+      });
+      const epochData = await epochResponse.json();
+      const currentEpoch = Number(epochData.result?.epoch || 0);
+      console.log('💎 [SUI] Current epoch:', currentEpoch, '| Session maxEpoch:', zkSession.maxEpoch, '| Valid:', currentEpoch < zkSession.maxEpoch);
+      if (currentEpoch >= zkSession.maxEpoch) {
+        throw new Error(`Session expired. Current epoch ${currentEpoch} >= maxEpoch ${zkSession.maxEpoch}. Please sign out and sign in again.`);
+      }
+    } catch (epochErr) {
+      if (epochErr instanceof Error && epochErr.message.includes('Session expired')) {
+        throw epochErr;
+      }
+      console.warn('💎 [SUI] Could not check epoch:', epochErr);
+    }
+
     // 1. Resolve payment recipients for all tracks
     const trackIds = cart.map(item => item.id);
     console.log('💎 [SUI] Resolving recipients for tracks:', trackIds);
@@ -312,10 +337,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // 6. Sign with zkLogin
     const txBytesBuffer = Buffer.from(txBytes, 'base64');
 
+    // Debug: Log session details
+    console.log('🔐 [zkLogin] Session details at sign time:', {
+      maxEpoch: zkSession.maxEpoch,
+      sessionCreated: new Date(zkSession.createdAt).toISOString(),
+      ephemeralPubKey: zkSession.ephemeralKeyPair.getPublicKey().toBase64(),
+    });
+
     // Sign with ephemeral keypair
     const ephemeralSignature = await zkSession.ephemeralKeyPair.signTransaction(
       new Uint8Array(txBytesBuffer)
     );
+    console.log('🔐 [zkLogin] Ephemeral signature created:', ephemeralSignature.signature.substring(0, 50) + '...');
 
     // Decode JWT to get claims for addressSeed computation
     const jwtPayload = JSON.parse(atob(zkSession.jwt.split('.')[1]));
@@ -331,12 +364,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     console.log('🔐 [zkLogin] Computed addressSeed:', addressSeed.substring(0, 20) + '...');
 
     // Combine with zkProof to create zkLogin signature
-    console.log('🔐 [zkLogin] zkProof structure:', {
-      hasProofPoints: !!zkSession.zkProof?.proofPoints,
-      hasIssBase64Details: !!zkSession.zkProof?.issBase64Details,
-      hasHeaderBase64: !!zkSession.zkProof?.headerBase64,
-      maxEpoch: zkSession.maxEpoch,
-      addressSeed: addressSeed.substring(0, 20) + '...',
+    console.log('🔐 [zkLogin] Full debug info:', {
+      zkProof: {
+        hasProofPoints: !!zkSession.zkProof?.proofPoints,
+        proofPointsA: zkSession.zkProof?.proofPoints?.a?.length,
+        proofPointsB: zkSession.zkProof?.proofPoints?.b?.length,
+        proofPointsC: zkSession.zkProof?.proofPoints?.c?.length,
+        hasIssBase64Details: !!zkSession.zkProof?.issBase64Details,
+        issValue: zkSession.zkProof?.issBase64Details?.value?.substring(0, 30) + '...',
+        indexMod4: zkSession.zkProof?.issBase64Details?.indexMod4,
+        hasHeaderBase64: !!zkSession.zkProof?.headerBase64,
+        headerBase64: zkSession.zkProof?.headerBase64?.substring(0, 30) + '...',
+      },
+      session: {
+        maxEpoch: zkSession.maxEpoch,
+        salt: zkSession.salt?.substring(0, 20) + '...',
+        suiAddress: zkSession.suiAddress,
+      },
+      computed: {
+        addressSeed: addressSeed.substring(0, 30) + '...',
+        jwtSub: jwtPayload.sub,
+        jwtAud: aud,
+      },
     });
     const userSignature = getZkLoginSignature({
       inputs: {
