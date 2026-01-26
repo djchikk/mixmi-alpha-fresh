@@ -8,6 +8,7 @@ import {
   deriveSuiAddress,
   deserializeKeyPair,
 } from '@/lib/zklogin';
+import { getExtendedEphemeralPublicKey } from '@mysten/sui/zklogin';
 import {
   getPendingZkLogin,
   storeZkLoginSession,
@@ -88,11 +89,12 @@ export default function AuthCallbackPage() {
         console.log('🔐 Step 6: Getting ZK proof from Mysten Labs prover...');
         // Step 6: Get ZK proof from Mysten Labs prover
         setStatusMessage('Verifying credentials...');
-        const ephemeralPublicKey = ephemeralKeyPair.getPublicKey().toBase64();
+        // Must use extended format for the prover
+        const extendedEphemeralPublicKey = getExtendedEphemeralPublicKey(ephemeralKeyPair.getPublicKey());
 
         const zkProof = await getZkProof(
           jwt,
-          ephemeralPublicKey,
+          extendedEphemeralPublicKey,
           pending.maxEpoch,
           pending.randomness,
           salt
