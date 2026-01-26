@@ -131,6 +131,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     console.log('💎 [SUI] Starting SUI purchase flow...');
+    console.log('💎 [SUI] Network:', process.env.NEXT_PUBLIC_SUI_NETWORK || 'not set (defaulting to testnet)');
     console.log('💎 [SUI] Buyer address:', suiAddress);
     console.log('💎 [SUI] Cart items:', cart.length);
 

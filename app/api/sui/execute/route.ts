@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const network = getCurrentNetwork();
+    console.log('💎 [Execute] Network:', network, '| Env var:', process.env.NEXT_PUBLIC_SUI_NETWORK);
 
     // Execute the transaction
     const result = await executeSponsoredTransaction(
