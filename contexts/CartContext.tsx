@@ -83,8 +83,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const exists = cart.some(item => item.id === track.id);
     if (!exists) {
       // Use USDC price (new model) or convert from STX (legacy)
-      const downloadPriceUsdc = track.download_price_usdc ?? track.price_usdc ?? 2.00;
-      const downloadPriceStx = track.download_price_stx ?? track.price_stx ?? 2.5;
+      // Parse as float to handle string values from database
+      const rawPriceUsdc = track.download_price_usdc ?? track.price_usdc;
+      const downloadPriceUsdc = rawPriceUsdc != null ? parseFloat(rawPriceUsdc) : 2.00;
+      const rawPriceStx = track.download_price_stx ?? track.price_stx;
+      const downloadPriceStx = rawPriceStx != null ? parseFloat(rawPriceStx) : 2.5;
 
       console.log('🛒 Adding to cart:', {
         id: track.id,
