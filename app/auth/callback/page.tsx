@@ -90,8 +90,14 @@ export default function AuthCallbackPage() {
         // Step 6: Get ZK proof from Mysten Labs prover
         setStatusMessage('Verifying credentials...');
         // Must use extended format for the prover
+        const rawPubKey = ephemeralKeyPair.getPublicKey().toBase64();
         const extendedEphemeralPublicKey = getExtendedEphemeralPublicKey(ephemeralKeyPair.getPublicKey());
-        console.log('🔐 Using EXTENDED ephemeral public key (length:', extendedEphemeralPublicKey.length, ')');
+        console.log('🔐 Ephemeral key details:', {
+          rawPubKey: rawPubKey,
+          extendedPubKey: extendedEphemeralPublicKey,
+          rawLength: rawPubKey.length,
+          extendedLength: extendedEphemeralPublicKey.length,
+        });
 
         const zkProof = await getZkProof(
           jwt,
