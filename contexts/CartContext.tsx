@@ -133,6 +133,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     console.log('💎 [SUI] Starting SUI purchase flow...');
     console.log('💎 [SUI] Network:', process.env.NEXT_PUBLIC_SUI_NETWORK || 'not set (defaulting to testnet)');
     console.log('💎 [SUI] Buyer address:', suiAddress);
+    console.log('💎 [SUI] Session maxEpoch:', zkSession.maxEpoch, '| Session created:', new Date(zkSession.createdAt).toISOString());
     console.log('💎 [SUI] Cart items:', cart.length);
 
     // 1. Resolve payment recipients for all tracks
@@ -330,6 +331,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     console.log('🔐 [zkLogin] Computed addressSeed:', addressSeed.substring(0, 20) + '...');
 
     // Combine with zkProof to create zkLogin signature
+    console.log('🔐 [zkLogin] zkProof structure:', {
+      hasProofPoints: !!zkSession.zkProof?.proofPoints,
+      hasIssBase64Details: !!zkSession.zkProof?.issBase64Details,
+      hasHeaderBase64: !!zkSession.zkProof?.headerBase64,
+      maxEpoch: zkSession.maxEpoch,
+      addressSeed: addressSeed.substring(0, 20) + '...',
+    });
     const userSignature = getZkLoginSignature({
       inputs: {
         ...zkSession.zkProof,
