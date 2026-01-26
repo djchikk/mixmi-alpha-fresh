@@ -39,6 +39,9 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
       description: track.description,
       license: track.license,
       price_stx: track.price_stx,
+      price_usdc: track.price_usdc,
+      download_price_stx: track.download_price_stx,
+      download_price_usdc: track.download_price_usdc,
       bpm: track.bpm,
       // Add aggregation support fields
       uploaderAddress: track.uploader_address || track.primary_uploader_wallet,
@@ -97,6 +100,9 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     description: track.description,
     license: track.license,
     price_stx: track.price_stx,
+    price_usdc: track.price_usdc,
+    download_price_stx: track.download_price_stx,
+    download_price_usdc: track.download_price_usdc,
     bpm: track.bpm,
     // Add aggregation support fields
     uploaderAddress: track.uploader_address || track.primary_uploader_wallet,

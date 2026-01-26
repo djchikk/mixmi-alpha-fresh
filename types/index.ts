@@ -108,8 +108,10 @@ export interface IPTrack {
 
   // Pricing fields
   price_stx?: number; // Legacy combined price (kept for backward compatibility)
+  price_usdc?: number; // USDC price (primary pricing model)
   remix_price_stx?: number; // Price to use this loop in a remix (default 1 STX per loop, 0 for free)
   download_price_stx?: number; // Price to download the audio file (NULL if downloads not available)
+  download_price_usdc?: number; // Price to download in USDC (primary pricing model)
   allow_downloads?: boolean; // Whether this track can be downloaded (separate from remix rights)
   
   // Composition Splits (up to 3 owners)
