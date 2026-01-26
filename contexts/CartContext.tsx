@@ -317,12 +317,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // Decode JWT to get claims for addressSeed computation
     const jwtPayload = JSON.parse(atob(zkSession.jwt.split('.')[1]));
+    // Handle aud being either string or array
+    const aud = Array.isArray(jwtPayload.aud) ? jwtPayload.aud[0] : jwtPayload.aud;
+    console.log('🔐 [zkLogin] JWT claims for addressSeed:', { sub: jwtPayload.sub, aud, salt: zkSession.salt.substring(0, 10) + '...' });
     const addressSeed = genAddressSeed(
       BigInt(zkSession.salt),
       'sub',
       jwtPayload.sub,
-      jwtPayload.aud
+      aud
     ).toString();
+    console.log('🔐 [zkLogin] Computed addressSeed:', addressSeed.substring(0, 20) + '...');
 
     // Combine with zkProof to create zkLogin signature
     const userSignature = getZkLoginSignature({

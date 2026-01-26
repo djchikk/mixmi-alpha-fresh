@@ -27,6 +27,9 @@ const PROVER_URL = SUI_NETWORK === 'mainnet'
   ? 'https://prover.mystenlabs.com/v1'
   : 'https://prover-dev.mystenlabs.com/v1';
 
+// Debug: Log network configuration on load
+console.log('🔧 [zkLogin] Network config:', { SUI_NETWORK, PROVER_URL });
+
 // Salt service (we'll use our own API)
 const SALT_SERVICE_URL = '/api/auth/zklogin/salt';
 
