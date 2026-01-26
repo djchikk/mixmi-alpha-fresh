@@ -471,6 +471,8 @@ See `docs/agent-synonym-system.md` for detailed documentation.
 
 **Manager Wallet System:** December 29, 2025 - Each persona gets its own SUI wallet for real on-chain accounting.
 
+**Audio Enhancement:** January 26, 2026 - FFmpeg-based audio processing via Fly.io worker with 6 presets.
+
 ---
 
 ## Manager Wallet System (December 2025)
@@ -516,3 +518,90 @@ payout_address TEXT,           -- Optional external payout address
 John in Nairobi manages accounts for his cousin Mary (musician) and friend Peter (producer). Each has their own wallet, John handles technical side, sends payouts via M-Pesa.
 
 See `docs/manager-wallet-system.md` for full documentation.
+
+---
+
+## Audio Enhancement System (January 2026)
+
+### Overview
+"Instagram filters for audio" - users can enhance loops and songs with FFmpeg processing. Accessible via Edit Options modal on content cards in the dashboard.
+
+### Architecture
+```
+User clicks "Enhance Sound" in Edit Options
+     ↓
+EnhanceSoundModal (select preset)
+     ↓
+POST /api/enhance/process
+     ↓
+Fly.io Worker (mixmi-audio-worker)
+     ↓
+FFmpeg processing (denoise, compress, EQ, normalize)
+     ↓
+Upload to Supabase Storage (audio/enhanced/)
+     ↓
+Update ip_tracks record
+     ↓
+A/B preview in modal → Apply or Try Different
+```
+
+### Enhancement Presets
+| Preset | Description | Use Case |
+|--------|-------------|----------|
+| `auto` | Balanced enhancement with compression + loudnorm | General purpose |
+| `voice` | Optimized for vocals, stronger denoising | Spoken word, vocals |
+| `clean` | Minimal processing, denoise + normalize only | Already good recordings |
+| `warm` | Low-end richness with gentle compression | Acoustic, ambient |
+| `studio` | Full mastering chain with multi-band EQ | Professional finish |
+| `punchy` | Crisp transients + sub-bass boost | Beats, electronic |
+
+### FFmpeg Filter Chains
+All presets include `afftdn` (FFT-based denoiser) and `loudnorm` (loudness normalization).
+
+```javascript
+// Example: punchy preset
+'highpass=f=60,afftdn=nf=-25:nr=10,crystalizer=i=2,asubboost=dry=0.7:wet=0.3:decay=0.5:feedback=0.4:cutoff=100,compand=attacks=0.1:decays=0.4:points=-80/-80|-45/-45|-27/-20|0/-8,loudnorm=I=-12:TP=-1:LRA=9'
+```
+
+### Database Fields (ip_tracks)
+```sql
+enhanced_audio_url TEXT,        -- URL to enhanced WAV in Supabase Storage
+enhancement_type TEXT,          -- auto, voice, clean, warm, studio, punchy
+enhancement_applied_at TIMESTAMPTZ  -- When enhancement was applied
+```
+
+### Key Files
+
+**Main App (mixmi-alpha-fresh):**
+- `components/modals/EnhanceSoundModal.tsx` - Modal with A/B player
+- `components/modals/EditOptionsModal.tsx` - Entry point ("Enhance Sound" button)
+- `app/api/enhance/process/route.ts` - Calls worker, uploads to Supabase, updates DB
+- `app/api/enhance/remove/route.ts` - Clears enhancement fields, deletes file
+- `types/index.ts` - IPTrack interface with enhancement fields
+
+**Audio Worker (separate repo: mixmi-audio-worker):**
+- `index.js` - Fastify server with FFmpeg processing
+- `Dockerfile` - Node 20 + FFmpeg via apt
+- `fly.toml` - Fly.io deployment config (LAX region, 1GB RAM)
+
+### A/B Player Implementation
+Uses dual Audio elements playing simultaneously with muted state toggling for instant comparison:
+```typescript
+// Both audio elements play at same time
+originalAudio.muted = playingEnhanced;
+enhancedAudio.muted = !playingEnhanced;
+// Toggle swaps muted state instantly - no loading delay
+```
+
+### Deployment
+
+**Main app:** Auto-deploys via Vercel on push to main
+
+**Audio worker:**
+```bash
+cd mixmi-audio-worker
+fly deploy
+```
+
+### Storage Path
+Enhanced files stored at: `user-content/audio/enhanced/enhanced-{wallet}-{trackId}-{timestamp}.wav`
