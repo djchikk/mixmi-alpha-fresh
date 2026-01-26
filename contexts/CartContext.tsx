@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { getZkLoginSession } from '@/lib/zklogin/session';
-import { getZkLoginSignature } from '@mysten/sui/zklogin';
+import { getZkLoginSignature, genAddressSeed } from '@mysten/sui/zklogin';
 import {
   getCurrentNetwork,
   usdcToUnits,
@@ -315,11 +315,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       new Uint8Array(txBytesBuffer)
     );
 
+    // Decode JWT to get claims for addressSeed computation
+    const jwtPayload = JSON.parse(atob(zkSession.jwt.split('.')[1]));
+    const addressSeed = genAddressSeed(
+      BigInt(zkSession.salt),
+      'sub',
+      jwtPayload.sub,
+      jwtPayload.aud
+    ).toString();
+
     // Combine with zkProof to create zkLogin signature
     const userSignature = getZkLoginSignature({
       inputs: {
         ...zkSession.zkProof,
-        addressSeed: zkSession.salt,
+        addressSeed,
       },
       maxEpoch: zkSession.maxEpoch,
       userSignature: ephemeralSignature.signature,
