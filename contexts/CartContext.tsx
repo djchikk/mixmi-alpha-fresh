@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { getZkLoginSession } from '@/lib/zklogin/session';
-import { getZkLoginSignature, genAddressSeed, getExtendedEphemeralPublicKey } from '@mysten/sui/zklogin';
+import { getZkLoginSignature, genAddressSeed, getExtendedEphemeralPublicKey, jwtToAddress } from '@mysten/sui/zklogin';
 import {
   getCurrentNetwork,
   usdcToUnits,
@@ -393,43 +393,53 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Handle aud being either string or array
     const aud = Array.isArray(jwtPayload.aud) ? jwtPayload.aud[0] : jwtPayload.aud;
     console.log('🔐 [zkLogin] JWT claims for addressSeed:', { sub: jwtPayload.sub, aud, salt: zkSession.salt, saltLength: zkSession.salt?.length });
+
+    // Verify that our derived address matches the session address
+    const derivedAddress = jwtToAddress(zkSession.jwt, zkSession.salt);
+    console.log('🔐 [zkLogin] Address verification:');
+    console.log('🔐 [zkLogin]   Derived from JWT+salt:', derivedAddress);
+    console.log('🔐 [zkLogin]   Session suiAddress:', zkSession.suiAddress);
+    console.log('🔐 [zkLogin]   Addresses MATCH:', derivedAddress === zkSession.suiAddress ? '✅ YES' : '❌ NO');
+
+    if (derivedAddress !== zkSession.suiAddress) {
+      console.error('🔐 [zkLogin] CRITICAL: Address mismatch! Salt or JWT may be incorrect.');
+    }
+
     const addressSeed = genAddressSeed(
       BigInt(zkSession.salt),
       'sub',
       jwtPayload.sub,
       aud
     ).toString();
-    console.log('🔐 [zkLogin] Computed addressSeed:', addressSeed.substring(0, 20) + '...');
+    console.log('🔐 [zkLogin] Computed addressSeed:', addressSeed);
 
     // Combine with zkProof to create zkLogin signature
-    console.log('🔐 [zkLogin] Full debug info:', {
-      zkProof: {
-        hasProofPoints: !!zkSession.zkProof?.proofPoints,
-        proofPointsA: zkSession.zkProof?.proofPoints?.a?.length,
-        proofPointsB: zkSession.zkProof?.proofPoints?.b?.length,
-        proofPointsC: zkSession.zkProof?.proofPoints?.c?.length,
-        hasIssBase64Details: !!zkSession.zkProof?.issBase64Details,
-        issValue: zkSession.zkProof?.issBase64Details?.value?.substring(0, 30) + '...',
-        indexMod4: zkSession.zkProof?.issBase64Details?.indexMod4,
-        hasHeaderBase64: !!zkSession.zkProof?.headerBase64,
-        headerBase64: zkSession.zkProof?.headerBase64?.substring(0, 30) + '...',
-      },
-      session: {
-        maxEpoch: zkSession.maxEpoch,
-        salt: zkSession.salt?.substring(0, 20) + '...',
-        suiAddress: zkSession.suiAddress,
-      },
-      computed: {
-        addressSeed: addressSeed.substring(0, 30) + '...',
-        jwtSub: jwtPayload.sub,
-        jwtAud: aud,
-      },
-    });
+    // Log the EXACT inputs being passed to getZkLoginSignature
+    const zkLoginInputs = {
+      ...zkSession.zkProof,
+      addressSeed,
+    };
+
+    console.log('🔐 [zkLogin] ========== getZkLoginSignature INPUTS ==========');
+    console.log('🔐 [zkLogin] Full zkProof structure:', JSON.stringify(zkSession.zkProof, null, 2));
+    console.log('🔐 [zkLogin] addressSeed:', addressSeed);
+    console.log('🔐 [zkLogin] maxEpoch:', zkSession.maxEpoch);
+    console.log('🔐 [zkLogin] userSignature (ephemeral):', ephemeralSignatureStr.substring(0, 80) + '...');
+    console.log('🔐 [zkLogin] =====================================================');
+
+    // Validate zkProof structure
+    if (!zkSession.zkProof?.proofPoints?.a || !zkSession.zkProof?.proofPoints?.b || !zkSession.zkProof?.proofPoints?.c) {
+      throw new Error('Invalid zkProof: missing proofPoints');
+    }
+    if (!zkSession.zkProof?.issBase64Details?.value || zkSession.zkProof?.issBase64Details?.indexMod4 === undefined) {
+      throw new Error('Invalid zkProof: missing issBase64Details');
+    }
+    if (!zkSession.zkProof?.headerBase64) {
+      throw new Error('Invalid zkProof: missing headerBase64');
+    }
+
     const userSignature = getZkLoginSignature({
-      inputs: {
-        ...zkSession.zkProof,
-        addressSeed,
-      },
+      inputs: zkLoginInputs,
       maxEpoch: zkSession.maxEpoch,
       userSignature: ephemeralSignatureStr,
     });
