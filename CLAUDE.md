@@ -605,3 +605,50 @@ fly deploy
 
 ### Storage Path
 Enhanced files stored at: `user-content/audio/enhanced/enhanced-{wallet}-{trackId}-{timestamp}.wav`
+
+---
+
+## Day Pass Streaming System (January 2026)
+
+### Overview
+$1 USDC for 24 hours of unlimited full-song streaming. Every play is logged for credit-based revenue distribution to creators.
+
+### How It Works
+1. User purchases day pass via zkLogin + sponsored SUI transaction
+2. Full songs unlock (no 20-second preview limit)
+3. Every play logged with credits (songs=5, loops=1)
+4. When pass expires, $1 distributed to creators proportionally
+
+### Database Tables
+| Table | Purpose |
+|-------|---------|
+| `day_passes` | Purchased passes (status: pending→active→expired→distributed) |
+| `day_pass_plays` | Logged plays for revenue distribution (with credits) |
+| `preview_plays` | Analytics for 20-second previews (non-paying listeners) |
+
+### Credit System
+| Content Type | Credits |
+|--------------|---------|
+| full_song | 5 |
+| ep | 5 |
+| loop_pack | 5 |
+| loop | 1 |
+
+**Formula:** `Creator Earnings = (Creator's Credits ÷ Total Credits) × $1`
+
+### Key Files
+- `lib/dayPass.ts` - Client utilities, constants
+- `components/SimplePlaylistPlayer.tsx` - Playlist with day pass integration
+- `components/playlist/DayPassPurchaseModal.tsx` - Purchase flow
+- `app/api/day-pass/purchase/route.ts` - Create/confirm purchase
+- `app/api/day-pass/status/route.ts` - Check pass status
+- `app/api/day-pass/log-play/route.ts` - Log revenue plays
+- `app/api/day-pass/log-preview/route.ts` - Log preview plays (analytics)
+
+### Track ID Location Suffix
+Globe tracks have `-loc-X` suffix (e.g., `uuid-loc-0`). APIs strip this and store:
+- `track_id` - Clean UUID for FK to ip_tracks
+- `globe_location` - Integer index for geographic analytics
+
+See `docs/day-pass-technical.md` for complete technical documentation.
+See `docs/day-pass-economics.md` for creator-facing economics explanation.
