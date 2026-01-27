@@ -376,10 +376,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Sign with ephemeral keypair using Transaction's sign method (per SUI docs)
-    const tx = Transaction.from(new Uint8Array(txBytesBuffer));
-    const client = getSuiClient(network);
-    const { signature: ephemeralSignatureStr } = await tx.sign({
-      client,
+    const sponsoredTx = Transaction.from(new Uint8Array(txBytesBuffer));
+    const suiClient = getSuiClient(network);
+    const { signature: ephemeralSignatureStr } = await sponsoredTx.sign({
+      client: suiClient,
       signer: zkSession.ephemeralKeyPair,
     });
     console.log('🔐 [zkLogin] Ephemeral signature created:', ephemeralSignatureStr.substring(0, 50) + '...');
