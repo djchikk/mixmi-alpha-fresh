@@ -88,8 +88,13 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ [zkProve] Proof received successfully');
 
-    // Return the zkProof in the expected format
-    return NextResponse.json(result.result);
+    // Shinami returns { zkProof: { proofPoints, issBase64Details, headerBase64 } }
+    // We need to unwrap it to match the expected format
+    const zkProof = result.result.zkProof || result.result;
+
+    console.log('🔐 [zkProve] Returning proof with keys:', Object.keys(zkProof));
+
+    return NextResponse.json(zkProof);
 
   } catch (error) {
     console.error('❌ [zkProve] Error:', error);
