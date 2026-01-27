@@ -15,7 +15,9 @@ import {
   formatTimeRemaining,
   DayPassStatus,
   DAY_PASS_PRICE_USDC,
+  DAY_PASS_DURATION_HOURS,
 } from '@/lib/dayPass';
+import DayPassPurchaseModal from '@/components/playlist/DayPassPurchaseModal';
 
 interface PlaylistTrack {
   id: string;
@@ -43,6 +45,7 @@ export default function SimplePlaylistPlayer() {
   const [dayPassStatus, setDayPassStatus] = useState<DayPassStatus>({ hasActivePass: false });
   const [remainingTime, setRemainingTime] = useState<number>(0);
   const [totalPlays, setTotalPlays] = useState<number>(0);
+  const [showDayPassModal, setShowDayPassModal] = useState(false);
 
   // Auth context for user address
   const { suiAddress, walletAddress } = useAuth();
@@ -530,10 +533,7 @@ export default function SimplePlaylistPlayer() {
               </div>
             ) : userAddress ? (
               <button
-                onClick={() => {
-                  // TODO: Open day pass purchase modal
-                  console.log('🎫 Day pass purchase clicked');
-                }}
+                onClick={() => setShowDayPassModal(true)}
                 className="flex items-center gap-1 px-2 py-1 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 rounded-full transition-colors"
                 title="Get unlimited full-song streaming for 24 hours"
               >
@@ -752,6 +752,24 @@ export default function SimplePlaylistPlayer() {
           }
         }
       `}</style>
+
+      {/* Day Pass Purchase Modal */}
+      <DayPassPurchaseModal
+        isOpen={showDayPassModal}
+        onClose={() => setShowDayPassModal(false)}
+        onSuccess={(dayPassId, expiresAt) => {
+          // Update local state with new day pass
+          setDayPassStatus({
+            hasActivePass: true,
+            dayPassId,
+            expiresAt,
+            remainingSeconds: DAY_PASS_DURATION_HOURS * 60 * 60,
+          });
+          setRemainingTime(DAY_PASS_DURATION_HOURS * 60 * 60);
+          setTotalPlays(0);
+          console.log('🎫 Day pass activated:', dayPassId);
+        }}
+      />
     </>
   );
 }
