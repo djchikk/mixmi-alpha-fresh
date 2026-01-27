@@ -187,7 +187,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     // 1. Resolve payment recipients for all tracks
-    const trackIds = cart.map(item => item.id);
+    // Strip -loc-N suffix from multi-location track IDs
+    const trackIds = cart.map(item => item.id.replace(/-loc-\d+$/, ''));
     console.log('💎 [SUI] Resolving recipients for tracks:', trackIds);
 
     const resolveResponse = await fetch('/api/sui/resolve-recipients', {
@@ -210,7 +211,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     let platformTotal = 0;
 
     for (const track of tracks) {
-      const cartItem = cart.find(item => item.id === track.trackId);
+      // Strip -loc-N suffix when matching cart items to resolved tracks
+      const cartItem = cart.find(item => item.id.replace(/-loc-\d+$/, '') === track.trackId);
       if (!cartItem) continue;
 
       const trackPrice = cartItem.price_usdc;
