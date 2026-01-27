@@ -10,8 +10,10 @@ import {
   usdcToUnits,
   getUsdcCoins,
   buildSplitPaymentForSponsorship,
+  getSuiClient,
   type PaymentRecipient,
 } from '@/lib/sui';
+import { Transaction } from '@mysten/sui/transactions';
 
 // Cart item interface
 export interface CartItem {
@@ -373,11 +375,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       extendedPubKey: currentExtendedPubKey,
     });
 
-    // Sign with ephemeral keypair
-    const ephemeralSignature = await zkSession.ephemeralKeyPair.signTransaction(
-      new Uint8Array(txBytesBuffer)
-    );
-    console.log('🔐 [zkLogin] Ephemeral signature created:', ephemeralSignature.signature.substring(0, 50) + '...');
+    // Sign with ephemeral keypair using Transaction's sign method (per SUI docs)
+    const tx = Transaction.from(new Uint8Array(txBytesBuffer));
+    const client = getSuiClient(network);
+    const { signature: ephemeralSignatureStr } = await tx.sign({
+      client,
+      signer: zkSession.ephemeralKeyPair,
+    });
+    console.log('🔐 [zkLogin] Ephemeral signature created:', ephemeralSignatureStr.substring(0, 50) + '...');
 
     // Decode JWT to get claims for addressSeed computation
     const jwtPayload = JSON.parse(atob(zkSession.jwt.split('.')[1]));
@@ -422,7 +427,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         addressSeed,
       },
       maxEpoch: zkSession.maxEpoch,
-      userSignature: ephemeralSignature.signature,
+      userSignature: ephemeralSignatureStr,
     });
 
     console.log('💎 [SUI] Signed, executing transaction...');
