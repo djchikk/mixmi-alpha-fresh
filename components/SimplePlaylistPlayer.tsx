@@ -330,18 +330,28 @@ export default function SimplePlaylistPlayer() {
     if (!audio) return;
 
     const handleEnded = async () => {
+      console.log('🎵 [Playlist] Track ended, checking day pass status:', {
+        hasActivePass: dayPassStatus.hasActivePass,
+        dayPassId: dayPassStatus.dayPassId,
+        currentIndex,
+        trackTitle: playlist[currentIndex]?.title
+      });
+
       // Log the play if day pass is active
-      if (dayPassStatus.hasActivePass && currentIndex >= 0 && playlist[currentIndex]) {
+      if (dayPassStatus.hasActivePass && dayPassStatus.dayPassId && currentIndex >= 0 && playlist[currentIndex]) {
         const track = playlist[currentIndex];
         const durationSeconds = Math.floor((Date.now() - playStartTimeRef.current) / 1000);
+        console.log('🎵 [Playlist] Logging play for:', track.title, 'duration:', durationSeconds);
         await logTrackPlay(track, durationSeconds);
+      } else {
+        console.log('🎵 [Playlist] Not logging play - day pass not active or missing dayPassId');
       }
       playNext();
     };
 
     audio.addEventListener('ended', handleEnded);
     return () => audio.removeEventListener('ended', handleEnded);
-  }, [currentIndex, playlist, dayPassStatus.hasActivePass, logTrackPlay]);
+  }, [currentIndex, playlist, dayPassStatus.hasActivePass, dayPassStatus.dayPassId, logTrackPlay]);
 
   const playNext = () => {
     if (currentIndex < playlist.length - 1) {
