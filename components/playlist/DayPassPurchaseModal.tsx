@@ -5,8 +5,9 @@ import { X, Ticket, Clock, Music, CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DAY_PASS_PRICE_USDC, DAY_PASS_DURATION_HOURS, cacheDayPassLocally } from '@/lib/dayPass';
 import { getZkLoginSession } from '@/lib/zklogin/session';
-import { getZkLoginSignature, genAddressSeed, getExtendedEphemeralPublicKey, jwtToAddress } from '@mysten/sui/zklogin';
+import { getZkLoginSignature, genAddressSeed } from '@mysten/sui/zklogin';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { buildSplitPaymentForSponsorship } from '@/lib/sui/payment-splitter';
 
 interface DayPassPurchaseModalProps {
   isOpen: boolean;
@@ -65,16 +66,36 @@ export default function DayPassPurchaseModal({
         throw new Error('zkLogin session expired. Please sign in again.');
       }
 
-      // Step 3: Build and sponsor the payment transaction
+      // Step 3: Build the payment transaction to get kindBytes
+      console.log('🎫 [DayPass] Building payment transaction...');
+      let kindBytes: Uint8Array;
+      try {
+        const result = await buildSplitPaymentForSponsorship({
+          senderAddress: suiAddress,
+          recipients: [{
+            address: recipientAddress,
+            amountUsdc: amountUsdc,
+            label: 'Day Pass',
+          }],
+        });
+        kindBytes = result.kindBytes;
+        console.log('🎫 [DayPass] Got kindBytes, length:', kindBytes.length);
+      } catch (buildError) {
+        console.error('🎫 [DayPass] Failed to build transaction:', buildError);
+        throw new Error(buildError instanceof Error ? buildError.message : 'Failed to build payment transaction');
+      }
+
+      // Step 4: Send kindBytes to sponsor endpoint
+      // Convert Uint8Array to base64 string (browser-compatible)
+      const kindBytesBase64 = btoa(String.fromCharCode(...kindBytes));
+      console.log('🎫 [DayPass] Sending to sponsor, kindBytes base64 length:', kindBytesBase64.length);
+
       const sponsorResponse = await fetch('/api/sui/sponsor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          kindBytes: kindBytesBase64,
           senderAddress: suiAddress,
-          recipients: [{
-            address: recipientAddress,
-            amount: amountUsdc,
-          }],
         }),
       });
 
@@ -86,7 +107,7 @@ export default function DayPassPurchaseModal({
 
       const { txBytes, sponsorSignature } = sponsorData;
 
-      // Step 4: Sign with zkLogin
+      // Step 5: Sign with zkLogin
       const keypair = Ed25519Keypair.fromSecretKey(zkSession.ephemeralSecretKey);
       const txBytesArray = new Uint8Array(Buffer.from(txBytes, 'base64'));
 
@@ -116,7 +137,7 @@ export default function DayPassPurchaseModal({
         userSignature: ephemeralSignature,
       });
 
-      // Step 5: Execute the transaction
+      // Step 6: Execute the transaction
       setState('confirming');
       const executeResponse = await fetch('/api/sui/execute', {
         method: 'POST',
@@ -134,7 +155,7 @@ export default function DayPassPurchaseModal({
         throw new Error(executeData.error || 'Transaction failed');
       }
 
-      // Step 6: Confirm the day pass purchase
+      // Step 7: Confirm the day pass purchase
       const confirmResponse = await fetch('/api/day-pass/purchase', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -150,7 +171,7 @@ export default function DayPassPurchaseModal({
         throw new Error(confirmData.error || 'Failed to activate day pass');
       }
 
-      // Step 7: Success!
+      // Step 8: Success!
       setState('success');
       cacheDayPassLocally(dayPassId, expiresAt);
 
