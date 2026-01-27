@@ -40,19 +40,19 @@ export async function POST(request: NextRequest) {
     console.log('🔐 [zkProve] salt:', salt?.substring(0, 20) + '...');
     console.log('🔐 [zkProve] jwt length:', jwt?.length);
 
-    // Ensure maxEpoch is a number
-    const maxEpochNum = typeof maxEpoch === 'string' ? parseInt(maxEpoch, 10) : maxEpoch;
+    // Shinami expects maxEpoch as a STRING, not a number
+    const maxEpochStr = String(maxEpoch);
 
     const requestBody = {
       jsonrpc: '2.0',
       method: 'shinami_zkp_createZkLoginProof',
-      params: [jwt, maxEpochNum, extendedEphemeralPublicKey, jwtRandomness, salt],
+      params: [jwt, maxEpochStr, extendedEphemeralPublicKey, jwtRandomness, salt],
       id: 1,
     };
 
     console.log('🔐 [zkProve] Request body (without jwt):', {
       ...requestBody,
-      params: ['[jwt]', maxEpochNum, extendedEphemeralPublicKey, jwtRandomness, salt],
+      params: ['[jwt]', maxEpochStr, extendedEphemeralPublicKey, jwtRandomness, salt],
     });
 
     // Call Shinami's prover using JSON-RPC format
