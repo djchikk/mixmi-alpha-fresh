@@ -88,12 +88,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       // If USDC price is missing, fetch fresh from database (handles cached collection data)
       if (rawPriceUsdc == null) {
-        console.log('🛒 USDC price missing, fetching fresh from database for:', track.id);
+        // Strip location suffix from multi-location track IDs (e.g., "abc-123-loc-0" -> "abc-123")
+        const dbTrackId = track.id.replace(/-loc-\d+$/, '');
+        console.log('🛒 USDC price missing, fetching fresh from database for:', dbTrackId);
         try {
           const { data: freshTrack } = await supabase
             .from('ip_tracks')
             .select('download_price_usdc, price_usdc, download_price_stx, price_stx')
-            .eq('id', track.id)
+            .eq('id', dbTrackId)
             .single();
 
           if (freshTrack) {
