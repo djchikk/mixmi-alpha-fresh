@@ -52,6 +52,13 @@ export async function POST(request: NextRequest) {
 
     // Insert the play record
     // Note: credits are calculated by database trigger
+    console.log('🎵 [log-play] Inserting play record:', {
+      day_pass_id: dayPassId,
+      track_id: trackId,
+      content_type: contentType,
+      duration_seconds: durationSeconds,
+    });
+
     const { data: play, error: insertError } = await supabase
       .from('day_pass_plays')
       .insert({
@@ -65,8 +72,9 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Error logging play:', insertError);
+      console.error('Insert error details:', JSON.stringify(insertError, null, 2));
       return NextResponse.json(
-        { error: 'Failed to log play' },
+        { error: 'Failed to log play', details: insertError.message },
         { status: 500 }
       );
     }
