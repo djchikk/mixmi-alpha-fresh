@@ -23,9 +23,12 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
 const APPLE_CLIENT_ID = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID!;
 
 // Mysten Labs prover endpoints
-const PROVER_URL = SUI_NETWORK === 'mainnet'
-  ? 'https://prover.mystenlabs.com/v1'
-  : 'https://prover-dev.mystenlabs.com/v1';
+// IMPORTANT: Mainnet and Testnet share the same zkey (Main zkey)
+// Devnet uses a different zkey (Test zkey)
+// Using the wrong prover causes "Groth16 proof verify failed"
+const PROVER_URL = SUI_NETWORK === 'devnet'
+  ? 'https://prover-dev.mystenlabs.com/v1'
+  : 'https://prover.mystenlabs.com/v1';  // mainnet AND testnet use the main prover
 
 // Debug: Log network configuration on load
 console.log('🔧 [zkLogin] Network config:', { SUI_NETWORK, PROVER_URL });
