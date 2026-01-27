@@ -569,6 +569,9 @@ const PlaylistItem: React.FC<PlaylistItemProps> = ({ track, index, isPlaying, on
                 bpm: track.bpm,
                 content_type: track.content_type,
                 price_stx: track.price_stx,
+                price_usdc: track.price_usdc,
+                download_price_stx: track.download_price_stx,
+                download_price_usdc: track.download_price_usdc,
                 primary_uploader_wallet: track.primary_uploader_wallet
               });
             }
