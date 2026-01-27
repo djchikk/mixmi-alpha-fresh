@@ -151,6 +151,10 @@ export function storeZkLoginSession(
 ): void {
   if (typeof window === 'undefined') return;
 
+  // Debug: Log public key before storing
+  const originalPubKey = ephemeralKeyPair.getPublicKey().toBase64();
+  console.log('🔐 [Session] Storing session, original public key:', originalPubKey);
+
   const session: StoredSession = {
     ephemeralSecretKey: serializeKeyPair(ephemeralKeyPair),
     maxEpoch,
@@ -184,6 +188,10 @@ export function getZkLoginSession(): ZkLoginSession | null {
 
     // Reconstruct keypair from secret key
     const ephemeralKeyPair = deserializeKeyPair(stored.ephemeralSecretKey);
+
+    // Debug: Verify keypair restoration
+    const restoredPubKey = ephemeralKeyPair.getPublicKey().toBase64();
+    console.log('🔐 [Session] Keypair restored, public key:', restoredPubKey);
 
     return {
       ephemeralKeyPair,
