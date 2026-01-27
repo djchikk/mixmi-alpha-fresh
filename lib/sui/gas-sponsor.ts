@@ -100,20 +100,33 @@ export async function executeSponsoredTransaction(
 ): Promise<ExecutionResult> {
   const client = getSuiClient(network);
 
-  const result = await client.executeTransactionBlock({
-    transactionBlock: txBytes,
-    signature: [userSignature, sponsorSignature],
-    options: {
-      showEffects: true,
-      showEvents: true,
-    },
-  });
+  console.log('💎 [executeSponsoredTransaction] Executing with signatures:');
+  console.log('💎 [executeSponsoredTransaction] userSignature type:', typeof userSignature);
+  console.log('💎 [executeSponsoredTransaction] userSignature first char code:', userSignature.charCodeAt(0));
+  console.log('💎 [executeSponsoredTransaction] sponsorSignature type:', typeof sponsorSignature);
 
-  return {
-    digest: result.digest,
-    effects: result.effects,
-    events: result.events || [],
-  };
+  try {
+    const result = await client.executeTransactionBlock({
+      transactionBlock: txBytes,
+      signature: [userSignature, sponsorSignature],
+      options: {
+        showEffects: true,
+        showEvents: true,
+      },
+    });
+
+    console.log('💎 [executeSponsoredTransaction] Success! Digest:', result.digest);
+
+    return {
+      digest: result.digest,
+      effects: result.effects,
+      events: result.events || [],
+    };
+  } catch (error: any) {
+    console.error('💎 [executeSponsoredTransaction] Execution failed:', error?.message);
+    console.error('💎 [executeSponsoredTransaction] Full error:', JSON.stringify(error, null, 2));
+    throw error;
+  }
 }
 
 /**

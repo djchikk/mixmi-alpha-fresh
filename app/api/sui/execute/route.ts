@@ -54,14 +54,26 @@ export async function POST(request: NextRequest) {
 
     const network = getCurrentNetwork();
     console.log('💎 [Execute] Network:', network, '| Env var:', process.env.NEXT_PUBLIC_SUI_NETWORK);
+    console.log('💎 [Execute] txBytes length:', txBytes.length);
+    console.log('💎 [Execute] userSignature length:', userSignature.length);
+    console.log('💎 [Execute] userSignature preview:', userSignature.substring(0, 100) + '...');
+    console.log('💎 [Execute] sponsorSignature length:', sponsorSignature.length);
 
     // Execute the transaction
-    const result = await executeSponsoredTransaction(
-      new Uint8Array(Buffer.from(txBytes, 'base64')),
-      userSignature,
-      sponsorSignature,
-      network
-    );
+    let result;
+    try {
+      result = await executeSponsoredTransaction(
+        new Uint8Array(Buffer.from(txBytes, 'base64')),
+        userSignature,
+        sponsorSignature,
+        network
+      );
+    } catch (execError: any) {
+      console.error('💎 [Execute] SUI execution error:', execError);
+      console.error('💎 [Execute] Error message:', execError?.message);
+      console.error('💎 [Execute] Error cause:', execError?.cause);
+      throw execError;
+    }
 
     // Check if transaction succeeded
     const status = result.effects?.status?.status;
