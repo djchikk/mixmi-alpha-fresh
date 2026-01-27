@@ -10,13 +10,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { DAY_PASS_PRICE_USDC, DAY_PASS_DURATION_HOURS } from '@/lib/dayPass';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Platform wallet receives day pass payments
-const PLATFORM_WALLET = process.env.NEXT_PUBLIC_PLATFORM_SUI_ADDRESS;
+// Falls back to deriving from sponsor key if not explicitly set
+function getPlatformWallet(): string {
+  // First try explicit env var
+  if (process.env.NEXT_PUBLIC_PLATFORM_SUI_ADDRESS) {
+    return process.env.NEXT_PUBLIC_PLATFORM_SUI_ADDRESS;
+  }
+
+  // Fall back to deriving from sponsor private key
+  const sponsorKey = process.env.SUI_SPONSOR_PRIVATE_KEY;
+  if (sponsorKey) {
+    try {
+      const keypair = Ed25519Keypair.fromSecretKey(sponsorKey);
+      return keypair.toSuiAddress();
+    } catch (e) {
+      console.error('Failed to derive platform wallet from sponsor key:', e);
+    }
+  }
+
+  throw new Error('Platform wallet not configured');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,6 +95,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎫 [DayPass] Created pending pass: ${dayPass.id} for ${userAddress}`);
 
+    // Get platform wallet (day pass payments go to platform treasury)
+    let platformWallet: string;
+    try {
+      platformWallet = getPlatformWallet();
+      console.log(`🎫 [DayPass] Platform wallet: ${platformWallet}`);
+    } catch (e) {
+      console.error('Platform wallet error:', e);
+      return NextResponse.json(
+        { error: 'Payment system not configured' },
+        { status: 500 }
+      );
+    }
+
     // Return the day pass info - client will handle payment flow
     // Payment goes to platform wallet, uses same SUI/USDC flow as track purchases
     return NextResponse.json({
@@ -82,7 +115,7 @@ export async function POST(request: NextRequest) {
       dayPassId: dayPass.id,
       expiresAt: dayPass.expires_at,
       amountUsdc: DAY_PASS_PRICE_USDC,
-      recipientAddress: PLATFORM_WALLET,
+      recipientAddress: platformWallet,
       // Client should use CartContext's SUI payment flow with this info
     });
 

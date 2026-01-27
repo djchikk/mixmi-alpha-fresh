@@ -57,6 +57,7 @@ export default function DayPassPurchaseModal({
       }
 
       const { dayPassId, expiresAt, amountUsdc, recipientAddress } = createData;
+      console.log('🎫 [DayPass] Created pass:', { dayPassId, expiresAt, amountUsdc, recipientAddress });
 
       // Step 2: Get zkLogin session for signing
       setState('signing');
