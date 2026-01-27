@@ -1,13 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { ListMusic, Play, Pause, Volume2, VolumeX, X, GripVertical } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ListMusic, Play, Pause, Volume2, VolumeX, X, GripVertical, Clock, Ticket } from 'lucide-react';
 import { useDrag, useDrop, useDragLayer } from 'react-dnd';
 import type { Identifier } from 'dnd-core';
 import { IPTrack } from '@/types';
 import { getOptimizedTrackImage } from '@/lib/imageOptimization';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  checkDayPassStatus,
+  logPlay,
+  formatTimeRemaining,
+  DayPassStatus,
+  DAY_PASS_PRICE_USDC,
+} from '@/lib/dayPass';
 
 interface PlaylistTrack {
   id: string;
@@ -31,12 +39,22 @@ export default function SimplePlaylistPlayer() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasRestoredState, setHasRestoredState] = useState(false);
 
+  // Day Pass state
+  const [dayPassStatus, setDayPassStatus] = useState<DayPassStatus>({ hasActivePass: false });
+  const [remainingTime, setRemainingTime] = useState<number>(0);
+  const [totalPlays, setTotalPlays] = useState<number>(0);
+
+  // Auth context for user address
+  const { suiAddress, walletAddress } = useAuth();
+  const userAddress = suiAddress || walletAddress;
+
   // Global drag state - only enable drop zone when dragging
   const { isDraggingGlobal } = useDragLayer((monitor) => ({
     isDraggingGlobal: monitor.isDragging(),
   }));
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playStartTimeRef = useRef<number>(0); // Track when current song started
 
   // Initialize audio element and restore state
   useEffect(() => {
@@ -90,6 +108,63 @@ export default function SimplePlaylistPlayer() {
       }
     };
   }, []);
+
+  // Check day pass status on mount and when user changes
+  useEffect(() => {
+    if (!userAddress) {
+      setDayPassStatus({ hasActivePass: false });
+      return;
+    }
+
+    const checkStatus = async () => {
+      const status = await checkDayPassStatus(userAddress);
+      setDayPassStatus(status);
+      if (status.hasActivePass && status.remainingSeconds) {
+        setRemainingTime(status.remainingSeconds);
+        setTotalPlays(status.totalPlays || 0);
+      }
+    };
+
+    checkStatus();
+    // Re-check every minute
+    const interval = setInterval(checkStatus, 60000);
+    return () => clearInterval(interval);
+  }, [userAddress]);
+
+  // Countdown timer for active day pass
+  useEffect(() => {
+    if (!dayPassStatus.hasActivePass || remainingTime <= 0) return;
+
+    const timer = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          // Pass expired
+          setDayPassStatus({ hasActivePass: false });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [dayPassStatus.hasActivePass, remainingTime]);
+
+  // Log play when track completes (for day pass revenue sharing)
+  const logTrackPlay = useCallback(async (track: PlaylistTrack, durationSeconds: number) => {
+    if (!dayPassStatus.hasActivePass || !dayPassStatus.dayPassId) return;
+
+    const success = await logPlay(
+      dayPassStatus.dayPassId,
+      track.id,
+      track.content_type,
+      durationSeconds
+    );
+
+    if (success) {
+      setTotalPlays(prev => prev + 1);
+      console.log(`🎵 [DayPass] Logged play: ${track.title}`);
+    }
+  }, [dayPassStatus.hasActivePass, dayPassStatus.dayPassId]);
 
   // Save to localStorage (includes playback state)
   useEffect(() => {
@@ -218,17 +293,23 @@ export default function SimplePlaylistPlayer() {
     if (isPlaying && currentIndex >= 0 && playlist[currentIndex]) {
       const track = playlist[currentIndex];
       audio.src = track.audioUrl;
+      playStartTimeRef.current = Date.now(); // Track when playback started
+
       audio.play()
-        .then(() => console.log('📃 Playing:', track.title))
+        .then(() => {
+          const hasPass = dayPassStatus.hasActivePass;
+          console.log(`📃 Playing: ${track.title}${hasPass ? ' (Day Pass active - full song)' : ''}`);
+        })
         .catch(error => {
           console.error('📃 Playback failed:', error);
           setIsPlaying(false);
         });
 
-      // For full songs, 20-second preview
-      if (track.content_type === 'full_song') {
+      // For full songs: 20-second preview UNLESS day pass is active
+      if (track.content_type === 'full_song' && !dayPassStatus.hasActivePass) {
         const timeUpdateHandler = () => {
           if (audio.currentTime >= 20) {
+            // Log the 20-second preview play (even without day pass, for analytics)
             playNext();
           }
         };
@@ -238,20 +319,26 @@ export default function SimplePlaylistPlayer() {
     } else {
       audio.pause();
     }
-  }, [isPlaying, currentIndex, playlist]);
+  }, [isPlaying, currentIndex, playlist, dayPassStatus.hasActivePass]);
 
-  // Handle track end
+  // Handle track end - log play for day pass and advance
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleEnded = () => {
+    const handleEnded = async () => {
+      // Log the play if day pass is active
+      if (dayPassStatus.hasActivePass && currentIndex >= 0 && playlist[currentIndex]) {
+        const track = playlist[currentIndex];
+        const durationSeconds = Math.floor((Date.now() - playStartTimeRef.current) / 1000);
+        await logTrackPlay(track, durationSeconds);
+      }
       playNext();
     };
 
     audio.addEventListener('ended', handleEnded);
     return () => audio.removeEventListener('ended', handleEnded);
-  }, [currentIndex, playlist]);
+  }, [currentIndex, playlist, dayPassStatus.hasActivePass, logTrackPlay]);
 
   const playNext = () => {
     if (currentIndex < playlist.length - 1) {
@@ -422,11 +509,40 @@ export default function SimplePlaylistPlayer() {
           </button>
 
           {/* Header */}
-          <div className="flex items-center gap-2 mb-3">
-            <ListMusic className="w-4 h-4 text-gray-300" />
-            <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-              Playlist
-            </span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <ListMusic className="w-4 h-4 text-gray-300" />
+              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                Playlist
+              </span>
+            </div>
+
+            {/* Day Pass Status / Button */}
+            {dayPassStatus.hasActivePass ? (
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-[#A8E66B]/20 rounded-full">
+                <Clock className="w-3 h-3 text-[#A8E66B]" />
+                <span className="text-[10px] font-medium text-[#A8E66B]">
+                  {formatTimeRemaining(remainingTime)}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  • {totalPlays} plays
+                </span>
+              </div>
+            ) : userAddress ? (
+              <button
+                onClick={() => {
+                  // TODO: Open day pass purchase modal
+                  console.log('🎫 Day pass purchase clicked');
+                }}
+                className="flex items-center gap-1 px-2 py-1 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 rounded-full transition-colors"
+                title="Get unlimited full-song streaming for 24 hours"
+              >
+                <Ticket className="w-3 h-3 text-[#81E4F2]" />
+                <span className="text-[10px] font-medium text-[#81E4F2]">
+                  Day Pass ${DAY_PASS_PRICE_USDC}
+                </span>
+              </button>
+            ) : null}
           </div>
 
           {/* Playlist Items - Scrollable */}
@@ -436,7 +552,9 @@ export default function SimplePlaylistPlayer() {
                 <ListMusic className="w-8 h-8 mb-2 opacity-50" />
                 <p className="text-center text-xs text-gray-400 mb-1">Drag tracks here</p>
                 <p className="text-center text-[10px] text-gray-500">
-                  Loops play in full • Songs preview for 20s
+                  {dayPassStatus.hasActivePass
+                    ? 'Day Pass active • Full songs unlocked!'
+                    : 'Loops play in full • Songs preview for 20s'}
                 </p>
               </div>
             ) : (
