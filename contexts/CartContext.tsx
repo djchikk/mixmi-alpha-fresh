@@ -366,14 +366,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // 6. Sign with zkLogin
     const txBytesBuffer = Buffer.from(txBytes, 'base64');
 
-    // Debug: Log session details including extended public key
+    // Debug: Compare extended public key - CRITICAL for Groth16 verification
     const currentExtendedPubKey = getExtendedEphemeralPublicKey(zkSession.ephemeralKeyPair.getPublicKey());
-    console.log('🔐 [zkLogin] Session details at sign time:', {
-      maxEpoch: zkSession.maxEpoch,
-      sessionCreated: new Date(zkSession.createdAt).toISOString(),
-      ephemeralPubKey: zkSession.ephemeralKeyPair.getPublicKey().toBase64(),
-      extendedPubKey: currentExtendedPubKey,
-    });
+    const storedExtendedPubKey = zkSession.extendedEphemeralPublicKey;
+    const pubKeyMatch = currentExtendedPubKey === storedExtendedPubKey;
+
+    console.log('🔐 [zkLogin] ========== SIGNATURE PARAMS COMPARISON ==========');
+    console.log('🔐 [zkLogin] Extended pub key sent to prover:', storedExtendedPubKey || '(not stored - old session)');
+    console.log('🔐 [zkLogin] Extended pub key now:', currentExtendedPubKey);
+    console.log('🔐 [zkLogin] Extended pub keys MATCH:', pubKeyMatch ? '✅ YES' : '❌ NO');
+    console.log('🔐 [zkLogin] maxEpoch:', zkSession.maxEpoch);
+    console.log('🔐 [zkLogin] Session created:', new Date(zkSession.createdAt).toISOString());
+    console.log('🔐 [zkLogin] ====================================================');
 
     // Sign with ephemeral keypair using Transaction's sign method (per SUI docs)
     const sponsoredTx = Transaction.from(new Uint8Array(txBytesBuffer));

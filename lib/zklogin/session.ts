@@ -16,6 +16,7 @@ const ZKLOGIN_PENDING_KEY = 'zklogin_pending'; // For OAuth flow state
  */
 interface StoredSession {
   ephemeralSecretKey: string;
+  extendedEphemeralPublicKey: string; // What was sent to prover - for debugging
   maxEpoch: number;
   randomness: string;
   jwt: string;
@@ -43,6 +44,7 @@ interface StoredSession {
  */
 export interface ZkLoginSession {
   ephemeralKeyPair: Ed25519Keypair;
+  extendedEphemeralPublicKey: string; // What was sent to prover - for debugging
   maxEpoch: number;
   randomness: string;
   jwt: string;
@@ -140,6 +142,7 @@ export function clearPendingZkLogin(): void {
  */
 export function storeZkLoginSession(
   ephemeralKeyPair: Ed25519Keypair,
+  extendedEphemeralPublicKey: string,  // What was sent to prover
   maxEpoch: number,
   randomness: string,
   jwt: string,
@@ -153,10 +156,13 @@ export function storeZkLoginSession(
 
   // Debug: Log public key before storing
   const originalPubKey = ephemeralKeyPair.getPublicKey().toBase64();
-  console.log('🔐 [Session] Storing session, original public key:', originalPubKey);
+  console.log('🔐 [Session] Storing session:');
+  console.log('🔐 [Session] - raw public key:', originalPubKey);
+  console.log('🔐 [Session] - extended public key (sent to prover):', extendedEphemeralPublicKey);
 
   const session: StoredSession = {
     ephemeralSecretKey: serializeKeyPair(ephemeralKeyPair),
+    extendedEphemeralPublicKey,
     maxEpoch,
     randomness,
     jwt,
@@ -195,6 +201,7 @@ export function getZkLoginSession(): ZkLoginSession | null {
 
     return {
       ephemeralKeyPair,
+      extendedEphemeralPublicKey: stored.extendedEphemeralPublicKey || '', // May be empty for old sessions
       maxEpoch: stored.maxEpoch,
       randomness: stored.randomness,
       jwt: stored.jwt,

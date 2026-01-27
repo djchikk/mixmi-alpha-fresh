@@ -92,12 +92,21 @@ export default function AuthCallbackPage() {
         // Must use extended format for the prover
         const rawPubKey = ephemeralKeyPair.getPublicKey().toBase64();
         const extendedEphemeralPublicKey = getExtendedEphemeralPublicKey(ephemeralKeyPair.getPublicKey());
-        console.log('🔐 Ephemeral key details:', {
-          rawPubKey: rawPubKey,
-          extendedPubKey: extendedEphemeralPublicKey,
-          rawLength: rawPubKey.length,
-          extendedLength: extendedEphemeralPublicKey.length,
-        });
+
+        // Extract JWT claims for debugging
+        const jwtAud = Array.isArray(jwtPayload.aud) ? jwtPayload.aud[0] : jwtPayload.aud;
+
+        // Log ALL parameters being sent to prover for later comparison
+        console.log('🔐 ========== PROVER REQUEST PARAMS ==========');
+        console.log('🔐 extendedPubKey:', extendedEphemeralPublicKey);
+        console.log('🔐 maxEpoch:', pending.maxEpoch);
+        console.log('🔐 jwtRandomness:', pending.randomness);
+        console.log('🔐 salt:', salt);
+        console.log('🔐 salt length:', salt.length);
+        console.log('🔐 keyClaimName: sub');
+        console.log('🔐 JWT sub (claimValue):', googleSub);
+        console.log('🔐 JWT aud:', jwtAud);
+        console.log('🔐 ===========================================');
 
         const zkProof = await getZkProof(
           jwt,
@@ -107,6 +116,9 @@ export default function AuthCallbackPage() {
           salt
         );
         console.log('🔐 ZK proof received');
+        console.log('🔐 Proof points A length:', zkProof.proofPoints?.a?.length);
+        console.log('🔐 Proof points B length:', zkProof.proofPoints?.b?.length);
+        console.log('🔐 Proof points C length:', zkProof.proofPoints?.c?.length);
 
         console.log('🔐 Step 7: Deriving SUI address...');
         // Step 7: Derive SUI address (should match what salt API returned)
@@ -140,6 +152,7 @@ export default function AuthCallbackPage() {
         // Step 9: Store session in sessionStorage
         storeZkLoginSession(
           ephemeralKeyPair,
+          extendedEphemeralPublicKey, // Store what was sent to prover for later verification
           pending.maxEpoch,
           pending.randomness,
           jwt,
