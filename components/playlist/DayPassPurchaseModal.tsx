@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DAY_PASS_PRICE_USDC, DAY_PASS_DURATION_HOURS, cacheDayPassLocally } from '@/lib/dayPass';
 import { getZkLoginSession } from '@/lib/zklogin/session';
 import { getZkLoginSignature, genAddressSeed } from '@mysten/sui/zklogin';
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { buildSplitPaymentForSponsorship } from '@/lib/sui/payment-splitter';
 
 interface DayPassPurchaseModalProps {
@@ -109,8 +108,9 @@ export default function DayPassPurchaseModal({
       const { txBytes, sponsorSignature } = sponsorData;
 
       // Step 5: Sign with zkLogin
-      const keypair = Ed25519Keypair.fromSecretKey(zkSession.ephemeralSecretKey);
-      const txBytesArray = new Uint8Array(Buffer.from(txBytes, 'base64'));
+      // zkSession already has the deserialized keypair
+      const keypair = zkSession.ephemeralKeyPair;
+      const txBytesArray = Uint8Array.from(atob(txBytes), c => c.charCodeAt(0));
 
       // Create ephemeral signature
       const { signature: ephemeralSignature } = await keypair.signTransaction(txBytesArray);
