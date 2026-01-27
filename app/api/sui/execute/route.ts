@@ -59,6 +59,16 @@ export async function POST(request: NextRequest) {
     console.log('💎 [Execute] userSignature preview:', userSignature.substring(0, 100) + '...');
     console.log('💎 [Execute] sponsorSignature length:', sponsorSignature.length);
 
+    // Decode userSignature to inspect zkLogin structure
+    try {
+      const sigBytes = Buffer.from(userSignature, 'base64');
+      const schemeFlag = sigBytes[0];
+      console.log('💎 [Execute] Signature scheme flag:', schemeFlag, '(5 = zkLogin)');
+      console.log('💎 [Execute] Signature total bytes:', sigBytes.length);
+    } catch (e) {
+      console.error('💎 [Execute] Failed to decode userSignature:', e);
+    }
+
     // Execute the transaction
     let result;
     try {
