@@ -69,7 +69,9 @@ export default function AgentWidget() {
               content_type: track.content_type,
               video_url: track.video_url,
               price_stx: track.price_stx,
+              price_usdc: track.price_usdc, // USDC price (primary pricing model)
               download_price_stx: track.download_price_stx,
+              download_price_usdc: track.download_price_usdc, // USDC download price (primary)
               allow_downloads: track.allow_downloads,
               primary_uploader_wallet: track.primary_uploader_wallet,
               foundByAgent: true,
