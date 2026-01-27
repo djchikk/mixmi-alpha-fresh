@@ -4,7 +4,7 @@
  * Handles the cryptographic operations for zkLogin authentication:
  * - Ephemeral keypair generation
  * - Nonce generation for OAuth
- * - ZK proof retrieval from Mysten Labs prover
+ * - ZK proof retrieval from Shinami prover (via /api/zklogin/prove)
  * - SUI address derivation
  */
 
@@ -22,16 +22,12 @@ const SUI_NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK || 'testnet') as 'testn
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
 const APPLE_CLIENT_ID = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID!;
 
-// Mysten Labs prover endpoints
-// IMPORTANT: Mainnet and Testnet share the same zkey (Main zkey)
-// Devnet uses a different zkey (Test zkey)
-// Using the wrong prover causes "Groth16 proof verify failed"
-const PROVER_URL = SUI_NETWORK === 'devnet'
-  ? 'https://prover-dev.mystenlabs.com/v1'
-  : 'https://prover.mystenlabs.com/v1';  // mainnet AND testnet use the main prover
+// Prover service - using our API route which proxies to Shinami
+// Shinami accepts any OAuth client ID (no whitelist like Mysten's prover)
+const PROVER_URL = '/api/zklogin/prove';
 
 // Debug: Log network configuration on load
-console.log('🔧 [zkLogin] Network config:', { SUI_NETWORK, PROVER_URL });
+console.log('🔧 [zkLogin] Network config:', { SUI_NETWORK, PROVER_URL: 'Shinami via /api/zklogin/prove' });
 
 // Salt service (we'll use our own API)
 const SALT_SERVICE_URL = '/api/auth/zklogin/salt';
@@ -177,7 +173,7 @@ export async function getUserSalt(
 }
 
 /**
- * Get ZK proof from Mysten Labs prover
+ * Get ZK proof from Shinami prover (via our API route)
  */
 export async function getZkProof(
   jwt: string,
@@ -197,6 +193,8 @@ export async function getZkProof(
   };
   headerBase64: string;
 }> {
+  console.log('🔐 [getZkProof] Calling Shinami prover via API route...');
+
   const response = await fetch(PROVER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -206,17 +204,18 @@ export async function getZkProof(
       maxEpoch,
       jwtRandomness: randomness,
       salt,
-      keyClaimName: 'sub',
     }),
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Prover error:', errorText);
-    throw new Error(`Failed to get ZK proof: ${response.status}`);
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    console.error('Prover error:', errorData);
+    throw new Error(errorData.error || `Failed to get ZK proof: ${response.status}`);
   }
 
-  return response.json();
+  const result = await response.json();
+  console.log('🔐 [getZkProof] Proof received successfully');
+  return result;
 }
 
 /**
