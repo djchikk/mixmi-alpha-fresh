@@ -169,6 +169,25 @@ export default function SimplePlaylistPlayer() {
     }
   }, [dayPassStatus.hasActivePass, dayPassStatus.dayPassId]);
 
+  // Log 20-second preview plays for analytics (non-day-pass listeners)
+  const logPreviewPlay = useCallback(async (track: PlaylistTrack) => {
+    try {
+      await fetch('/api/day-pass/log-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trackId: track.id,
+          contentType: track.content_type,
+          userAddress: userAddress || null,
+        }),
+      });
+      console.log(`🎵 [Preview] Logged 20s preview: ${track.title}`);
+    } catch (error) {
+      // Silent fail for analytics - don't disrupt playback
+      console.error('Failed to log preview play:', error);
+    }
+  }, [userAddress]);
+
   // Save to localStorage (includes playback state)
   useEffect(() => {
     if (typeof window !== 'undefined' && hasRestoredState) {
@@ -310,9 +329,14 @@ export default function SimplePlaylistPlayer() {
 
       // For full songs: 20-second preview UNLESS day pass is active
       if (track.content_type === 'full_song' && !dayPassStatus.hasActivePass) {
+        let hasLoggedPreview = false;
         const timeUpdateHandler = () => {
           if (audio.currentTime >= 20) {
-            // Log the 20-second preview play (even without day pass, for analytics)
+            // Log the 20-second preview play for analytics (even without day pass)
+            if (!hasLoggedPreview) {
+              hasLoggedPreview = true;
+              logPreviewPlay(track);
+            }
             playNext();
           }
         };
