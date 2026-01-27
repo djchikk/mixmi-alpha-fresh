@@ -34,8 +34,26 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔐 [zkProve] Requesting proof from Shinami...');
-    console.log('🔐 [zkProve] maxEpoch:', maxEpoch);
-    console.log('🔐 [zkProve] salt length:', salt.length);
+    console.log('🔐 [zkProve] maxEpoch:', maxEpoch, 'type:', typeof maxEpoch);
+    console.log('🔐 [zkProve] extendedEphemeralPublicKey:', extendedEphemeralPublicKey?.substring(0, 30) + '...');
+    console.log('🔐 [zkProve] jwtRandomness:', jwtRandomness?.substring(0, 20) + '...');
+    console.log('🔐 [zkProve] salt:', salt?.substring(0, 20) + '...');
+    console.log('🔐 [zkProve] jwt length:', jwt?.length);
+
+    // Ensure maxEpoch is a number
+    const maxEpochNum = typeof maxEpoch === 'string' ? parseInt(maxEpoch, 10) : maxEpoch;
+
+    const requestBody = {
+      jsonrpc: '2.0',
+      method: 'shinami_zkp_createZkLoginProof',
+      params: [jwt, maxEpochNum, extendedEphemeralPublicKey, jwtRandomness, salt],
+      id: 1,
+    };
+
+    console.log('🔐 [zkProve] Request body (without jwt):', {
+      ...requestBody,
+      params: ['[jwt]', maxEpochNum, extendedEphemeralPublicKey, jwtRandomness, salt],
+    });
 
     // Call Shinami's prover using JSON-RPC format
     const response = await fetch(SHINAMI_PROVER_URL, {
@@ -44,20 +62,18 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'X-API-Key': SHINAMI_API_KEY,
       },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'shinami_zkp_createZkLoginProof',
-        params: [jwt, maxEpoch, extendedEphemeralPublicKey, jwtRandomness, salt],
-        id: 1,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const result = await response.json();
 
+    console.log('🔐 [zkProve] Shinami response status:', response.status);
+    console.log('🔐 [zkProve] Shinami full response:', JSON.stringify(result, null, 2));
+
     if (result.error) {
-      console.error('❌ [zkProve] Shinami error:', result.error);
+      console.error('❌ [zkProve] Shinami error:', JSON.stringify(result.error, null, 2));
       return NextResponse.json(
-        { error: result.error.message || 'Prover error' },
+        { error: result.error.message || result.error.data || 'Prover error' },
         { status: 400 }
       );
     }
