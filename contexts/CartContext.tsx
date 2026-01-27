@@ -78,13 +78,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     console.log('🛒 [CART SAVE] Saved to localStorage');
   }, [cart]);
 
-  const addToCart = (track: any) => {
+  const addToCart = async (track: any) => {
     // Check if already in cart
     const exists = cart.some(item => item.id === track.id);
     if (!exists) {
       // Use USDC price (new model) or convert from STX (legacy)
       // Parse as float to handle string values from database
-      const rawPriceUsdc = track.download_price_usdc ?? track.price_usdc;
+      let rawPriceUsdc = track.download_price_usdc ?? track.price_usdc;
+
+      // If USDC price is missing, fetch fresh from database (handles cached collection data)
+      if (rawPriceUsdc == null) {
+        console.log('🛒 USDC price missing, fetching fresh from database for:', track.id);
+        try {
+          const { data: freshTrack } = await supabase
+            .from('ip_tracks')
+            .select('download_price_usdc, price_usdc, download_price_stx, price_stx')
+            .eq('id', track.id)
+            .single();
+
+          if (freshTrack) {
+            rawPriceUsdc = freshTrack.download_price_usdc ?? freshTrack.price_usdc;
+            console.log('🛒 Fresh price from DB:', { rawPriceUsdc, freshTrack });
+          }
+        } catch (err) {
+          console.warn('🛒 Failed to fetch fresh price:', err);
+        }
+      }
+
       const downloadPriceUsdc = rawPriceUsdc != null ? parseFloat(rawPriceUsdc) : 2.00;
       const rawPriceStx = track.download_price_stx ?? track.price_stx;
       const downloadPriceStx = rawPriceStx != null ? parseFloat(rawPriceStx) : 2.5;
