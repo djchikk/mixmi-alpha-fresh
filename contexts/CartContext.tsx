@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { getZkLoginSession } from '@/lib/zklogin/session';
-import { getZkLoginSignature, genAddressSeed } from '@mysten/sui/zklogin';
+import { getZkLoginSignature, genAddressSeed, getExtendedEphemeralPublicKey } from '@mysten/sui/zklogin';
 import {
   getCurrentNetwork,
   usdcToUnits,
@@ -364,11 +364,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // 6. Sign with zkLogin
     const txBytesBuffer = Buffer.from(txBytes, 'base64');
 
-    // Debug: Log session details
+    // Debug: Log session details including extended public key
+    const currentExtendedPubKey = getExtendedEphemeralPublicKey(zkSession.ephemeralKeyPair.getPublicKey());
     console.log('🔐 [zkLogin] Session details at sign time:', {
       maxEpoch: zkSession.maxEpoch,
       sessionCreated: new Date(zkSession.createdAt).toISOString(),
       ephemeralPubKey: zkSession.ephemeralKeyPair.getPublicKey().toBase64(),
+      extendedPubKey: currentExtendedPubKey,
     });
 
     // Sign with ephemeral keypair
