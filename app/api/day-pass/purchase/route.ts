@@ -24,11 +24,13 @@ function getPlatformWallet(): string {
     return process.env.NEXT_PUBLIC_PLATFORM_SUI_ADDRESS;
   }
 
-  // Fall back to deriving from sponsor private key
+  // Fall back to deriving from sponsor private key (hex encoded)
   const sponsorKey = process.env.SUI_SPONSOR_PRIVATE_KEY;
   if (sponsorKey) {
     try {
-      const keypair = Ed25519Keypair.fromSecretKey(sponsorKey);
+      const keypair = Ed25519Keypair.fromSecretKey(
+        Buffer.from(sponsorKey, 'hex')
+      );
       return keypair.toSuiAddress();
     } catch (e) {
       console.error('Failed to derive platform wallet from sponsor key:', e);
