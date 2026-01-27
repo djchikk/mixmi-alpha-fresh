@@ -75,7 +75,9 @@ const convertIPTrackToMixerTrack = (ipTrack: IPTrack): Track => {
     is_draft: ipTrack.is_draft, // Preserve draft status for styling
     content_type: ipTrack.content_type || 'loop', // Preserve original content type!
     price_stx: ipTrack.price_stx, // Preserve price for cart functionality
+    price_usdc: ipTrack.price_usdc, // USDC price (primary pricing model)
     download_price_stx: ipTrack.download_price_stx, // Preserve new pricing model
+    download_price_usdc: ipTrack.download_price_usdc, // USDC download price (primary)
     allow_downloads: ipTrack.allow_downloads, // Preserve download permission
     primary_uploader_wallet: ipTrack.primary_uploader_wallet, // Preserve for linking to creator store
     foundByAgent: (ipTrack as any).foundByAgent, // Preserve agent discovery flag

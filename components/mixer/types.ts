@@ -14,7 +14,9 @@ export interface Track {
   pack_position?: number; // Position within a pack (for numbering)
   notes?: string; // For lyrics/descriptions to display in CC overlay
   price_stx?: number; // Legacy price in STX
+  price_usdc?: number; // USDC price (primary pricing model)
   download_price_stx?: number; // New pricing model for downloads
+  download_price_usdc?: number; // USDC download price (primary)
   allow_downloads?: boolean; // Download permission flag
   primary_uploader_wallet?: string; // For linking to creator's store
   created_at?: string; // For IPTrack conversion compatibility
