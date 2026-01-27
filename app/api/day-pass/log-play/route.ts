@@ -27,6 +27,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Parse track ID and location (e.g., "uuid-loc-0" -> uuid + location 0)
+    // The -loc-X suffix indicates which globe location the track was placed at
+    let cleanTrackId = trackId;
+    let globeLocation: number | null = null;
+
+    if (trackId.includes('-loc-')) {
+      const parts = trackId.split('-loc-');
+      cleanTrackId = parts[0];
+      globeLocation = parseInt(parts[1], 10);
+      if (isNaN(globeLocation)) globeLocation = null;
+    }
+
     // Verify the day pass is still active
     const { data: dayPass, error: passError } = await supabase
       .from('day_passes')
@@ -54,7 +66,8 @@ export async function POST(request: NextRequest) {
     // Note: credits are calculated by database trigger
     console.log('🎵 [log-play] Inserting play record:', {
       day_pass_id: dayPassId,
-      track_id: trackId,
+      track_id: cleanTrackId,
+      globe_location: globeLocation,
       content_type: contentType,
       duration_seconds: durationSeconds,
     });
@@ -63,7 +76,8 @@ export async function POST(request: NextRequest) {
       .from('day_pass_plays')
       .insert({
         day_pass_id: dayPassId,
-        track_id: trackId,
+        track_id: cleanTrackId,
+        globe_location: globeLocation,
         content_type: contentType,
         duration_seconds: durationSeconds || null,
       })
