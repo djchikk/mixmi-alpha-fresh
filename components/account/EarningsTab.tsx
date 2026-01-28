@@ -122,8 +122,10 @@ export default function EarningsTab({
 
       setLoading(true);
       try {
-        // Fetch earnings from the v_earnings_detail view
+        // Fetch earnings from the earnings table
         const personaIds = personas.map(p => p.id);
+        console.log('[EarningsTab] Fetching earnings for persona IDs:', personaIds);
+        console.log('[EarningsTab] Account ID:', accountId);
 
         if (personaIds.length > 0) {
           const { data: earningsData, error: earningsError } = await supabase
@@ -140,6 +142,8 @@ export default function EarningsTab({
             .in('persona_id', personaIds)
             .order('created_at', { ascending: false })
             .limit(50);
+
+          console.log('[EarningsTab] Earnings query result:', { earningsData, earningsError });
 
           if (earningsError) {
             console.error('Error fetching earnings:', earningsError);
