@@ -143,7 +143,8 @@ export default function AccountPage() {
         }
 
         // Priority 2: First track cover image they uploaded
-        const personaWallet = activePersona.sui_address || activePersona.wallet_address;
+        // Use effectiveWallet which properly falls back to suiAddress for manager persona
+        const personaWallet = activePersona.sui_address || activePersona.wallet_address || suiAddress;
         if (personaWallet) {
           const { data: trackData } = await supabase
             .from('ip_tracks')
@@ -198,7 +199,7 @@ export default function AccountPage() {
     };
 
     fetchProfile();
-  }, [effectiveWallet, activePersona?.id, activePersona?.avatar_url]);
+  }, [effectiveWallet, activePersona?.id, activePersona?.avatar_url, suiAddress]);
 
   // Fetch tracks on mount and when effective wallet or active persona changes
   useEffect(() => {
