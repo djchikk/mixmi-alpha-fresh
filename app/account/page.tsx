@@ -198,14 +198,14 @@ export default function AccountPage() {
     };
 
     fetchProfile();
-  }, [effectiveWallet, activePersona]);
+  }, [effectiveWallet, activePersona?.id, activePersona?.avatar_url]);
 
   // Fetch tracks on mount and when effective wallet or active persona changes
   useEffect(() => {
     // Always call fetchTracks - it handles the no-wallet case internally
     console.log('[Account] useEffect triggered - effectiveWallet:', effectiveWallet, 'activePersona:', activePersona?.username);
     fetchTracks();
-  }, [effectiveWallet, activePersona]);
+  }, [effectiveWallet, activePersona?.id]);
 
   // Helper: Check if a track is a child item inside a pack/EP (should be hidden from dashboard)
   // Child items have pack_id AND pack_position >= 1
