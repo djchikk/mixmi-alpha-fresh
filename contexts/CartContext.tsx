@@ -575,12 +575,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         sponsorSignature,
         purchaseData: {
           cartItems: cart.map(item => ({
-            id: item.id,
+            id: item.id.replace(/-loc-\d+$/, ''), // Strip location suffix for DB
             title: item.title,
             price_usdc: item.price_usdc,
           })),
           buyerAddress: suiAddress,
-          // Note: buyerPersonaId could be added if we track active persona
+          buyerPersonaId: activePersona?.id || null,
         },
       }),
     });
