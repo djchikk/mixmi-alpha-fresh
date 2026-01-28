@@ -48,7 +48,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [purchaseStatus, setPurchaseStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const { walletAddress, suiAddress, authType, isAuthenticated } = useAuth();
+  const { walletAddress, suiAddress, authType, isAuthenticated, activePersona } = useAuth();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -145,7 +145,126 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Purchase with SUI (zkLogin users)
+   * Purchase with persona's wallet (backend signing)
+   * Used when the active persona has their own SUI wallet
+   */
+  const purchaseWithPersonaWallet = async () => {
+    if (!activePersona?.sui_address || !activePersona?.account_id) {
+      throw new Error('Active persona does not have a wallet');
+    }
+
+    console.log('💜 [PERSONA] Starting persona wallet purchase flow...');
+    console.log('💜 [PERSONA] Persona:', activePersona.username);
+    console.log('💜 [PERSONA] Wallet:', activePersona.sui_address);
+
+    // 1. Resolve payment recipients for all tracks
+    const trackIds = cart.map(item => item.id.replace(/-loc-\d+$/, ''));
+    console.log('💜 [PERSONA] Resolving recipients for tracks:', trackIds);
+
+    const resolveResponse = await fetch('/api/sui/resolve-recipients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trackIds }),
+    });
+
+    if (!resolveResponse.ok) {
+      const error = await resolveResponse.json();
+      throw new Error(error.error || 'Failed to resolve payment recipients');
+    }
+
+    const { tracks } = await resolveResponse.json();
+    console.log('💜 [PERSONA] Resolved tracks:', tracks);
+
+    // 2. Build aggregated payment recipients (same logic as zkLogin flow)
+    const recipients: PaymentRecipient[] = [];
+
+    for (const track of tracks) {
+      const cartItem = cart.find(item => item.id.replace(/-loc-\d+$/, '') === track.trackId);
+      if (!cartItem) continue;
+
+      const trackPrice = cartItem.price_usdc;
+      const compositionPool = trackPrice * 0.5;
+      const productionPool = trackPrice * 0.5;
+
+      // Process composition splits
+      for (const split of track.compositionSplits) {
+        const amount = compositionPool * (split.percentage / 100);
+        if (split.suiAddress && amount > 0) {
+          const existing = recipients.find(r => r.address === split.suiAddress);
+          if (existing) {
+            existing.amountUsdc += amount;
+          } else {
+            recipients.push({
+              address: split.suiAddress,
+              amountUsdc: amount,
+              label: split.name || 'Collaborator',
+            });
+          }
+        }
+      }
+
+      // Process production splits
+      for (const split of track.productionSplits) {
+        const amount = productionPool * (split.percentage / 100);
+        if (split.suiAddress && amount > 0) {
+          const existing = recipients.find(r => r.address === split.suiAddress);
+          if (existing) {
+            existing.amountUsdc += amount;
+          } else {
+            recipients.push({
+              address: split.suiAddress,
+              amountUsdc: amount,
+              label: split.name || 'Collaborator',
+            });
+          }
+        }
+      }
+
+      // If no splits have SUI addresses, pay uploader directly
+      if (track.uploaderSuiAddress && recipients.length === 0) {
+        recipients.push({
+          address: track.uploaderSuiAddress,
+          amountUsdc: trackPrice,
+          label: 'Creator',
+        });
+      }
+    }
+
+    console.log('💜 [PERSONA] Payment recipients:', recipients);
+
+    if (recipients.length === 0) {
+      throw new Error('No valid payment recipients found');
+    }
+
+    // 3. Send to backend for signing and execution
+    const purchaseResponse = await fetch('/api/sui/purchase-with-persona', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personaId: activePersona.id,
+        accountId: activePersona.account_id,
+        recipients,
+        cartItems: cart.map(item => ({
+          id: item.id,
+          title: item.title,
+          price_usdc: item.price_usdc,
+        })),
+      }),
+    });
+
+    if (!purchaseResponse.ok) {
+      const error = await purchaseResponse.json();
+      throw new Error(error.error || 'Purchase failed');
+    }
+
+    const result = await purchaseResponse.json();
+    console.log('💜 [PERSONA] Transaction successful:', result);
+
+    return result;
+  };
+
+  /**
+   * Purchase with SUI (zkLogin users) - uses the boss wallet
    */
   const purchaseWithSUI = async () => {
     if (!suiAddress) {
@@ -157,7 +276,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       throw new Error('zkLogin session expired. Please sign in again.');
     }
 
-    console.log('💎 [SUI] Starting SUI purchase flow...');
+    console.log('💎 [SUI] Starting SUI purchase flow (zkLogin wallet)...');
     console.log('💎 [SUI] Network:', process.env.NEXT_PUBLIC_SUI_NETWORK || 'not set (defaulting to testnet)');
     console.log('💎 [SUI] Buyer address:', suiAddress);
     console.log('💎 [SUI] Session maxEpoch:', zkSession.maxEpoch, '| Session created:', new Date(zkSession.createdAt).toISOString());
@@ -504,10 +623,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setShowPurchaseModal(true);
       setPurchaseError(null);
 
-      // SUI-only payment flow
-      if (authType === 'zklogin' && suiAddress) {
-        console.log('🔷 Using SUI payment flow (zkLogin)');
-        await purchaseWithSUI();
+      // SUI payment flow
+      if (authType === 'zklogin') {
+        // Check if active persona has their own wallet
+        if (activePersona?.sui_address) {
+          console.log('💜 Using PERSONA wallet:', activePersona.username, activePersona.sui_address);
+          await purchaseWithPersonaWallet();
+        } else if (suiAddress) {
+          console.log('💎 Using zkLogin (boss) wallet:', suiAddress);
+          await purchaseWithSUI();
+        } else {
+          throw new Error('No wallet available for purchase');
+        }
       } else if (authType === 'wallet' || authType === 'invite') {
         // Stacks wallet users need to migrate to zkLogin
         throw new Error('Purchases now require signing in with Google. Please sign out and sign in with Google to continue.');

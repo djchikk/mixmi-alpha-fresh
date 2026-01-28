@@ -602,6 +602,148 @@ mixmi-alpha-fresh-11/
 
 ---
 
+## AI Agent Auto-Creation (January 2026)
+
+Every persona now automatically gets an AI agent with its own TING wallet when created. This ensures all users are ready to participate in the AI economy from day one.
+
+### How It Works
+
+```
+User signs up (zkLogin) or creates new persona
+     ↓
+Persona wallet generated (for USDC)
+     ↓
+AI agent keypair generated (separate from persona wallet)
+     ↓
+Agent registered on-chain (receives 100 TING)
+     ↓
+Agent stored in ai_agents table (linked to persona_id)
+```
+
+### Implementation Files
+
+| File | Purpose |
+|------|---------|
+| `app/api/personas/create/route.ts` | Creates agent when new persona is created |
+| `app/api/auth/zklogin/salt/route.ts` | Creates agent during zkLogin signup |
+| `app/api/ting/create-agent-for-persona/route.ts` | Backfill endpoint for existing personas |
+
+### Backfill Endpoint
+
+For existing personas without agents:
+
+```bash
+# Check if persona has an agent
+GET /api/ting/create-agent-for-persona?personaId=<uuid>
+
+# Create agent for persona that doesn't have one
+POST /api/ting/create-agent-for-persona
+Body: { "personaId": "<uuid>" }
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "agent": {
+    "address": "0x...",
+    "name": "username's Agent",
+    "owner": "0x...",
+    "initialAllocation": 100
+  },
+  "transactionDigest": "..."
+}
+```
+
+### Code Example
+
+```typescript
+import {
+  generateAgentKeypair,
+  buildRegisterAgentTransaction,
+  executeAsAdmin,
+  isTingConfigured,
+  DEFAULT_AGENT_TING_ALLOCATION,
+} from '@/lib/sui/ting';
+
+// Create agent when persona is created
+if (isTingConfigured() && personaWalletAddress) {
+  const { address: agentAddress, privateKeyBase64 } = generateAgentKeypair();
+  const agentName = `${username}'s Agent`;
+
+  const tx = buildRegisterAgentTransaction(
+    agentAddress,
+    personaWalletAddress,  // Owner is the persona's wallet
+    agentName
+  );
+
+  const result = await executeAsAdmin(tx);
+
+  await supabase.from('ai_agents').insert({
+    agent_address: agentAddress,
+    owner_address: personaWalletAddress,
+    agent_name: agentName,
+    keypair_encrypted: privateKeyBase64,
+    initial_allocation: DEFAULT_AGENT_TING_ALLOCATION,
+    persona_id: personaId,
+    is_active: true,
+  });
+}
+```
+
+---
+
+## AI Attribution & Revenue Split Model
+
+### Content Types and AI Involvement
+
+The platform tracks AI involvement via two flags on `ip_tracks`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ai_assisted_idea` | boolean | AI helped with the concept/idea |
+| `ai_assisted_implementation` | boolean | AI helped with execution/production |
+
+### Split Philosophy
+
+**Music is always 100% human-created.** AI assists with:
+- Video/visual generation
+- Curation and recommendations
+- Metadata and descriptions
+
+### Revenue Split Model (AI-Generated Visuals)
+
+When a video clip with AI-generated visuals is sold:
+
+| Component | Human Share | Agent Share |
+|-----------|-------------|-------------|
+| **Idea** (concept/composition) | 100% USDC | 0% |
+| **Implementation** (production) | 50% USDC | 50% TING |
+
+**Example:** User sells $10 AI-generated video
+- Idea (100% human): $5 USDC → human
+- Implementation (50/50): $2.50 USDC → human, TING equivalent → agent
+
+### Display States
+
+The `lib/aiAssistanceUtils.ts` provides display helpers:
+
+```typescript
+// No AI involvement
+{ emoji: '🙌', text: '100% Human', hasAI: false }
+
+// Any AI involvement
+{ emoji: '🙌🤖', text: 'Human/AI Collab', hasAI: true }
+```
+
+### Why TING for Agents?
+
+- **Attribution without exchange:** AI contribution is recognized but doesn't drain USDC
+- **Closed ecosystem:** TING can only be spent within Mixmi (for now)
+- **Future utility:** Agents can spend TING on licensing, boosting, commissions
+
+---
+
 ## Future Development
 
 ### Planned Contracts
@@ -621,18 +763,27 @@ mixmi-alpha-fresh-11/
 
 ### Integration Points
 
-1. **User Signup Flow**
+1. **User Signup Flow** ✅ IMPLEMENTED
    - On zkLogin signup → create AI agent wallet
    - Register agent in AgentRegistry
    - Agent receives 100 TING initial allocation
 
-2. **Bestie Agent Integration**
+2. **Persona Creation Flow** ✅ IMPLEMENTED
+   - New personas automatically get AI agents
+   - Existing personas can be backfilled via API
+
+3. **Bestie Agent Integration**
    - Bestie earns TING for helpful searches
    - Bestie can spend TING to boost recommendations
 
-3. **Upload Studio Integration**
+4. **Upload Studio Integration**
    - AI chatbot earns TING for successful uploads
    - AI metadata suggestions earn small rewards
+
+5. **AI-Generated Content Sales**
+   - Detect `ai_assisted_implementation: true`
+   - Split Implementation revenue: 50% USDC, 50% TING
+   - Mint TING to creator's agent on sale
 
 ### Token Economics (Future)
 

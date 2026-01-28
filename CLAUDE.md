@@ -150,6 +150,8 @@ Full symmetry between Globe, Crate, Playlist, and Decks.
 - `video_crop_x/y/width/height/zoom` - Video crop data
 - `video_natural_width/height` - Original video dimensions
 - `portal_username` - For portal content_type, username for profile link
+- `ai_assisted_idea` (boolean) - AI helped with concept
+- `ai_assisted_implementation` (boolean) - AI helped with production
 
 ### user_profiles
 - `sticker_id` (default 'daisy-blue')
@@ -471,6 +473,8 @@ See `docs/agent-synonym-system.md` for detailed documentation.
 
 **Manager Wallet System:** December 29, 2025 - Each persona gets its own SUI wallet for real on-chain accounting.
 
+**AI Agent Per Persona:** January 27, 2026 - Each persona auto-gets an AI agent with TING wallet for AI attribution.
+
 **Audio Enhancement:** January 26, 2026 - FFmpeg-based audio processing via Fly.io worker with 6 presets.
 
 ---
@@ -486,13 +490,16 @@ Each persona under an account gets its own **real SUI wallet address**. The zkLo
 ### Architecture
 ```
 Account (zkLogin = Manager)
-├── Persona "Artist A" → generated SUI address 0xabc...
-├── Persona "Artist B" → generated SUI address 0xdef...
-└── TBD Wallet "Kwame" → generated SUI address 0x123...
+├── Persona "Artist A" → SUI address 0xabc... (USDC)
+│   └── AI Agent → SUI address 0x111... (TING)
+├── Persona "Artist B" → SUI address 0xdef... (USDC)
+│   └── AI Agent → SUI address 0x222... (TING)
+└── TBD Wallet "Kwame" → SUI address 0x123... (USDC)
 ```
 
 ### Key Points
 - **Real on-chain accounting**: Each persona has a verifiable SUI address with actual USDC
+- **AI agent per persona**: Each persona also gets an AI agent with its own TING wallet
 - **Manager controls all**: zkLogin holder can view balances and withdraw from any persona
 - **Encrypted storage**: Private keys encrypted with user's zkLogin credentials + server secret
 - **Platform can't access**: Only authenticated user can decrypt persona keys
@@ -518,6 +525,67 @@ payout_address TEXT,           -- Optional external payout address
 John in Nairobi manages accounts for his cousin Mary (musician) and friend Peter (producer). Each has their own wallet, John handles technical side, sends payouts via M-Pesa.
 
 See `docs/manager-wallet-system.md` for full documentation.
+
+---
+
+## AI Agent & TING System (January 2026)
+
+### Overview
+Each persona automatically gets an AI agent with its own TING wallet. TING is the AI collaboration token - agents earn it when AI contributes to creative work.
+
+### Auto-Creation Flow
+```
+Persona created (zkLogin signup or /api/personas/create)
+     ↓
+Persona wallet generated (for USDC)
+     ↓
+AI agent keypair generated (separate wallet)
+     ↓
+Agent registered on SUI blockchain (receives 100 TING)
+     ↓
+Agent stored in ai_agents table (linked to persona_id)
+```
+
+### AI Attribution Tracking
+The `ip_tracks` table has two boolean fields:
+- `ai_assisted_idea` - AI helped with concept/composition
+- `ai_assisted_implementation` - AI helped with production/execution
+
+**Music is always 100% human.** AI assists with visuals, curation, metadata.
+
+### Revenue Split (AI-Generated Visuals)
+When selling content with `ai_assisted_implementation: true`:
+| Component | Human | Agent |
+|-----------|-------|-------|
+| Idea | 100% USDC | 0% |
+| Implementation | 50% USDC | 50% TING |
+
+### Database Tables
+```sql
+-- ai_agents table
+agent_address TEXT,            -- SUI address for TING
+owner_address TEXT,            -- Persona's SUI address
+persona_id UUID,               -- FK to personas
+keypair_encrypted TEXT,        -- Encrypted private key
+initial_allocation DECIMAL,    -- Usually 100 TING
+is_active BOOLEAN
+```
+
+### Key Files
+- `lib/sui/ting.ts` - TING SDK (mint, register, reward)
+- `app/api/ting/create-agent-for-persona/route.ts` - Backfill endpoint
+- `app/api/personas/create/route.ts` - Auto-creates agent
+- `app/api/auth/zklogin/salt/route.ts` - Auto-creates agent on signup
+- `lib/aiAssistanceUtils.ts` - Display helpers for AI status
+
+### Backfilling Existing Personas
+For personas created before auto-agent feature:
+```bash
+POST /api/ting/create-agent-for-persona
+Body: { "personaId": "<uuid>" }
+```
+
+See `docs/ting-token-deployment-2026-01-12.md` for full TING documentation.
 
 ---
 
