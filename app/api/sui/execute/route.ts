@@ -98,25 +98,33 @@ export async function POST(request: NextRequest) {
     // Record purchases in database
     if (purchaseData?.cartItems && purchaseData.cartItems.length > 0) {
       try {
-        // Insert purchase records (write both column names for compatibility)
-        const purchaseRecords = purchaseData.cartItems.map(item => ({
-          buyer_address: purchaseData.buyerAddress,
-          buyer_wallet: purchaseData.buyerAddress, // Also write to buyer_wallet for LibraryTab queries
-          buyer_persona_id: purchaseData.buyerPersonaId || null,
-          track_id: item.id,
-          price_usdc: item.price_usdc,
-          tx_hash: result.digest,
-          network: 'sui',
-          completed_at: new Date().toISOString(),
-        }));
+        // Insert purchase records one at a time to get seller_wallet
+        for (const item of purchaseData.cartItems) {
+          // Get the track's uploader wallet for seller_wallet
+          const { data: trackData } = await supabase
+            .from('ip_tracks')
+            .select('primary_uploader_wallet')
+            .eq('id', item.id)
+            .single();
 
-        const { error: insertError } = await supabase
-          .from('purchases')
-          .insert(purchaseRecords);
+          const { error: insertError } = await supabase
+            .from('purchases')
+            .insert({
+              buyer_address: purchaseData.buyerAddress,
+              buyer_wallet: purchaseData.buyerAddress,
+              buyer_persona_id: purchaseData.buyerPersonaId || null,
+              track_id: item.id,
+              seller_wallet: trackData?.primary_uploader_wallet || 'unknown',
+              price_usdc: item.price_usdc,
+              purchase_price: item.price_usdc,
+              tx_hash: result.digest,
+              network: 'sui',
+              completed_at: new Date().toISOString(),
+            });
 
-        if (insertError) {
-          console.error('Failed to record purchases:', insertError);
-          // Don't fail the request - transaction already succeeded
+          if (insertError) {
+            console.error('Failed to record purchase:', insertError);
+          }
         }
 
         // Process earnings for each track

@@ -258,13 +258,23 @@ export async function POST(request: NextRequest) {
     // Record purchases in database
     if (cartItems && Array.isArray(cartItems)) {
       for (const item of cartItems) {
+        // Get the track's uploader wallet for seller_wallet
+        const trackId = item.id.replace(/-loc-\d+$/, ''); // Strip location suffix
+        const { data: trackData } = await supabaseAdmin
+          .from('ip_tracks')
+          .select('primary_uploader_wallet')
+          .eq('id', trackId)
+          .single();
+
         const { error: insertError } = await supabaseAdmin.from('purchases').insert({
           // Write both column names for compatibility
           buyer_wallet: persona.sui_address,
           buyer_address: persona.sui_address,
           buyer_persona_id: personaId,
-          track_id: item.id.replace(/-loc-\d+$/, ''), // Strip location suffix
+          track_id: trackId,
+          seller_wallet: trackData?.primary_uploader_wallet || recipients[0]?.address || 'unknown',
           price_usdc: item.price_usdc,
+          purchase_price: item.price_usdc, // Also write to legacy column
           tx_hash: result.digest,
           network: 'sui',
           completed_at: new Date().toISOString(),
