@@ -1240,83 +1240,23 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
             if (!track) return null;
 
             return (
-              <div key={purchase.id} className="group cursor-pointer">
-                <div className={`relative aspect-square rounded-lg overflow-hidden ${getLibraryBorderColor(track)} ${getLibraryBorderThickness(track)} mb-2`}>
-                  <img
-                    src={track.cover_image_url}
-                    alt={track.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  />
-
-                  {/* Hover Overlay - Same pattern as My Work cards */}
-                  <div className="hover-overlay absolute inset-0 bg-black bg-opacity-90 p-2 animate-fadeIn opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* Top Section: Title, Artist */}
-                    <div className="absolute top-1 left-2 right-2">
-                      <div className="flex flex-col">
-                        <h3 className="font-medium text-white text-sm leading-tight truncate">
-                          {track.title}
-                        </h3>
-                        <p className="text-white/80 text-xs truncate">
-                          {track.artist}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Purchased Badge - Top Right Corner */}
-                    <div className="absolute top-1 right-1 px-2 py-0.5 bg-green-600/80 rounded text-xs text-white font-medium">
-                      Owned
-                    </div>
-
-                    {/* Center: Play Button */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                      {(track.audio_url || track.stream_url) && (
-                        <button
-                          onClick={() => handlePlayPause(track)}
-                          className="transition-all hover:scale-110"
-                        >
-                          {playingTrackId === track.id ? (
-                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                            </svg>
-                          ) : (
-                            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
-                            </svg>
-                          )}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Bottom Section: Content Type, BPM */}
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
-                      {/* Spacer for alignment */}
-                      <div className="w-12"></div>
-
-                      {/* Content Type Badge */}
-                      <span className="text-xs font-mono font-medium text-white">
-                        {track.content_type === 'ep' && 'EP'}
-                        {track.content_type === 'loop_pack' && 'PACK'}
-                        {track.content_type === 'loop' && 'LOOP'}
-                        {track.content_type === 'full_song' && 'SONG'}
-                        {track.content_type === 'radio_station' && 'RADIO'}
-                        {track.content_type === 'station_pack' && 'PACK'}
-                        {track.content_type === 'video_clip' && 'VIDEO'}
-                        {!track.content_type && 'TRACK'}
-                      </span>
-
-                      {/* BPM Badge */}
-                      {track.bpm && track.content_type !== 'ep' && track.content_type !== 'video_clip' ? (
-                        <span className="text-sm font-mono font-bold text-white" title="BPM">
-                          {track.bpm}
-                        </span>
-                      ) : (
-                        <div className="w-12"></div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-sm text-white truncate">{track.title}</div>
-                <div className="text-xs text-gray-400 truncate">{track.artist}</div>
+              <div key={purchase.id} className="relative">
+                <CompactTrackCardWithFlip
+                  track={track as any}
+                  isPlaying={playingTrackId === track.id}
+                  onPlayPreview={(trackId: string) => {
+                    if (track) handlePlayPause(track);
+                  }}
+                  onStopPreview={() => {
+                    if (audioElement) {
+                      audioElement.pause();
+                      audioElement.currentTime = 0;
+                    }
+                    setPlayingTrackId(null);
+                  }}
+                  showEditControls={false}
+                  ownedBadge={true}
+                />
               </div>
             );
           })}

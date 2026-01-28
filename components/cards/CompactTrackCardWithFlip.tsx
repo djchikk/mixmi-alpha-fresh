@@ -24,6 +24,7 @@ interface CompactTrackCardWithFlipProps {
   onEditTrack?: (track: IPTrack) => void;
   onDeleteTrack?: (trackId: string) => void;
   onPublishTrack?: (trackId: string) => void;
+  ownedBadge?: boolean; // Show "Owned" badge for purchased content
 }
 
 // Draggable track component for expanded drawer
@@ -114,7 +115,8 @@ export default function CompactTrackCardWithFlip({
   onPurchase,
   onEditTrack,
   onDeleteTrack,
-  onPublishTrack
+  onPublishTrack,
+  ownedBadge = false
 }: CompactTrackCardWithFlipProps) {
   // Alpha version - no mixer collection functionality
   const { showToast } = useToast();
@@ -587,6 +589,19 @@ export default function CompactTrackCardWithFlip({
                     }}
                   >
                     {track.pack_position}
+                  </div>
+                )}
+
+                {/* Owned Badge - for purchased content in Library */}
+                {ownedBadge && (
+                  <div
+                    className="absolute top-1 right-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide z-10"
+                    style={{
+                      backgroundColor: '#22c55e',
+                      color: '#ffffff'
+                    }}
+                  >
+                    Owned
                   </div>
                 )}
 
