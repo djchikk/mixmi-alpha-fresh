@@ -17,15 +17,13 @@ import InfoIcon from "@/components/shared/InfoIcon";
 import CompactTrackCardWithFlip from "@/components/cards/CompactTrackCardWithFlip";
 import ProfileImageModal from "@/components/profile/ProfileImageModal";
 import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
-import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check, Star, QrCode, RefreshCw } from 'lucide-react';
-import QRCodeModal from '@/components/shared/QRCodeModal';
+import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check } from 'lucide-react';
 import { Track } from '@/components/mixer/types';
 import Crate from '@/components/shared/Crate';
-import { PRICING } from '@/config/pricing';
 import { generateAvatar } from '@/lib/avatarUtils';
-import AddPersonaModal from '@/components/modals/AddPersonaModal';
+import WalletsTab from '@/components/account/WalletsTab';
 
-type Tab = "uploads" | "library" | "history" | "settings" | "earnings";
+type Tab = "uploads" | "library" | "history" | "settings" | "earnings" | "wallets";
 
 interface Track {
   id: string;
@@ -484,6 +482,19 @@ export default function AccountPage() {
                 )}
               </button>
               <button
+                onClick={() => setActiveTab("wallets")}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === "wallets"
+                    ? "text-[#81E4F2]"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
+              >
+                Wallets
+                {activeTab === "wallets" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#81E4F2]" />
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab("earnings")}
                 className={`pb-3 px-2 font-medium transition-colors relative ${
                   activeTab === "earnings"
@@ -574,6 +585,16 @@ export default function AccountPage() {
                   personas={personas}
                   activePersona={activePersona}
                   suiAddress={suiAddress}
+                />
+              )}
+              {activeTab === "wallets" && (
+                <WalletsTab
+                  walletAddress={walletAddress}
+                  suiAddress={suiAddress}
+                  personas={personas}
+                  activePersona={activePersona}
+                  setActivePersona={setActivePersona}
+                  refreshPersonas={refreshPersonas}
                 />
               )}
             </>
@@ -1288,43 +1309,6 @@ function SettingsTab({
   const effectiveWallet = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
 
   const [loading, setLoading] = useState(true);
-  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [qrModal, setQrModal] = useState<{ address: string; label: string; username?: string } | null>(null);
-
-  // On-chain wallet balances
-  const [walletBalances, setWalletBalances] = useState<Record<string, { usdc: number; sui: number }>>({});
-  const [loadingBalances, setLoadingBalances] = useState(false);
-
-  // Fetch on-chain wallet balances
-  const fetchWalletBalances = async () => {
-    if (!activePersona?.account_id) return;
-
-    setLoadingBalances(true);
-    try {
-      const response = await fetch(`/api/personas/balances?accountId=${activePersona.account_id}`);
-      const data = await response.json();
-
-      if (data.success && data.balances) {
-        const balanceMap: Record<string, { usdc: number; sui: number }> = {};
-        data.balances.forEach((b: any) => {
-          balanceMap[b.suiAddress] = { usdc: b.balances.usdc, sui: b.balances.sui };
-        });
-        setWalletBalances(balanceMap);
-      }
-    } catch (error) {
-      console.error('Error fetching wallet balances:', error);
-    }
-    setLoadingBalances(false);
-  };
-
-  // Fetch balances on mount
-  useEffect(() => {
-    if (activePersona?.account_id) {
-      fetchWalletBalances();
-    }
-  }, [activePersona?.account_id]);
-
   const router = useRouter();
   const [agentName, setAgentName] = useState('');
   const [profile, setProfile] = useState<{
@@ -1343,7 +1327,6 @@ function SettingsTab({
   // Modal states
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [isAddPersonaModalOpen, setIsAddPersonaModalOpen] = useState(false);
 
   // Fetch profile data
   const fetchProfileData = async () => {
@@ -1454,39 +1437,6 @@ function SettingsTab({
     displayAvatar.includes('.webm') ||
     displayAvatar.includes('video/')
   );
-
-  // Handle zkLogin disconnect
-  const handleDisconnectZkLogin = async () => {
-    if (!suiAddress) return;
-
-    setDisconnecting(true);
-    try {
-      const response = await fetch('/api/auth/zklogin/disconnect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suiAddress }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Clear local storage and redirect to home
-        localStorage.removeItem('zklogin_session');
-        localStorage.removeItem('sui_address');
-        alert('zkLogin disconnected! You will be redirected to sign in again.');
-        router.push('/');
-        // Force page reload to clear auth state
-        window.location.reload();
-      } else {
-        alert('Failed to disconnect: ' + (data.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Disconnect error:', error);
-      alert('Failed to disconnect. Please try again.');
-    }
-    setDisconnecting(false);
-    setShowDisconnectConfirm(false);
-  };
 
   return (
     <div>
@@ -1630,128 +1580,6 @@ function SettingsTab({
           )}
         </div>
 
-        {/* Accounts Section */}
-        <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold">Your Accounts</h3>
-          </div>
-
-          <div className="space-y-3">
-            {personas.length > 0 ? (
-              <>
-                {personas.map((persona) => (
-                  <div
-                    key={persona.id}
-                    className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
-                      activePersona?.id === persona.id
-                        ? 'bg-[#1E293B]/50 border-[#81E4F2]/30'
-                        : 'bg-[#0a0f1a] border-[#1E293B] hover:border-gray-600'
-                    }`}
-                  >
-                    {/* Active indicator */}
-                    <div className="flex-shrink-0">
-                      {activePersona?.id === persona.id ? (
-                        <Star className="w-4 h-4 text-[#81E4F2] fill-[#81E4F2]" />
-                      ) : (
-                        <div className="w-4 h-4" />
-                      )}
-                    </div>
-
-                    {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0">
-                      {(() => {
-                        // Only use persona's own avatar, not the main profile's
-                        const avatarSrc = persona.avatar_url;
-                        const isVideo = avatarSrc && (avatarSrc.includes('.mp4') || avatarSrc.includes('.webm') || avatarSrc.includes('video/'));
-
-                        if (isVideo) {
-                          return (
-                            <video
-                              src={avatarSrc}
-                              className="w-full h-full object-cover"
-                              autoPlay
-                              loop
-                              muted
-                              playsInline
-                            />
-                          );
-                        }
-
-                        return (
-                          <img
-                            src={avatarSrc || generateAvatar(persona.username || persona.id)}
-                            alt={persona.display_name || persona.username || 'Persona'}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = generateAvatar(persona.username || persona.id);
-                            }}
-                          />
-                        );
-                      })()}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white font-medium truncate">
-                        {persona.display_name || persona.username || 'Unnamed Persona'}
-                      </div>
-                      {persona.username && (
-                        <div className="text-sm text-gray-400">@{persona.username}</div>
-                      )}
-                    </div>
-
-                    {/* Balance - use on-chain balance if available, otherwise database value */}
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-[#81E4F2] font-mono font-medium">
-                        ${(persona.sui_address && walletBalances[persona.sui_address]?.usdc !== undefined
-                          ? walletBalances[persona.sui_address].usdc
-                          : persona.balance_usdc || 0
-                        ).toFixed(2)} USDC
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 flex-shrink-0">
-                      {activePersona?.id !== persona.id && (
-                        <button
-                          onClick={() => setActivePersona(persona)}
-                          className="px-3 py-1.5 text-xs text-[#81E4F2] border border-[#81E4F2]/30 rounded hover:bg-[#81E4F2]/10 transition-colors"
-                        >
-                          Switch
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Add Account button - only if under limit */}
-                {personas.length < PRICING.account.maxPersonas && (
-                  <button
-                    onClick={() => setIsAddPersonaModalOpen(true)}
-                    className="w-full flex items-center gap-3 p-4 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-[#81E4F2]/50 hover:text-[#81E4F2] transition-colors"
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span>Add Account</span>
-                    <span className="ml-auto text-xs text-gray-500">
-                      ({PRICING.account.maxPersonas - personas.length} slot{PRICING.account.maxPersonas - personas.length !== 1 ? 's' : ''} remaining)
-                    </span>
-                  </button>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p className="mb-4">No accounts found</p>
-                <button
-                  onClick={() => setIsAddPersonaModalOpen(true)}
-                  className="px-4 py-2 text-sm text-[#81E4F2] border border-[#81E4F2]/30 rounded-lg hover:bg-[#81E4F2]/10 transition-colors"
-                >
-                  Create Your First Account
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Agent Settings */}
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <div className="flex items-center gap-2 mb-4">
@@ -1779,208 +1607,6 @@ function SettingsTab({
           <p className="text-gray-500 text-sm">
             Use {agentName || 'your agent'} on the globe page — click the 🤖 next to Crate.
           </p>
-        </div>
-
-        {/* Wallet Settings */}
-        <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold">Connected Wallets</h3>
-            <button
-              onClick={fetchWalletBalances}
-              disabled={loadingBalances}
-              className="flex items-center gap-1.5 px-2 py-1 text-xs bg-slate-800 text-gray-300 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
-            >
-              <RefreshCw size={12} className={loadingBalances ? 'animate-spin' : ''} />
-              {loadingBalances ? 'Loading...' : 'Refresh'}
-            </button>
-          </div>
-          <p className="text-gray-400 text-sm mb-4">
-            Your wallet addresses for transactions and receiving payments.
-          </p>
-          <div className="space-y-3">
-            {/* Persona Payment Wallet */}
-            {activePersona?.sui_address && (
-              <div className="bg-[#0a0f1a] p-4 rounded border border-[#A8E66B]/30">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white">Payment Wallet</span>
-                    <span className="text-xs px-1.5 py-0.5 bg-[#A8E66B]/20 text-[#A8E66B] rounded">@{activePersona.username}</span>
-                  </div>
-                </div>
-                {/* Balance Display */}
-                <div className="flex gap-4 mb-3">
-                  <div>
-                    <span className="text-xs text-gray-500">USDC</span>
-                    <div className="text-lg font-bold text-[#A8E66B]">
-                      ${walletBalances[activePersona.sui_address]?.usdc?.toFixed(2) || '0.00'}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500">SUI (gas)</span>
-                    <div className="text-lg font-bold text-[#81E4F2]">
-                      {walletBalances[activePersona.sui_address]?.sui?.toFixed(4) || '0.0000'}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 mb-2">
-                  Payments for this persona go to this address
-                </p>
-                {/* Full address with copy */}
-                <div className="flex items-center gap-2 bg-[#1E293B] rounded p-2">
-                  <code className="text-xs text-[#A8E66B] font-mono break-all flex-1">
-                    {activePersona.sui_address}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(activePersona.sui_address!);
-                      alert('Address copied!');
-                    }}
-                    className="flex-shrink-0 px-2 py-1 text-xs bg-[#A8E66B]/20 hover:bg-[#A8E66B]/30 text-[#A8E66B] rounded transition-colors"
-                  >
-                    Copy
-                  </button>
-                </div>
-                {/* Explorer link and QR */}
-                <div className="mt-2 flex gap-3">
-                  <a
-                    href={`https://suiscan.xyz/testnet/account/${activePersona.sui_address}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-gray-400 hover:text-[#A8E66B] transition-colors"
-                  >
-                    View on Explorer
-                  </a>
-                  <button
-                    onClick={() => setQrModal({
-                      address: activePersona.sui_address!,
-                      label: 'Payment Wallet',
-                      username: activePersona.username
-                    })}
-                    className="text-xs text-gray-400 hover:text-[#A8E66B] transition-colors flex items-center gap-1"
-                  >
-                    <QrCode size={12} />
-                    QR Code
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* SUI Address (zkLogin) - Manager Account */}
-            {suiAddress && (
-              <div className="bg-[#0a0f1a] p-4 rounded border border-[#1E293B]">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white">Manager Account</span>
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">zkLogin</span>
-                  </div>
-                  {!showDisconnectConfirm ? (
-                    <button
-                      onClick={() => setShowDisconnectConfirm(true)}
-                      className="text-xs text-gray-500 hover:text-red-400 transition-colors"
-                    >
-                      Disconnect
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Sure?</span>
-                      <button
-                        onClick={handleDisconnectZkLogin}
-                        disabled={disconnecting}
-                        className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded disabled:opacity-50"
-                      >
-                        {disconnecting ? '...' : 'Yes'}
-                      </button>
-                      <button
-                        onClick={() => setShowDisconnectConfirm(false)}
-                        className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded"
-                      >
-                        No
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {/* Balance Display */}
-                <div className="flex gap-4 mb-3">
-                  <div>
-                    <span className="text-xs text-gray-500">USDC</span>
-                    <div className="text-lg font-bold text-[#A8E66B]">
-                      ${walletBalances[suiAddress]?.usdc?.toFixed(2) || '0.00'}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500">SUI (gas)</span>
-                    <div className="text-lg font-bold text-[#81E4F2]">
-                      {walletBalances[suiAddress]?.sui?.toFixed(4) || '0.0000'}
-                    </div>
-                  </div>
-                </div>
-                {/* Full address with copy */}
-                <div className="flex items-center gap-2 bg-[#1E293B] rounded p-2">
-                  <code className="text-xs text-[#81E4F2] font-mono break-all flex-1">
-                    {suiAddress}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(suiAddress);
-                      alert('Address copied!');
-                    }}
-                    className="flex-shrink-0 px-2 py-1 text-xs bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 text-[#81E4F2] rounded transition-colors"
-                  >
-                    Copy
-                  </button>
-                </div>
-                {/* Explorer link */}
-                <div className="mt-2 flex gap-3">
-                  <a
-                    href={`https://suiscan.xyz/testnet/account/${suiAddress}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-gray-400 hover:text-[#81E4F2] transition-colors"
-                  >
-                    View on Explorer
-                  </a>
-                  <a
-                    href="https://faucet.circle.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-gray-400 hover:text-[#81E4F2] transition-colors"
-                  >
-                    Get Testnet USDC
-                  </a>
-                  <button
-                    onClick={() => setQrModal({
-                      address: suiAddress,
-                      label: 'Manager Account'
-                    })}
-                    className="text-xs text-gray-400 hover:text-[#81E4F2] transition-colors flex items-center gap-1"
-                  >
-                    <QrCode size={12} />
-                    QR Code
-                  </button>
-                </div>
-                {showDisconnectConfirm && (
-                  <p className="text-xs text-amber-400/80 mt-2">
-                    This will unlink your Apple/Google login from this account. You'll need to sign in again with a different invite code.
-                  </p>
-                )}
-              </div>
-            )}
-            {/* STX Address */}
-            {walletAddress && (
-              <div className="text-xs font-mono bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 w-12">STX:</span>
-                  <span className="text-gray-500">{walletAddress}</span>
-                </div>
-              </div>
-            )}
-            {/* No wallet */}
-            {!suiAddress && !walletAddress && (
-              <div className="text-xs text-gray-600 font-mono bg-[#0a0f1a] p-3 rounded border border-[#1E293B]">
-                No wallet connected
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Privacy */}
@@ -2011,27 +1637,6 @@ function SettingsTab({
         suiAddress={suiAddress}
         personaId={activePersona?.id}
         onUpdate={handleProfileUpdate}
-      />
-
-      <AddPersonaModal
-        isOpen={isAddPersonaModalOpen}
-        onClose={() => setIsAddPersonaModalOpen(false)}
-        onSuccess={() => {
-          refreshPersonas();
-          setIsAddPersonaModalOpen(false);
-        }}
-        accountId={activePersona?.account_id || personas[0]?.account_id || ''}
-        currentPersonaCount={personas.length}
-        maxPersonas={PRICING.account.maxPersonas}
-      />
-
-      {/* QR Code Modal */}
-      <QRCodeModal
-        isOpen={!!qrModal}
-        onClose={() => setQrModal(null)}
-        address={qrModal?.address || ''}
-        label={qrModal?.label}
-        username={qrModal?.username}
       />
     </div>
   );
