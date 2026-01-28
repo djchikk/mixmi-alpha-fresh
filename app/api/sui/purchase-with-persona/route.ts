@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { decryptKeypair, verifyKeypairAddress } from '@/lib/sui/keypair-manager';
 import { getSuiClient, getUsdcType, usdcToUnits, isValidSuiAddress } from '@/lib/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import type { PaymentRecipient } from '@/lib/sui';
 
 const supabaseAdmin = createClient(
@@ -161,9 +162,47 @@ export async function POST(request: NextRequest) {
 
     console.log('[PurchaseWithPersona] Building split payment transaction');
 
+    // Get sponsor keypair for gas payment
+    const sponsorPrivateKey = process.env.GAS_SPONSOR_PRIVATE_KEY;
+    if (!sponsorPrivateKey) {
+      return NextResponse.json(
+        { error: 'Gas sponsor not configured' },
+        { status: 500 }
+      );
+    }
+
+    const sponsorKeypair = Ed25519Keypair.fromSecretKey(
+      Buffer.from(sponsorPrivateKey, 'hex')
+    );
+    const sponsorAddress = sponsorKeypair.toSuiAddress();
+
+    // Get sponsor's gas coins
+    const { data: gasCoins } = await client.getCoins({
+      owner: sponsorAddress,
+      coinType: '0x2::sui::SUI',
+    });
+
+    if (!gasCoins || gasCoins.length === 0) {
+      return NextResponse.json(
+        { error: 'Sponsor wallet has no SUI for gas' },
+        { status: 500 }
+      );
+    }
+
     // Build transaction
     const tx = new Transaction();
     tx.setSender(persona.sui_address);
+    tx.setGasOwner(sponsorAddress); // Sponsor pays for gas
+
+    // Set gas payment from sponsor
+    tx.setGasPayment(
+      gasCoins.slice(0, 1).map(coin => ({
+        objectId: coin.coinObjectId,
+        version: coin.version,
+        digest: coin.digest,
+      }))
+    );
+    tx.setGasBudget(100_000_000); // 0.1 SUI budget
 
     // Get the primary USDC coin (merge if needed)
     let primaryCoin = tx.object(usdcCoins[0].coinObjectId);
@@ -181,12 +220,23 @@ export async function POST(request: NextRequest) {
       tx.transferObjects([splitCoins[index]], recipient.address);
     });
 
-    console.log('[PurchaseWithPersona] Signing and executing transaction');
+    console.log('[PurchaseWithPersona] Building transaction bytes');
 
-    // Sign and execute with the persona's keypair
-    const result = await client.signAndExecuteTransaction({
-      signer: keypair,
-      transaction: tx,
+    // Build the transaction
+    const txBytes = await tx.build({ client });
+
+    console.log('[PurchaseWithPersona] Signing with persona and sponsor keypairs');
+
+    // Sign with both keypairs
+    const personaSignature = await keypair.signTransaction(txBytes);
+    const sponsorSignature = await sponsorKeypair.signTransaction(txBytes);
+
+    console.log('[PurchaseWithPersona] Executing sponsored transaction');
+
+    // Execute with both signatures
+    const result = await client.executeTransactionBlock({
+      transactionBlock: txBytes,
+      signature: [personaSignature.signature, sponsorSignature.signature],
       options: {
         showEffects: true,
         showEvents: true,
@@ -196,10 +246,11 @@ export async function POST(request: NextRequest) {
     console.log('[PurchaseWithPersona] Transaction result:', result.digest);
 
     // Check if transaction was successful
-    if (result.effects?.status?.status !== 'success') {
+    const status = result.effects?.status?.status;
+    if (status !== 'success') {
       console.error('[PurchaseWithPersona] Transaction failed:', result.effects?.status);
       return NextResponse.json(
-        { error: 'Transaction failed on-chain. Please try again.' },
+        { error: `Transaction failed on-chain: ${result.effects?.status?.error || 'Unknown error'}` },
         { status: 500 }
       );
     }
