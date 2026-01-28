@@ -3,6 +3,13 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { randomBytes } from 'crypto';
 import { jwtToAddress } from '@mysten/sui/zklogin';
 import { generateEncryptedKeypair } from '@/lib/sui/keypair-manager';
+import {
+  generateAgentKeypair,
+  buildRegisterAgentTransaction,
+  executeAsAdmin,
+  isTingConfigured,
+  DEFAULT_AGENT_TING_ALLOCATION,
+} from '@/lib/sui/ting';
 
 /**
  * Generate wallets for personas that don't have them yet
@@ -289,8 +296,10 @@ export async function POST(request: NextRequest) {
           console.log('✅ Created persona for zkLogin user:', finalUsername);
 
           // Generate wallet for the new persona
+          let personaWalletAddress: string | null = null;
           try {
             const encryptedKeypair = generateEncryptedKeypair(salt);
+            personaWalletAddress = encryptedKeypair.suiAddress;
             await supabase
               .from('personas')
               .update({
@@ -302,6 +311,45 @@ export async function POST(request: NextRequest) {
             console.log('✅ Generated wallet for zkLogin persona:', encryptedKeypair.suiAddress);
           } catch (e) {
             console.error('Failed to generate zkLogin persona wallet:', e);
+          }
+
+          // Create AI agent for this persona (with TING wallet)
+          if (isTingConfigured() && personaWalletAddress) {
+            try {
+              console.log('🤖 Creating AI agent for new persona...');
+
+              // Generate new keypair for the AI agent
+              const { address: agentAddress, privateKeyBase64 } = generateAgentKeypair();
+              const agentName = `${finalUsername}'s Agent`;
+
+              // Register agent on-chain (mints initial TING)
+              const tx = buildRegisterAgentTransaction(
+                agentAddress,
+                personaWalletAddress,
+                agentName
+              );
+
+              const result = await executeAsAdmin(tx);
+              console.log('🤖 Agent registered on-chain:', result.digest);
+
+              // Store agent in database
+              await supabase
+                .from('ai_agents')
+                .insert({
+                  agent_address: agentAddress,
+                  owner_address: personaWalletAddress,
+                  agent_name: agentName,
+                  keypair_encrypted: privateKeyBase64,
+                  initial_allocation: DEFAULT_AGENT_TING_ALLOCATION,
+                  persona_id: newPersona.id,
+                  is_active: true,
+                });
+
+              console.log('🤖 AI agent created:', agentAddress, 'with', DEFAULT_AGENT_TING_ALLOCATION, 'TING');
+            } catch (agentError) {
+              console.error('Failed to create AI agent (non-blocking):', agentError);
+              // Don't fail signup - agent can be created later
+            }
           }
         }
 

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateEncryptedKeypair } from '@/lib/sui/keypair-manager';
+import {
+  generateAgentKeypair,
+  buildRegisterAgentTransaction,
+  executeAsAdmin,
+  isTingConfigured,
+  DEFAULT_AGENT_TING_ALLOCATION,
+} from '@/lib/sui/ting';
 
 // Use service role for creating personas
 const supabaseAdmin = createClient(
@@ -198,9 +205,62 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Create AI agent for this persona (with TING wallet)
+    let agentData: { agent_address?: string; agent_name?: string; ting_allocation?: number } = {};
+
+    if (isTingConfigured() && walletData.sui_address) {
+      try {
+        console.log('[Persona Create] Creating AI agent for persona...');
+
+        // Generate new keypair for the AI agent (separate from persona wallet)
+        const { address: agentAddress, privateKeyBase64 } = generateAgentKeypair();
+        const agentName = `${displayName || username}'s Agent`;
+
+        // Build and execute registration transaction (mints initial TING)
+        const tx = buildRegisterAgentTransaction(
+          agentAddress,
+          walletData.sui_address, // Owner is the persona's wallet
+          agentName
+        );
+
+        const result = await executeAsAdmin(tx);
+        console.log('[Persona Create] Agent registered on-chain:', result.digest);
+
+        // Store agent in database
+        const { error: agentError } = await supabaseAdmin
+          .from('ai_agents')
+          .insert({
+            agent_address: agentAddress,
+            owner_address: walletData.sui_address,
+            agent_name: agentName,
+            keypair_encrypted: privateKeyBase64,
+            initial_allocation: DEFAULT_AGENT_TING_ALLOCATION,
+            persona_id: newPersona.id,
+            is_active: true,
+          });
+
+        if (agentError) {
+          console.error('[Persona Create] Error storing agent in DB:', agentError);
+        } else {
+          agentData = {
+            agent_address: agentAddress,
+            agent_name: agentName,
+            ting_allocation: DEFAULT_AGENT_TING_ALLOCATION,
+          };
+          console.log('[Persona Create] AI agent created:', agentAddress, 'with', DEFAULT_AGENT_TING_ALLOCATION, 'TING');
+        }
+      } catch (agentError) {
+        console.error('[Persona Create] Failed to create AI agent:', agentError);
+        // Don't fail persona creation - agent can be created later
+      }
+    } else {
+      console.log('[Persona Create] Skipping AI agent creation (TING not configured or no wallet)');
+    }
+
     return NextResponse.json({
       success: true,
-      persona: newPersona
+      persona: newPersona,
+      agent: agentData.agent_address ? agentData : undefined,
     });
   } catch (error) {
     console.error('[Persona Create] Error:', error);
