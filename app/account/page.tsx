@@ -132,12 +132,12 @@ export default function AccountPage() {
         if (activePersona.display_name && activePersona.display_name !== 'New User') {
           setDisplayName(activePersona.display_name);
         } else {
-          setDisplayName(activePersona.username);
+          setDisplayName(activePersona.username || 'User');
         }
-        if (activePersona.avatar_url) {
-          setProfileImage(activePersona.avatar_url);
-          setProfileThumb96Url(null); // Personas don't have thumbnails yet
-        }
+        // Use persona avatar or generate dicebear fallback
+        const avatarUrl = activePersona.avatar_url || generateAvatar(activePersona.username || activePersona.id);
+        setProfileImage(avatarUrl);
+        setProfileThumb96Url(null); // Personas don't have thumbnails yet
         return;
       }
 
