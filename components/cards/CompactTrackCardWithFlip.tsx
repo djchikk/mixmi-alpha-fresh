@@ -592,7 +592,7 @@ export default function CompactTrackCardWithFlip({
                   </div>
                 )}
 
-                {/* Owned Badge - for purchased content in Library */}
+                {/* Licensed Badge - for purchased content in Library */}
                 {ownedBadge && (
                   <div
                     className="absolute top-1 right-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide z-10"
@@ -601,7 +601,7 @@ export default function CompactTrackCardWithFlip({
                       color: '#ffffff'
                     }}
                   >
-                    Owned
+                    Licensed
                   </div>
                 )}
 
