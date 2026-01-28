@@ -162,11 +162,11 @@ export async function POST(request: NextRequest) {
 
     console.log('[PurchaseWithPersona] Building split payment transaction');
 
-    // Get sponsor keypair for gas payment
-    const sponsorPrivateKey = process.env.GAS_SPONSOR_PRIVATE_KEY;
+    // Get sponsor keypair for gas payment (same env var as other SUI routes)
+    const sponsorPrivateKey = process.env.SUI_SPONSOR_PRIVATE_KEY;
     if (!sponsorPrivateKey) {
       return NextResponse.json(
-        { error: 'Gas sponsor not configured' },
+        { error: 'Gas sponsor not configured (SUI_SPONSOR_PRIVATE_KEY)' },
         { status: 500 }
       );
     }
