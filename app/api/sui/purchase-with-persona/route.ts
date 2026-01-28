@@ -208,7 +208,9 @@ export async function POST(request: NextRequest) {
     if (cartItems && Array.isArray(cartItems)) {
       for (const item of cartItems) {
         await supabaseAdmin.from('purchases').insert({
+          // Write both column names for compatibility
           buyer_wallet: persona.sui_address,
+          buyer_address: persona.sui_address,
           buyer_persona_id: personaId,
           track_id: item.id.replace(/-loc-\d+$/, ''), // Strip location suffix
           price_usdc: item.price_usdc,

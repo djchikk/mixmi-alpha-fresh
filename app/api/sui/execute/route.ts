@@ -98,9 +98,10 @@ export async function POST(request: NextRequest) {
     // Record purchases in database
     if (purchaseData?.cartItems && purchaseData.cartItems.length > 0) {
       try {
-        // Insert purchase records
+        // Insert purchase records (write both column names for compatibility)
         const purchaseRecords = purchaseData.cartItems.map(item => ({
           buyer_address: purchaseData.buyerAddress,
+          buyer_wallet: purchaseData.buyerAddress, // Also write to buyer_wallet for LibraryTab queries
           buyer_persona_id: purchaseData.buyerPersonaId || null,
           track_id: item.id,
           price_usdc: item.price_usdc,

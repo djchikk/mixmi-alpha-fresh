@@ -1130,14 +1130,31 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
 
       try {
         // Fetch purchases with track details
-        const { data, error } = await supabase
+        // Try buyer_wallet first (new schema), then buyer_address (execute route schema)
+        let { data, error } = await supabase
           .from('purchases')
           .select(`
             *,
             track:ip_tracks(*)
           `)
           .eq('buyer_wallet', walletAddress)
-          .order('purchase_date', { ascending: false });
+          .order('completed_at', { ascending: false, nullsFirst: false });
+
+        // If no results with buyer_wallet, try buyer_address (zkLogin execute route)
+        if ((!data || data.length === 0) && !error) {
+          const { data: altData, error: altError } = await supabase
+            .from('purchases')
+            .select(`
+              *,
+              track:ip_tracks(*)
+            `)
+            .eq('buyer_address', walletAddress)
+            .order('completed_at', { ascending: false, nullsFirst: false });
+
+          if (!altError && altData) {
+            data = altData;
+          }
+        }
 
         if (error) {
           console.error('Error fetching purchases:', error);
