@@ -127,23 +127,47 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Process earnings for each track
+        // Record earnings for track sellers
+        // Note: This records based on the track's uploader. For detailed split tracking,
+        // the purchase-with-persona route handles individual recipients.
         for (const item of purchaseData.cartItems) {
           try {
-            // Call the database function to process earnings
-            const { error: earningsError } = await supabase.rpc('process_track_purchase', {
-              p_track_id: item.id,
-              p_buyer_address: purchaseData.buyerAddress,
-              p_amount_usdc: item.price_usdc,
-              p_tx_hash: result.digest,
-              p_uploader_account_id: purchaseData.uploaderAccountId || null,
-            });
+            // Get the track's uploader wallet
+            const { data: track } = await supabase
+              .from('ip_tracks')
+              .select('primary_uploader_wallet')
+              .eq('id', item.id)
+              .single();
 
-            if (earningsError) {
-              console.error(`Failed to process earnings for track ${item.id}:`, earningsError);
+            if (track?.primary_uploader_wallet) {
+              // Look up if this wallet belongs to a persona
+              const { data: sellerPersona } = await supabase
+                .from('personas')
+                .select('id')
+                .or(`sui_address.eq.${track.primary_uploader_wallet},wallet_address.eq.${track.primary_uploader_wallet}`)
+                .eq('is_active', true)
+                .maybeSingle();
+
+              if (sellerPersona) {
+                const { error: earningsError } = await supabase.from('earnings').insert({
+                  persona_id: sellerPersona.id,
+                  amount_usdc: item.price_usdc,
+                  source_type: 'download_sale',
+                  source_id: item.id,
+                  buyer_address: purchaseData.buyerAddress,
+                  buyer_persona_id: purchaseData.buyerPersonaId || null,
+                  tx_hash: result.digest,
+                });
+
+                if (earningsError) {
+                  console.error(`Failed to record earning for track ${item.id}:`, earningsError);
+                } else {
+                  console.log(`Recorded $${item.price_usdc} earning for seller persona`);
+                }
+              }
             }
           } catch (err) {
-            console.error(`Error processing earnings for track ${item.id}:`, err);
+            console.error(`Error recording earnings for track ${item.id}:`, err);
           }
         }
 

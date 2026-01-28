@@ -285,6 +285,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Record earnings for each recipient (for history/audit trail)
+    console.log('[PurchaseWithPersona] Recording earnings for recipients');
+    for (const recipient of recipients) {
+      // Look up if this address belongs to a persona
+      const { data: recipientPersona } = await supabaseAdmin
+        .from('personas')
+        .select('id')
+        .eq('sui_address', recipient.address)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (recipientPersona) {
+        // Record earning for this persona
+        const { error: earningsError } = await supabaseAdmin.from('earnings').insert({
+          persona_id: recipientPersona.id,
+          amount_usdc: recipient.amountUsdc,
+          source_type: 'download_sale',
+          source_id: cartItems[0]?.id?.replace(/-loc-\d+$/, ''), // First track ID
+          buyer_address: persona.sui_address,
+          buyer_persona_id: personaId,
+          tx_hash: result.digest,
+        });
+
+        if (earningsError) {
+          console.error('[PurchaseWithPersona] Failed to record earning:', earningsError);
+        } else {
+          console.log(`[PurchaseWithPersona] Recorded $${recipient.amountUsdc} earning for persona ${recipientPersona.id}`);
+        }
+      } else {
+        console.log(`[PurchaseWithPersona] Recipient ${recipient.address} not found as persona - skipping earnings record`);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       txHash: result.digest,

@@ -107,7 +107,8 @@ export default function EarningsTab({
 
   // Calculate totals
   const totalEarnings = earnings.reduce((sum, e) => sum + (e.amount_usdc || 0), 0);
-  const totalBalance = personas.reduce((sum, p) => sum + (p.balance_usdc || 0), 0);
+  // Use on-chain wallet balances instead of database balance_usdc
+  const totalBalance = walletBalances.reduce((sum, w) => sum + (w.balances?.usdc || 0), 0);
   const pendingTreasury = treasuryHoldings
     .filter(t => !t.claimed_at)
     .reduce((sum, t) => sum + (t.balance_usdc || 0), 0);
@@ -232,12 +233,19 @@ export default function EarningsTab({
     setLoadingBalances(false);
   };
 
-  // Fetch balances on mount and when view changes to wallets
+  // Fetch balances on mount (for summary cards) and when view changes to wallets
+  useEffect(() => {
+    if (accountId) {
+      fetchWalletBalances();
+    }
+  }, [accountId]);
+
+  // Also refresh when switching to wallets view
   useEffect(() => {
     if (view === 'wallets' && accountId) {
       fetchWalletBalances();
     }
-  }, [view, accountId]);
+  }, [view]);
 
   // Fetch TBD personas (those with -tbd suffix)
   const fetchTbdPersonas = async () => {
