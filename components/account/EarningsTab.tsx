@@ -122,54 +122,21 @@ export default function EarningsTab({
 
       setLoading(true);
       try {
-        // Fetch earnings from the earnings table
+        // Fetch earnings via API (uses service role to bypass RLS)
         const personaIds = personas.map(p => p.id);
         console.log('[EarningsTab] Fetching earnings for persona IDs:', personaIds);
         console.log('[EarningsTab] Account ID:', accountId);
 
         if (personaIds.length > 0) {
-          const { data: earningsData, error: earningsError } = await supabase
-            .from('earnings')
-            .select(`
-              id,
-              amount_usdc,
-              source_type,
-              status,
-              created_at,
-              tx_hash,
-              source_id
-            `)
-            .in('persona_id', personaIds)
-            .order('created_at', { ascending: false })
-            .limit(50);
+          const response = await fetch(`/api/earnings?personaIds=${personaIds.join(',')}`);
+          const result = await response.json();
 
-          console.log('[EarningsTab] Earnings query result:', { earningsData, earningsError });
+          console.log('[EarningsTab] Earnings API result:', result);
 
-          if (earningsError) {
-            console.error('Error fetching earnings:', earningsError);
-          } else if (earningsData) {
-            // Fetch track titles for each earning
-            const trackIds = earningsData
-              .filter(e => e.source_id)
-              .map(e => e.source_id);
-
-            let trackTitles: Record<string, string> = {};
-            if (trackIds.length > 0) {
-              const { data: tracks } = await supabase
-                .from('ip_tracks')
-                .select('id, title')
-                .in('id', trackIds);
-
-              if (tracks) {
-                trackTitles = Object.fromEntries(tracks.map(t => [t.id, t.title]));
-              }
-            }
-
-            setEarnings(earningsData.map(e => ({
-              ...e,
-              track_title: e.source_id ? trackTitles[e.source_id] : undefined,
-              track_id: e.source_id,
-            })));
+          if (response.ok && result.earnings) {
+            setEarnings(result.earnings);
+          } else {
+            console.error('Error fetching earnings:', result.error);
           }
         }
 
