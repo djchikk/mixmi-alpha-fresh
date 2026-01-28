@@ -107,7 +107,6 @@ export async function POST(request: NextRequest) {
           price_usdc: item.price_usdc,
           tx_hash: result.digest,
           network: 'sui',
-          status: 'completed',
           completed_at: new Date().toISOString(),
         }));
 

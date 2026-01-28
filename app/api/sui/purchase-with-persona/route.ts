@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
     // Record purchases in database
     if (cartItems && Array.isArray(cartItems)) {
       for (const item of cartItems) {
-        await supabaseAdmin.from('purchases').insert({
+        const { error: insertError } = await supabaseAdmin.from('purchases').insert({
           // Write both column names for compatibility
           buyer_wallet: persona.sui_address,
           buyer_address: persona.sui_address,
@@ -267,9 +267,11 @@ export async function POST(request: NextRequest) {
           price_usdc: item.price_usdc,
           tx_hash: result.digest,
           network: 'sui',
-          status: 'completed',
           completed_at: new Date().toISOString(),
         });
+        if (insertError) {
+          console.error('[PurchaseWithPersona] Failed to record purchase:', insertError);
+        }
       }
     }
 
