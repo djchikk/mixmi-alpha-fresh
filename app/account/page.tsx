@@ -134,10 +134,35 @@ export default function AccountPage() {
         } else {
           setDisplayName(activePersona.username || 'User');
         }
-        // Use persona avatar or generate dicebear fallback
-        const avatarUrl = activePersona.avatar_url || generateAvatar(activePersona.username || activePersona.id);
-        setProfileImage(avatarUrl);
-        setProfileThumb96Url(null); // Personas don't have thumbnails yet
+
+        // Priority 1: Persona's own avatar
+        if (activePersona.avatar_url) {
+          setProfileImage(activePersona.avatar_url);
+          setProfileThumb96Url(null);
+          return;
+        }
+
+        // Priority 2: First track cover image they uploaded
+        const personaWallet = activePersona.sui_address || activePersona.wallet_address;
+        if (personaWallet) {
+          const { data: trackData } = await supabase
+            .from('ip_tracks')
+            .select('cover_image_url')
+            .eq('primary_uploader_wallet', personaWallet)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .single();
+
+          if (trackData?.cover_image_url) {
+            setProfileImage(trackData.cover_image_url);
+            setProfileThumb96Url(null);
+            return;
+          }
+        }
+
+        // Priority 3: Dicebear fallback
+        setProfileImage(generateAvatar(activePersona.username || activePersona.id));
+        setProfileThumb96Url(null);
         return;
       }
 
