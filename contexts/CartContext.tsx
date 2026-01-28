@@ -625,8 +625,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       // SUI payment flow
       if (authType === 'zklogin') {
-        // Check if active persona has their own wallet
-        if (activePersona?.sui_address) {
+        // Check if active persona has their OWN wallet (different from zkLogin wallet)
+        // If persona's sui_address equals the zkLogin address, it doesn't have its own keypair
+        const personaHasOwnWallet = activePersona?.sui_address && activePersona.sui_address !== suiAddress;
+
+        if (personaHasOwnWallet) {
           console.log('💜 Using PERSONA wallet:', activePersona.username, activePersona.sui_address);
           await purchaseWithPersonaWallet();
         } else if (suiAddress) {
