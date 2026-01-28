@@ -621,10 +621,10 @@ export default function EarningsTab({
                     </div>
                   </div>
 
-                  {/* Balance (from persona record) */}
+                  {/* Balance (from on-chain wallet) */}
                   <div className="text-right flex-shrink-0">
                     <div className="text-sm font-mono text-[#A8E66B]">
-                      ${(persona.balance_usdc || 0).toFixed(2)}
+                      ${(walletBalances.find(w => w.personaId === persona.id)?.balances?.usdc || 0).toFixed(2)}
                     </div>
                     <div className="text-xs text-gray-500">USDC</div>
                   </div>
