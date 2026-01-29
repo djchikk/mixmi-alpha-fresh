@@ -253,7 +253,12 @@ export default function WalletsTab({
         <div className="space-y-3">
           {personas.length > 0 ? (
             <>
-              {personas.map((persona) => {
+              {/* Sort personas with active one first */}
+              {[...personas].sort((a, b) => {
+                if (a.id === activePersona?.id) return -1;
+                if (b.id === activePersona?.id) return 1;
+                return 0;
+              }).map((persona) => {
                 const isActive = activePersona?.id === persona.id;
                 const balance = persona.sui_address && walletBalances[persona.sui_address];
 
