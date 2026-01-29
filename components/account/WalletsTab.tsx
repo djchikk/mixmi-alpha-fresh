@@ -97,12 +97,43 @@ export default function WalletsTab({
   return (
     <div className="max-w-2xl space-y-6">
       {/* Manager Account - The "Boss" Wallet */}
-      {suiAddress && (
+      {suiAddress && (() => {
+        // Find the persona that shares this wallet (manager persona)
+        const managerPersona = personas.find(p =>
+          p.wallet_address === suiAddress ||
+          p.sui_address === suiAddress ||
+          (!p.sui_address && !p.wallet_address)
+        );
+        const managerAvatar = managerPersona?.avatar_url;
+        const isVideo = managerAvatar && (managerAvatar.includes('.mp4') || managerAvatar.includes('.webm') || managerAvatar.includes('video/'));
+
+        return (
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <h3 className="text-white font-semibold">Manager Account</h3>
-              <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">zkLogin</span>
+            <div className="flex items-center gap-3">
+              {/* Manager avatar - shows linked persona's avatar */}
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0 border-2 border-[#81E4F2]/50">
+                {isVideo ? (
+                  <video
+                    src={managerAvatar}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={managerAvatar || generateAvatar(suiAddress)}
+                    alt="Manager"
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-white font-semibold">Manager Account</h3>
+                <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">zkLogin</span>
+              </div>
             </div>
             {!showDisconnectConfirm ? (
               <button
@@ -150,9 +181,9 @@ export default function WalletsTab({
             </div>
           </div>
 
-          {/* Full address with copy */}
+          {/* Full address with copy - smaller font to prevent wrapping */}
           <div className="flex items-center gap-2 bg-[#0a0f1a] rounded p-2">
-            <code className="text-xs text-[#81E4F2] font-mono break-all flex-1">
+            <code className="text-[10px] text-[#81E4F2] font-mono break-all flex-1">
               {suiAddress}
             </code>
             <button
@@ -199,7 +230,8 @@ export default function WalletsTab({
             </p>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Your Personas Section */}
       <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
@@ -338,7 +370,7 @@ export default function WalletsTab({
                           Payments for @{persona.username} go to this address
                         </p>
                         <div className="flex items-center gap-2 bg-[#0a0f1a] rounded p-2">
-                          <code className="text-xs text-[#A8E66B] font-mono break-all flex-1">
+                          <code className="text-[10px] text-[#A8E66B] font-mono break-all flex-1">
                             {persona.sui_address}
                           </code>
                           <button

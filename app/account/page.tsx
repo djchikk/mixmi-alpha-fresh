@@ -126,25 +126,36 @@ export default function AccountPage() {
 
   // Fetch profile data - use persona data if available, otherwise from wallet profile
   useEffect(() => {
+    // Capture current persona at effect start to avoid stale closures
+    const currentPersona = activePersona;
+    const currentSuiAddress = suiAddress;
+
     const fetchProfile = async () => {
+      // Reset image immediately on persona change
+      setProfileThumb96Url(null);
+
       // If we have an active persona, use its data directly
-      if (activePersona) {
-        if (activePersona.display_name && activePersona.display_name !== 'New User') {
-          setDisplayName(activePersona.display_name);
+      if (currentPersona) {
+        console.log('[Dashboard] Fetching profile for persona:', currentPersona.username, 'avatar_url:', currentPersona.avatar_url);
+
+        if (currentPersona.display_name && currentPersona.display_name !== 'New User') {
+          setDisplayName(currentPersona.display_name);
         } else {
-          setDisplayName(activePersona.username || 'User');
+          setDisplayName(currentPersona.username || 'User');
         }
 
         // Priority 1: Persona's own avatar
-        if (activePersona.avatar_url) {
-          setProfileImage(activePersona.avatar_url);
-          setProfileThumb96Url(null);
+        if (currentPersona.avatar_url) {
+          console.log('[Dashboard] Using persona avatar:', currentPersona.avatar_url);
+          setProfileImage(currentPersona.avatar_url);
           return;
         }
 
         // Priority 2: First track cover image they uploaded
-        // Use effectiveWallet which properly falls back to suiAddress for manager persona
-        const personaWallet = activePersona.sui_address || activePersona.wallet_address || suiAddress;
+        // Manager persona shares zkLogin wallet, so fall back to suiAddress
+        const personaWallet = currentPersona.sui_address || currentPersona.wallet_address || currentSuiAddress;
+        console.log('[Dashboard] Looking up tracks for wallet:', personaWallet);
+
         if (personaWallet) {
           const { data: trackData } = await supabase
             .from('ip_tracks')
@@ -155,15 +166,15 @@ export default function AccountPage() {
             .single();
 
           if (trackData?.cover_image_url) {
+            console.log('[Dashboard] Using first track cover:', trackData.cover_image_url);
             setProfileImage(trackData.cover_image_url);
-            setProfileThumb96Url(null);
             return;
           }
         }
 
         // Priority 3: Dicebear fallback
-        setProfileImage(generateAvatar(activePersona.username || activePersona.id));
-        setProfileThumb96Url(null);
+        console.log('[Dashboard] Using dicebear fallback');
+        setProfileImage(generateAvatar(currentPersona.username || currentPersona.id));
         return;
       }
 
