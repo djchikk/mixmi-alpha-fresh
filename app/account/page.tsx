@@ -144,10 +144,12 @@ export default function AccountPage() {
           setDisplayName(currentPersona.username || 'User');
         }
 
-        // Priority 1: Persona's own avatar
+        // Priority 1: Persona's own avatar (use thumbnail if available for faster loading)
         if (currentPersona.avatar_url) {
           console.log('[Dashboard] Using persona avatar:', currentPersona.avatar_url);
-          setProfileImage(currentPersona.avatar_url);
+          // Use 96px thumbnail for the 56px dashboard display, fall back to full image
+          setProfileImage(currentPersona.avatar_thumb_96_url || currentPersona.avatar_url);
+          setProfileThumb96Url(currentPersona.avatar_thumb_96_url || null);
           return;
         }
 

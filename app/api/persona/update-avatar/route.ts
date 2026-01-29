@@ -7,6 +7,36 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+/**
+ * Generate thumbnails for persona avatar
+ * Returns thumbnail URLs or empty object if generation fails/skipped
+ */
+async function generatePersonaThumbnails(avatarUrl: string, personaId: string): Promise<Record<string, string>> {
+  try {
+    // Skip non-image URLs (videos)
+    if (avatarUrl.includes('.mp4') || avatarUrl.includes('.webm') || avatarUrl.includes('video/')) {
+      console.log('⏭️ Skipping video avatar - no thumbnail generation');
+      return {};
+    }
+
+    // Skip non-Supabase URLs
+    if (!avatarUrl.includes('supabase.co')) {
+      console.log('⏭️ Skipping external URL - cannot generate thumbnails');
+      return {};
+    }
+
+    // Call the existing profile thumbnail generation logic
+    // We'll generate thumbnails inline here to avoid circular API calls
+    const { generatePersonaThumbnailsInline } = await import('@/lib/thumbnailUtils');
+    const thumbnails = await generatePersonaThumbnailsInline(avatarUrl, personaId, supabase);
+
+    return thumbnails;
+  } catch (error) {
+    console.error('Failed to generate persona thumbnails:', error);
+    return {};
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { personaId, avatarUrl, avatarEffect, accountId } = await request.json();
@@ -44,11 +74,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Build update object - avatar_effect can be null to clear it
-    const updateData: { avatar_url: string; avatar_effect?: any } = {
+    const updateData: {
+      avatar_url: string;
+      avatar_effect?: any;
+      avatar_thumb_48_url?: string;
+      avatar_thumb_96_url?: string;
+    } = {
       avatar_url: avatarUrl
     };
     if (avatarEffect !== undefined) {
       updateData.avatar_effect = avatarEffect;
+    }
+
+    // Generate thumbnails for the new avatar
+    console.log('🖼️ Generating thumbnails for persona avatar...');
+    const thumbnails = await generatePersonaThumbnails(avatarUrl, personaId);
+
+    if (thumbnails.avatar_thumb_48_url) {
+      updateData.avatar_thumb_48_url = thumbnails.avatar_thumb_48_url;
+    }
+    if (thumbnails.avatar_thumb_96_url) {
+      updateData.avatar_thumb_96_url = thumbnails.avatar_thumb_96_url;
     }
 
     const { data, error } = await supabase
@@ -75,7 +121,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      persona: data[0]
+      persona: data[0],
+      thumbnails
     });
 
   } catch (error: any) {

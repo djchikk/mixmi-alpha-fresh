@@ -15,6 +15,8 @@ export type Persona = {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  avatar_thumb_48_url: string | null;  // 48px thumbnail for header displays
+  avatar_thumb_96_url: string | null;  // 96px thumbnail for dashboard displays
   bio: string | null;
   wallet_address: string | null;  // Links persona to a specific wallet for data lookup
   sui_address: string | null;     // Generated SUI wallet for this persona (receives payments)
