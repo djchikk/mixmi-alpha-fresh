@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDrop } from 'react-dnd';
 import { Track } from '../types';
 import { useMixerAudio } from '@/hooks/useMixerAudio';
@@ -287,9 +287,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     trimState,
     costInfo,
     isRecording: isMixerRecording,
+    isArmed: isMixerArmed,
+    countInBeat,
     error: recordingError,
+    armRecording,
     startRecording: startMixerRecording,
     stopRecording: stopMixerRecording,
+    onMixerCycleComplete,
     setTrimStart,
     setTrimEnd,
     nudgeTrim,
@@ -297,8 +301,51 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     getAudioForTrim,
   } = useMixerRecording(activeTrackCount);
 
+  // Track if we've waited for a full cycle after arming
+  const armedStartTimeRef = useRef<number>(0);
+  const loopDurationRef = useRef<number>(0);
+
   // State for showing the recording widget modal
   const [showRecordingWidget, setShowRecordingWidget] = useState(false);
+
+  // 🔴 ARMED RECORDING: Auto-start mixer and wait for one full cycle
+  useEffect(() => {
+    if (isMixerArmed && !mixerState.deckA.playing && !mixerState.deckB.playing) {
+      // Calculate loop duration for the master deck
+      const masterTrack = mixerState.deckA.track || mixerState.deckB.track;
+      if (masterTrack) {
+        const bpm = mixerState.masterBPM || 120;
+        // Assume 8 bars for loop duration (or use actual track duration for songs)
+        const barDuration = (60 / bpm) * 4; // 4 beats per bar
+        const loopBars = 8; // Typical loop length
+        loopDurationRef.current = barDuration * loopBars * 1000; // in ms
+        armedStartTimeRef.current = Date.now();
+
+        console.log(`🔴 Armed: Auto-starting mixer, will wait ${loopDurationRef.current}ms for one cycle`);
+
+        // Auto-start the mixer
+        handleMasterPlayAfterCountIn();
+      }
+    }
+  }, [isMixerArmed]);
+
+  // 🔴 ARMED RECORDING: Detect when one full cycle completes
+  useEffect(() => {
+    if (!isMixerArmed || armedStartTimeRef.current === 0) return;
+
+    const checkCycleComplete = () => {
+      const elapsed = Date.now() - armedStartTimeRef.current;
+      if (elapsed >= loopDurationRef.current) {
+        console.log(`🔴 One cycle complete (${elapsed}ms elapsed), triggering recording`);
+        onMixerCycleComplete();
+        armedStartTimeRef.current = 0; // Reset
+      }
+    };
+
+    // Check periodically
+    const interval = setInterval(checkCycleComplete, 100);
+    return () => clearInterval(interval);
+  }, [isMixerArmed, onMixerCycleComplete]);
 
   // 🎯 Determine which deck should be master for sync
   // Simply returns the user's choice (stored in state)
@@ -1394,26 +1441,33 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
   // 🔴 RECORDING: Toggle recording on/off
   const handleRecordToggle = useCallback(async () => {
-    if (isMixerRecording) {
-      // Stop recording
+    if (isMixerRecording || isMixerArmed || recordingState === 'countingIn') {
+      // Stop recording (or cancel armed state)
       console.log('⏹️ Stopping recording...');
       await stopMixerRecording();
-      // Stop the mixer playback
-      handleMasterStop();
-      // Show the recording widget modal
-      setShowRecordingWidget(true);
+
+      // Only show widget and stop mixer if we actually recorded something
+      if (recordingState === 'recording' && recordingData) {
+        // Stop the mixer playback
+        handleMasterStop();
+        // Show the recording widget modal
+        setShowRecordingWidget(true);
+      } else {
+        // Just cancelled armed state or count-in, stop mixer
+        handleMasterStop();
+      }
     } else {
-      // Start recording
+      // Arm recording (will auto-start mixer and wait one cycle)
       if (!mixerState.deckA.track && !mixerState.deckB.track) {
         showToast('Load at least one track to record', 'info');
         return;
       }
       // Use master BPM
       const bpm = mixerState.masterBPM || 120;
-      console.log(`🔴 Starting recording at ${bpm} BPM...`);
-      startMixerRecording(bpm);
+      console.log(`🔴 Arming recording at ${bpm} BPM...`);
+      armRecording(bpm);
     }
-  }, [isMixerRecording, stopMixerRecording, startMixerRecording, handleMasterStop, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
+  }, [isMixerRecording, isMixerArmed, recordingState, recordingData, stopMixerRecording, armRecording, handleMasterStop, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
 
   // 🔴 RECORDING: Handle confirm and payment
   const handleRecordingConfirm = useCallback(async () => {
@@ -2249,6 +2303,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 deckBPlaying={mixerState.deckB.playing}
                 deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
                 recordingRemix={isMixerRecording}
+                recordingArmed={isMixerArmed}
+                recordingCountIn={recordingState === 'countingIn' ? countInBeat : 0}
                 syncActive={mixerState.syncActive && !hasRadio && !bothVideos}
                 highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
                 hasRadio={hasRadio}

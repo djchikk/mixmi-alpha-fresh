@@ -17,7 +17,7 @@ import {
   getBlockDuration,
 } from '@/lib/recording/paymentCalculation';
 
-export type RecordingState = 'idle' | 'recording' | 'stopped';
+export type RecordingState = 'idle' | 'armed' | 'countingIn' | 'recording' | 'stopped';
 
 export interface RecordingData {
   blob: Blob;
@@ -51,11 +51,15 @@ interface UseMixerRecordingReturn {
   trimState: TrimState;
   costInfo: RecordingCostInfo | null;
   isRecording: boolean;
+  isArmed: boolean;
+  countInBeat: number; // 0 = not counting, 1-4 = count-in beat
   error: string | null;
 
   // Actions
-  startRecording: (bpm: number) => void;
+  armRecording: (bpm: number) => void; // New: arms recording and returns
+  startRecording: (bpm: number) => void; // Actually starts recording
   stopRecording: () => Promise<void>;
+  onMixerCycleComplete: () => void; // Called by mixer when one full cycle completes
   setTrimStart: (bars: number) => void;
   setTrimEnd: (bars: number) => void;
   nudgeTrim: (point: 'start' | 'end', direction: 'left' | 'right', resolution: number) => void;
@@ -72,6 +76,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     totalBars: 8,
   });
   const [error, setError] = useState<string | null>(null);
+  const [countInBeat, setCountInBeat] = useState<number>(0);
 
   // Refs for recording
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -79,6 +84,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   const chunksRef = useRef<Blob[]>([]);
   const recordingBpmRef = useRef<number>(120);
   const recordingStartTimeRef = useRef<number>(0);
+  const countInTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calculate cost info whenever trim changes
   const costInfo: RecordingCostInfo | null = recordingData
@@ -101,9 +107,55 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     : null;
 
   /**
-   * Start recording the mixer output
+   * Arm recording - puts recording in armed state waiting for mixer cycle
+   * The mixer should auto-start playback when armed
    */
-  const startRecording = useCallback((bpm: number) => {
+  const armRecording = useCallback((bpm: number) => {
+    setError(null);
+    recordingBpmRef.current = bpm;
+    setRecordingState('armed');
+    console.log(`🔴 Recording ARMED at ${bpm} BPM - waiting for mixer to complete one cycle`);
+  }, []);
+
+  /**
+   * Called by mixer when one full loop cycle completes
+   * Triggers count-in and then actual recording
+   */
+  const onMixerCycleComplete = useCallback(() => {
+    if (recordingState !== 'armed') return;
+
+    console.log('🔴 Mixer cycle complete - starting count-in');
+    setRecordingState('countingIn');
+
+    const bpm = recordingBpmRef.current;
+    const beatInterval = (60 / bpm) * 1000; // ms per beat
+
+    // Count-in: 4 beats
+    setCountInBeat(1);
+
+    const runCountIn = (beat: number) => {
+      if (beat < 4) {
+        countInTimeoutRef.current = setTimeout(() => {
+          setCountInBeat(beat + 1);
+          runCountIn(beat + 1);
+        }, beatInterval);
+      } else {
+        // Count-in complete, start actual recording after final beat
+        countInTimeoutRef.current = setTimeout(() => {
+          setCountInBeat(0);
+          // Now actually start recording
+          startActualRecording(bpm);
+        }, beatInterval);
+      }
+    };
+
+    runCountIn(1);
+  }, [recordingState]);
+
+  /**
+   * Internal: Actually start the MediaRecorder
+   */
+  const startActualRecording = useCallback((bpm: number) => {
     setError(null);
 
     try {
@@ -169,15 +221,37 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   }, []);
 
   /**
+   * Start recording directly (bypasses arm flow - for backwards compatibility)
+   */
+  const startRecording = useCallback((bpm: number) => {
+    startActualRecording(bpm);
+  }, [startActualRecording]);
+
+  /**
    * Stop recording and process the captured audio
    */
   const stopRecording = useCallback(async () => {
+    // Clear any count-in in progress
+    if (countInTimeoutRef.current) {
+      clearTimeout(countInTimeoutRef.current);
+      countInTimeoutRef.current = null;
+    }
+    setCountInBeat(0);
+
+    // If we were just armed or counting in, just reset
+    if (recordingState === 'armed' || recordingState === 'countingIn') {
+      console.log('⏹️ Recording cancelled (was armed/counting in)');
+      setRecordingState('idle');
+      return;
+    }
+
     const mediaRecorder = mediaRecorderRef.current;
     const streamDestination = streamDestinationRef.current;
     const masterGain = getMasterGain();
 
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
       console.warn('⚠️ No active recording to stop');
+      setRecordingState('idle');
       return;
     }
 
@@ -294,6 +368,13 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
    * Reset recording state
    */
   const resetRecording = useCallback(() => {
+    // Clear any count-in in progress
+    if (countInTimeoutRef.current) {
+      clearTimeout(countInTimeoutRef.current);
+      countInTimeoutRef.current = null;
+    }
+    setCountInBeat(0);
+
     // Stop any active recording
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
@@ -363,6 +444,9 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (countInTimeoutRef.current) {
+        clearTimeout(countInTimeoutRef.current);
+      }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
@@ -385,9 +469,13 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     trimState,
     costInfo,
     isRecording: recordingState === 'recording',
+    isArmed: recordingState === 'armed',
+    countInBeat,
     error,
+    armRecording,
     startRecording,
     stopRecording,
+    onMixerCycleComplete,
     setTrimStart,
     setTrimEnd,
     nudgeTrim,

@@ -10,6 +10,8 @@ interface MasterTransportControlsProps {
   deckBPlaying: boolean;
   deckABPM: number;
   recordingRemix: boolean;
+  recordingArmed?: boolean; // Recording is armed, waiting for cycle
+  recordingCountIn?: number; // Count-in beat (1-4) before recording starts
   syncActive: boolean;
 
   // Control handlers
@@ -39,6 +41,8 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   deckBPlaying,
   deckABPM,
   recordingRemix,
+  recordingArmed = false,
+  recordingCountIn = 0,
   syncActive,
   onMasterPlay,
   onMasterPlayAfterCountIn,
@@ -199,18 +203,33 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
           <button
             onClick={onRecordToggle}
             disabled={!deckALoaded && !deckBLoaded}
-            className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+            className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all text-xs font-bold ${
               recordingRemix
                 ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
+                : recordingCountIn > 0
+                ? 'bg-red-500/70 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                : recordingArmed
+                ? 'bg-red-500/30 border-red-500 text-red-500 animate-pulse shadow-md shadow-red-500/20'
                 : deckALoaded || deckBLoaded
                 ? 'border-slate-500 text-slate-400 hover:border-red-500 hover:text-red-500'
                 : 'border-slate-700 text-slate-600 cursor-not-allowed'
             }`}
-            title={recordingRemix ? 'Stop Recording' : 'Start Recording'}
+            title={
+              recordingRemix ? 'Stop Recording'
+                : recordingCountIn > 0 ? `Count-in: ${recordingCountIn}/4`
+                : recordingArmed ? 'Armed - Waiting for cycle...'
+                : 'Arm Recording'
+            }
           >
-            <div className={`w-2 h-2 rounded-full ${
-              recordingRemix ? 'bg-white' : 'bg-current'
-            }`} />
+            {recordingCountIn > 0 ? (
+              recordingCountIn
+            ) : recordingArmed ? (
+              <span className="text-[8px]">ARM</span>
+            ) : (
+              <div className={`w-2 h-2 rounded-full ${
+                recordingRemix ? 'bg-white' : 'bg-current'
+              }`} />
+            )}
           </button>
         )}
 
@@ -263,16 +282,31 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
       {variant === 'full' && (
         <button
           onClick={onRecordToggle}
-          className={`record-btn w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs transition-all ${
+          className={`record-btn w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all ${
             recordingRemix
               ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
+              : recordingCountIn > 0
+              ? 'bg-red-500/70 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+              : recordingArmed
+              ? 'bg-red-500/30 border-red-500 text-red-500 animate-pulse shadow-md shadow-red-500/20'
               : 'border-slate-600 text-slate-400 hover:border-red-500 hover:text-red-500'
           }`}
-          title={recordingRemix ? 'Stop Recording' : 'Start Recording'}
+          title={
+            recordingRemix ? 'Stop Recording'
+              : recordingCountIn > 0 ? `Count-in: ${recordingCountIn}/4`
+              : recordingArmed ? 'Armed - Waiting for cycle...'
+              : 'Arm Recording'
+          }
         >
-          <div className={`w-2.5 h-2.5 rounded-full ${
-            recordingRemix ? 'bg-white' : 'bg-current'
-          }`} />
+          {recordingCountIn > 0 ? (
+            recordingCountIn
+          ) : recordingArmed ? (
+            <span className="text-[9px]">ARM</span>
+          ) : (
+            <div className={`w-2.5 h-2.5 rounded-full ${
+              recordingRemix ? 'bg-white' : 'bg-current'
+            }`} />
+          )}
         </button>
       )}
 

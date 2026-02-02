@@ -263,12 +263,53 @@ export default function RecordingWaveform({
     setIsDragging(null);
   }, []);
 
-  // Handle mouse leave
-  const handleMouseLeave = useCallback(() => {
-    if (isDragging) {
+  // Global mouse move/up handlers for dragging outside canvas
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.max(0, Math.min(e.clientX - rect.left, canvasWidth));
+      const bars = getPositionBars(x);
+      const snappedBars = snapTo8Bars(bars);
+
+      if (isDragging === 'start') {
+        if (snappedBars < trimEndBars - barsPerBlock) {
+          onTrimStartChange(Math.max(0, snappedBars));
+        }
+      } else if (isDragging === 'end') {
+        if (snappedBars > trimStartBars + barsPerBlock) {
+          onTrimEndChange(Math.min(totalBars, snappedBars));
+        }
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
       setIsDragging(null);
-    }
-  }, [isDragging]);
+    };
+
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [
+    isDragging,
+    canvasWidth,
+    getPositionBars,
+    snapTo8Bars,
+    trimStartBars,
+    trimEndBars,
+    totalBars,
+    onTrimStartChange,
+    onTrimEndChange,
+    barsPerBlock,
+  ]);
 
   // Calculate selected block count
   const selectedBars = trimEndBars - trimStartBars;
@@ -283,7 +324,6 @@ export default function RecordingWaveform({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
       />
       <div className="flex justify-between mt-2 text-xs text-slate-400">
         <span>
