@@ -301,50 +301,20 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     getAudioForTrim,
   } = useMixerRecording(activeTrackCount);
 
-  // Track if we've waited for a full cycle after arming
-  const armedStartTimeRef = useRef<number>(0);
-  const loopDurationRef = useRef<number>(0);
-
   // State for showing the recording widget modal
   const [showRecordingWidget, setShowRecordingWidget] = useState(false);
 
-  // 🔴 ARMED RECORDING: Auto-start mixer and wait for one full cycle
+  // 🔴 ARMED RECORDING: When armed, immediately trigger count-in
+  // (User should manually sync loops first by playing them)
   useEffect(() => {
-    if (isMixerArmed && !mixerState.deckA.playing && !mixerState.deckB.playing) {
-      // Calculate loop duration for the master deck
-      const masterTrack = mixerState.deckA.track || mixerState.deckB.track;
-      if (masterTrack) {
-        const bpm = mixerState.masterBPM || 120;
-        // Assume 8 bars for loop duration (or use actual track duration for songs)
-        const barDuration = (60 / bpm) * 4; // 4 beats per bar
-        const loopBars = 8; // Typical loop length
-        loopDurationRef.current = barDuration * loopBars * 1000; // in ms
-        armedStartTimeRef.current = Date.now();
-
-        console.log(`🔴 Armed: Auto-starting mixer, will wait ${loopDurationRef.current}ms for one cycle`);
-
-        // Auto-start the mixer
-        handleMasterPlayAfterCountIn();
-      }
+    if (isMixerArmed) {
+      console.log('🔴 Armed: Starting count-in immediately');
+      // Small delay to let the armed visual state show, then start count-in
+      const timer = setTimeout(() => {
+        onMixerCycleComplete(); // This triggers the count-in
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [isMixerArmed]);
-
-  // 🔴 ARMED RECORDING: Detect when one full cycle completes
-  useEffect(() => {
-    if (!isMixerArmed || armedStartTimeRef.current === 0) return;
-
-    const checkCycleComplete = () => {
-      const elapsed = Date.now() - armedStartTimeRef.current;
-      if (elapsed >= loopDurationRef.current) {
-        console.log(`🔴 One cycle complete (${elapsed}ms elapsed), triggering recording`);
-        onMixerCycleComplete();
-        armedStartTimeRef.current = 0; // Reset
-      }
-    };
-
-    // Check periodically
-    const interval = setInterval(checkCycleComplete, 100);
-    return () => clearInterval(interval);
   }, [isMixerArmed, onMixerCycleComplete]);
 
   // 🎯 Determine which deck should be master for sync
