@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Loader2, AlertCircle } from 'lucide-react';
 import RecordingWaveform from './RecordingWaveform';
 import TrimControls from './TrimControls';
@@ -47,6 +48,12 @@ export default function RecordingWidget({
   const [error, setError] = useState<string | null>(null);
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we're on client side for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleConfirm = useCallback(async () => {
     // Check authentication
@@ -259,7 +266,7 @@ export default function RecordingWidget({
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const { waveformData, bpm, audioBuffer } = recordingData;
   const { startBars: trimStartBars, endBars: trimEndBars, totalBars } = trimState;
@@ -289,16 +296,9 @@ export default function RecordingWidget({
     }
   };
 
-  return (
+  const modalContent = (
     <div
-      className="z-[9999] flex items-center justify-center p-4 bg-black/50"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50"
     >
       <div className="recording-widget bg-slate-900 rounded-xl shadow-2xl border border-slate-700 w-full max-w-3xl overflow-y-auto" style={{ maxHeight: 'calc(100vh - 32px)' }}>
         {/* Header */}
@@ -463,4 +463,6 @@ export default function RecordingWidget({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
