@@ -20,6 +20,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { IPTrack } from '@/types';
 import { determineMasterBPM } from './utils/mixerBPMCalculator';
 import { useMixerPackHandler } from './hooks/useMixerPackHandler';
+import { useMixerRecording } from '@/hooks/useMixerRecording';
+import RecordingWidget from './recording/RecordingWidget';
 
 interface UniversalMixerProps {
   className?: string;
@@ -267,13 +269,36 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   } = useMixerAudio();
 
   // Use mixer context for crate (collection) management and pending track loads
-  const { addTrackToCollection, pendingTrackLoads, consumePendingLoads } = useMixer();
+  const { addTrackToCollection, pendingTrackLoads, consumePendingLoads, loadedTracks } = useMixer();
 
   // Use toast for notifications
   const { showToast } = useToast();
 
   // Use pack handler for unpacking loop packs, EPs, and station packs
   const { handlePackDrop: handlePackDropFromHook } = useMixerPackHandler();
+
+  // Count active tracks for recording cost calculation
+  const activeTrackCount = (mixerState.deckA.track ? 1 : 0) + (mixerState.deckB.track ? 1 : 0);
+
+  // Use recording hook for capturing mixer output
+  const {
+    recordingState,
+    recordingData,
+    trimState,
+    costInfo,
+    isRecording: isMixerRecording,
+    error: recordingError,
+    startRecording: startMixerRecording,
+    stopRecording: stopMixerRecording,
+    setTrimStart,
+    setTrimEnd,
+    nudgeTrim,
+    resetRecording,
+    getAudioForTrim,
+  } = useMixerRecording(activeTrackCount);
+
+  // State for showing the recording widget modal
+  const [showRecordingWidget, setShowRecordingWidget] = useState(false);
 
   // 🎯 Determine which deck should be master for sync
   // Simply returns the user's choice (stored in state)
@@ -1367,6 +1392,57 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     }));
   };
 
+  // 🔴 RECORDING: Toggle recording on/off
+  const handleRecordToggle = useCallback(async () => {
+    if (isMixerRecording) {
+      // Stop recording
+      console.log('⏹️ Stopping recording...');
+      await stopMixerRecording();
+      // Show the recording widget modal
+      setShowRecordingWidget(true);
+    } else {
+      // Start recording
+      if (!mixerState.deckA.track && !mixerState.deckB.track) {
+        showToast('Load at least one track to record', 'info');
+        return;
+      }
+      // Use master BPM
+      const bpm = mixerState.masterBPM || 120;
+      console.log(`🔴 Starting recording at ${bpm} BPM...`);
+      startMixerRecording(bpm);
+    }
+  }, [isMixerRecording, stopMixerRecording, startMixerRecording, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
+
+  // 🔴 RECORDING: Handle confirm and payment
+  const handleRecordingConfirm = useCallback(async () => {
+    if (!recordingData || !costInfo) return;
+
+    try {
+      // Get the trimmed audio
+      const audioBlob = await getAudioForTrim();
+      if (!audioBlob) {
+        throw new Error('Failed to create trimmed audio');
+      }
+
+      // TODO: Call payment API to process payment and save draft
+      // For now, just show success message
+      showToast(`Recording saved! Cost: $${costInfo.totalCost.toFixed(2)} USDC`, 'success');
+
+      // Close the widget and reset
+      setShowRecordingWidget(false);
+      resetRecording();
+    } catch (error) {
+      console.error('Failed to confirm recording:', error);
+      showToast('Failed to save recording', 'error');
+    }
+  }, [recordingData, costInfo, getAudioForTrim, showToast, resetRecording]);
+
+  // 🔴 RECORDING: Handle close/cancel
+  const handleRecordingClose = useCallback(() => {
+    setShowRecordingWidget(false);
+    resetRecording();
+  }, [resetRecording]);
+
   // 🎯 NEW: Master sync toggle (enable/disable from master transport)
   const handleSyncToggle = useCallback(async () => {
     console.log(`🎛️ SYNC TOGGLE clicked. Current state: ${mixerState.syncActive ? 'ON' : 'OFF'}`);
@@ -2170,7 +2246,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 deckAPlaying={mixerState.deckA.playing}
                 deckBPlaying={mixerState.deckB.playing}
                 deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
-                recordingRemix={false}
+                recordingRemix={isMixerRecording}
                 syncActive={mixerState.syncActive && !hasRadio && !bothVideos}
                 highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
                 hasRadio={hasRadio}
@@ -2178,7 +2254,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 onMasterPlay={handleMasterPlay}
                 onMasterPlayAfterCountIn={handleMasterPlayAfterCountIn}
                 onMasterStop={handleMasterStop}
-                onRecordToggle={() => {}}
+                onRecordToggle={handleRecordToggle}
                 onMasterSyncReset={handleMasterSyncReset}
                 onSyncToggle={handleSyncToggle}
               />
@@ -2667,6 +2743,23 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         </div>
       </div>
         </>
+      )}
+
+      {/* Recording Widget Modal */}
+      {showRecordingWidget && recordingData && costInfo && (
+        <RecordingWidget
+          isOpen={showRecordingWidget}
+          recordingData={recordingData}
+          trimState={trimState}
+          costInfo={costInfo}
+          loadedTracks={loadedTracks}
+          onClose={handleRecordingClose}
+          onTrimStartChange={setTrimStart}
+          onTrimEndChange={setTrimEnd}
+          onNudge={nudgeTrim}
+          onConfirm={handleRecordingConfirm}
+          getAudioForTrim={getAudioForTrim}
+        />
       )}
     </div>
   );

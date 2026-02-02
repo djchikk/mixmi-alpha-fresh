@@ -192,8 +192,29 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
         <div /> // Empty spacer when no BPM
       )}
 
-      {/* Right column: Sync Toggle Button */}
-      <div className="flex justify-end">
+      {/* Right column: Record + Sync Toggle Buttons */}
+      <div className="flex justify-end items-center gap-2">
+        {/* Record Button - shown in simplified variant */}
+        {variant === 'simplified' && (
+          <button
+            onClick={onRecordToggle}
+            disabled={!deckALoaded && !deckBLoaded}
+            className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+              recordingRemix
+                ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
+                : deckALoaded || deckBLoaded
+                ? 'border-slate-500 text-slate-400 hover:border-red-500 hover:text-red-500'
+                : 'border-slate-700 text-slate-600 cursor-not-allowed'
+            }`}
+            title={recordingRemix ? 'Stop Recording' : 'Start Recording'}
+          >
+            <div className={`w-2 h-2 rounded-full ${
+              recordingRemix ? 'bg-white' : 'bg-current'
+            }`} />
+          </button>
+        )}
+
+        {/* Sync Toggle Button */}
         <button
           onClick={onSyncToggle}
           disabled={!deckALoaded || !deckBLoaded || hasRadio || bothVideos}

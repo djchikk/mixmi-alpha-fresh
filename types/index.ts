@@ -187,6 +187,35 @@ export interface IPTrack {
   collaboration_preferences?: Record<string, boolean>; // JSONB field for collaboration control
   store_display_policy?: 'primary_only' | 'all_collaborations' | 'curated_collaborations';
   collaboration_type?: 'primary_artist' | 'featured_artist' | 'producer' | 'remixer' | 'composer' | 'vocalist';
+
+  // Recording/Remix Payment System
+  remixer_stake_percentage?: number; // Percentage stake the remixer holds (15% for Gen 1)
+  source_tracks_metadata?: SourceTrackMetadata[]; // Genealogy info for remix tracking
+  recording_cost_usdc?: number; // Total USDC paid for recording
+  recording_payment_tx?: string; // SUI transaction hash
+  recording_payment_status?: 'pending' | 'confirmed' | 'failed';
+  recorded_bars?: number; // Number of bars recorded
+}
+
+// Source track metadata for remix genealogy tracking
+export interface SourceTrackMetadata {
+  id: string;
+  title: string;
+  bpm?: number;
+  generation?: number; // remix_depth of source
+  remixer_stake_percentage?: number;
+  ip_ratios: {
+    composition: IPSplitInfo[];
+    production: IPSplitInfo[];
+  };
+}
+
+// IP split info for recording payments
+export interface IPSplitInfo {
+  wallet: string;
+  sui_address?: string;
+  percentage: number;
+  display_name?: string;
 }
 
 export interface IPSplit {

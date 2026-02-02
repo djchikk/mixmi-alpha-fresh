@@ -54,6 +54,15 @@ export const PRICING = {
     maxPersonas: 999,  // Effectively unlimited during alpha
     maxTbdWallets: 5,
   },
+
+  // Remix recording pricing ("sausage link" model)
+  remix: {
+    pricePerBlock: 0.10,        // $0.10 USDC per 8-bar block per track
+    barsPerBlock: 8,            // 8 bars = 1 "sausage link"
+    platformCutPercent: 5,      // 5% to platform (paid)
+    creatorsCutPercent: 80,     // 80% to Gen 0 creators (paid)
+    remixerStakePercent: 15,    // 15% remixer stake (stored, not paid)
+  },
 } as const;
 
 // Computed values for convenience
@@ -119,4 +128,53 @@ export function calculatePackPrice(
     : PRICING.download.song;
 
   return perItemPrice * itemCount;
+}
+
+// =============================================================================
+// Remix Recording ("Sausage Link") Pricing
+// =============================================================================
+
+/**
+ * Calculate the number of 8-bar blocks from a bar count
+ * Each block is a "sausage link" that is priced at $0.10 per track
+ */
+export function calculateBlockCount(bars: number): number {
+  return Math.ceil(bars / PRICING.remix.barsPerBlock);
+}
+
+/**
+ * Calculate recording cost using sausage link pricing
+ * Cost = ceil(bars / 8) × $0.10 × number_of_tracks
+ */
+export function calculateRecordingCost(bars: number, trackCount: number): number {
+  const blocks = calculateBlockCount(bars);
+  return blocks * PRICING.remix.pricePerBlock * trackCount;
+}
+
+/**
+ * Calculate payment split for a recording payment
+ * Returns amounts for platform, creators, and remixer stake
+ */
+export function calculateRecordingPaymentSplit(totalCost: number): {
+  platform: number;
+  creators: number;
+  remixerStake: number;
+} {
+  return {
+    platform: totalCost * (PRICING.remix.platformCutPercent / 100),
+    creators: totalCost * (PRICING.remix.creatorsCutPercent / 100),
+    remixerStake: totalCost * (PRICING.remix.remixerStakePercent / 100),
+  };
+}
+
+/**
+ * Format recording cost breakdown for display
+ */
+export function formatRecordingCostBreakdown(
+  bars: number,
+  trackCount: number
+): string {
+  const blocks = calculateBlockCount(bars);
+  const cost = calculateRecordingCost(bars, trackCount);
+  return `${blocks} block${blocks !== 1 ? 's' : ''} × ${trackCount} track${trackCount !== 1 ? 's' : ''} × ${formatUSDCShort(PRICING.remix.pricePerBlock)} = ${formatUSDC(cost)}`;
 }
