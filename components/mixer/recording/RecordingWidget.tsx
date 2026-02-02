@@ -290,8 +290,8 @@ export default function RecordingWidget({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
-      <div className="recording-widget bg-slate-900 rounded-xl shadow-2xl border border-slate-700 max-w-2xl w-full max-h-[80vh] overflow-y-auto pointer-events-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="recording-widget bg-slate-900 rounded-xl shadow-2xl border border-slate-700 w-full max-w-3xl overflow-y-auto" style={{ maxHeight: 'calc(100vh - 32px)' }}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700">
           <div>
