@@ -1398,6 +1398,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       // Stop recording
       console.log('⏹️ Stopping recording...');
       await stopMixerRecording();
+      // Stop the mixer playback
+      handleMasterStop();
       // Show the recording widget modal
       setShowRecordingWidget(true);
     } else {
@@ -1411,7 +1413,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       console.log(`🔴 Starting recording at ${bpm} BPM...`);
       startMixerRecording(bpm);
     }
-  }, [isMixerRecording, stopMixerRecording, startMixerRecording, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
+  }, [isMixerRecording, stopMixerRecording, startMixerRecording, handleMasterStop, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
 
   // 🔴 RECORDING: Handle confirm and payment
   const handleRecordingConfirm = useCallback(async () => {
