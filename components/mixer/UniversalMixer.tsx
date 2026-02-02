@@ -2780,7 +2780,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           recordingData={recordingData}
           trimState={trimState}
           costInfo={costInfo}
-          loadedTracks={loadedTracks}
+          loadedTracks={[
+            mixerState.deckA.track,
+            mixerState.deckB.track
+          ].filter((t): t is IPTrack => t !== null && !!t.id) as IPTrack[]}
           onClose={handleRecordingClose}
           onTrimStartChange={setTrimStart}
           onTrimEndChange={setTrimEnd}
