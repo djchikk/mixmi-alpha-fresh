@@ -8,6 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
+// Route segment config for larger payloads
+export const maxDuration = 60; // Allow up to 60 seconds for processing
 import { createClient } from '@supabase/supabase-js';
 import { PRICING } from '@/config/pricing';
 import { SourceTrackMetadata } from '@/types';
@@ -19,11 +22,28 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
+    console.log('📁 [confirm-and-save] Starting request processing...');
+
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+      console.log('📁 [confirm-and-save] FormData parsed successfully');
+    } catch (formError) {
+      console.error('📁 [confirm-and-save] Failed to parse FormData:', formError);
+      return NextResponse.json(
+        { error: 'Failed to parse form data - file may be too large' },
+        { status: 413 }
+      );
+    }
 
     const paymentId = formData.get('paymentId') as string;
     const txHash = formData.get('txHash') as string;
     const audioFile = formData.get('audioFile') as File;
+
+    // Log file size
+    if (audioFile) {
+      console.log(`📁 [confirm-and-save] Audio file size: ${(audioFile.size / 1024 / 1024).toFixed(2)} MB`);
+    }
     const title = formData.get('title') as string || 'Untitled Recording';
     const bpm = parseInt(formData.get('bpm') as string) || 120;
     const bars = parseInt(formData.get('bars') as string) || 8;
