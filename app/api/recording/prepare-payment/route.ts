@@ -55,6 +55,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Strip -loc-X suffix from track IDs (globe location suffix)
+    const cleanTrackIds = sourceTrackIds.map((id: string) =>
+      id.includes('-loc-') ? id.split('-loc-')[0] : id
+    );
+
     if (!payerSuiAddress) {
       return NextResponse.json(
         { error: 'Payer SUI address required' },
@@ -74,7 +79,7 @@ export async function POST(request: NextRequest) {
         production_split_2_wallet, production_split_2_percentage, production_split_2_sui_address,
         production_split_3_wallet, production_split_3_percentage, production_split_3_sui_address
       `)
-      .in('id', sourceTrackIds);
+      .in('id', cleanTrackIds);
 
     if (fetchError) {
       console.error('Failed to fetch source tracks:', fetchError);
@@ -132,7 +137,7 @@ export async function POST(request: NextRequest) {
         bars_recorded: bars,
         tracks_used: trackCount,
         cost_per_chunk: PRICING.remix.pricePerBlock,
-        source_track_ids: sourceTrackIds,
+        source_track_ids: cleanTrackIds,
         tx_status: 'pending',
       })
       .select()
