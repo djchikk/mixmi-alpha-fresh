@@ -8,6 +8,20 @@ import { getZkLoginSession } from '@/lib/zklogin/session';
 import { getZkLoginSignature, genAddressSeed } from '@mysten/sui/zklogin';
 import { buildSplitPaymentForSponsorship } from '@/lib/sui/payment-splitter';
 
+/**
+ * Safely decode base64 or base64url string
+ * JWT uses base64url which has different characters than standard base64
+ */
+function safeBase64Decode(str: string): string {
+  // Convert base64url to base64 by replacing characters
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  // Add padding if needed
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return atob(base64);
+}
+
 interface DayPassPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
