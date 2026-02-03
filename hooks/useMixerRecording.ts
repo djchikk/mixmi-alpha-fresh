@@ -437,7 +437,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
 
       mediaRecorder.stop();
     });
-  }, []);
+  }, [setRecordingStateSync]);
 
   /**
    * Set trim start point (in bars)
