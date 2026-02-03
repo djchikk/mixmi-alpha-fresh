@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
 import { PRICING } from '@/config/pricing';
 import { SourceTrackMetadata } from '@/types';
 
@@ -107,9 +108,11 @@ export async function POST(request: NextRequest) {
     const sourceTrackIds = sourceTracksMetadata.map((t: SourceTrackMetadata) => t.id);
 
     // Create draft track record
+    const trackId = randomUUID();
     const { data: draftTrack, error: trackError } = await supabase
       .from('ip_tracks')
       .insert({
+        id: trackId,
         title,
         artist: 'Recording',
         content_type: 'loop',
