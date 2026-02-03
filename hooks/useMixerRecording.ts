@@ -123,98 +123,8 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     : null;
 
   /**
-   * Arm recording - puts recording in armed state waiting for loop restart
-   * The mixer should auto-start playback when armed
-   */
-  const armRecording = useCallback((bpm: number) => {
-    setError(null);
-    recordingBpmRef.current = bpm;
-    setRecordingState('armed');
-    console.log(`🔴 Recording ARMED at ${bpm} BPM - waiting for loop restart (bar 1)`);
-  }, []);
-
-  /**
-   * Start count-in sequence (called internally when rehearsal cycle completes)
-   */
-  const startCountIn = useCallback(() => {
-    console.log('🔴 Starting count-in');
-    setRecordingState('countingIn');
-
-    const bpm = recordingBpmRef.current;
-    const beatInterval = (60 / bpm) * 1000; // ms per beat
-
-    // Count-in: 4 beats
-    setCountInBeat(1);
-
-    const runCountIn = (beat: number) => {
-      if (beat < 4) {
-        countInTimeoutRef.current = setTimeout(() => {
-          setCountInBeat(beat + 1);
-          runCountIn(beat + 1);
-        }, beatInterval);
-      } else {
-        // Count-in complete, start actual recording after final beat
-        countInTimeoutRef.current = setTimeout(() => {
-          setCountInBeat(0);
-          // Now actually start recording
-          startActualRecording(bpm);
-        }, beatInterval);
-      }
-    };
-
-    runCountIn(1);
-  }, []);
-
-  /**
-   * Listen for loop restart events from PreciseLooper
-   * This is the core of the rehearsal cycle approach:
-   * armed → (loop restart) → rehearsal → (loop restart) → recording
-   *
-   * NOTE: No count-in! Recording starts immediately at bar 1 after rehearsal.
-   * Count-in would delay recording to bar 2.
-   */
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleLoopRestart = (deckId: 'A' | 'B') => {
-      const currentState = recordingStateRef.current;
-      console.log(`🔴 Loop restart on Deck ${deckId}, recording state: ${currentState}`);
-
-      if (currentState === 'armed') {
-        // First loop restart while armed → enter rehearsal (sync stabilization cycle)
-        console.log('🔴 Entering rehearsal cycle (sync stabilization)');
-        setRecordingState('rehearsal');
-      } else if (currentState === 'rehearsal') {
-        // Second loop restart (after rehearsal) → start recording immediately at bar 1!
-        // No count-in - that would delay recording to bar 2
-        console.log('🔴 Rehearsal complete - starting recording at bar 1!');
-        const bpm = recordingBpmRef.current;
-        startActualRecording(bpm);
-      }
-    };
-
-    // Register the callback
-    (window as any).onMixerRecordingLoopRestart = handleLoopRestart;
-    console.log('🔴 Registered loop restart listener for recording');
-
-    return () => {
-      // Cleanup
-      delete (window as any).onMixerRecordingLoopRestart;
-      console.log('🔴 Unregistered loop restart listener for recording');
-    };
-  }, [startActualRecording]);
-
-  /**
-   * DEPRECATED: Called by mixer when one full loop cycle completes
-   * Now using window.onMixerRecordingLoopRestart internally
-   */
-  const onMixerCycleComplete = useCallback(() => {
-    console.warn('🔴 onMixerCycleComplete is deprecated - using loop restart listener instead');
-    // No-op - kept for backwards compatibility
-  }, []);
-
-  /**
    * Internal: Actually start the MediaRecorder
+   * IMPORTANT: This must be defined BEFORE any functions or effects that use it!
    */
   const startActualRecording = useCallback((bpm: number) => {
     setError(null);
@@ -279,6 +189,98 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       console.error('🚨 Failed to start recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
+  }, []);
+
+  /**
+   * Arm recording - puts recording in armed state waiting for loop restart
+   * The mixer should auto-start playback when armed
+   */
+  const armRecording = useCallback((bpm: number) => {
+    setError(null);
+    recordingBpmRef.current = bpm;
+    setRecordingState('armed');
+    console.log(`🔴 Recording ARMED at ${bpm} BPM - waiting for loop restart (bar 1)`);
+  }, []);
+
+  /**
+   * Start count-in sequence (called internally when rehearsal cycle completes)
+   * NOTE: Currently not used - recording starts immediately at bar 1 after rehearsal
+   */
+  const startCountIn = useCallback(() => {
+    console.log('🔴 Starting count-in');
+    setRecordingState('countingIn');
+
+    const bpm = recordingBpmRef.current;
+    const beatInterval = (60 / bpm) * 1000; // ms per beat
+
+    // Count-in: 4 beats
+    setCountInBeat(1);
+
+    const runCountIn = (beat: number) => {
+      if (beat < 4) {
+        countInTimeoutRef.current = setTimeout(() => {
+          setCountInBeat(beat + 1);
+          runCountIn(beat + 1);
+        }, beatInterval);
+      } else {
+        // Count-in complete, start actual recording after final beat
+        countInTimeoutRef.current = setTimeout(() => {
+          setCountInBeat(0);
+          // Now actually start recording
+          startActualRecording(bpm);
+        }, beatInterval);
+      }
+    };
+
+    runCountIn(1);
+  }, [startActualRecording]);
+
+  /**
+   * Listen for loop restart events from PreciseLooper
+   * This is the core of the rehearsal cycle approach:
+   * armed → (loop restart) → rehearsal → (loop restart) → recording
+   *
+   * NOTE: No count-in! Recording starts immediately at bar 1 after rehearsal.
+   * Count-in would delay recording to bar 2.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleLoopRestart = (deckId: 'A' | 'B') => {
+      const currentState = recordingStateRef.current;
+      console.log(`🔴 Loop restart on Deck ${deckId}, recording state: ${currentState}`);
+
+      if (currentState === 'armed') {
+        // First loop restart while armed → enter rehearsal (sync stabilization cycle)
+        console.log('🔴 Entering rehearsal cycle (sync stabilization)');
+        setRecordingState('rehearsal');
+      } else if (currentState === 'rehearsal') {
+        // Second loop restart (after rehearsal) → start recording immediately at bar 1!
+        // No count-in - that would delay recording to bar 2
+        console.log('🔴 Rehearsal complete - starting recording at bar 1!');
+        const bpm = recordingBpmRef.current;
+        startActualRecording(bpm);
+      }
+    };
+
+    // Register the callback
+    (window as any).onMixerRecordingLoopRestart = handleLoopRestart;
+    console.log('🔴 Registered loop restart listener for recording');
+
+    return () => {
+      // Cleanup
+      delete (window as any).onMixerRecordingLoopRestart;
+      console.log('🔴 Unregistered loop restart listener for recording');
+    };
+  }, [startActualRecording]);
+
+  /**
+   * DEPRECATED: Called by mixer when one full loop cycle completes
+   * Now using window.onMixerRecordingLoopRestart internally
+   */
+  const onMixerCycleComplete = useCallback(() => {
+    console.warn('🔴 onMixerCycleComplete is deprecated - using loop restart listener instead');
+    // No-op - kept for backwards compatibility
   }, []);
 
   /**
