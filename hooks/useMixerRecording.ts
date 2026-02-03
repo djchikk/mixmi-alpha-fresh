@@ -337,15 +337,17 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
           console.log(`⏹️ Recording stopped: ${recordingDuration.toFixed(2)}s, ${blob.size} bytes, type: ${mediaRecorder.mimeType}`);
 
           // Decode audio for waveform and analysis
-          const audioContext = getAudioContext();
-          if (!audioContext) {
-            throw new Error('Audio context not available');
-          }
-
-          console.log(`🎵 AudioContext sample rate: ${audioContext.sampleRate}Hz`);
+          // IMPORTANT: Use a fresh AudioContext at browser's default sample rate (usually 48000Hz)
+          // MediaRecorder captures at the browser's default rate, NOT the mixer's rate (44100Hz)
+          // Using the mixer's context would cause sample rate mismatch and 2x duration!
+          const decodeContext = new AudioContext(); // Browser default, typically 48000Hz
+          console.log(`🎵 Created decode AudioContext at ${decodeContext.sampleRate}Hz (browser default)`);
 
           const arrayBuffer = await blob.arrayBuffer();
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const audioBuffer = await decodeContext.decodeAudioData(arrayBuffer);
+
+          // Close the temporary decode context - we don't need it after decoding
+          decodeContext.close();
 
           console.log(`🎵 Decoded audio: ${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.sampleRate}Hz, ${audioBuffer.numberOfChannels} channels`);
 
