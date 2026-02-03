@@ -1429,6 +1429,19 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         showToast('Load at least one track to record', 'info');
         return;
       }
+
+      // 🔴 SYNC FIX: Toggle sync off/on to reset sync state before recording
+      // This fixes the issue where first recording fails to sync
+      if (mixerState.deckA.track && mixerState.deckB.track && !hasRadio && !bothVideos) {
+        console.log('🔴 Resetting sync before recording...');
+        setMixerState(prev => ({ ...prev, syncActive: false }));
+        // Small delay then turn sync back on
+        setTimeout(() => {
+          setMixerState(prev => ({ ...prev, syncActive: true }));
+          console.log('🔴 Sync reset complete');
+        }, 50);
+      }
+
       // Use master BPM
       const bpm = mixerState.masterBPM || 120;
       console.log(`🔴 Starting pre-countdown at ${bpm} BPM...`);
@@ -1443,7 +1456,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         handleMasterPlayAfterCountIn();
       });
     }
-  }, [isMixerRecording, isMixerArmed, isMixerRehearsal, isMixerPreCountdown, recordingState, stopMixerRecording, startPreCountdown, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
+  }, [isMixerRecording, isMixerArmed, isMixerRehearsal, isMixerPreCountdown, recordingState, stopMixerRecording, startPreCountdown, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast, hasRadio, bothVideos]);
 
   // 🔴 RECORDING: Handle confirm and payment
   const handleRecordingConfirm = useCallback(async () => {
