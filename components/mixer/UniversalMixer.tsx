@@ -1429,6 +1429,44 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         showToast('Load at least one track to record', 'info');
         return;
       }
+
+      // 🔴 SYNC FIX: Reset sync engine before recording to fix first-recording sync failure
+      // This recreates the sync engine fresh, similar to switching masters
+      if (mixerState.syncActive && mixerState.deckA.track && mixerState.deckB.track &&
+          mixerState.deckA.audioState && mixerState.deckB.audioState && !hasRadio && !bothVideos) {
+        console.log('🔴 Resetting sync engine before recording...');
+
+        // Stop old sync engine
+        if (syncEngineRef.current) {
+          syncEngineRef.current.stop();
+          syncEngineRef.current = null;
+        }
+
+        // Reset both decks to original BPM
+        if (mixerState.deckA.audioControls) {
+          const originalBPM = mixerState.deckA.track.bpm || 120;
+          mixerState.deckA.audioControls.setBPM(originalBPM);
+        }
+        if (mixerState.deckB.audioControls) {
+          const originalBPM = mixerState.deckB.track.bpm || 120;
+          mixerState.deckB.audioControls.setBPM(originalBPM);
+        }
+
+        // Recreate sync engine with same master
+        const audioContext = mixerState.deckA.audioState.audioContext;
+        const masterDeck = mixerState.masterDeckId || 'A';
+
+        syncEngineRef.current = new SimpleLoopSync(
+          audioContext,
+          { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
+          { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
+          masterDeck
+        );
+
+        syncEngineRef.current.enableSync();
+        console.log('🔴 Sync engine reset complete');
+      }
+
       // Use master BPM
       const bpm = mixerState.masterBPM || 120;
       console.log(`🔴 Starting pre-countdown at ${bpm} BPM...`);
@@ -1443,7 +1481,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         handleMasterPlayAfterCountIn();
       });
     }
-  }, [isMixerRecording, isMixerArmed, isMixerRehearsal, isMixerPreCountdown, recordingState, stopMixerRecording, startPreCountdown, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
+  }, [isMixerRecording, isMixerArmed, isMixerRehearsal, isMixerPreCountdown, recordingState, stopMixerRecording, startPreCountdown, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState, hasRadio, bothVideos, showToast]);
 
   // 🔴 RECORDING: Handle confirm and payment
   const handleRecordingConfirm = useCallback(async () => {
