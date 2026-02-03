@@ -304,12 +304,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   // State for showing the recording widget modal
   const [showRecordingWidget, setShowRecordingWidget] = useState(false);
 
-  // 🔴 ARMED RECORDING: When armed, immediately trigger count-in
-  // (User should manually sync loops first by playing them)
+  // 🔴 ARMED RECORDING: When armed, trigger count-in after brief delay
+  // Playback is auto-started in handleRecordToggle when arming
   useEffect(() => {
     if (isMixerArmed) {
-      console.log('🔴 Armed: Starting count-in immediately');
-      // Small delay to let the armed visual state show, then start count-in
+      console.log('🔴 Armed: Starting count-in after brief delay');
+      // Small delay to let playback start and armed visual state show, then start count-in
       const timer = setTimeout(() => {
         onMixerCycleComplete(); // This triggers the count-in
       }, 500);
@@ -1413,18 +1413,18 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   const handleRecordToggle = useCallback(async () => {
     if (isMixerRecording || isMixerArmed || recordingState === 'countingIn') {
       // Stop recording (or cancel armed state)
-      console.log('⏹️ Stopping recording...');
+      // IMPORTANT: Capture state BEFORE calling stopMixerRecording to avoid stale closure issue
+      const wasActuallyRecording = recordingState === 'recording';
+      console.log('⏹️ Stopping recording...', { wasActuallyRecording });
       await stopMixerRecording();
 
-      // Only show widget and stop mixer if we actually recorded something
-      if (recordingState === 'recording' && recordingData) {
-        // Stop the mixer playback
-        handleMasterStop();
+      // Stop the mixer playback
+      handleMasterStop();
+
+      // Show widget if we actually recorded something
+      if (wasActuallyRecording) {
         // Show the recording widget modal
         setShowRecordingWidget(true);
-      } else {
-        // Just cancelled armed state or count-in, stop mixer
-        handleMasterStop();
       }
     } else {
       // Arm recording (will auto-start mixer and wait one cycle)
@@ -1436,8 +1436,14 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       const bpm = mixerState.masterBPM || 120;
       console.log(`🔴 Arming recording at ${bpm} BPM...`);
       armRecording(bpm);
+
+      // Auto-start playback if not already playing
+      if (!mixerState.deckA.playing && !mixerState.deckB.playing) {
+        console.log('🔴 Auto-starting playback for recording...');
+        handleMasterPlayAfterCountIn();
+      }
     }
-  }, [isMixerRecording, isMixerArmed, recordingState, recordingData, stopMixerRecording, armRecording, handleMasterStop, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
+  }, [isMixerRecording, isMixerArmed, recordingState, stopMixerRecording, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState.deckA.track, mixerState.deckB.track, mixerState.deckA.playing, mixerState.deckB.playing, mixerState.masterBPM, showToast]);
 
   // 🔴 RECORDING: Handle confirm and payment
   const handleRecordingConfirm = useCallback(async () => {
