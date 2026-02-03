@@ -129,11 +129,14 @@ export default function RecordingWaveform({
     ctx.closePath();
 
     // Color based on inside/outside trim
+    // IMPORTANT: Clamp values to valid gradient range [0, 1] to prevent IndexSizeError
     const gradient = ctx.createLinearGradient(0, 0, canvasWidth, 0);
-    gradient.addColorStop(trimStartX / canvasWidth, '#64748b'); // slate-500 (outside)
-    gradient.addColorStop(trimStartX / canvasWidth + 0.001, '#81E4F2'); // cyan (inside)
-    gradient.addColorStop(trimEndX / canvasWidth - 0.001, '#81E4F2');
-    gradient.addColorStop(trimEndX / canvasWidth, '#64748b');
+    const startStop = Math.max(0, Math.min(1, trimStartX / canvasWidth));
+    const endStop = Math.max(0, Math.min(1, trimEndX / canvasWidth));
+    gradient.addColorStop(startStop, '#64748b'); // slate-500 (outside)
+    gradient.addColorStop(Math.min(1, startStop + 0.001), '#81E4F2'); // cyan (inside)
+    gradient.addColorStop(Math.max(0, endStop - 0.001), '#81E4F2');
+    gradient.addColorStop(endStop, '#64748b');
 
     ctx.fillStyle = '#81E4F2'; // cyan for main waveform
     ctx.fill();
