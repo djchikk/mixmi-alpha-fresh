@@ -14,6 +14,20 @@ import { getZkLoginSession } from '@/lib/zklogin/session';
 import { getZkLoginSignature, genAddressSeed } from '@mysten/sui/zklogin';
 import { buildSplitPaymentForSponsorship } from '@/lib/sui/payment-splitter';
 
+/**
+ * Safely decode base64 or base64url string
+ * JWT uses base64url which has different characters than standard base64
+ */
+function safeBase64Decode(str: string): string {
+  // Convert base64url to base64 by replacing characters
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  // Add padding if needed
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return atob(base64);
+}
+
 interface RecordingWidgetProps {
   isOpen: boolean;
   recordingData: RecordingData;
@@ -150,15 +164,38 @@ export default function RecordingWidget({
 
       const { txBytes, sponsorSignature } = sponsorData;
 
+      if (!txBytes || typeof txBytes !== 'string') {
+        console.error('🎵 [Recording] Invalid txBytes from sponsor:', txBytes);
+        throw new Error('Invalid transaction data from sponsor');
+      }
+
       // Step 5: Sign with zkLogin
       const keypair = zkSession.ephemeralKeyPair;
-      const txBytesArray = Uint8Array.from(atob(txBytes), c => c.charCodeAt(0));
+
+      // Decode txBytes (standard base64 from our API)
+      let txBytesArray: Uint8Array;
+      try {
+        txBytesArray = Uint8Array.from(atob(txBytes), c => c.charCodeAt(0));
+      } catch (decodeError) {
+        console.error('🎵 [Recording] Failed to decode txBytes:', txBytes.substring(0, 50) + '...');
+        throw new Error('Failed to decode transaction bytes');
+      }
 
       const { signature: ephemeralSignature } = await keypair.signTransaction(txBytesArray);
 
-      // Decode JWT for address seed
+      // Decode JWT for address seed (JWT uses base64url encoding)
       const [, payload] = zkSession.jwt.split('.');
-      const jwtPayload = JSON.parse(atob(payload));
+      if (!payload) {
+        throw new Error('Invalid JWT format');
+      }
+
+      let jwtPayload: any;
+      try {
+        jwtPayload = JSON.parse(safeBase64Decode(payload));
+      } catch (jwtError) {
+        console.error('🎵 [Recording] Failed to decode JWT payload');
+        throw new Error('Failed to decode authentication token');
+      }
       const aud = Array.isArray(jwtPayload.aud) ? jwtPayload.aud[0] : jwtPayload.aud;
 
       const addressSeed = genAddressSeed(
