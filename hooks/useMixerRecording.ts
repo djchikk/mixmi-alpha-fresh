@@ -97,10 +97,12 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   // Ref to track state for callback access (callbacks capture stale state)
   const recordingStateRef = useRef<RecordingState>('idle');
 
-  // Keep state ref in sync with state (for callback access)
-  useEffect(() => {
-    recordingStateRef.current = recordingState;
-  }, [recordingState]);
+  // Helper to update both state and ref synchronously (prevents race conditions)
+  const setRecordingStateSync = useCallback((newState: RecordingState) => {
+    console.log(`🔴 Recording state: ${recordingStateRef.current} → ${newState}`);
+    recordingStateRef.current = newState; // Update ref FIRST (synchronous)
+    setRecordingState(newState); // Then queue state update
+  }, []);
 
   // Calculate cost info whenever trim changes
   const costInfo: RecordingCostInfo | null = recordingData
@@ -173,7 +175,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       mediaRecorder.onerror = (event) => {
         console.error('🚨 MediaRecorder error:', event);
         setError('Recording failed');
-        setRecordingState('idle');
+        setRecordingStateSync('idle');
       };
 
       mediaRecorderRef.current = mediaRecorder;
@@ -183,13 +185,13 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       // Start recording with 100ms timeslice for smoother data collection
       mediaRecorder.start(100);
 
-      setRecordingState('recording');
+      setRecordingStateSync('recording');
       console.log(`🔴 Recording started at ${bpm} BPM`);
     } catch (err) {
       console.error('🚨 Failed to start recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, []);
+  }, [setRecordingStateSync]);
 
   /**
    * Arm recording - puts recording in armed state waiting for loop restart
@@ -198,9 +200,9 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   const armRecording = useCallback((bpm: number) => {
     setError(null);
     recordingBpmRef.current = bpm;
-    setRecordingState('armed');
+    setRecordingStateSync('armed');
     console.log(`🔴 Recording ARMED at ${bpm} BPM - waiting for loop restart (bar 1)`);
-  }, []);
+  }, [setRecordingStateSync]);
 
   /**
    * Start count-in sequence (called internally when rehearsal cycle completes)
@@ -208,7 +210,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
    */
   const startCountIn = useCallback(() => {
     console.log('🔴 Starting count-in');
-    setRecordingState('countingIn');
+    setRecordingStateSync('countingIn');
 
     const bpm = recordingBpmRef.current;
     const beatInterval = (60 / bpm) * 1000; // ms per beat
@@ -233,7 +235,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     };
 
     runCountIn(1);
-  }, [startActualRecording]);
+  }, [startActualRecording, setRecordingStateSync]);
 
   /**
    * Listen for loop restart events from PreciseLooper
@@ -253,7 +255,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       if (currentState === 'armed') {
         // First loop restart while armed → enter rehearsal (sync stabilization cycle)
         console.log('🔴 Entering rehearsal cycle (sync stabilization)');
-        setRecordingState('rehearsal');
+        setRecordingStateSync('rehearsal');
       } else if (currentState === 'rehearsal') {
         // Second loop restart (after rehearsal) → start recording immediately at bar 1!
         // No count-in - that would delay recording to bar 2
@@ -272,7 +274,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       delete (window as any).onMixerRecordingLoopRestart;
       console.log('🔴 Unregistered loop restart listener for recording');
     };
-  }, [startActualRecording]);
+  }, [startActualRecording, setRecordingStateSync]);
 
   /**
    * DEPRECATED: Called by mixer when one full loop cycle completes
@@ -304,7 +306,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     // If we were just armed, rehearsing, or counting in, just reset
     if (recordingState === 'armed' || recordingState === 'rehearsal' || recordingState === 'countingIn') {
       console.log(`⏹️ Recording cancelled (was ${recordingState})`);
-      setRecordingState('idle');
+      setRecordingStateSync('idle');
       return;
     }
 
@@ -314,7 +316,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
 
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
       console.warn('⚠️ No active recording to stop');
-      setRecordingState('idle');
+      setRecordingStateSync('idle');
       return;
     }
 
@@ -377,14 +379,14 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
             totalBars: durationBars,
           });
 
-          setRecordingState('stopped');
+          setRecordingStateSync('stopped');
           console.log(`✅ Recording processed: ${durationBars.toFixed(1)} bars at ${bpm} BPM`);
 
           resolve();
         } catch (err) {
           console.error('🚨 Error processing recording:', err);
           setError(err instanceof Error ? err.message : 'Failed to process recording');
-          setRecordingState('idle');
+          setRecordingStateSync('idle');
           resolve();
         }
       };
@@ -465,11 +467,11 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     mediaRecorderRef.current = null;
     chunksRef.current = [];
 
-    setRecordingState('idle');
+    setRecordingStateSync('idle');
     setRecordingData(null);
     setTrimState({ startBars: 0, endBars: 8, totalBars: 8 });
     setError(null);
-  }, []);
+  }, [setRecordingStateSync]);
 
   /**
    * Get trimmed audio as a blob
