@@ -141,8 +141,9 @@ export async function POST(request: NextRequest) {
 
     if (trackError) {
       console.error('Failed to create draft track:', trackError);
+      console.error('Track error details:', JSON.stringify(trackError, null, 2));
       return NextResponse.json(
-        { error: 'Failed to create draft track' },
+        { error: `Failed to create draft track: ${trackError.message || trackError.code || 'Unknown error'}` },
         { status: 500 }
       );
     }
