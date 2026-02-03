@@ -19,13 +19,12 @@ import {
 
 // Recording states:
 // idle - Not recording, ready to start
-// preCountdown - 4-3-2-1 countdown BEFORE arming (user prep time)
 // armed - Waiting for first loop restart to begin rehearsal
 // rehearsal - First cycle playing (sync stabilization), waiting for next loop restart
-// countingIn - 4-beat count-in before recording (deprecated, not used)
+// countingIn - 4-beat count-in before recording
 // recording - Actively capturing audio
 // stopped - Recording complete, ready for trim/save
-export type RecordingState = 'idle' | 'preCountdown' | 'armed' | 'rehearsal' | 'countingIn' | 'recording' | 'stopped';
+export type RecordingState = 'idle' | 'armed' | 'rehearsal' | 'countingIn' | 'recording' | 'stopped';
 
 export interface RecordingData {
   blob: Blob;
@@ -60,13 +59,11 @@ interface UseMixerRecordingReturn {
   costInfo: RecordingCostInfo | null;
   isRecording: boolean;
   isArmed: boolean;
-  isRehearsal: boolean;
-  isPreCountdown: boolean; // true during 4-3-2-1 countdown before arming
-  countInBeat: number; // 0 = not counting, 1-4 = count-in/pre-countdown beat
+  isRehearsal: boolean; // New: true during rehearsal cycle
+  countInBeat: number; // 0 = not counting, 1-4 = count-in beat
   error: string | null;
 
   // Actions
-  startPreCountdown: (bpm: number, onCountdownComplete: () => void) => void; // Start 4-3-2-1 countdown
   armRecording: (bpm: number) => void; // Arms recording, waits for loop restart
   startRecording: (bpm: number) => void; // Actually starts recording (direct, bypasses arm flow)
   stopRecording: () => Promise<void>;
@@ -96,59 +93,15 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   const recordingBpmRef = useRef<number>(120);
   const recordingStartTimeRef = useRef<number>(0);
   const countInTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const preCountdownCallbackRef = useRef<(() => void) | null>(null);
 
   // Ref to track state for callback access (callbacks capture stale state)
   const recordingStateRef = useRef<RecordingState>('idle');
 
-  // Ref-based helper to update both state and ref synchronously (prevents race conditions)
-  // Using a ref to hold the function avoids useCallback dependency issues
-  const setRecordingStateSyncRef = useRef((newState: RecordingState) => {
+  // Helper to update both state and ref synchronously (prevents race conditions)
+  const setRecordingStateSync = useCallback((newState: RecordingState) => {
     console.log(`🔴 Recording state: ${recordingStateRef.current} → ${newState}`);
     recordingStateRef.current = newState; // Update ref FIRST (synchronous)
     setRecordingState(newState); // Then queue state update
-  });
-
-  // Stable function reference that doesn't change
-  const setRecordingStateSync = setRecordingStateSyncRef.current;
-
-  /**
-   * Start a 4-3-2-1 pre-countdown before arming
-   * This gives users time to prepare before recording starts
-   */
-  const startPreCountdown = useCallback((bpm: number, onCountdownComplete: () => void) => {
-    setError(null);
-    recordingBpmRef.current = bpm;
-    preCountdownCallbackRef.current = onCountdownComplete;
-
-    setRecordingStateSync('preCountdown');
-
-    const beatInterval = (60 / bpm) * 1000; // ms per beat
-    console.log(`🔴 Pre-countdown starting at ${bpm} BPM (${beatInterval}ms per beat)`);
-
-    // Start at 4, count down to 1
-    setCountInBeat(4);
-
-    const runCountdown = (beat: number) => {
-      if (beat > 1) {
-        countInTimeoutRef.current = setTimeout(() => {
-          setCountInBeat(beat - 1);
-          runCountdown(beat - 1);
-        }, beatInterval);
-      } else {
-        // Countdown complete (just showed "1"), now trigger callback after final beat
-        countInTimeoutRef.current = setTimeout(() => {
-          setCountInBeat(0);
-          console.log('🔴 Pre-countdown complete!');
-          // Call the callback (which should arm and start playback)
-          if (preCountdownCallbackRef.current) {
-            preCountdownCallbackRef.current();
-          }
-        }, beatInterval);
-      }
-    };
-
-    runCountdown(4);
   }, []);
 
   // Calculate cost info whenever trim changes
@@ -238,7 +191,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       console.error('🚨 Failed to start recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, []);
+  }, [setRecordingStateSync]);
 
   /**
    * Arm recording - puts recording in armed state waiting for loop restart
@@ -249,7 +202,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     recordingBpmRef.current = bpm;
     setRecordingStateSync('armed');
     console.log(`🔴 Recording ARMED at ${bpm} BPM - waiting for loop restart (bar 1)`);
-  }, []);
+  }, [setRecordingStateSync]);
 
   /**
    * Start count-in sequence (called internally when rehearsal cycle completes)
@@ -282,7 +235,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     };
 
     runCountIn(1);
-  }, [startActualRecording]);
+  }, [startActualRecording, setRecordingStateSync]);
 
   /**
    * Listen for loop restart events from PreciseLooper
@@ -321,7 +274,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       delete (window as any).onMixerRecordingLoopRestart;
       console.log('🔴 Unregistered loop restart listener for recording');
     };
-  }, [startActualRecording]);
+  }, [startActualRecording, setRecordingStateSync]);
 
   /**
    * DEPRECATED: Called by mixer when one full loop cycle completes
@@ -350,10 +303,9 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     }
     setCountInBeat(0);
 
-    // If we were in pre-countdown, armed, rehearsing, or counting in, just reset
-    if (recordingState === 'preCountdown' || recordingState === 'armed' || recordingState === 'rehearsal' || recordingState === 'countingIn') {
+    // If we were just armed, rehearsing, or counting in, just reset
+    if (recordingState === 'armed' || recordingState === 'rehearsal' || recordingState === 'countingIn') {
       console.log(`⏹️ Recording cancelled (was ${recordingState})`);
-      preCountdownCallbackRef.current = null; // Clear callback
       setRecordingStateSync('idle');
       return;
     }
@@ -519,7 +471,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     setRecordingData(null);
     setTrimState({ startBars: 0, endBars: 8, totalBars: 8 });
     setError(null);
-  }, []);
+  }, [setRecordingStateSync]);
 
   /**
    * Get trimmed audio as a blob
@@ -590,10 +542,8 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     isRecording: recordingState === 'recording',
     isArmed: recordingState === 'armed',
     isRehearsal: recordingState === 'rehearsal',
-    isPreCountdown: recordingState === 'preCountdown',
     countInBeat,
     error,
-    startPreCountdown,
     armRecording,
     startRecording,
     stopRecording,

@@ -12,7 +12,6 @@ interface MasterTransportControlsProps {
   recordingRemix: boolean;
   recordingArmed?: boolean; // Recording is armed, waiting for first loop restart
   recordingRehearsal?: boolean; // Recording is in rehearsal (sync stabilization cycle)
-  recordingPreCountdown?: boolean; // 4-3-2-1 countdown before arming
   recordingCountIn?: number; // Count-in beat (1-4) before recording starts
   syncActive: boolean;
 
@@ -45,7 +44,6 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   recordingRemix,
   recordingArmed = false,
   recordingRehearsal = false,
-  recordingPreCountdown = false,
   recordingCountIn = 0,
   syncActive,
   onMasterPlay,
@@ -210,8 +208,6 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
             className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all text-xs font-bold ${
               recordingRemix
                 ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
-                : recordingPreCountdown
-                ? 'bg-[#81E4F2]/70 border-[#81E4F2] text-slate-900 animate-pulse shadow-lg shadow-[#81E4F2]/30'
                 : recordingCountIn > 0
                 ? 'bg-red-500/70 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
                 : recordingRehearsal
@@ -224,16 +220,13 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
             }`}
             title={
               recordingRemix ? 'Stop Recording'
-                : recordingPreCountdown ? `Starting in ${recordingCountIn}...`
                 : recordingCountIn > 0 ? `Count-in: ${recordingCountIn}/4`
                 : recordingRehearsal ? 'Rehearsal - Sync stabilizing...'
                 : recordingArmed ? 'Armed - Waiting for bar 1...'
                 : 'Arm Recording'
             }
           >
-            {recordingPreCountdown ? (
-              recordingCountIn
-            ) : recordingCountIn > 0 ? (
+            {recordingCountIn > 0 ? (
               recordingCountIn
             ) : recordingRehearsal ? (
               <span className="text-[7px]">SYNC</span>
@@ -299,8 +292,6 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
           className={`record-btn w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all ${
             recordingRemix
               ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
-              : recordingPreCountdown
-              ? 'bg-[#81E4F2]/70 border-[#81E4F2] text-slate-900 animate-pulse shadow-lg shadow-[#81E4F2]/30'
               : recordingCountIn > 0
               ? 'bg-red-500/70 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
               : recordingRehearsal
@@ -311,16 +302,13 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
           }`}
           title={
             recordingRemix ? 'Stop Recording'
-              : recordingPreCountdown ? `Starting in ${recordingCountIn}...`
               : recordingCountIn > 0 ? `Count-in: ${recordingCountIn}/4`
               : recordingRehearsal ? 'Rehearsal - Sync stabilizing...'
               : recordingArmed ? 'Armed - Waiting for bar 1...'
               : 'Arm Recording'
           }
         >
-          {recordingPreCountdown ? (
-            recordingCountIn
-          ) : recordingCountIn > 0 ? (
+          {recordingCountIn > 0 ? (
             recordingCountIn
           ) : recordingRehearsal ? (
             <span className="text-[8px]">SYNC</span>
