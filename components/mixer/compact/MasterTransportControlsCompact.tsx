@@ -10,7 +10,8 @@ interface MasterTransportControlsProps {
   deckBPlaying: boolean;
   deckABPM: number;
   recordingRemix: boolean;
-  recordingArmed?: boolean; // Recording is armed, waiting for cycle
+  recordingArmed?: boolean; // Recording is armed, waiting for first loop restart
+  recordingRehearsal?: boolean; // Recording is in rehearsal (sync stabilization cycle)
   recordingCountIn?: number; // Count-in beat (1-4) before recording starts
   syncActive: boolean;
 
@@ -42,6 +43,7 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
   deckABPM,
   recordingRemix,
   recordingArmed = false,
+  recordingRehearsal = false,
   recordingCountIn = 0,
   syncActive,
   onMasterPlay,
@@ -208,6 +210,8 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
                 ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
                 : recordingCountIn > 0
                 ? 'bg-red-500/70 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                : recordingRehearsal
+                ? 'bg-amber-500/50 border-amber-500 text-amber-500 animate-pulse shadow-md shadow-amber-500/30'
                 : recordingArmed
                 ? 'bg-red-500/30 border-red-500 text-red-500 animate-pulse shadow-md shadow-red-500/20'
                 : deckALoaded || deckBLoaded
@@ -217,12 +221,15 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
             title={
               recordingRemix ? 'Stop Recording'
                 : recordingCountIn > 0 ? `Count-in: ${recordingCountIn}/4`
-                : recordingArmed ? 'Armed - Waiting for cycle...'
+                : recordingRehearsal ? 'Rehearsal - Sync stabilizing...'
+                : recordingArmed ? 'Armed - Waiting for bar 1...'
                 : 'Arm Recording'
             }
           >
             {recordingCountIn > 0 ? (
               recordingCountIn
+            ) : recordingRehearsal ? (
+              <span className="text-[7px]">SYNC</span>
             ) : recordingArmed ? (
               <span className="text-[8px]">ARM</span>
             ) : (
@@ -287,6 +294,8 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
               ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/50'
               : recordingCountIn > 0
               ? 'bg-red-500/70 border-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+              : recordingRehearsal
+              ? 'bg-amber-500/50 border-amber-500 text-amber-500 animate-pulse shadow-md shadow-amber-500/30'
               : recordingArmed
               ? 'bg-red-500/30 border-red-500 text-red-500 animate-pulse shadow-md shadow-red-500/20'
               : 'border-slate-600 text-slate-400 hover:border-red-500 hover:text-red-500'
@@ -294,12 +303,15 @@ const MasterTransportControlsCompact = memo(function MasterTransportControlsComp
           title={
             recordingRemix ? 'Stop Recording'
               : recordingCountIn > 0 ? `Count-in: ${recordingCountIn}/4`
-              : recordingArmed ? 'Armed - Waiting for cycle...'
+              : recordingRehearsal ? 'Rehearsal - Sync stabilizing...'
+              : recordingArmed ? 'Armed - Waiting for bar 1...'
               : 'Arm Recording'
           }
         >
           {recordingCountIn > 0 ? (
             recordingCountIn
+          ) : recordingRehearsal ? (
+            <span className="text-[8px]">SYNC</span>
           ) : recordingArmed ? (
             <span className="text-[9px]">ARM</span>
           ) : (

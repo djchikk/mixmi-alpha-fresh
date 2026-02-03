@@ -952,6 +952,11 @@ class PreciseLooper {
           if (typeof window !== 'undefined' && (window as any).onMixerLoopRestart) {
             (window as any).onMixerLoopRestart(this.deckId);
           }
+
+          // 🔴 NEW: Notify mixer recording hook of loop restart (for rehearsal cycle)
+          if (typeof window !== 'undefined' && (window as any).onMixerRecordingLoopRestart) {
+            (window as any).onMixerRecordingLoopRestart(this.deckId);
+          }
         } catch (error) {
           console.warn(`⚠️ Deck ${this.deckId} loop reset failed:`, error);
         }

@@ -17,7 +17,14 @@ import {
   getBlockDuration,
 } from '@/lib/recording/paymentCalculation';
 
-export type RecordingState = 'idle' | 'armed' | 'countingIn' | 'recording' | 'stopped';
+// Recording states:
+// idle - Not recording, ready to start
+// armed - Waiting for first loop restart to begin rehearsal
+// rehearsal - First cycle playing (sync stabilization), waiting for next loop restart
+// countingIn - 4-beat count-in before recording
+// recording - Actively capturing audio
+// stopped - Recording complete, ready for trim/save
+export type RecordingState = 'idle' | 'armed' | 'rehearsal' | 'countingIn' | 'recording' | 'stopped';
 
 export interface RecordingData {
   blob: Blob;
@@ -52,14 +59,15 @@ interface UseMixerRecordingReturn {
   costInfo: RecordingCostInfo | null;
   isRecording: boolean;
   isArmed: boolean;
+  isRehearsal: boolean; // New: true during rehearsal cycle
   countInBeat: number; // 0 = not counting, 1-4 = count-in beat
   error: string | null;
 
   // Actions
-  armRecording: (bpm: number) => void; // New: arms recording and returns
-  startRecording: (bpm: number) => void; // Actually starts recording
+  armRecording: (bpm: number) => void; // Arms recording, waits for loop restart
+  startRecording: (bpm: number) => void; // Actually starts recording (direct, bypasses arm flow)
   stopRecording: () => Promise<void>;
-  onMixerCycleComplete: () => void; // Called by mixer when one full cycle completes
+  onMixerCycleComplete: () => void; // DEPRECATED: Now using window.onMixerLoopRestart internally
   setTrimStart: (bars: number) => void;
   setTrimEnd: (bars: number) => void;
   nudgeTrim: (point: 'start' | 'end', direction: 'left' | 'right', resolution: number) => void;
@@ -86,6 +94,14 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   const recordingStartTimeRef = useRef<number>(0);
   const countInTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Ref to track state for callback access (callbacks capture stale state)
+  const recordingStateRef = useRef<RecordingState>('idle');
+
+  // Keep state ref in sync with state (for callback access)
+  useEffect(() => {
+    recordingStateRef.current = recordingState;
+  }, [recordingState]);
+
   // Calculate cost info whenever trim changes
   const costInfo: RecordingCostInfo | null = recordingData
     ? (() => {
@@ -107,24 +123,21 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     : null;
 
   /**
-   * Arm recording - puts recording in armed state waiting for mixer cycle
+   * Arm recording - puts recording in armed state waiting for loop restart
    * The mixer should auto-start playback when armed
    */
   const armRecording = useCallback((bpm: number) => {
     setError(null);
     recordingBpmRef.current = bpm;
     setRecordingState('armed');
-    console.log(`🔴 Recording ARMED at ${bpm} BPM - waiting for mixer to complete one cycle`);
+    console.log(`🔴 Recording ARMED at ${bpm} BPM - waiting for loop restart (bar 1)`);
   }, []);
 
   /**
-   * Called by mixer when one full loop cycle completes
-   * Triggers count-in and then actual recording
+   * Start count-in sequence (called internally when rehearsal cycle completes)
    */
-  const onMixerCycleComplete = useCallback(() => {
-    if (recordingState !== 'armed') return;
-
-    console.log('🔴 Mixer cycle complete - starting count-in');
+  const startCountIn = useCallback(() => {
+    console.log('🔴 Starting count-in');
     setRecordingState('countingIn');
 
     const bpm = recordingBpmRef.current;
@@ -150,7 +163,50 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     };
 
     runCountIn(1);
-  }, [recordingState]);
+  }, []);
+
+  /**
+   * Listen for loop restart events from PreciseLooper
+   * This is the core of the rehearsal cycle approach:
+   * armed → (loop restart) → rehearsal → (loop restart) → countingIn → recording
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleLoopRestart = (deckId: 'A' | 'B') => {
+      const currentState = recordingStateRef.current;
+      console.log(`🔴 Loop restart on Deck ${deckId}, recording state: ${currentState}`);
+
+      if (currentState === 'armed') {
+        // First loop restart while armed → enter rehearsal (sync stabilization cycle)
+        console.log('🔴 Entering rehearsal cycle (sync stabilization)');
+        setRecordingState('rehearsal');
+      } else if (currentState === 'rehearsal') {
+        // Second loop restart (after rehearsal) → start count-in
+        console.log('🔴 Rehearsal complete - starting count-in at bar 1');
+        startCountIn();
+      }
+    };
+
+    // Register the callback
+    (window as any).onMixerRecordingLoopRestart = handleLoopRestart;
+    console.log('🔴 Registered loop restart listener for recording');
+
+    return () => {
+      // Cleanup
+      delete (window as any).onMixerRecordingLoopRestart;
+      console.log('🔴 Unregistered loop restart listener for recording');
+    };
+  }, [startCountIn]);
+
+  /**
+   * DEPRECATED: Called by mixer when one full loop cycle completes
+   * Now using window.onMixerRecordingLoopRestart internally
+   */
+  const onMixerCycleComplete = useCallback(() => {
+    console.warn('🔴 onMixerCycleComplete is deprecated - using loop restart listener instead');
+    // No-op - kept for backwards compatibility
+  }, []);
 
   /**
    * Internal: Actually start the MediaRecorder
@@ -238,9 +294,9 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     }
     setCountInBeat(0);
 
-    // If we were just armed or counting in, just reset
-    if (recordingState === 'armed' || recordingState === 'countingIn') {
-      console.log('⏹️ Recording cancelled (was armed/counting in)');
+    // If we were just armed, rehearsing, or counting in, just reset
+    if (recordingState === 'armed' || recordingState === 'rehearsal' || recordingState === 'countingIn') {
+      console.log(`⏹️ Recording cancelled (was ${recordingState})`);
       setRecordingState('idle');
       return;
     }
@@ -470,6 +526,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     costInfo,
     isRecording: recordingState === 'recording',
     isArmed: recordingState === 'armed',
+    isRehearsal: recordingState === 'rehearsal',
     countInBeat,
     error,
     armRecording,

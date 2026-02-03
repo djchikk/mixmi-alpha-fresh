@@ -288,12 +288,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     costInfo,
     isRecording: isMixerRecording,
     isArmed: isMixerArmed,
+    isRehearsal: isMixerRehearsal,
     countInBeat,
     error: recordingError,
     armRecording,
     startRecording: startMixerRecording,
     stopRecording: stopMixerRecording,
-    onMixerCycleComplete,
+    onMixerCycleComplete, // Deprecated but kept for interface compatibility
     setTrimStart,
     setTrimEnd,
     nudgeTrim,
@@ -304,18 +305,12 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   // State for showing the recording widget modal
   const [showRecordingWidget, setShowRecordingWidget] = useState(false);
 
-  // 🔴 ARMED RECORDING: When armed, trigger count-in after brief delay
-  // Playback is auto-started in handleRecordToggle when arming
-  useEffect(() => {
-    if (isMixerArmed) {
-      console.log('🔴 Armed: Starting count-in after brief delay');
-      // Small delay to let playback start and armed visual state show, then start count-in
-      const timer = setTimeout(() => {
-        onMixerCycleComplete(); // This triggers the count-in
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isMixerArmed, onMixerCycleComplete]);
+  // 🔴 RECORDING: Now uses loop restart callback (window.onMixerRecordingLoopRestart)
+  // The rehearsal cycle approach:
+  // 1. Press Record → armed state, playback starts
+  // 2. Wait for loop restart (bar 1) → rehearsal state (sync stabilization)
+  // 3. Wait for next loop restart → count-in starts
+  // 4. After count-in → recording starts precisely on bar 1
 
   // 🎯 Determine which deck should be master for sync
   // Simply returns the user's choice (stored in state)
@@ -1411,11 +1406,11 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
   // 🔴 RECORDING: Toggle recording on/off
   const handleRecordToggle = useCallback(async () => {
-    if (isMixerRecording || isMixerArmed || recordingState === 'countingIn') {
-      // Stop recording (or cancel armed state)
+    if (isMixerRecording || isMixerArmed || isMixerRehearsal || recordingState === 'countingIn') {
+      // Stop recording (or cancel armed/rehearsal state)
       // IMPORTANT: Capture state BEFORE calling stopMixerRecording to avoid stale closure issue
       const wasActuallyRecording = recordingState === 'recording';
-      console.log('⏹️ Stopping recording...', { wasActuallyRecording });
+      console.log('⏹️ Stopping recording...', { wasActuallyRecording, recordingState });
       await stopMixerRecording();
 
       // Stop the mixer playback
@@ -1427,14 +1422,14 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         setShowRecordingWidget(true);
       }
     } else {
-      // Arm recording (will auto-start mixer and wait one cycle)
+      // Arm recording - will wait for loop restart to begin rehearsal cycle
       if (!mixerState.deckA.track && !mixerState.deckB.track) {
         showToast('Load at least one track to record', 'info');
         return;
       }
       // Use master BPM
       const bpm = mixerState.masterBPM || 120;
-      console.log(`🔴 Arming recording at ${bpm} BPM...`);
+      console.log(`🔴 Arming recording at ${bpm} BPM - waiting for loop restart...`);
       armRecording(bpm);
 
       // Auto-start playback if not already playing
@@ -1443,7 +1438,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         handleMasterPlayAfterCountIn();
       }
     }
-  }, [isMixerRecording, isMixerArmed, recordingState, stopMixerRecording, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState.deckA.track, mixerState.deckB.track, mixerState.deckA.playing, mixerState.deckB.playing, mixerState.masterBPM, showToast]);
+  }, [isMixerRecording, isMixerArmed, isMixerRehearsal, recordingState, stopMixerRecording, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState.deckA.track, mixerState.deckB.track, mixerState.deckA.playing, mixerState.deckB.playing, mixerState.masterBPM, showToast]);
 
   // 🔴 RECORDING: Handle confirm and payment
   const handleRecordingConfirm = useCallback(async () => {
@@ -2280,6 +2275,7 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 deckABPM={mixerState.deckA.track?.bpm || mixerState.masterBPM}
                 recordingRemix={isMixerRecording}
                 recordingArmed={isMixerArmed}
+                recordingRehearsal={isMixerRehearsal}
                 recordingCountIn={recordingState === 'countingIn' ? countInBeat : 0}
                 syncActive={mixerState.syncActive && !hasRadio && !bothVideos}
                 highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
