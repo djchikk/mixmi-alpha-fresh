@@ -4,6 +4,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Play, Square } from 'lucide-react';
 import { PRICING } from '@/config/pricing';
 import { barsToSeconds } from '@/lib/recording/paymentCalculation';
+import { getAudioContext as getMixerAudioContext } from '@/lib/mixerAudio';
 
 interface BlockAuditionProps {
   audioBuffer: AudioBuffer;
@@ -33,13 +34,22 @@ export default function BlockAudition({
   const selectedBars = trimEndBars - trimStartBars;
   const blockCount = Math.ceil(selectedBars / barsPerBlock);
 
-  // Get AudioContext
+  // Get AudioContext - IMPORTANT: Use the mixer's AudioContext to avoid sample rate mismatch!
+  // Creating a new AudioContext can result in different sample rates, causing playback speed issues.
   const getAudioContext = useCallback(() => {
+    // Try to use the mixer's AudioContext first (same sample rate as the recording)
+    const mixerContext = getMixerAudioContext();
+    if (mixerContext) {
+      return mixerContext;
+    }
+    // Fallback to creating our own (shouldn't normally happen)
     if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
+      // Match the audioBuffer's sample rate to avoid speed issues
+      audioContextRef.current = new AudioContext({ sampleRate: audioBuffer.sampleRate });
+      console.warn('⚠️ BlockAudition: Created fallback AudioContext at', audioBuffer.sampleRate, 'Hz');
     }
     return audioContextRef.current;
-  }, []);
+  }, [audioBuffer.sampleRate]);
 
   // Stop current playback
   const stopPlayback = useCallback(() => {
@@ -190,8 +200,10 @@ export default function BlockAudition({
   useEffect(() => {
     return () => {
       stopPlayback();
+      // Only close the AudioContext if we created a fallback one (not the mixer's)
       if (audioContextRef.current) {
         audioContextRef.current.close();
+        audioContextRef.current = null;
       }
     };
   }, [stopPlayback]);

@@ -168,7 +168,10 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   /**
    * Listen for loop restart events from PreciseLooper
    * This is the core of the rehearsal cycle approach:
-   * armed → (loop restart) → rehearsal → (loop restart) → countingIn → recording
+   * armed → (loop restart) → rehearsal → (loop restart) → recording
+   *
+   * NOTE: No count-in! Recording starts immediately at bar 1 after rehearsal.
+   * Count-in would delay recording to bar 2.
    */
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -182,9 +185,11 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
         console.log('🔴 Entering rehearsal cycle (sync stabilization)');
         setRecordingState('rehearsal');
       } else if (currentState === 'rehearsal') {
-        // Second loop restart (after rehearsal) → start count-in
-        console.log('🔴 Rehearsal complete - starting count-in at bar 1');
-        startCountIn();
+        // Second loop restart (after rehearsal) → start recording immediately at bar 1!
+        // No count-in - that would delay recording to bar 2
+        console.log('🔴 Rehearsal complete - starting recording at bar 1!');
+        const bpm = recordingBpmRef.current;
+        startActualRecording(bpm);
       }
     };
 
@@ -197,7 +202,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       delete (window as any).onMixerRecordingLoopRestart;
       console.log('🔴 Unregistered loop restart listener for recording');
     };
-  }, [startCountIn]);
+  }, [startActualRecording]);
 
   /**
    * DEPRECATED: Called by mixer when one full loop cycle completes
@@ -327,7 +332,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
           const blob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
           const recordingDuration = (Date.now() - recordingStartTimeRef.current) / 1000;
 
-          console.log(`⏹️ Recording stopped: ${recordingDuration.toFixed(2)}s, ${blob.size} bytes`);
+          console.log(`⏹️ Recording stopped: ${recordingDuration.toFixed(2)}s, ${blob.size} bytes, type: ${mediaRecorder.mimeType}`);
 
           // Decode audio for waveform and analysis
           const audioContext = getAudioContext();
@@ -335,8 +340,12 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
             throw new Error('Audio context not available');
           }
 
+          console.log(`🎵 AudioContext sample rate: ${audioContext.sampleRate}Hz`);
+
           const arrayBuffer = await blob.arrayBuffer();
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+          console.log(`🎵 Decoded audio: ${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.sampleRate}Hz, ${audioBuffer.numberOfChannels} channels`);
 
           // Calculate bars from duration
           const bpm = recordingBpmRef.current;
