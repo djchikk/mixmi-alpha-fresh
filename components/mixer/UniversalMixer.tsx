@@ -289,8 +289,10 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     isRecording: isMixerRecording,
     isArmed: isMixerArmed,
     isRehearsal: isMixerRehearsal,
+    isPreCountdown: isMixerPreCountdown,
     countInBeat,
     error: recordingError,
+    startPreCountdown,
     armRecording,
     startRecording: startMixerRecording,
     stopRecording: stopMixerRecording,
@@ -1406,8 +1408,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
 
   // 🔴 RECORDING: Toggle recording on/off
   const handleRecordToggle = useCallback(async () => {
-    if (isMixerRecording || isMixerArmed || isMixerRehearsal || recordingState === 'countingIn') {
-      // Stop recording (or cancel armed/rehearsal state)
+    if (isMixerRecording || isMixerArmed || isMixerRehearsal || isMixerPreCountdown || recordingState === 'countingIn') {
+      // Stop recording (or cancel armed/rehearsal/pre-countdown state)
       // IMPORTANT: Capture state BEFORE calling stopMixerRecording to avoid stale closure issue
       const wasActuallyRecording = recordingState === 'recording';
       console.log('⏹️ Stopping recording...', { wasActuallyRecording, recordingState });
@@ -1422,36 +1424,26 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         setShowRecordingWidget(true);
       }
     } else {
-      // Arm recording - will wait for loop restart to begin rehearsal cycle
+      // Start pre-countdown (4-3-2-1), then arm and start playback
       if (!mixerState.deckA.track && !mixerState.deckB.track) {
         showToast('Load at least one track to record', 'info');
         return;
       }
-
-      // 🔴 SYNC FIX: Toggle sync off/on to reset sync state before recording
-      // This fixes the issue where first recording fails to sync
-      if (mixerState.deckA.track && mixerState.deckB.track && !hasRadio && !bothVideos) {
-        console.log('🔴 Resetting sync before recording...');
-        setMixerState(prev => ({ ...prev, syncActive: false }));
-        // Small delay then turn sync back on
-        setTimeout(() => {
-          setMixerState(prev => ({ ...prev, syncActive: true }));
-          console.log('🔴 Sync reset complete');
-        }, 50);
-      }
-
       // Use master BPM
       const bpm = mixerState.masterBPM || 120;
-      console.log(`🔴 Arming recording at ${bpm} BPM - waiting for loop restart...`);
-      armRecording(bpm);
+      console.log(`🔴 Starting pre-countdown at ${bpm} BPM...`);
 
-      // Auto-start playback if not already playing
-      if (!mixerState.deckA.playing && !mixerState.deckB.playing) {
+      // Start the 4-3-2-1 countdown, then arm and start playback
+      startPreCountdown(bpm, () => {
+        console.log(`🔴 Pre-countdown complete! Arming at ${bpm} BPM...`);
+        armRecording(bpm);
+
+        // Auto-start playback after arming
         console.log('🔴 Auto-starting playback for recording...');
         handleMasterPlayAfterCountIn();
-      }
+      });
     }
-  }, [isMixerRecording, isMixerArmed, isMixerRehearsal, recordingState, stopMixerRecording, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState.deckA.track, mixerState.deckB.track, mixerState.deckA.playing, mixerState.deckB.playing, mixerState.masterBPM, showToast, hasRadio, bothVideos]);
+  }, [isMixerRecording, isMixerArmed, isMixerRehearsal, isMixerPreCountdown, recordingState, stopMixerRecording, startPreCountdown, armRecording, handleMasterStop, handleMasterPlayAfterCountIn, mixerState.deckA.track, mixerState.deckB.track, mixerState.masterBPM, showToast]);
 
   // 🔴 RECORDING: Handle confirm and payment
   const handleRecordingConfirm = useCallback(async () => {
@@ -2289,7 +2281,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
                 recordingRemix={isMixerRecording}
                 recordingArmed={isMixerArmed}
                 recordingRehearsal={isMixerRehearsal}
-                recordingCountIn={recordingState === 'countingIn' ? countInBeat : 0}
+                recordingPreCountdown={isMixerPreCountdown}
+                recordingCountIn={isMixerPreCountdown ? countInBeat : (recordingState === 'countingIn' ? countInBeat : 0)}
                 syncActive={mixerState.syncActive && !hasRadio && !bothVideos}
                 highlightPlayButton={deckAJustGrabbed || deckBJustGrabbed}
                 hasRadio={hasRadio}
