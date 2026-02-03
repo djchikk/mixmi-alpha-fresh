@@ -101,12 +101,16 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   // Ref to track state for callback access (callbacks capture stale state)
   const recordingStateRef = useRef<RecordingState>('idle');
 
-  // Helper to update both state and ref synchronously (prevents race conditions)
-  const setRecordingStateSync = useCallback((newState: RecordingState) => {
+  // Ref-based helper to update both state and ref synchronously (prevents race conditions)
+  // Using a ref to hold the function avoids useCallback dependency issues
+  const setRecordingStateSyncRef = useRef((newState: RecordingState) => {
     console.log(`🔴 Recording state: ${recordingStateRef.current} → ${newState}`);
     recordingStateRef.current = newState; // Update ref FIRST (synchronous)
     setRecordingState(newState); // Then queue state update
-  }, []);
+  });
+
+  // Stable function reference that doesn't change
+  const setRecordingStateSync = setRecordingStateSyncRef.current;
 
   /**
    * Start a 4-3-2-1 pre-countdown before arming
@@ -145,7 +149,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     };
 
     runCountdown(4);
-  }, [setRecordingStateSync]);
+  }, []);
 
   // Calculate cost info whenever trim changes
   const costInfo: RecordingCostInfo | null = recordingData
@@ -234,7 +238,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       console.error('🚨 Failed to start recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, [setRecordingStateSync]);
+  }, []);
 
   /**
    * Arm recording - puts recording in armed state waiting for loop restart
@@ -245,7 +249,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     recordingBpmRef.current = bpm;
     setRecordingStateSync('armed');
     console.log(`🔴 Recording ARMED at ${bpm} BPM - waiting for loop restart (bar 1)`);
-  }, [setRecordingStateSync]);
+  }, []);
 
   /**
    * Start count-in sequence (called internally when rehearsal cycle completes)
@@ -278,7 +282,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     };
 
     runCountIn(1);
-  }, [startActualRecording, setRecordingStateSync]);
+  }, [startActualRecording]);
 
   /**
    * Listen for loop restart events from PreciseLooper
@@ -317,7 +321,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       delete (window as any).onMixerRecordingLoopRestart;
       console.log('🔴 Unregistered loop restart listener for recording');
     };
-  }, [startActualRecording, setRecordingStateSync]);
+  }, [startActualRecording]);
 
   /**
    * DEPRECATED: Called by mixer when one full loop cycle completes
@@ -437,7 +441,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
 
       mediaRecorder.stop();
     });
-  }, [setRecordingStateSync]);
+  }, []);
 
   /**
    * Set trim start point (in bars)
@@ -515,7 +519,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     setRecordingData(null);
     setTrimState({ startBars: 0, endBars: 8, totalBars: 8 });
     setError(null);
-  }, [setRecordingStateSync]);
+  }, []);
 
   /**
    * Get trimmed audio as a blob
