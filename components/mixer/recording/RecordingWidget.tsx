@@ -199,29 +199,66 @@ export default function RecordingWidget({
 
       console.log('🎵 [Recording] Transaction executed:', executeData.txHash);
 
-      // Step 7: Get trimmed audio and save
+      // Step 7: Get trimmed audio and upload directly to Supabase
       setPurchaseState('saving');
-      console.log('🎵 [Recording] Saving draft...');
+      console.log('🎵 [Recording] Getting trimmed audio...');
 
       const audioBlob = await getAudioForTrim();
       if (!audioBlob) {
         throw new Error('Failed to create trimmed audio');
       }
 
-      const formData = new FormData();
-      formData.append('paymentId', payment.id);
-      formData.append('txHash', executeData.txHash);
-      formData.append('audioFile', audioBlob, 'recording.wav');
-      formData.append('title', `Recording ${new Date().toLocaleDateString()}`);
-      formData.append('bpm', recordingData.bpm.toString());
-      formData.append('bars', bars.toString());
-      formData.append('creatorWallet', activePersona?.wallet_address || '');
-      formData.append('creatorSuiAddress', suiAddress);
-      formData.append('sourceTracksMetadata', JSON.stringify(payment.sourceTracksMetadata));
+      console.log(`🎵 [Recording] Audio blob size: ${(audioBlob.size / 1024 / 1024).toFixed(2)} MB`);
 
+      // Step 7a: Get signed upload URL
+      console.log('🎵 [Recording] Getting upload URL...');
+      const uploadUrlResponse = await fetch('/api/recording/get-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId: payment.id,
+          walletAddress: suiAddress,
+        }),
+      });
+
+      const uploadUrlData = await uploadUrlResponse.json();
+      if (!uploadUrlResponse.ok) {
+        throw new Error(uploadUrlData.error || 'Failed to get upload URL');
+      }
+
+      // Step 7b: Upload directly to Supabase Storage
+      console.log('🎵 [Recording] Uploading audio to Supabase...');
+      const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'audio/wav',
+        },
+        body: audioBlob,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('🎵 [Recording] Upload failed:', errorText);
+        throw new Error('Failed to upload audio file');
+      }
+
+      console.log('🎵 [Recording] Audio uploaded, saving draft...');
+
+      // Step 7c: Save the draft with the audio URL
       const saveResponse = await fetch('/api/recording/confirm-and-save', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId: payment.id,
+          txHash: executeData.txHash,
+          audioUrl: uploadUrlData.publicUrl,
+          title: `Recording ${new Date().toLocaleDateString()}`,
+          bpm: recordingData.bpm,
+          bars,
+          creatorWallet: activePersona?.wallet_address || '',
+          creatorSuiAddress: suiAddress,
+          sourceTracksMetadata: payment.sourceTracksMetadata,
+        }),
       });
 
       const saveData = await saveResponse.json();

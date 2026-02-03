@@ -1,16 +1,15 @@
 /**
  * Recording Confirmation and Draft Save API
  *
- * After payment is confirmed on-chain:
+ * After payment is confirmed on-chain and audio uploaded directly to Supabase:
  * 1. Updates the payment record status
- * 2. Uploads the audio file to Supabase Storage
- * 3. Creates a draft ip_tracks record with genealogy metadata
+ * 2. Creates a draft ip_tracks record with genealogy metadata
+ *
+ * Now accepts JSON with audioUrl instead of FormData with file
+ * (to bypass Vercel's body size limit)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-// Route segment config for larger payloads
-export const maxDuration = 60; // Allow up to 60 seconds for processing
 import { createClient } from '@supabase/supabase-js';
 import { PRICING } from '@/config/pricing';
 import { SourceTrackMetadata } from '@/types';
@@ -24,32 +23,27 @@ export async function POST(request: NextRequest) {
   try {
     console.log('📁 [confirm-and-save] Starting request processing...');
 
-    let formData: FormData;
-    try {
-      formData = await request.formData();
-      console.log('📁 [confirm-and-save] FormData parsed successfully');
-    } catch (formError) {
-      console.error('📁 [confirm-and-save] Failed to parse FormData:', formError);
-      return NextResponse.json(
-        { error: 'Failed to parse form data - file may be too large' },
-        { status: 413 }
-      );
-    }
+    const body = await request.json();
 
-    const paymentId = formData.get('paymentId') as string;
-    const txHash = formData.get('txHash') as string;
-    const audioFile = formData.get('audioFile') as File;
+    const {
+      paymentId,
+      txHash,
+      audioUrl, // Now expecting URL instead of file
+      title = 'Untitled Recording',
+      bpm = 120,
+      bars = 8,
+      creatorWallet,
+      creatorSuiAddress,
+      sourceTracksMetadata = [],
+    } = body;
 
-    // Log file size
-    if (audioFile) {
-      console.log(`📁 [confirm-and-save] Audio file size: ${(audioFile.size / 1024 / 1024).toFixed(2)} MB`);
-    }
-    const title = formData.get('title') as string || 'Untitled Recording';
-    const bpm = parseInt(formData.get('bpm') as string) || 120;
-    const bars = parseInt(formData.get('bars') as string) || 8;
-    const creatorWallet = formData.get('creatorWallet') as string;
-    const creatorSuiAddress = formData.get('creatorSuiAddress') as string;
-    const sourceTracksMetadataJson = formData.get('sourceTracksMetadata') as string;
+    console.log('📁 [confirm-and-save] Request:', {
+      paymentId,
+      txHash: txHash?.slice(0, 20) + '...',
+      audioUrl: audioUrl?.slice(0, 50) + '...',
+      bpm,
+      bars,
+    });
 
     // Validate required fields
     if (!paymentId) {
@@ -66,9 +60,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!audioFile) {
+    if (!audioUrl) {
       return NextResponse.json(
-        { error: 'Audio file required' },
+        { error: 'Audio URL required' },
         { status: 400 }
       );
     }
@@ -80,16 +74,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse source tracks metadata
-    let sourceTracksMetadata: SourceTrackMetadata[] = [];
-    if (sourceTracksMetadataJson) {
-      try {
-        sourceTracksMetadata = JSON.parse(sourceTracksMetadataJson);
-      } catch (e) {
-        console.warn('Failed to parse source tracks metadata:', e);
-      }
-    }
-
     // Verify payment record exists and is pending
     const { data: paymentRecord, error: fetchError } = await supabase
       .from('recording_payments')
@@ -98,6 +82,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (fetchError || !paymentRecord) {
+      console.error('Payment record not found:', fetchError);
       return NextResponse.json(
         { error: 'Payment record not found' },
         { status: 404 }
@@ -111,43 +96,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload audio file to Supabase Storage
-    const timestamp = Date.now();
-    const walletPrefix = (creatorSuiAddress || creatorWallet).slice(0, 10);
-    const fileName = `recording-${walletPrefix}-${timestamp}.wav`;
-    const storagePath = `user-content/audio/recordings/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('user-content')
-      .upload(`audio/recordings/${fileName}`, audioFile, {
-        contentType: 'audio/wav',
-        cacheControl: '3600',
-      });
-
-    if (uploadError) {
-      console.error('Failed to upload audio:', uploadError);
-      return NextResponse.json(
-        { error: 'Failed to upload audio file' },
-        { status: 500 }
-      );
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('user-content')
-      .getPublicUrl(`audio/recordings/${fileName}`);
-
-    const audioUrl = urlData.publicUrl;
-
     // Calculate remix depth (max of source tracks + 1)
     const maxSourceDepth = sourceTracksMetadata.reduce(
-      (max, track) => Math.max(max, track.generation || 0),
+      (max: number, track: SourceTrackMetadata) => Math.max(max, track.generation || 0),
       0
     );
     const remixDepth = maxSourceDepth + 1;
 
     // Extract source track IDs
-    const sourceTrackIds = sourceTracksMetadata.map((t) => t.id);
+    const sourceTrackIds = sourceTracksMetadata.map((t: SourceTrackMetadata) => t.id);
 
     // Create draft track record
     const { data: draftTrack, error: trackError } = await supabase
@@ -175,8 +132,8 @@ export async function POST(request: NextRequest) {
         production_split_1_wallet: creatorWallet || creatorSuiAddress,
         production_split_1_percentage: 100,
         production_split_1_sui_address: creatorSuiAddress,
-        // Combine tags and locations from source tracks
-        tags: combineTags(sourceTracksMetadata),
+        // Add remix tag
+        tags: ['remix'],
         primary_uploader_wallet: creatorWallet || creatorSuiAddress,
       })
       .select()
@@ -189,6 +146,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    console.log('📁 [confirm-and-save] Draft track created:', draftTrack.id);
 
     // Update payment record with confirmation
     const { error: updateError } = await supabase
@@ -215,6 +174,8 @@ export async function POST(request: NextRequest) {
       })
       .eq('recording_payment_id', paymentId);
 
+    console.log('📁 [confirm-and-save] Success!');
+
     return NextResponse.json({
       success: true,
       draft: {
@@ -239,19 +200,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-/**
- * Combine tags from source tracks, deduplicating
- */
-function combineTags(sourceTracksMetadata: SourceTrackMetadata[]): string[] {
-  const tagsSet = new Set<string>();
-
-  // Add "remix" tag
-  tagsSet.add('remix');
-
-  // Note: SourceTrackMetadata doesn't include tags in our current definition
-  // This would need to be expanded if we want to inherit tags from source tracks
-
-  return Array.from(tagsSet);
 }
