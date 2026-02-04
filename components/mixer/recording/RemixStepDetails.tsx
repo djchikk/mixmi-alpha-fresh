@@ -21,6 +21,7 @@ export default function RemixStepDetails({
   const [locationInput, setLocationInput] = useState('');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Location autocomplete hook
   const {
@@ -107,10 +108,14 @@ export default function RemixStepDetails({
     });
   };
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (but not on dropdown itself)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (showLocationDropdown && !locationInputRef.current?.contains(e.target as Node)) {
+      if (
+        showLocationDropdown &&
+        !locationInputRef.current?.contains(e.target as Node) &&
+        !dropdownRef.current?.contains(e.target as Node)
+      ) {
         setShowLocationDropdown(false);
       }
     };
@@ -169,6 +174,7 @@ export default function RemixStepDetails({
             placeholder="Add a tag..."
           />
           <button
+            type="button"
             onClick={handleAddTag}
             disabled={!newTag.trim()}
             className="px-3 py-1.5 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -248,6 +254,7 @@ export default function RemixStepDetails({
           {/* Location Dropdown */}
           {showLocationDropdown && suggestions.length > 0 && (
             <div
+              ref={dropdownRef}
               className="absolute z-50 w-full mt-1 border rounded-lg shadow-lg max-h-60 overflow-auto"
               style={{
                 background: 'rgba(15, 23, 42, 0.95)',

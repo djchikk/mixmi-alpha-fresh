@@ -117,8 +117,8 @@ export default function RemixStepTrim({
     source.connect(audioContext.destination);
 
     source.onended = () => {
-      // Use ref to get current loop state (not stale closure value)
-      if (loop && isLoopingRef.current) {
+      // ONLY check ref - the 'loop' parameter is stale from closure
+      if (isLoopingRef.current) {
         // Schedule next loop iteration
         loopTimeoutRef.current = setTimeout(() => {
           playSelection(true);
@@ -154,7 +154,7 @@ export default function RemixStepTrim({
     animationFrameRef.current = requestAnimationFrame(updatePosition);
   }, [audioBuffer, bpm, trimStartBars, trimEndBars, stopPlayback, getAudioContext, isLooping]);
 
-  // Play a specific block
+  // Play a specific block (with optional looping)
   const playBlock = useCallback((blockNum: number) => {
     stopPlayback();
 
@@ -175,9 +175,16 @@ export default function RemixStepTrim({
     source.connect(audioContext.destination);
 
     source.onended = () => {
-      setPlayingBlock(null);
-      setIsPlaying(false);
-      setPlaybackPosition(0);
+      // Check ref for loop state
+      if (isLoopingRef.current) {
+        loopTimeoutRef.current = setTimeout(() => {
+          playBlock(blockNum);
+        }, 50);
+      } else {
+        setPlayingBlock(null);
+        setIsPlaying(false);
+        setPlaybackPosition(0);
+      }
     };
 
     sourceNodeRef.current = source;
@@ -211,12 +218,17 @@ export default function RemixStepTrim({
     const newLooping = !isLooping;
     setIsLooping(newLooping);
     isLoopingRef.current = newLooping;
-    // If turning OFF while playing, just let current playback finish (won't loop)
-    // If turning ON while playing, restart with looping
-    if (isPlaying && newLooping) {
-      playSelection(true);
+
+    if (isPlaying) {
+      if (!newLooping) {
+        // Turning OFF while playing - stop immediately
+        stopPlayback();
+      } else {
+        // Turning ON while playing - restart with looping
+        playSelection(true);
+      }
     }
-  }, [isPlaying, isLooping, playSelection]);
+  }, [isPlaying, isLooping, playSelection, stopPlayback]);
 
   // Handle play/stop for ALL
   const handlePlayAll = useCallback(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import RemixStepTrim from './RemixStepTrim';
@@ -109,14 +109,19 @@ export default function RemixCompletionModal({
     draftId: string;
   } | null>(null);
 
+  // Track if we've already done initial aggregation (to avoid overwriting user edits)
+  const hasAggregatedRef = useRef(false);
+
   // Ensure we're on client side for portal
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Auto-aggregate tags, notes, locations from source tracks
+  // Auto-aggregate tags, notes, locations from source tracks (ONCE only)
   useEffect(() => {
-    if (loadedTracks.length > 0) {
+    // Only aggregate once on initial load, not on every loadedTracks change
+    if (loadedTracks.length > 0 && !hasAggregatedRef.current) {
+      hasAggregatedRef.current = true;
       // Aggregate tags from all source tracks
       const allTags = new Set<string>();
       loadedTracks.forEach(track => {
@@ -204,6 +209,7 @@ export default function RemixCompletionModal({
     setPaymentData(null);
     setCoverImageUrl(null);
     setTxResult(null);
+    hasAggregatedRef.current = false; // Allow re-aggregation on next open
     onClose();
   }, [isProcessing, onClose]);
 
