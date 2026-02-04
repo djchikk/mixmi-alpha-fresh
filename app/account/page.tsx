@@ -803,12 +803,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
       setAudioElement(audio);
       setPlayingTrackId(track.id);
 
-      // 20-second preview timeout for all tracks (including radio stations)
-      // Only the Radio Widget should play indefinitely
-      setTimeout(() => {
-        audio.pause();
-        setPlayingTrackId(null);
-      }, 20000);
+      // No preview limit on dashboard - users can play their own content in full
     }
   };
 
@@ -821,18 +816,7 @@ function MyUploadsTab({ tracks, onRefresh }: { tracks: Track[]; onRefresh: () =>
     };
   }, [audioElement]);
 
-  // Video playback auto-stop after 20 seconds
-  useEffect(() => {
-    if (isVideoPlaying && videoElement) {
-      const timer = setTimeout(() => {
-        videoElement.pause();
-        setIsVideoPlaying(false);
-        setPlayingTrackId(null);
-      }, 20000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isVideoPlaying, videoElement]);
+  // No video preview limit on dashboard - users can play their own content in full
 
   // Cleanup video on unmount
   useEffect(() => {
@@ -1061,12 +1045,7 @@ function UploadHistoryTab({ tracks, onViewCertificate }: { tracks: Track[]; onVi
       setAudioElement(audio);
       setPlayingTrackId(track.id);
 
-      // 20-second preview timeout for all tracks (including radio stations)
-      // Only the Radio Widget should play indefinitely
-      setTimeout(() => {
-        audio.pause();
-        setPlayingTrackId(null);
-      }, 20000);
+      // No preview limit on dashboard - users can play their own content in full
 
       // Handle track ending (for regular tracks that end naturally)
       audio.onended = () => {
@@ -1251,12 +1230,7 @@ function LibraryTab({ walletAddress }: { walletAddress: string | null }) {
       setAudioElement(audio);
       setPlayingTrackId(track.id);
 
-      // 20-second preview
-      setTimeout(() => {
-        audio.pause();
-        setPlayingTrackId(null);
-      }, 20000);
-
+      // No preview limit on dashboard - users can play their own content in full
       audio.onended = () => setPlayingTrackId(null);
     }
   };
