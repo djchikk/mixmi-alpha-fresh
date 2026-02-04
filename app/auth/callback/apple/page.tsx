@@ -143,6 +143,7 @@ export default function AppleAuthCallbackPage() {
         // Step 9: Store session in sessionStorage
         storeZkLoginSession(
           ephemeralKeyPair,
+          extendedEphemeralPublicKey,  // Was missing - caused all params to shift!
           pending.maxEpoch,
           pending.randomness,
           jwt,
