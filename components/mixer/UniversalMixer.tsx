@@ -283,8 +283,12 @@ export default function UniversalMixer({ className = "", getVideoCanvas, getVide
   // Use pack handler for unpacking loop packs, EPs, and station packs
   const { handlePackDrop: handlePackDropFromHook } = useMixerPackHandler();
 
-  // Count active tracks for recording cost calculation
-  const activeTrackCount = (mixerState.deckA.track ? 1 : 0) + (mixerState.deckB.track ? 1 : 0);
+  // Count active tracks for recording cost calculation (audio + video)
+  const activeTrackCount =
+    (mixerState.deckA.track ? 1 : 0) +
+    (mixerState.deckB.track ? 1 : 0) +
+    (mixerState.videoATrack ? 1 : 0) +
+    (mixerState.videoBTrack ? 1 : 0);
 
   // Use recording hook for capturing mixer output
   const {
@@ -2850,7 +2854,9 @@ export default function UniversalMixer({ className = "", getVideoCanvas, getVide
           costInfo={costInfo}
           loadedTracks={[
             mixerState.deckA.track,
-            mixerState.deckB.track
+            mixerState.deckB.track,
+            mixerState.videoATrack,
+            mixerState.videoBTrack
           ].filter((t): t is IPTrack => t !== null && !!t.id) as IPTrack[]}
           onClose={handleRecordingClose}
           onTrimStartChange={setTrimStart}
