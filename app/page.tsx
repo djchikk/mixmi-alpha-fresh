@@ -155,12 +155,13 @@ export default function HomePage() {
   // Dwell timer for auto-pinning cards on hover
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Ref for VideoMixerLarge to capture video for recording
-  const videoMixerLargeRef = useRef<VideoMixerLargeHandle>(null);
+  // Handle for VideoMixerLarge to capture video for recording
+  // Using state + callback instead of ref because dynamic() imports don't forward refs properly
+  const [videoMixerHandle, setVideoMixerHandle] = useState<VideoMixerLargeHandle | null>(null);
 
-  // Getter callbacks for video recording - memoized to prevent unnecessary re-renders
-  const getVideoCanvas = useCallback(() => videoMixerLargeRef.current?.getCanvas() ?? null, []);
-  const getVideoElements = useCallback(() => videoMixerLargeRef.current?.getVideoElements() ?? { videoA: null, videoB: null }, []);
+  // Getter callbacks for video recording - use the handle from state
+  const getVideoCanvas = useCallback(() => videoMixerHandle?.getCanvas() ?? null, [videoMixerHandle]);
+  const getVideoElements = useCallback(() => videoMixerHandle?.getVideoElements() ?? { videoA: null, videoB: null }, [videoMixerHandle]);
 
   // Widget visibility state - persisted in localStorage
   const [isMixerVisible, setIsMixerVisible] = useState(true); // Default
@@ -2130,7 +2131,7 @@ export default function HomePage() {
       {/* Shows when: mixer visible, videos loaded, AND not collapsed (collapsed = hidden, use sidebar icon to show) */}
       {isMixerVisible && mixerState && (mixerState.videoATrack || mixerState.videoBTrack) && !isVideoViewerCollapsed && (
         <VideoMixerLarge
-          ref={videoMixerLargeRef}
+          onHandleReady={setVideoMixerHandle}
           videoATrack={mixerState.videoATrack}
           videoBTrack={mixerState.videoBTrack}
           videoAVolume={mixerState.videoAVolume || 100}

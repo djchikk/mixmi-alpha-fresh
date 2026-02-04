@@ -13,6 +13,8 @@ interface VideoMixerLargeProps {
   // Video tracks
   videoATrack: Track | null
   videoBTrack: Track | null
+  // Callback to expose handle for video recording (workaround for dynamic import ref issues)
+  onHandleReady?: (handle: VideoMixerLargeHandle | null) => void
   // Video volumes (0-100)
   videoAVolume: number
   videoBVolume: number
@@ -195,18 +197,30 @@ const VideoMixerLarge = memo(forwardRef<VideoMixerLargeHandle, VideoMixerLargePr
   position,
   onPositionChange,
   onClearVideoA,
-  onClearVideoB
+  onClearVideoB,
+  onHandleReady
 }: VideoMixerLargeProps, ref) {
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const webglDisplayRef = useRef<WebGLVideoDisplayHandle>(null)
 
-  // Expose WebGLVideoDisplay handle for video recording
-  useImperativeHandle(ref, () => ({
+  // Create the handle object
+  const handle: VideoMixerLargeHandle = {
     getCanvas: () => webglDisplayRef.current?.getCanvas() ?? null,
     getVideoElements: () => webglDisplayRef.current?.getVideoElements() ?? { videoA: null, videoB: null }
-  }), [])
+  }
+
+  // Expose WebGLVideoDisplay handle for video recording (via ref)
+  useImperativeHandle(ref, () => handle, [])
+
+  // Also expose via callback prop (workaround for dynamic import ref issues)
+  useEffect(() => {
+    if (onHandleReady) {
+      onHandleReady(handle)
+      return () => onHandleReady(null)
+    }
+  }, [onHandleReady])
 
   const hasVideoA = Boolean(videoATrack?.content_type === 'video_clip')
   const hasVideoB = Boolean(videoBTrack?.content_type === 'video_clip')
