@@ -23,12 +23,19 @@ const STEPS = [
 
 type StepId = typeof STEPS[number]['id'];
 
+// Location with coordinates
+export interface RemixLocation {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
 // Remix details form state
 export interface RemixDetails {
   name: string;
   tags: string[];
   notes: string;
-  locations: string[];
+  locations: RemixLocation[];
 }
 
 // Payment recipient info (from prepare-payment API)
@@ -125,14 +132,28 @@ export default function RemixCompletionModal({
         .filter(track => track.notes)
         .map(track => `[${track.title}]: ${track.notes}`);
 
-      // Aggregate locations
-      const allLocations = new Set<string>();
+      // Aggregate locations with coordinates
+      const locationMap = new Map<string, RemixLocation>();
       loadedTracks.forEach(track => {
-        if (track.primary_location) {
-          allLocations.add(track.primary_location);
+        // Add from locations array (has full coordinates)
+        if (track.locations && Array.isArray(track.locations)) {
+          track.locations.forEach(loc => {
+            if (loc.name && !locationMap.has(loc.name)) {
+              locationMap.set(loc.name, {
+                name: loc.name,
+                lat: loc.lat || 0,
+                lng: loc.lng || 0,
+              });
+            }
+          });
         }
-        if (track.locations) {
-          track.locations.forEach(loc => allLocations.add(loc.name));
+        // Add primary_location if it has coordinates
+        if (track.primary_location && !locationMap.has(track.primary_location)) {
+          locationMap.set(track.primary_location, {
+            name: track.primary_location,
+            lat: track.location_lat || 0,
+            lng: track.location_lng || 0,
+          });
         }
       });
 
@@ -140,7 +161,7 @@ export default function RemixCompletionModal({
         ...prev,
         tags: Array.from(allTags),
         notes: notesArray.join('\n\n'),
-        locations: Array.from(allLocations),
+        locations: Array.from(locationMap.values()),
       }));
     }
   }, [loadedTracks]);
