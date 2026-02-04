@@ -1532,13 +1532,13 @@ export class MixerAudioEngine {
           delayNode.connect(feedbackGain);
           feedbackGain.connect(delayNode);
 
-          // Connect signal paths
+          // Connect signal paths - route through analyzerNode to maintain mixer chain
           state.gainNode.connect(dryGain);
           state.gainNode.connect(delayNode);
           delayNode.connect(wetGain);
 
-          dryGain.connect(audioContext.destination);
-          wetGain.connect(audioContext.destination);
+          dryGain.connect(state.analyzerNode);
+          wetGain.connect(state.analyzerNode);
 
           console.log(`🎛️ Deck ${deckId} Echo Out active - release button to stop`);
 
@@ -1564,8 +1564,8 @@ export class MixerAudioEngine {
                 wetGain.disconnect();
                 dryGain.disconnect();
 
-                // Reconnect gain node
-                state.gainNode.connect(audioContext.destination);
+                // Reconnect gain node through proper chain
+                state.gainNode.connect(state.analyzerNode);
 
                 console.log(`✅ Deck ${deckId} Echo Out stopped and cleaned up`);
               } catch (e) {
@@ -1598,13 +1598,13 @@ export class MixerAudioEngine {
           // Disconnect and rebuild signal chain
           state.gainNode.disconnect();
 
-          // Connect paths
+          // Connect paths - route through analyzerNode to maintain mixer chain
           state.gainNode.connect(dryGain);
           state.gainNode.connect(sweepFilter);
           sweepFilter.connect(wetGain);
 
-          dryGain.connect(audioContext.destination);
-          wetGain.connect(audioContext.destination);
+          dryGain.connect(state.analyzerNode);
+          wetGain.connect(state.analyzerNode);
 
           // Animate the sweep down continuously
           const sweepDown = () => {
@@ -1641,8 +1641,8 @@ export class MixerAudioEngine {
                 dryGain.disconnect();
                 wetGain.disconnect();
 
-                // Reconnect gain node
-                state.gainNode.connect(audioContext.destination);
+                // Reconnect gain node through proper chain
+                state.gainNode.connect(state.analyzerNode);
 
                 console.log(`✅ Deck ${deckId} Filter Sweep stopped and cleaned up`);
               } catch (e) {
@@ -1688,13 +1688,13 @@ export class MixerAudioEngine {
           lfo.connect(lfoGain);
           lfoGain.connect(delayNode.delayTime);
 
-          // Connect signal chain: gainNode -> [dry path + wet path] -> destination
+          // Connect signal chain: gainNode -> [dry path + wet path] -> analyzerNode (maintains mixer chain)
           state.gainNode.connect(dryGain);
           state.gainNode.connect(delayNode);
           delayNode.connect(wetGain);
 
-          dryGain.connect(audioContext.destination);
-          wetGain.connect(audioContext.destination);
+          dryGain.connect(state.analyzerNode);
+          wetGain.connect(state.analyzerNode);
 
           // Start LFO
           lfo.start(now);
@@ -1722,8 +1722,8 @@ export class MixerAudioEngine {
                 wetGain.disconnect();
                 dryGain.disconnect();
 
-                // Reconnect gain node to destination
-                state.gainNode.connect(audioContext.destination);
+                // Reconnect gain node through proper chain
+                state.gainNode.connect(state.analyzerNode);
 
                 console.log(`✅ Deck ${deckId} Flanger stopped and cleaned up`);
               } catch (e) {
@@ -1748,10 +1748,10 @@ export class MixerAudioEngine {
           const gateGain = audioContext.createGain();
           gateGain.gain.value = 1.0;
 
-          // Insert gate into signal chain
+          // Insert gate into signal chain - route through analyzerNode to maintain mixer chain
           state.gainNode.disconnect();
           state.gainNode.connect(gateGain);
-          gateGain.connect(audioContext.destination);
+          gateGain.connect(state.analyzerNode);
 
           // Schedule repeating gate pattern
           let isRunning = true;
@@ -1800,7 +1800,7 @@ export class MixerAudioEngine {
               try {
                 gateGain.disconnect();
                 state.gainNode.disconnect();
-                state.gainNode.connect(audioContext.destination);
+                state.gainNode.connect(state.analyzerNode);
                 console.log(`✅ Deck ${deckId} Gate stopped - signal chain restored`);
               } catch (e) {
                 console.warn('Gate cleanup error:', e);
