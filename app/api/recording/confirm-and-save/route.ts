@@ -51,6 +51,11 @@ export async function POST(request: NextRequest) {
       audioUrl: audioUrl?.slice(0, 50) + '...',
       bpm,
       bars,
+      creatorSuiAddress: creatorSuiAddress?.slice(0, 20) + '...',
+      creatorWallet: creatorWallet?.slice(0, 20) + '...',
+      isDraft,
+      tags,
+      locations,
     });
 
     // Validate required fields

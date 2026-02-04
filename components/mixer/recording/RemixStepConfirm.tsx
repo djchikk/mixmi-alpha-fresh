@@ -284,6 +284,14 @@ export default function RemixStepConfirm({
       setStatusMessage('Publishing your remix...');
       const bars = trimState.endBars - trimState.startBars;
 
+      console.log('🎵 [Remix] Saving with:', {
+        creatorWallet: activePersona?.wallet_address || '',
+        creatorSuiAddress: activePersona?.sui_address || suiAddress,
+        isDraft: false,
+        tags: remixDetails.tags,
+        locations: remixDetails.locations,
+      });
+
       const saveResponse = await fetch('/api/recording/confirm-and-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
