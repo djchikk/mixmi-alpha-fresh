@@ -526,18 +526,27 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     const { audioBuffer, bpm } = recordingData;
     const startSeconds = barsToSeconds(trimState.startBars, bpm);
     const endSeconds = barsToSeconds(trimState.endBars, bpm);
-    const trimDuration = endSeconds - startSeconds;
 
-    // Create a new buffer with just the trimmed portion
-    const audioContext = getAudioContext();
-    if (!audioContext) return null;
+    // IMPORTANT: Clamp end to actual audio duration to avoid reading past buffer
+    const actualDuration = audioBuffer.duration;
+    const clampedEndSeconds = Math.min(endSeconds, actualDuration);
+    const clampedStartSeconds = Math.min(startSeconds, clampedEndSeconds);
 
+    console.log(`🎵 Trimming: ${clampedStartSeconds.toFixed(2)}s - ${clampedEndSeconds.toFixed(2)}s (actual duration: ${actualDuration.toFixed(2)}s)`);
+
+    // IMPORTANT: Create a fresh AudioContext at the audioBuffer's sample rate
+    // Using the mixer's AudioContext (44100Hz) to create a buffer at 48000Hz causes issues
     const sampleRate = audioBuffer.sampleRate;
-    const startSample = Math.floor(startSeconds * sampleRate);
-    const endSample = Math.floor(endSeconds * sampleRate);
-    const trimmedLength = endSample - startSample;
+    const trimContext = new AudioContext({ sampleRate });
+    console.log(`🎵 Created trim AudioContext at ${trimContext.sampleRate}Hz to match recording`);
 
-    const trimmedBuffer = audioContext.createBuffer(
+    const startSample = Math.floor(clampedStartSeconds * sampleRate);
+    const endSample = Math.floor(clampedEndSeconds * sampleRate);
+    const trimmedLength = Math.max(1, endSample - startSample); // At least 1 sample
+
+    console.log(`🎵 Trimming samples: ${startSample} - ${endSample} (${trimmedLength} samples)`);
+
+    const trimmedBuffer = trimContext.createBuffer(
       audioBuffer.numberOfChannels,
       trimmedLength,
       sampleRate
@@ -547,12 +556,18 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       const sourceData = audioBuffer.getChannelData(channel);
       const destData = trimmedBuffer.getChannelData(channel);
       for (let i = 0; i < trimmedLength; i++) {
-        destData[i] = sourceData[startSample + i];
+        // Safely access source data with bounds checking
+        const sourceIndex = startSample + i;
+        destData[i] = sourceIndex < sourceData.length ? sourceData[sourceIndex] : 0;
       }
     }
 
+    // Close the temporary context
+    trimContext.close();
+
     // Convert to WAV
     const wavBlob = await audioBufferToWav(trimmedBuffer);
+    console.log(`🎵 Created WAV blob: ${(wavBlob.size / 1024).toFixed(1)} KB`);
     return wavBlob;
   }, [recordingData, trimState]);
 
