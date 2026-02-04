@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
       creatorWallet,
       creatorSuiAddress,
       sourceTracksMetadata = [],
+      // New fields from multi-step flow
+      tags = ['remix'],
+      notes = '',
+      locations = [],
+      coverImageUrl = null,
+      isDraft = false, // Now defaults to published!
     } = body;
 
     console.log('📁 [confirm-and-save] Request:', {
@@ -108,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Extract source track IDs
     const sourceTrackIds = sourceTracksMetadata.map((t: SourceTrackMetadata) => t.id);
 
-    // Create draft track record
+    // Create track record (now directly published, not draft!)
     // If video URL is present, this is a video recording
     const hasVideo = !!videoUrl;
     const trackId = randomUUID();
@@ -122,8 +128,9 @@ export async function POST(request: NextRequest) {
         bpm,
         audio_url: audioUrl,
         video_url: videoUrl, // Will be null if no video
+        cover_image_url: coverImageUrl, // Shimmery composite for audio, null for video
         sample_type: 'recording',
-        is_draft: true,
+        is_draft: isDraft, // Now respects the flag (defaults to false = published)
         remix_depth: remixDepth,
         source_track_ids: sourceTrackIds,
         source_tracks_metadata: sourceTracksMetadata,
@@ -141,8 +148,11 @@ export async function POST(request: NextRequest) {
         production_split_1_wallet: creatorSuiAddress || creatorWallet,
         production_split_1_percentage: 100,
         production_split_1_sui_address: creatorSuiAddress,
-        // Add remix tag
-        tags: ['remix'],
+        // Use tags from the remix flow
+        tags: tags,
+        notes: notes || null,
+        // TODO: Handle multiple locations - for now use first one as primary
+        primary_location: locations.length > 0 ? locations[0] : null,
         primary_uploader_wallet: creatorSuiAddress || creatorWallet,
       })
       .select()

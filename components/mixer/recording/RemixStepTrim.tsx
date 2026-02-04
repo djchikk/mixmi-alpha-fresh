@@ -52,6 +52,7 @@ export default function RemixStepTrim({
   const startTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
   const loopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoopingRef = useRef(false); // Ref to track current loop state for callbacks
 
   const barsPerBlock = PRICING.remix.barsPerBlock;
   const selectedBars = trimEndBars - trimStartBars;
@@ -116,7 +117,8 @@ export default function RemixStepTrim({
     source.connect(audioContext.destination);
 
     source.onended = () => {
-      if (loop && isLooping) {
+      // Use ref to get current loop state (not stale closure value)
+      if (loop && isLoopingRef.current) {
         // Schedule next loop iteration
         loopTimeoutRef.current = setTimeout(() => {
           playSelection(true);
@@ -206,9 +208,12 @@ export default function RemixStepTrim({
 
   // Toggle loop mode
   const toggleLoop = useCallback(() => {
-    setIsLooping(prev => !prev);
-    if (isPlaying && !isLooping) {
-      // If we're playing and turning loop ON, restart with looping
+    const newLooping = !isLooping;
+    setIsLooping(newLooping);
+    isLoopingRef.current = newLooping;
+    // If turning OFF while playing, just let current playback finish (won't loop)
+    // If turning ON while playing, restart with looping
+    if (isPlaying && newLooping) {
       playSelection(true);
     }
   }, [isPlaying, isLooping, playSelection]);
@@ -218,6 +223,7 @@ export default function RemixStepTrim({
     if (playingBlock === 'all') {
       stopPlayback();
     } else {
+      isLoopingRef.current = isLooping; // Sync ref before playing
       playSelection(isLooping);
     }
   }, [playingBlock, isLooping, playSelection, stopPlayback]);

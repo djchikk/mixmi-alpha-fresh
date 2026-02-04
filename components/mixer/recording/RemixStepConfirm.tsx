@@ -314,6 +314,8 @@ export default function RemixStepConfirm({
       }
 
       // Success!
+      setIsProcessing(false);
+      setStatusMessage(null);
       onSuccess(executeData.txHash, saveData.draft.id);
 
     } catch (err) {
