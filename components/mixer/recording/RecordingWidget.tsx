@@ -188,9 +188,21 @@ export default function RecordingWidget({
       const { signature: ephemeralSignature } = await keypair.signTransaction(txBytesArray);
 
       // Decode JWT for address seed (JWT uses base64url encoding)
+      console.log('🎵 [Recording] JWT check:', {
+        hasJwt: !!zkSession.jwt,
+        jwtType: typeof zkSession.jwt,
+        jwtLength: zkSession.jwt?.length,
+        jwtParts: zkSession.jwt?.split('.').length,
+        jwtPreview: zkSession.jwt?.substring(0, 50) + '...'
+      });
+
+      if (!zkSession.jwt || typeof zkSession.jwt !== 'string') {
+        throw new Error('JWT is missing from session');
+      }
+
       const [, payload] = zkSession.jwt.split('.');
       if (!payload) {
-        throw new Error('Invalid JWT format');
+        throw new Error('Invalid JWT format - missing payload');
       }
 
       let jwtPayload: any;
