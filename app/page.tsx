@@ -156,12 +156,24 @@ export default function HomePage() {
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle for VideoMixerLarge to capture video for recording
-  // Using state + callback instead of ref because dynamic() imports don't forward refs properly
-  const [videoMixerHandle, setVideoMixerHandle] = useState<VideoMixerLargeHandle | null>(null);
+  // Using ref + callback instead of state to avoid stale closure issues
+  const videoMixerHandleRef = useRef<VideoMixerLargeHandle | null>(null);
 
-  // Getter callbacks for video recording - use the handle from state
-  const getVideoCanvas = useCallback(() => videoMixerHandle?.getCanvas() ?? null, [videoMixerHandle]);
-  const getVideoElements = useCallback(() => videoMixerHandle?.getVideoElements() ?? { videoA: null, videoB: null }, [videoMixerHandle]);
+  // Callback for VideoMixerLarge to set the handle
+  const handleVideoMixerReady = useCallback((handle: VideoMixerLargeHandle | null) => {
+    console.log('🎬 VideoMixerLarge handle ready:', handle ? 'set' : 'null');
+    videoMixerHandleRef.current = handle;
+  }, []);
+
+  // Getter callbacks for video recording - use the ref to always get current value
+  const getVideoCanvas = useCallback(() => {
+    const canvas = videoMixerHandleRef.current?.getCanvas() ?? null;
+    console.log('🎬 getVideoCanvas called, result:', canvas ? 'canvas found' : 'null');
+    return canvas;
+  }, []);
+  const getVideoElements = useCallback(() => {
+    return videoMixerHandleRef.current?.getVideoElements() ?? { videoA: null, videoB: null };
+  }, []);
 
   // Widget visibility state - persisted in localStorage
   const [isMixerVisible, setIsMixerVisible] = useState(true); // Default
@@ -2131,7 +2143,7 @@ export default function HomePage() {
       {/* Shows when: mixer visible, videos loaded, AND not collapsed (collapsed = hidden, use sidebar icon to show) */}
       {isMixerVisible && mixerState && (mixerState.videoATrack || mixerState.videoBTrack) && !isVideoViewerCollapsed && (
         <VideoMixerLarge
-          onHandleReady={setVideoMixerHandle}
+          onHandleReady={handleVideoMixerReady}
           videoATrack={mixerState.videoATrack}
           videoBTrack={mixerState.videoBTrack}
           videoAVolume={mixerState.videoAVolume || 100}

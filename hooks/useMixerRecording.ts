@@ -229,6 +229,14 @@ export function useMixerRecording(optionsOrTrackCount: MixerRecordingOptions | n
       const hasVideoCanvas = !!videoCanvas;
       isVideoRecordingRef.current = hasVideoCanvas;
 
+      // Debug logging for video recording
+      console.log('🎬 Video recording check:', {
+        hasGetVideoCanvas: !!getVideoCanvas,
+        videoCanvas: videoCanvas,
+        hasVideoCanvas,
+        videoElements: videoElements ? { hasA: !!videoElements.videoA, hasB: !!videoElements.videoB } : null
+      });
+
       // Route video element audio through AudioContext (if video has audio and is unmuted)
       if (hasVideoCanvas && videoElements) {
         const { videoA, videoB } = videoElements;
