@@ -1,7 +1,10 @@
 # Recording System Documentation
 
 **Created:** February 2, 2026
-**Status:** Core functionality working, UX polish needed
+**Last Updated:** February 3, 2026
+**Status:** Core functionality working, extensive fixes applied
+
+---
 
 ## Overview
 
@@ -21,7 +24,7 @@ The Recording System allows users to capture crossfaded audio from the Universal
 │  │                                           │              │    │
 │  │                    MediaStreamDestination ◄┘              │    │
 │  │                           │                              │    │
-│  │                    MediaRecorder                         │    │
+│  │                    MediaRecorder (48kHz)                 │    │
 │  │                           │                              │    │
 │  │                      Audio Blob                          │    │
 │  └─────────────────────────────────────────────────────────┘    │
@@ -44,59 +47,233 @@ The Recording System allows users to capture crossfaded audio from the Universal
 │  └─────────────────────────────────────────────────────────┘    │
 │  [Cancel]                              [Confirm & Pay $X.XX]     │
 └─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Payment Flow                                                    │
-│  1. Prepare payment → Get recipients from IP splits              │
-│  2. Build SUI transaction → Split payment to all recipients      │
-│  3. zkLogin sign → User approves                                 │
-│  4. Execute on-chain → USDC transfers                            │
-│  5. Upload audio → Direct to Supabase Storage                    │
-│  6. Create draft → ip_tracks with is_draft: true                 │
-└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Recording Flow
+## Recording Flow (Updated February 3, 2026)
 
-### 1. Armed Recording State
-
-When user presses Record button:
+### State Machine
 
 ```
-Idle → Armed (500ms visual) → Count-in (1-2-3-4) → Recording
+Idle → PreCountdown (4-3-2-1) → Armed → Rehearsal (1 full loop) → Recording → Stopped
 ```
 
 **States in `useMixerRecording`:**
-- `idle` - Not recording
-- `armed` - Waiting to start (shows "ARM" on button)
-- `countingIn` - 4-beat count-in (shows beat number)
-- `recording` - Actually capturing audio
-- `stopped` - Recording complete, ready for trim
 
-### 2. Audio Capture
+| State | Description | Visual Feedback |
+|-------|-------------|-----------------|
+| `idle` | Not recording | Default button |
+| `preCountdown` | 4-3-2-1 countdown before arming | Button shows countdown number (cyan) |
+| `armed` | Waiting for loop restart | Button shows "ARM" |
+| `rehearsal` | Sync stabilization cycle | Button shows "SYNC" (amber) |
+| `recording` | Actually capturing audio | Button pulses red |
+| `stopped` | Recording complete | Modal appears |
 
-The recording hook (`hooks/useMixerRecording.ts`) captures audio by:
+### Detailed Flow
 
-1. Creating a `MediaStreamAudioDestinationNode`
-2. Connecting it to the mixer's `masterGain` node (post-crossfader)
-3. Using `MediaRecorder` to capture the stream
-4. Converting the result to an `AudioBuffer` for waveform display
+1. **User presses Record button**
+2. **Sync Reset** (ref-based, avoids bundler issues):
+   - If sync active with both decks loaded, recreate sync engine
+   - Resets both decks to original BPM
+   - Creates fresh SimpleLoopSync with same master
+3. **Pre-Countdown** (4-3-2-1):
+   - Timed to BPM
+   - Gives user visual/audio preparation time
+   - Button shows "4", "3", "2", "1"
+4. **Armed State**:
+   - Auto-starts playback if not playing
+   - Registers for `window.onMixerRecordingLoopRestart` callback
+   - Waits for first loop restart (bar 1)
+5. **Rehearsal Cycle**:
+   - Full loop plays through (sync stabilization)
+   - Ensures decks are properly synced before recording
+   - On next loop restart → start recording
+6. **Recording**:
+   - MediaRecorder captures at browser default sample rate (usually 48000Hz)
+   - Starts precisely at bar 1
+   - Captures until user presses Record again
+7. **Stopped**:
+   - Recording modal appears
+   - User trims to 8-bar blocks
+   - Confirms and pays
+
+### Sync Reset Implementation (Critical)
+
+The sync reset uses a **ref-based approach** to avoid bundler initialization errors:
 
 ```typescript
-const streamDestination = audioContext.createMediaStreamDestination();
-masterGain.connect(streamDestination);
-const mediaRecorder = new MediaRecorder(streamDestination.stream);
+// In UniversalMixer.tsx
+
+// Ref stores the sync reset function
+const resetSyncForRecordingRef = React.useRef<() => void>(() => {});
+
+// useEffect updates the ref whenever state changes
+useEffect(() => {
+  resetSyncForRecordingRef.current = () => {
+    if (!mixerState.syncActive || !bothDecksLoaded) return;
+
+    // Stop old sync engine
+    syncEngineRef.current?.stop();
+
+    // Reset BPMs to original
+    deckA.audioControls.setBPM(deckA.track.bpm);
+    deckB.audioControls.setBPM(deckB.track.bpm);
+
+    // Recreate sync engine
+    syncEngineRef.current = new SimpleLoopSync(...);
+    syncEngineRef.current.enableSync();
+  };
+}, [mixerState]);
+
+// In handleRecordToggle - just call the ref
+resetSyncForRecordingRef.current();
 ```
 
-### 3. Waveform & Trim
+**Why ref-based?** Adding the sync reset logic directly to `handleRecordToggle` caused "Cannot access 'tw' before initialization" bundler errors due to circular dependencies in useCallback chains.
 
-After recording stops:
-- Waveform is generated (800 data points)
-- Initial trim is set to full recording, snapped to 8-bar boundaries
-- User can drag handles or use nudge buttons to adjust
+---
+
+## Sample Rate Handling (Critical Fix - February 3, 2026)
+
+### The Problem
+
+- **Mixer AudioContext:** 44100Hz (Web Audio default)
+- **MediaRecorder:** Captures at browser's default (typically 48000Hz)
+- **Mismatch causes:** Recordings play at wrong speed (half speed if 48kHz interpreted as 44.1kHz)
+
+### The Solution
+
+**1. Decoding recorded audio:**
+```typescript
+// In useMixerRecording.ts - stopRecording()
+
+// WRONG: Using mixer's context
+const audioContext = getAudioContext(); // 44100Hz - CAUSES HALF SPEED!
+
+// CORRECT: Fresh context at browser default
+const decodeContext = new AudioContext(); // Browser default (48000Hz)
+const audioBuffer = await decodeContext.decodeAudioData(arrayBuffer);
+decodeContext.close();
+```
+
+**2. Trimming audio for save:**
+```typescript
+// In useMixerRecording.ts - getAudioForTrim()
+
+// WRONG: Using mixer's context
+const trimmedBuffer = getAudioContext().createBuffer(...); // 44100Hz - WRONG!
+
+// CORRECT: Fresh context at recording's sample rate
+const trimContext = new AudioContext({ sampleRate: audioBuffer.sampleRate });
+const trimmedBuffer = trimContext.createBuffer(...);
+trimContext.close();
+```
+
+### Key Principle
+
+Always use a **fresh AudioContext** at the **appropriate sample rate**:
+- For decoding: Browser default (no sample rate specified)
+- For trimming: Match the audioBuffer's sample rate
+- Close the context after use to free resources
+
+---
+
+## Audio FX Routing (Critical Fix - February 3, 2026)
+
+### The Problem
+
+Instant FX (Echo Out, Filter Sweep, Flanger, Gate) were connecting directly to `audioContext.destination`, bypassing the mixer chain entirely.
+
+### Correct Audio Chain
+
+```
+source → loCutNode → hiCutNode → gainNode → analyzerNode → masterGain → crossfader → destination
+```
+
+### Fix Applied
+
+All FX now route through `state.analyzerNode`:
+
+```typescript
+// WRONG - bypasses mixer
+dryGain.connect(audioContext.destination);
+wetGain.connect(audioContext.destination);
+
+// CORRECT - maintains mixer chain
+dryGain.connect(state.analyzerNode);
+wetGain.connect(state.analyzerNode);
+
+// Cleanup also corrected
+state.gainNode.connect(state.analyzerNode); // Not audioContext.destination
+```
+
+### Affected Effects
+
+- `triggerEchoOut` - Echo with feedback
+- `triggerFilterSweep` - Sweeping low-pass filter
+- `triggerReverb` (Flanger) - Modulated delay
+- `triggerGate` - 16th note stutter
+
+---
+
+## Waveform Gradient Fix (February 3, 2026)
+
+### The Problem
+
+`RecordingWaveform.tsx` gradient color stops could exceed valid range [0, 1] when trim end equaled or exceeded total bars.
+
+### The Fix
+
+```typescript
+// WRONG - can exceed 1.0
+gradient.addColorStop(trimEndX / canvasWidth, '#64748b');
+
+// CORRECT - clamped to valid range
+const endStop = Math.max(0, Math.min(1, trimEndX / canvasWidth));
+gradient.addColorStop(endStop, '#64748b');
+```
+
+---
+
+## Dashboard Preview Limit (February 3, 2026)
+
+**Change:** Removed 20-second preview timeout from `app/account/page.tsx`
+
+Users can now play their own content in full on the dashboard (My Work tab). The preview limit remains on other pages (store, globe) for non-purchased content.
+
+---
+
+## File Structure
+
+### Core Recording Files
+
+```
+hooks/
+  useMixerRecording.ts         # Recording state machine & audio capture
+
+components/mixer/recording/
+  RecordingWidget.tsx          # Main modal with payment flow
+  RecordingWaveform.tsx        # Canvas waveform with drag handles
+  TrimControls.tsx             # Nudge buttons
+  BlockAudition.tsx            # Per-block preview
+  CostDisplay.tsx              # Pricing breakdown
+
+lib/recording/
+  paymentCalculation.ts        # Pricing utilities
+
+lib/mixerAudio.ts              # Audio routing, FX implementations
+```
+
+### API Endpoints
+
+```
+app/api/recording/
+  calculate-cost/route.ts      # Cost estimation
+  prepare-payment/route.ts     # Build payment recipients
+  get-upload-url/route.ts      # Signed URL for direct upload
+  confirm-and-save/route.ts    # Create draft track
+```
 
 ---
 
@@ -120,240 +297,112 @@ Example: 24 bars with 2 tracks
 | Gen 0 Creators | 80% | Yes (split by IP ratios) |
 | Remixer Stake | 15% | No (stored in metadata) |
 
-### IP Split Resolution
-
-For each source track, the API:
-1. Fetches composition and production split data
-2. Resolves SUI addresses for each recipient
-3. Calculates their share of the 80% creators cut
-4. Builds a multi-recipient payment transaction
-
----
-
-## File Structure
-
-### New Files Created
-
-```
-hooks/
-  useMixerRecording.ts         # Recording state machine
-
-components/mixer/recording/
-  RecordingWidget.tsx          # Main modal (uses React Portal)
-  RecordingWaveform.tsx        # Canvas waveform with drag handles
-  TrimControls.tsx             # Nudge buttons
-  BlockAudition.tsx            # Per-block preview
-  CostDisplay.tsx              # Pricing breakdown
-
-lib/recording/
-  paymentCalculation.ts        # Pricing utilities
-
-app/api/recording/
-  calculate-cost/route.ts      # Cost estimation
-  prepare-payment/route.ts     # Build payment recipients
-  get-upload-url/route.ts      # Signed URL for direct upload
-  confirm-and-save/route.ts    # Create draft track
-```
-
-### Modified Files
-
-```
-components/mixer/UniversalMixer.tsx
-  - Added useMixerRecording hook
-  - Added RecordingWidget rendering
-  - Wired handleRecordToggle
-
-components/mixer/compact/MasterTransportControlsCompact.tsx
-  - Added record button with armed/count-in states
-  - Visual feedback for recording states
-
-config/pricing.ts
-  - Added PRICING.remix section
-
-types/index.ts
-  - Added SourceTrackMetadata interface
-```
-
----
-
-## Database Schema
-
-### New Columns on `ip_tracks`
-
-```sql
-remixer_stake_percentage DECIMAL(5,2)  -- 15% for remixes
-source_tracks_metadata JSONB           -- Genealogy info
-source_track_ids UUID[]                -- Parent track IDs
-recording_cost_usdc DECIMAL(10,6)      -- Cost paid
-recording_payment_tx TEXT              -- SUI tx hash
-recording_payment_status TEXT          -- pending/confirmed
-recorded_bars INTEGER                  -- Number of bars
-remix_depth INTEGER                    -- Generation (1 for first remix)
-```
-
-### New Tables
-
-```sql
-recording_payments
-  - id, payer info, cost breakdown, tx details
-  - Links to draft_track_id after save
-
-recording_payment_recipients
-  - Per-recipient payment records
-  - Tracks who got paid how much
-```
-
----
-
-## API Endpoints
-
-### POST /api/recording/calculate-cost
-Calculate cost before recording.
-
-**Request:**
-```json
-{ "bars": 24, "trackCount": 2 }
-```
-
-**Response:**
-```json
-{
-  "calculation": {
-    "bars": 24,
-    "blocks": 3,
-    "totalCost": 0.60,
-    "split": { "platform": 0.03, "creators": 0.48, "remixerStake": 0.09 }
-  }
-}
-```
-
-### POST /api/recording/prepare-payment
-Prepare payment with recipient list.
-
-**Request:**
-```json
-{
-  "bars": 24,
-  "sourceTrackIds": ["uuid1", "uuid2"],
-  "payerSuiAddress": "0x...",
-  "payerPersonaId": "uuid"
-}
-```
-
-**Response:**
-```json
-{
-  "payment": {
-    "id": "payment-uuid",
-    "totalCost": 0.60,
-    "recipients": [
-      { "sui_address": "0x...", "amount": 0.03, "payment_type": "platform" },
-      { "sui_address": "0x...", "amount": 0.24, "payment_type": "composition" }
-    ],
-    "sourceTracksMetadata": [...]
-  }
-}
-```
-
-### POST /api/recording/get-upload-url
-Get signed URL for direct Supabase upload (bypasses Vercel's 4.5MB limit).
-
-**Request:**
-```json
-{ "paymentId": "uuid", "walletAddress": "0x..." }
-```
-
-**Response:**
-```json
-{
-  "uploadUrl": "https://...signed-url...",
-  "publicUrl": "https://...public-url...",
-  "storagePath": "audio/recordings/filename.wav"
-}
-```
-
-### POST /api/recording/confirm-and-save
-Create draft track after payment confirmed.
-
-**Request:**
-```json
-{
-  "paymentId": "uuid",
-  "txHash": "...",
-  "audioUrl": "https://...",
-  "title": "Recording 2/2/2026",
-  "bpm": 120,
-  "bars": 24,
-  "creatorSuiAddress": "0x...",
-  "sourceTracksMetadata": [...]
-}
-```
-
-**Response:**
-```json
-{
-  "draft": {
-    "id": "track-uuid",
-    "title": "...",
-    "audioUrl": "...",
-    "remixDepth": 1
-  }
-}
-```
-
 ---
 
 ## Known Issues & Future Work
 
-### Recording Issues
-- [ ] Loops sometimes fall out of sync - need to play a few cycles before recording
-- [ ] Armed flow simplified - originally waited for full cycle, now starts immediately
-- [ ] Count-in timing may need adjustment based on BPM
+### Resolved (February 3, 2026)
 
-### Trim UI Issues
-- [ ] Drag handles are clunky - hard to select exact 8-bar section
-- [ ] Could add click-to-set-position on waveform
-- [ ] Nudge controls work but UX could be smoother
+- [x] First recording sync failure - Fixed with ref-based sync reset
+- [x] Half-speed playback in modal - Fixed with proper sample rate handling
+- [x] Half-speed saved drafts - Fixed with matching AudioContext sample rate
+- [x] Audio FX cut out deck - Fixed by routing through analyzerNode
+- [x] Waveform gradient crash - Fixed with clamped color stops
+- [x] Dashboard 20-second limit - Removed for user's own content
+
+### Outstanding Issues
+
+- [ ] Draft deletion fails with "failed to delete track" error
+- [ ] Draft saving may intermittently fail (needs investigation)
+- [ ] Trim handles can be clunky - hard to select exact 8-bar section
 
 ### Future Enhancements
-- [ ] Video recording support (capture video along with audio)
+
+- [ ] Video recording support
 - [ ] TING token minting for AI-generated visuals
 - [ ] Automatic remix cover image generator
-- [ ] Wallet activity/transaction history view
-- [ ] Better sync management before recording
+- [ ] Better trim UX (click-to-set, smarter snapping)
 
 ---
 
 ## Testing Checklist
 
-1. **Recording Capture**
-   - [ ] Load two tracks in mixer
-   - [ ] Play and sync them
-   - [ ] Press Record → ARM appears
-   - [ ] Count-in (1-2-3-4) happens
-   - [ ] Recording indicator active
-   - [ ] Press Record again to stop
+### Recording Capture
 
-2. **Trim Modal**
-   - [ ] Modal appears centered (uses React Portal)
-   - [ ] Waveform displays with 8-bar grid
-   - [ ] Drag handles adjust selection
-   - [ ] Cost updates as selection changes
-   - [ ] Block audition plays correct sections
+1. Load two tracks in mixer
+2. Play and sync them
+3. Press Record → 4-3-2-1 countdown appears
+4. "ARM" state → "SYNC" (rehearsal) → Recording starts
+5. Recording indicator pulses red
+6. Press Record again to stop → Modal appears
 
-3. **Payment Flow**
-   - [ ] "Confirm & Pay" shows correct amount
-   - [ ] Status cycles: Preparing → Signing → Executing → Saving
-   - [ ] No errors during process
-   - [ ] Success message appears
+### Trim Modal
 
-4. **Draft Creation**
-   - [ ] Draft appears in "My Work" tab
-   - [ ] Audio plays correctly
-   - [ ] Metadata shows source tracks
-   - [ ] Payment record in database
+1. Modal appears centered (uses React Portal)
+2. Waveform displays with 8-bar grid
+3. Drag handles adjust selection (clamped to valid range)
+4. Cost updates as selection changes
+5. Block audition plays at correct speed
 
-5. **Payment Distribution**
-   - [ ] Platform receives 5%
-   - [ ] Creators receive 80% (split by IP ratios)
-   - [ ] Check recipient wallet balances
+### Audio Quality
+
+1. Recording in modal plays at correct speed
+2. Saved draft plays at correct speed
+3. Audio FX don't cut out the deck
+4. FX still go through crossfader
+
+### Payment Flow
+
+1. "Confirm & Pay" shows correct amount
+2. Status cycles: Preparing → Signing → Executing → Saving
+3. No errors during process
+4. Draft appears in "My Work" tab
+
+---
+
+## Debugging Tips
+
+### Sample Rate Issues
+
+Check console for:
+```
+🎵 Created decode AudioContext at 48000Hz (browser default)
+🎵 Decoded audio: 13.38s, 48000Hz, 2 channels
+🎵 Created trim AudioContext at 48000Hz to match recording
+```
+
+If you see 44100Hz for decode context, that's the bug.
+
+### FX Routing Issues
+
+Check console for:
+```
+🎛️ Deck A Echo Out active - release button to stop
+✅ Deck A Echo Out stopped and cleaned up
+```
+
+If audio cuts out during FX, check that FX connect to `state.analyzerNode`.
+
+### Sync Reset
+
+Check console for:
+```
+🔴 Resetting sync engine before recording...
+🔴 Sync engine reset complete
+```
+
+If first recording fails to sync, the reset isn't triggering.
+
+---
+
+## Version History
+
+| Date | Changes |
+|------|---------|
+| Feb 2, 2026 | Initial recording system implementation |
+| Feb 3, 2026 | Fixed sample rate mismatch (half-speed playback) |
+| Feb 3, 2026 | Fixed first-recording sync failure (ref-based reset) |
+| Feb 3, 2026 | Fixed FX routing (bypass mixer chain) |
+| Feb 3, 2026 | Fixed waveform gradient crash |
+| Feb 3, 2026 | Removed dashboard preview limit |
+| Feb 3, 2026 | Restored 4-3-2-1 pre-countdown feature |
