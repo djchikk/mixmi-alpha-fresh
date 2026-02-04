@@ -21,7 +21,7 @@ import { IPTrack } from '@/types';
 import { determineMasterBPM } from './utils/mixerBPMCalculator';
 import { useMixerPackHandler } from './hooks/useMixerPackHandler';
 import { useMixerRecording } from '@/hooks/useMixerRecording';
-import RecordingWidget from './recording/RecordingWidget';
+import RemixCompletionModal from './recording/RemixCompletionModal';
 
 interface UniversalMixerProps {
   className?: string;
@@ -2845,9 +2845,9 @@ export default function UniversalMixer({ className = "", getVideoCanvas, getVide
         </>
       )}
 
-      {/* Recording Widget Modal */}
+      {/* Remix Completion Modal (multi-step flow) */}
       {showRecordingWidget && recordingData && costInfo && (
-        <RecordingWidget
+        <RemixCompletionModal
           isOpen={showRecordingWidget}
           recordingData={recordingData}
           trimState={trimState}
@@ -2862,7 +2862,6 @@ export default function UniversalMixer({ className = "", getVideoCanvas, getVide
           onTrimStartChange={setTrimStart}
           onTrimEndChange={setTrimEnd}
           onNudge={nudgeTrim}
-          onConfirm={handleRecordingConfirm}
           getAudioForTrim={getAudioForTrim}
           getVideoForTrim={getVideoForTrim}
           hasVideo={hasVideo}

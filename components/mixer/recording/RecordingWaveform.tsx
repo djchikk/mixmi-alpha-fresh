@@ -13,6 +13,7 @@ interface RecordingWaveformProps {
   onTrimEndChange: (bars: number) => void;
   playbackPosition?: number; // 0-1 normalized position
   isPlaying?: boolean;
+  compactHeight?: boolean; // Use ~50% height for compact view
 }
 
 export default function RecordingWaveform({
@@ -25,12 +26,13 @@ export default function RecordingWaveform({
   onTrimEndChange,
   playbackPosition = 0,
   isPlaying = false,
+  compactHeight = false,
 }: RecordingWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState<'start' | 'end' | null>(null);
   const [canvasWidth, setCanvasWidth] = useState(600);
-  const canvasHeight = 120;
+  const canvasHeight = compactHeight ? 70 : 120;
 
   const barsPerBlock = PRICING.remix.barsPerBlock; // 8 bars per block
 
@@ -193,6 +195,7 @@ export default function RecordingWaveform({
   }, [
     waveformData,
     canvasWidth,
+    canvasHeight,
     totalBars,
     trimStartBars,
     trimEndBars,
