@@ -156,8 +156,9 @@ export async function POST(request: NextRequest) {
         // Use tags from the remix flow
         tags: tags,
         notes: notes || null,
-        // TODO: Handle multiple locations - for now use first one as primary
-        primary_location: locations.length > 0 ? locations[0] : null,
+        // Handle locations - extract name for primary_location, store full array for coordinates
+        primary_location: locations.length > 0 ? (locations[0].name || locations[0]) : null,
+        locations: locations, // Store full location objects with coordinates
         primary_uploader_wallet: creatorSuiAddress || creatorWallet,
       })
       .select()

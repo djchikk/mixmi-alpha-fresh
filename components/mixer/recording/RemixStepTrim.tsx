@@ -101,6 +101,11 @@ export default function RemixStepTrim({
 
   // Play selection (optionally looping)
   const playSelection = useCallback((loop: boolean = false) => {
+    // If called from a loop timeout but looping was disabled, bail out
+    if (loop && !isLoopingRef.current) {
+      return;
+    }
+
     stopPlayback();
 
     const audioContext = getAudioContext();
@@ -155,7 +160,12 @@ export default function RemixStepTrim({
   }, [audioBuffer, bpm, trimStartBars, trimEndBars, stopPlayback, getAudioContext, isLooping]);
 
   // Play a specific block (with optional looping)
-  const playBlock = useCallback((blockNum: number) => {
+  const playBlock = useCallback((blockNum: number, fromLoop: boolean = false) => {
+    // If called from a loop timeout but looping was disabled, bail out
+    if (fromLoop && !isLoopingRef.current) {
+      return;
+    }
+
     stopPlayback();
 
     const audioContext = getAudioContext();
@@ -178,7 +188,7 @@ export default function RemixStepTrim({
       // Check ref for loop state
       if (isLoopingRef.current) {
         loopTimeoutRef.current = setTimeout(() => {
-          playBlock(blockNum);
+          playBlock(blockNum, true); // Pass fromLoop=true
         }, 50);
       } else {
         setPlayingBlock(null);

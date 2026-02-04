@@ -385,6 +385,9 @@ export default function CompactTrackCardWithFlip({
     return (track as any).is_draft ? 'border-dashed' : 'border-solid';
   };
 
+  // Check if this is a remix (has remix_depth > 0)
+  const isRemix = ((track as any).remix_depth || 0) > 0 || ((track as any).generation || 0) > 0;
+
 
   // Handle play click - supports audio_url (tracks), stream_url (radio), and video_url (videos)
   const handlePlayClick = (e: React.MouseEvent) => {
@@ -520,14 +523,29 @@ export default function CompactTrackCardWithFlip({
   return (
     <>
       <div className="relative group">
+        {/* Shimmer border wrapper for remixes */}
+        {isRemix && (
+          <div
+            className="remix-shimmer-border absolute inset-0 rounded-lg"
+            style={{
+              background: 'linear-gradient(135deg, #FFFFFF 0%, #A8E6CF 14%, #FFFFFF 28%, #88D4F2 42%, #FFFFFF 56%, #B8E8D2 70%, #FFFFFF 84%, #7BC8F4 100%)',
+              backgroundSize: '400% 400%',
+              animation: 'shimmer 6s ease-in-out infinite',
+              padding: '3px',
+            }}
+          >
+            <div className="w-full h-full rounded-lg bg-slate-800" />
+          </div>
+        )}
         {/* Compact Card Container - 160x160px */}
         <div
           ref={drag}
-          className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${getBorderColor()} ${getBorderThickness()} ${getBorderStyle()} bg-slate-800`}
+          className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${isRemix ? '' : `${getBorderColor()} ${getBorderThickness()}`} ${getBorderStyle()} bg-slate-800 relative`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           style={{
-            cursor: isDragging ? 'grabbing' : 'grab'
+            cursor: isDragging ? 'grabbing' : 'grab',
+            ...(isRemix && { margin: '3px', width: 'calc(160px - 6px)', height: 'calc(160px - 6px)' })
           }}
         >
           <div className="relative w-full h-full">
@@ -542,9 +560,17 @@ export default function CompactTrackCardWithFlip({
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-                    <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
+                    {track.content_type === 'video_clip' ? (
+                      // Video icon for video clips without cover
+                      <svg className="w-12 h-12 text-[#5BB5F9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    ) : (
+                      // Music icon for audio content without cover
+                      <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      </svg>
+                    )}
                   </div>
                 )}
 
@@ -1134,6 +1160,11 @@ export default function CompactTrackCardWithFlip({
             opacity: 1;
             transform: translateY(0);
           }
+        }
+
+        @keyframes shimmer {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
         }
       `}</style>
 
