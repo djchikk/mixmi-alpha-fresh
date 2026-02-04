@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from 'next/dynamic';
 import { useDrop } from 'react-dnd';
 // Alpha app - no complex auth needed for globe viewing
 import Header from "@/components/layout/Header";
+import type { VideoMixerLargeHandle } from "@/components/mixer/VideoMixerLarge";
 import { TrackNode } from "@/components/globe/types";
 import { IPTrack } from "@/types";
 import { Button } from "@/components/ui/Button";
@@ -153,6 +154,13 @@ export default function HomePage() {
 
   // Dwell timer for auto-pinning cards on hover
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Ref for VideoMixerLarge to capture video for recording
+  const videoMixerLargeRef = useRef<VideoMixerLargeHandle>(null);
+
+  // Getter callbacks for video recording - memoized to prevent unnecessary re-renders
+  const getVideoCanvas = useCallback(() => videoMixerLargeRef.current?.getCanvas() ?? null, []);
+  const getVideoElements = useCallback(() => videoMixerLargeRef.current?.getVideoElements() ?? { videoA: null, videoB: null }, []);
 
   // Widget visibility state - persisted in localStorage
   const [isMixerVisible, setIsMixerVisible] = useState(true); // Default
@@ -2122,6 +2130,7 @@ export default function HomePage() {
       {/* Shows when: mixer visible, videos loaded, AND not collapsed (collapsed = hidden, use sidebar icon to show) */}
       {isMixerVisible && mixerState && (mixerState.videoATrack || mixerState.videoBTrack) && !isVideoViewerCollapsed && (
         <VideoMixerLarge
+          ref={videoMixerLargeRef}
           videoATrack={mixerState.videoATrack}
           videoBTrack={mixerState.videoBTrack}
           videoAVolume={mixerState.videoAVolume || 100}
@@ -2162,7 +2171,10 @@ export default function HomePage() {
       {/* Universal Mixer - Always centered */}
       {isMixerVisible && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30 mixer-widget">
-          <UniversalMixer />
+          <UniversalMixer
+            getVideoCanvas={getVideoCanvas}
+            getVideoElements={getVideoElements}
+          />
         </div>
       )}
 

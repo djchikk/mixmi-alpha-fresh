@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useRef, useMemo, useState } from 'react'
+import React, { useEffect, useRef, useMemo, useState, forwardRef, useImperativeHandle } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { EffectComposer } from '@react-three/postprocessing'
 import * as THREE from 'three'
@@ -24,6 +24,12 @@ interface WebGLVideoEffects {
   audioLevel?: number    // 0-1, from audio analyzer
   ridiculousMode?: boolean // Enable extreme effects when audio reactive
   saturation?: number    // 0-2, where 0=grayscale, 1=normal, 2=oversaturated
+}
+
+// Ref handle for video recording - exposes canvas and video elements
+export interface WebGLVideoDisplayHandle {
+  getCanvas: () => HTMLCanvasElement | null
+  getVideoElements: () => { videoA: HTMLVideoElement | null, videoB: HTMLVideoElement | null }
 }
 
 interface WebGLVideoDisplayProps {
@@ -65,6 +71,8 @@ interface VideoPlaneProps {
   cropZoom?: number
   videoNaturalWidth?: number
   videoNaturalHeight?: number
+  // Callback to expose video element for audio routing
+  onVideoElement?: (video: HTMLVideoElement | null) => void
 }
 
 function VideoPlane({
@@ -82,7 +90,8 @@ function VideoPlane({
   cropHeight,
   cropZoom = 1,
   videoNaturalWidth,
-  videoNaturalHeight
+  videoNaturalHeight,
+  onVideoElement
 }: VideoPlaneProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -93,6 +102,7 @@ function VideoPlane({
   useEffect(() => {
     if (!videoUrl) {
       setVideoReady(false)
+      onVideoElement?.(null)
       return
     }
 
@@ -112,6 +122,9 @@ function VideoPlane({
     video.load()
     videoRef.current = video
 
+    // Expose video element for audio routing
+    onVideoElement?.(video)
+
     // Create texture
     const texture = new THREE.VideoTexture(video)
     texture.minFilter = THREE.LinearFilter
@@ -128,6 +141,7 @@ function VideoPlane({
       videoRef.current = null
       textureRef.current = null
       setVideoReady(false)
+      onVideoElement?.(null)
     }
   }, [videoUrl])
 
@@ -244,6 +258,9 @@ interface VideoSceneProps {
   // Crop data for each deck
   deckATrack: Track | null
   deckBTrack: Track | null
+  // Callbacks to expose video elements for audio routing
+  onVideoAElement?: (video: HTMLVideoElement | null) => void
+  onVideoBElement?: (video: HTMLVideoElement | null) => void
 }
 
 function VideoScene({
@@ -258,7 +275,9 @@ function VideoScene({
   crossfaderPosition,
   crossfadeMode,
   deckATrack,
-  deckBTrack
+  deckBTrack,
+  onVideoAElement,
+  onVideoBElement
 }: VideoSceneProps) {
   const { size } = useThree()
 
@@ -324,6 +343,7 @@ function VideoScene({
         cropZoom={(deckATrack as any)?.video_crop_zoom}
         videoNaturalWidth={(deckATrack as any)?.video_natural_width}
         videoNaturalHeight={(deckATrack as any)?.video_natural_height}
+        onVideoElement={onVideoAElement}
       />
 
       {/* Deck B Video - slightly in front for blend mode layering */}
@@ -343,13 +363,27 @@ function VideoScene({
         cropZoom={(deckBTrack as any)?.video_crop_zoom}
         videoNaturalWidth={(deckBTrack as any)?.video_natural_width}
         videoNaturalHeight={(deckBTrack as any)?.video_natural_height}
+        onVideoElement={onVideoBElement}
       />
     </>
   )
 }
 
-// Main component
-export default function WebGLVideoDisplay({
+// Helper component to grab the canvas element from inside the Canvas
+function CanvasGrabber({ onCanvas }: { onCanvas: (canvas: HTMLCanvasElement) => void }) {
+  const { gl } = useThree()
+
+  useEffect(() => {
+    if (gl.domElement) {
+      onCanvas(gl.domElement)
+    }
+  }, [gl, onCanvas])
+
+  return null
+}
+
+// Main component - uses forwardRef to expose canvas and video elements for recording
+const WebGLVideoDisplay = forwardRef<WebGLVideoDisplayHandle, WebGLVideoDisplayProps>(function WebGLVideoDisplay({
   deckATrack,
   deckBTrack,
   deckAPlaying,
@@ -360,7 +394,21 @@ export default function WebGLVideoDisplay({
   crossfadeMode = 'slide',
   effects = defaultEffects,
   height = 272
-}: WebGLVideoDisplayProps) {
+}, ref) {
+  // Refs for video recording
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const videoARef = useRef<HTMLVideoElement | null>(null)
+  const videoBRef = useRef<HTMLVideoElement | null>(null)
+
+  // Expose canvas and video elements via ref for recording
+  useImperativeHandle(ref, () => ({
+    getCanvas: () => canvasRef.current,
+    getVideoElements: () => ({
+      videoA: videoARef.current,
+      videoB: videoBRef.current
+    })
+  }), [])
+
   // Check if decks have video content
   const deckAHasVideo = Boolean(deckATrack?.content_type === 'video_clip' && (deckATrack as any).video_url)
   const deckBHasVideo = Boolean(deckBTrack?.content_type === 'video_clip' && (deckBTrack as any).video_url)
@@ -381,10 +429,14 @@ export default function WebGLVideoDisplay({
         gl={{
           antialias: true,
           alpha: false,
-          powerPreference: 'high-performance'
+          powerPreference: 'high-performance',
+          preserveDrawingBuffer: true  // Required for captureStream()
         }}
       >
         <color attach="background" args={['#000000']} />
+
+        {/* Grab canvas element for recording */}
+        <CanvasGrabber onCanvas={(canvas) => { canvasRef.current = canvas }} />
 
         <VideoScene
           deckAUrl={deckAUrl}
@@ -399,6 +451,8 @@ export default function WebGLVideoDisplay({
           crossfadeMode={crossfadeMode}
           deckATrack={deckATrack}
           deckBTrack={deckBTrack}
+          onVideoAElement={(video) => { videoARef.current = video }}
+          onVideoBElement={(video) => { videoBRef.current = video }}
         />
 
         {/* Post-processing effects */}
@@ -467,6 +521,7 @@ export default function WebGLVideoDisplay({
       )}
     </div>
   )
-}
+})
 
+export default WebGLVideoDisplay
 export type { WebGLVideoEffects, WebGLEffectType }

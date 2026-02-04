@@ -40,6 +40,8 @@ interface RecordingWidgetProps {
   onNudge: (point: 'start' | 'end', direction: 'left' | 'right', resolution: number) => void;
   onConfirm: () => Promise<void>;
   getAudioForTrim: () => Promise<Blob | null>;
+  getVideoForTrim?: () => Promise<Blob | null>;
+  hasVideo?: boolean;
 }
 
 type PurchaseState = 'idle' | 'preparing' | 'signing' | 'executing' | 'saving' | 'success' | 'error';
@@ -56,6 +58,8 @@ export default function RecordingWidget({
   onNudge,
   onConfirm,
   getAudioForTrim,
+  getVideoForTrim,
+  hasVideo = false,
 }: RecordingWidgetProps) {
   const { suiAddress, authType, activePersona } = useAuth();
   const [purchaseState, setPurchaseState] = useState<PurchaseState>('idle');
@@ -281,7 +285,50 @@ export default function RecordingWidget({
 
       console.log('🎵 [Recording] Audio uploaded, saving draft...');
 
-      // Step 7c: Save the draft with the audio URL
+      // Step 7c: Upload video if available
+      let videoUrl: string | null = null;
+      if (hasVideo && getVideoForTrim) {
+        console.log('🎬 [Recording] Getting trimmed video...');
+        const videoBlob = await getVideoForTrim();
+        if (videoBlob) {
+          console.log(`🎬 [Recording] Video blob size: ${(videoBlob.size / 1024 / 1024).toFixed(2)} MB`);
+
+          // Get signed upload URL for video
+          const videoUploadUrlResponse = await fetch('/api/recording/get-upload-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentId: payment.id,
+              walletAddress: suiAddress,
+              fileType: 'video',
+            }),
+          });
+
+          const videoUploadUrlData = await videoUploadUrlResponse.json();
+          if (videoUploadUrlResponse.ok) {
+            // Upload video directly to Supabase Storage
+            console.log('🎬 [Recording] Uploading video to Supabase...');
+            const videoUploadResponse = await fetch(videoUploadUrlData.uploadUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'video/webm',
+              },
+              body: videoBlob,
+            });
+
+            if (videoUploadResponse.ok) {
+              videoUrl = videoUploadUrlData.publicUrl;
+              console.log('🎬 [Recording] Video uploaded:', videoUrl);
+            } else {
+              console.warn('🎬 [Recording] Video upload failed, continuing with audio only');
+            }
+          } else {
+            console.warn('🎬 [Recording] Failed to get video upload URL, continuing with audio only');
+          }
+        }
+      }
+
+      // Step 7d: Save the draft with the audio URL (and video URL if available)
       const saveResponse = await fetch('/api/recording/confirm-and-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -289,6 +336,7 @@ export default function RecordingWidget({
           paymentId: payment.id,
           txHash: executeData.txHash,
           audioUrl: uploadUrlData.publicUrl,
+          videoUrl, // Will be null if no video
           title: `Recording ${new Date().toLocaleDateString()}`,
           bpm: recordingData.bpm,
           bars,
@@ -327,6 +375,8 @@ export default function RecordingWidget({
     loadedTracks,
     recordingData,
     getAudioForTrim,
+    getVideoForTrim,
+    hasVideo,
     onClose,
   ]);
 

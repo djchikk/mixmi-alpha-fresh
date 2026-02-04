@@ -34,6 +34,9 @@ export interface RecordingData {
   durationBars: number;
   waveformData: Float32Array;
   bpm: number;
+  // Video recording data (optional)
+  videoBlob?: Blob;
+  hasVideo: boolean;
 }
 
 export interface TrimState {
@@ -76,9 +79,25 @@ interface UseMixerRecordingReturn {
   nudgeTrim: (point: 'start' | 'end', direction: 'left' | 'right', resolution: number) => void;
   resetRecording: () => void;
   getAudioForTrim: () => Promise<Blob | null>;
+  getVideoForTrim: () => Promise<Blob | null>;
+  hasVideo: boolean;
 }
 
-export function useMixerRecording(trackCount: number = 2): UseMixerRecordingReturn {
+// Options for video recording
+export interface MixerRecordingOptions {
+  trackCount?: number;
+  // Function to get video canvas for recording (returns null if no video)
+  getVideoCanvas?: () => HTMLCanvasElement | null;
+  // Function to get video elements for audio routing
+  getVideoElements?: () => { videoA: HTMLVideoElement | null; videoB: HTMLVideoElement | null };
+}
+
+export function useMixerRecording(optionsOrTrackCount: MixerRecordingOptions | number = {}): UseMixerRecordingReturn {
+  // Support both old signature (trackCount: number) and new signature (options object)
+  const options: MixerRecordingOptions = typeof optionsOrTrackCount === 'number'
+    ? { trackCount: optionsOrTrackCount }
+    : optionsOrTrackCount;
+  const { trackCount = 2, getVideoCanvas, getVideoElements } = options;
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordingData, setRecordingData] = useState<RecordingData | null>(null);
   const [trimState, setTrimState] = useState<TrimState>({
@@ -97,6 +116,12 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   const recordingStartTimeRef = useRef<number>(0);
   const countInTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const preCountdownCallbackRef = useRef<(() => void) | null>(null);
+
+  // Video recording refs
+  const videoRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoChunksRef = useRef<Blob[]>([]);
+  const isVideoRecordingRef = useRef<boolean>(false);
+  const videoElementSourcesRef = useRef<MediaElementAudioSourceNode[]>([]);
 
   // Ref to track state for callback access (callbacks capture stale state)
   const recordingStateRef = useRef<RecordingState>('idle');
@@ -170,6 +195,10 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   /**
    * Internal: Actually start the MediaRecorder
    * IMPORTANT: This must be defined BEFORE any functions or effects that use it!
+   *
+   * Supports two modes:
+   * 1. Audio-only: Captures mixer audio output
+   * 2. Video+Audio: Captures WebGL canvas + mixer audio (including video element audio)
    */
   const startActualRecording = useCallback((bpm: number) => {
     setError(null);
@@ -194,47 +223,137 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       // Connect master gain to our stream destination (in addition to speakers)
       masterGain.connect(streamDestination);
 
-      // Determine best supported MIME type
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      // Check if we have video to record
+      const videoCanvas = getVideoCanvas?.();
+      const videoElements = getVideoElements?.();
+      const hasVideoCanvas = !!videoCanvas;
+      isVideoRecordingRef.current = hasVideoCanvas;
+
+      // Route video element audio through AudioContext (if video has audio and is unmuted)
+      if (hasVideoCanvas && videoElements) {
+        const { videoA, videoB } = videoElements;
+
+        // Clean up any existing sources
+        videoElementSourcesRef.current.forEach(source => {
+          try { source.disconnect(); } catch (e) { /* ignore */ }
+        });
+        videoElementSourcesRef.current = [];
+
+        // Connect video A audio if it has audio and isn't muted
+        if (videoA && !videoA.muted && videoA.readyState >= 2) {
+          try {
+            // Check if already connected (can only create one source per element)
+            const sourceA = audioContext.createMediaElementSource(videoA);
+            sourceA.connect(streamDestination);
+            sourceA.connect(audioContext.destination); // Also play through speakers
+            videoElementSourcesRef.current.push(sourceA);
+            console.log('🎥 Video A audio routed through AudioContext');
+          } catch (e) {
+            // MediaElementSource may already exist for this element
+            console.log('🎥 Video A audio may already be routed (or element not ready)');
+          }
+        }
+
+        // Connect video B audio if it has audio and isn't muted
+        if (videoB && !videoB.muted && videoB.readyState >= 2) {
+          try {
+            const sourceB = audioContext.createMediaElementSource(videoB);
+            sourceB.connect(streamDestination);
+            sourceB.connect(audioContext.destination); // Also play through speakers
+            videoElementSourcesRef.current.push(sourceB);
+            console.log('🎥 Video B audio routed through AudioContext');
+          } catch (e) {
+            console.log('🎥 Video B audio may already be routed (or element not ready)');
+          }
+        }
+      }
+
+      // ======= AUDIO RECORDING (always) =======
+      const audioMimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
         ? 'audio/webm'
         : 'audio/ogg';
 
-      // Create MediaRecorder
-      const mediaRecorder = new MediaRecorder(streamDestination.stream, {
-        mimeType,
+      const audioRecorder = new MediaRecorder(streamDestination.stream, {
+        mimeType: audioMimeType,
         audioBitsPerSecond: 128000,
       });
 
       chunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (event) => {
+      audioRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
       };
 
-      mediaRecorder.onerror = (event) => {
-        console.error('🚨 MediaRecorder error:', event);
+      audioRecorder.onerror = (event) => {
+        console.error('🚨 Audio MediaRecorder error:', event);
         setError('Recording failed');
         setRecordingStateSync('idle');
       };
 
-      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorderRef.current = audioRecorder;
+
+      // ======= VIDEO RECORDING (if canvas available) =======
+      if (hasVideoCanvas && videoCanvas) {
+        try {
+          // Capture canvas at 30fps
+          const canvasStream = videoCanvas.captureStream(30);
+
+          // Add audio tracks from our audio stream destination
+          const audioTracks = streamDestination.stream.getAudioTracks();
+          audioTracks.forEach(track => canvasStream.addTrack(track));
+
+          // Determine video MIME type (Chrome supports VP8/VP9)
+          const videoMimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+            ? 'video/webm;codecs=vp9,opus'
+            : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+            ? 'video/webm;codecs=vp8,opus'
+            : 'video/webm';
+
+          const videoRecorder = new MediaRecorder(canvasStream, {
+            mimeType: videoMimeType,
+            videoBitsPerSecond: 2500000, // 2.5 Mbps
+          });
+
+          videoChunksRef.current = [];
+
+          videoRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              videoChunksRef.current.push(event.data);
+            }
+          };
+
+          videoRecorder.onerror = (event) => {
+            console.error('🚨 Video MediaRecorder error:', event);
+            // Don't fail the whole recording - audio still works
+          };
+
+          videoRecorderRef.current = videoRecorder;
+          videoRecorder.start(100);
+          console.log(`🎥 Video recording started (${videoMimeType})`);
+        } catch (err) {
+          console.error('🎥 Failed to start video recording:', err);
+          // Continue with audio-only
+          isVideoRecordingRef.current = false;
+        }
+      }
+
       recordingBpmRef.current = bpm;
       recordingStartTimeRef.current = Date.now();
 
-      // Start recording with 100ms timeslice for smoother data collection
-      mediaRecorder.start(100);
+      // Start audio recording with 100ms timeslice
+      audioRecorder.start(100);
 
       setRecordingStateSync('recording');
-      console.log(`🔴 Recording started at ${bpm} BPM`);
+      console.log(`🔴 Recording started at ${bpm} BPM${hasVideoCanvas ? ' (with video)' : ' (audio only)'}`);
     } catch (err) {
       console.error('🚨 Failed to start recording:', err);
       setError(err instanceof Error ? err.message : 'Failed to start recording');
     }
-  }, [setRecordingStateSync]);
+  }, [setRecordingStateSync, getVideoCanvas, getVideoElements]);
 
   /**
    * Arm recording - puts recording in armed state waiting for loop restart
@@ -336,7 +455,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
   }, [startActualRecording]);
 
   /**
-   * Stop recording and process the captured audio
+   * Stop recording and process the captured audio (and video if present)
    */
   const stopRecording = useCallback(async () => {
     // Clear any count-in in progress
@@ -350,18 +469,37 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     if (recordingState === 'preCountdown' || recordingState === 'armed' || recordingState === 'rehearsal' || recordingState === 'countingIn') {
       console.log(`⏹️ Recording cancelled (was ${recordingState})`);
       preCountdownCallbackRef.current = null; // Clear callback
+      // Also stop video recorder if it was started
+      if (videoRecorderRef.current && videoRecorderRef.current.state !== 'inactive') {
+        videoRecorderRef.current.stop();
+      }
       setRecordingStateSync('idle');
       return;
     }
 
     const mediaRecorder = mediaRecorderRef.current;
+    const videoRecorder = videoRecorderRef.current;
     const streamDestination = streamDestinationRef.current;
     const masterGain = getMasterGain();
+    const hasVideo = isVideoRecordingRef.current;
 
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
       console.warn('⚠️ No active recording to stop');
       setRecordingStateSync('idle');
       return;
+    }
+
+    // Stop video recorder first (if present) and wait for it
+    let videoBlob: Blob | undefined;
+    if (hasVideo && videoRecorder && videoRecorder.state !== 'inactive') {
+      videoBlob = await new Promise<Blob>((resolve) => {
+        videoRecorder.onstop = () => {
+          const blob = new Blob(videoChunksRef.current, { type: videoRecorder.mimeType });
+          console.log(`🎥 Video recording stopped: ${blob.size} bytes, type: ${videoRecorder.mimeType}`);
+          resolve(blob);
+        };
+        videoRecorder.stop();
+      });
     }
 
     return new Promise<void>((resolve) => {
@@ -376,11 +514,17 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
             }
           }
 
-          // Combine chunks into a blob
+          // Clean up video element audio sources
+          videoElementSourcesRef.current.forEach(source => {
+            try { source.disconnect(); } catch (e) { /* ignore */ }
+          });
+          videoElementSourcesRef.current = [];
+
+          // Combine audio chunks into a blob
           const blob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
           const recordingDuration = (Date.now() - recordingStartTimeRef.current) / 1000;
 
-          console.log(`⏹️ Recording stopped: ${recordingDuration.toFixed(2)}s, ${blob.size} bytes, type: ${mediaRecorder.mimeType}`);
+          console.log(`⏹️ Audio recording stopped: ${recordingDuration.toFixed(2)}s, ${blob.size} bytes, type: ${mediaRecorder.mimeType}`);
 
           // Decode audio for waveform and analysis
           // IMPORTANT: Use a fresh AudioContext at browser's default sample rate (usually 48000Hz)
@@ -415,6 +559,8 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
             durationBars,
             waveformData,
             bpm,
+            videoBlob,
+            hasVideo,
           });
 
           setTrimState({
@@ -424,7 +570,10 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
           });
 
           setRecordingStateSync('stopped');
-          console.log(`✅ Recording processed: ${durationBars.toFixed(1)} bars at ${bpm} BPM`);
+          console.log(`✅ Recording processed: ${durationBars.toFixed(1)} bars at ${bpm} BPM${hasVideo ? ' (with video)' : ''}`);
+
+          // Reset video recording flag
+          isVideoRecordingRef.current = false;
 
           resolve();
         } catch (err) {
@@ -437,7 +586,7 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
 
       mediaRecorder.stop();
     });
-  }, []);
+  }, [recordingState, setRecordingStateSync]);
 
   /**
    * Set trim start point (in bars)
@@ -571,6 +720,20 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     return wavBlob;
   }, [recordingData, trimState]);
 
+  /**
+   * Get video blob for saving
+   * Note: Video trimming is handled server-side or via playback metadata.
+   * This returns the full video blob; trim points are applied on the server.
+   */
+  const getVideoForTrim = useCallback(async (): Promise<Blob | null> => {
+    if (!recordingData?.videoBlob) return null;
+
+    // For MVP, return the full video blob
+    // Trim points (startBars, endBars) should be sent to server for trimming
+    console.log(`🎥 Returning video blob: ${(recordingData.videoBlob.size / 1024 / 1024).toFixed(2)} MB`);
+    return recordingData.videoBlob;
+  }, [recordingData]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -579,6 +742,9 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
       }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
+      }
+      if (videoRecorderRef.current && videoRecorderRef.current.state !== 'inactive') {
+        videoRecorderRef.current.stop();
       }
       if (streamDestinationRef.current) {
         const masterGain = getMasterGain();
@@ -590,6 +756,10 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
           }
         }
       }
+      // Clean up video element audio sources
+      videoElementSourcesRef.current.forEach(source => {
+        try { source.disconnect(); } catch (e) { /* ignore */ }
+      });
     };
   }, []);
 
@@ -614,6 +784,8 @@ export function useMixerRecording(trackCount: number = 2): UseMixerRecordingRetu
     nudgeTrim,
     resetRecording,
     getAudioForTrim,
+    getVideoForTrim,
+    hasVideo: recordingData?.hasVideo ?? false,
   };
 }
 

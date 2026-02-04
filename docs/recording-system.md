@@ -299,6 +299,92 @@ Example: 24 bars with 2 tracks
 
 ---
 
+## Video Recording (February 3, 2026)
+
+### Architecture
+
+Video recording captures the WebGL canvas output alongside the audio mix:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    VideoMixerLarge                               │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  WebGLVideoDisplay                                       │    │
+│  │    - THREE.js canvas with video textures                 │    │
+│  │    - preserveDrawingBuffer: true (required for capture)  │    │
+│  │    - Exposes getCanvas() and getVideoElements() via ref  │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     useMixerRecording                            │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  Audio: MediaRecorder on streamDestination.stream        │    │
+│  │  Video: canvas.captureStream(30) + audio tracks          │    │
+│  │    - 30fps video capture                                 │    │
+│  │    - vp8 codec (webm format)                             │    │
+│  │    - 2.5 Mbps video bitrate                              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   RecordingWidget (Modal)                        │
+│    - Uploads audio to audio/recordings/                          │
+│    - Uploads video to video/recordings/ (if present)             │
+│    - Saves draft with content_type: video_clip (if video)        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Implementation Details
+
+**1. Canvas Access via forwardRef:**
+```typescript
+// WebGLVideoDisplay.tsx
+export interface WebGLVideoDisplayHandle {
+  getCanvas: () => HTMLCanvasElement | null;
+  getVideoElements: () => { videoA: HTMLVideoElement | null; videoB: HTMLVideoElement | null };
+}
+```
+
+**2. Video Recording in useMixerRecording:**
+```typescript
+// Start video recording
+const canvasStream = videoCanvas.captureStream(30);
+const audioTracks = streamDestination.stream.getAudioTracks();
+audioTracks.forEach(track => canvasStream.addTrack(track));
+
+const videoRecorder = new MediaRecorder(canvasStream, {
+  mimeType: 'video/webm;codecs=vp8,opus',
+  videoBitsPerSecond: 2500000,
+});
+```
+
+**3. Separate Audio and Video Blobs:**
+- Audio is always recorded separately for waveform trimming UI
+- Video includes audio track for final export
+- Both are uploaded independently to Supabase Storage
+
+### Browser Compatibility
+
+- **Chrome:** Full support (primary target)
+- **Firefox:** Should work (not tested)
+- **Safari:** May require codec adjustments (not supported initially)
+
+### Testing Video Recording
+
+1. Load two video clips in mixer (or one video + audio)
+2. Open Video Mixer Large panel
+3. Press Record → countdown → ARM → SYNC → Recording
+4. Both audio waveform and video are captured
+5. Press Record again to stop
+6. Modal shows audio waveform for trimming
+7. Confirm → both audio and video uploaded
+8. Draft saved with content_type: video_clip
+
+---
+
 ## Known Issues & Future Work
 
 ### Resolved (February 3, 2026)
@@ -315,14 +401,18 @@ Example: 24 bars with 2 tracks
 - [x] Draft deletion fails - Fixed by deleting dependent records first (recording_payments, recording_payment_recipients)
 - [x] Draft saving intermittent failure - Fixed wallet address priority mismatch (SUI address now prioritized to match dashboard query)
 
+### Resolved (February 3, 2026 - Session 3)
+
+- [x] Video recording support - Implemented canvas captureStream(30) from WebGLVideoDisplay
+
 ### Outstanding Issues
 
 - [ ] Trim handles can be clunky - hard to select exact 8-bar section
 - [ ] Content type combinations need testing (only loop+loop verified so far)
+- [ ] Video recording needs testing (Chrome only, WebM format)
 
 ### Future Enhancements
 
-- [ ] Video recording support
 - [ ] TING token minting for AI-generated visuals
 - [ ] Automatic remix cover image generator
 - [ ] Better trim UX (click-to-set, smarter snapping)
@@ -450,3 +540,4 @@ Recording has been verified with loop+loop mixing. Other combinations need testi
 | Feb 3, 2026 | Restored 4-3-2-1 pre-countdown feature |
 | Feb 3, 2026 | Fixed draft deletion (delete dependent records first) |
 | Feb 3, 2026 | Fixed draft save intermittent failure (wallet address priority) |
+| Feb 3, 2026 | Implemented video recording support (canvas capture from WebGL) |

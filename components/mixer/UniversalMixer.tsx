@@ -25,6 +25,9 @@ import RecordingWidget from './recording/RecordingWidget';
 
 interface UniversalMixerProps {
   className?: string;
+  // Optional video getters for video recording
+  getVideoCanvas?: () => HTMLCanvasElement | null;
+  getVideoElements?: () => { videoA: HTMLVideoElement | null; videoB: HTMLVideoElement | null };
 }
 
 // Simplified mixer state - just the essentials
@@ -177,7 +180,7 @@ function VideoThumbnail({ track, slot, onDrop, onClear, position, onDragOver }: 
   );
 }
 
-export default function UniversalMixer({ className = "" }: UniversalMixerProps) {
+export default function UniversalMixer({ className = "", getVideoCanvas, getVideoElements }: UniversalMixerProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [syncWarningVisible, setSyncWarningVisible] = useState(false);
@@ -305,7 +308,13 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
     nudgeTrim,
     resetRecording,
     getAudioForTrim,
-  } = useMixerRecording(activeTrackCount);
+    getVideoForTrim,
+    hasVideo,
+  } = useMixerRecording({
+    trackCount: activeTrackCount,
+    getVideoCanvas,
+    getVideoElements,
+  });
 
   // State for showing the recording widget modal
   const [showRecordingWidget, setShowRecordingWidget] = useState(false);
@@ -2849,6 +2858,8 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
           onNudge={nudgeTrim}
           onConfirm={handleRecordingConfirm}
           getAudioForTrim={getAudioForTrim}
+          getVideoForTrim={getVideoForTrim}
+          hasVideo={hasVideo}
         />
       )}
     </div>

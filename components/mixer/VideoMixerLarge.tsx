@@ -1,10 +1,13 @@
 "use client"
 
-import React, { memo, useCallback, useState, useEffect, useRef } from 'react'
+import React, { memo, useCallback, useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react'
-import WebGLVideoDisplay, { WebGLEffectType, CrossfadeMode, WebGLVideoEffects } from './compact/WebGLVideoDisplay'
+import WebGLVideoDisplay, { WebGLEffectType, CrossfadeMode, WebGLVideoEffects, WebGLVideoDisplayHandle } from './compact/WebGLVideoDisplay'
 import Knob from './compact/Knob'
 import { Track } from './types'
+
+// Re-export the handle type for video recording
+export type VideoMixerLargeHandle = WebGLVideoDisplayHandle
 
 interface VideoMixerLargeProps {
   // Video tracks
@@ -158,7 +161,7 @@ function MixModeButton({
   )
 }
 
-const VideoMixerLarge = memo(function VideoMixerLarge({
+const VideoMixerLarge = memo(forwardRef<VideoMixerLargeHandle, VideoMixerLargeProps>(function VideoMixerLarge({
   videoATrack,
   videoBTrack,
   videoAVolume,
@@ -193,10 +196,17 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
   onPositionChange,
   onClearVideoA,
   onClearVideoB
-}: VideoMixerLargeProps) {
+}: VideoMixerLargeProps, ref) {
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
+  const webglDisplayRef = useRef<WebGLVideoDisplayHandle>(null)
+
+  // Expose WebGLVideoDisplay handle for video recording
+  useImperativeHandle(ref, () => ({
+    getCanvas: () => webglDisplayRef.current?.getCanvas() ?? null,
+    getVideoElements: () => webglDisplayRef.current?.getVideoElements() ?? { videoA: null, videoB: null }
+  }), [])
 
   const hasVideoA = Boolean(videoATrack?.content_type === 'video_clip')
   const hasVideoB = Boolean(videoBTrack?.content_type === 'video_clip')
@@ -339,6 +349,7 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
       {!isCollapsed && (
         <div className="relative" style={{ height: '360px' }}>
           <WebGLVideoDisplay
+            ref={webglDisplayRef}
             deckATrack={videoATrack}
             deckBTrack={videoBTrack}
             deckAPlaying={true}
@@ -653,6 +664,6 @@ const VideoMixerLarge = memo(function VideoMixerLarge({
       )}
     </div>
   )
-})
+}))
 
 export default VideoMixerLarge

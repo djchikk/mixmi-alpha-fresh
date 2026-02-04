@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
       paymentId,
       txHash,
       audioUrl, // Now expecting URL instead of file
+      videoUrl = null, // Optional video URL
       title = 'Untitled Recording',
       bpm = 120,
       bars = 8,
@@ -108,6 +109,8 @@ export async function POST(request: NextRequest) {
     const sourceTrackIds = sourceTracksMetadata.map((t: SourceTrackMetadata) => t.id);
 
     // Create draft track record
+    // If video URL is present, this is a video recording
+    const hasVideo = !!videoUrl;
     const trackId = randomUUID();
     const { data: draftTrack, error: trackError } = await supabase
       .from('ip_tracks')
@@ -115,9 +118,10 @@ export async function POST(request: NextRequest) {
         id: trackId,
         title,
         artist: 'Recording',
-        content_type: 'loop',
+        content_type: hasVideo ? 'video_clip' : 'loop',
         bpm,
         audio_url: audioUrl,
+        video_url: videoUrl, // Will be null if no video
         sample_type: 'recording',
         is_draft: true,
         remix_depth: remixDepth,

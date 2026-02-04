@@ -1,5 +1,5 @@
 /**
- * Get a signed upload URL for recording audio
+ * Get a signed upload URL for recording audio or video
  *
  * This allows the client to upload directly to Supabase Storage,
  * bypassing Vercel's body size limit.
@@ -15,7 +15,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { paymentId, walletAddress } = await request.json();
+    const { paymentId, walletAddress, fileType = 'audio' } = await request.json();
 
     if (!paymentId || !walletAddress) {
       return NextResponse.json(
@@ -24,11 +24,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename
+    // Generate unique filename based on file type
     const timestamp = Date.now();
     const walletPrefix = walletAddress.slice(0, 10);
-    const fileName = `recording-${walletPrefix}-${paymentId.slice(0, 8)}-${timestamp}.wav`;
-    const storagePath = `audio/recordings/${fileName}`;
+    const isVideo = fileType === 'video';
+    const extension = isVideo ? 'webm' : 'wav';
+    const folder = isVideo ? 'video/recordings' : 'audio/recordings';
+    const fileName = `recording-${walletPrefix}-${paymentId.slice(0, 8)}-${timestamp}.${extension}`;
+    const storagePath = `${folder}/${fileName}`;
 
     // Create signed upload URL (valid for 5 minutes)
     const { data, error } = await supabase.storage
