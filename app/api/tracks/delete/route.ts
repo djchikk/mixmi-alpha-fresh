@@ -42,7 +42,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Delete the track
+    // Delete dependent records first to avoid foreign key constraint violations
+    // 1. Delete recording payment recipients that reference this track
+    const { error: recipientsError } = await supabaseAdmin
+      .from('recording_payment_recipients')
+      .delete()
+      .eq('source_track_id', trackId);
+
+    if (recipientsError) {
+      console.error('Error deleting payment recipients:', recipientsError);
+      // Continue - these may not exist
+    }
+
+    // 2. Delete recording payments that reference this track as draft
+    const { error: paymentsError } = await supabaseAdmin
+      .from('recording_payments')
+      .delete()
+      .eq('draft_track_id', trackId);
+
+    if (paymentsError) {
+      console.error('Error deleting recording payments:', paymentsError);
+      // Continue - these may not exist
+    }
+
+    // 3. Now delete the track
     const { error: deleteError } = await supabaseAdmin
       .from('ip_tracks')
       .delete()
@@ -50,6 +73,14 @@ export async function POST(request: NextRequest) {
 
     if (deleteError) {
       console.error('Error deleting track:', deleteError);
+      // Check if it's a foreign key constraint error
+      const errorMessage = deleteError.message || deleteError.code || '';
+      if (errorMessage.includes('foreign key') || errorMessage.includes('violates')) {
+        return NextResponse.json(
+          { error: 'Cannot delete track: it has associated records (payments, remixes, etc.)' },
+          { status: 409 }
+        );
+      }
       return NextResponse.json(
         { error: 'Failed to delete track' },
         { status: 500 }

@@ -310,11 +310,15 @@ Example: 24 bars with 2 tracks
 - [x] Waveform gradient crash - Fixed with clamped color stops
 - [x] Dashboard 20-second limit - Removed for user's own content
 
+### Resolved (February 3, 2026 - Session 2)
+
+- [x] Draft deletion fails - Fixed by deleting dependent records first (recording_payments, recording_payment_recipients)
+- [x] Draft saving intermittent failure - Fixed wallet address priority mismatch (SUI address now prioritized to match dashboard query)
+
 ### Outstanding Issues
 
-- [ ] Draft deletion fails with "failed to delete track" error
-- [ ] Draft saving may intermittently fail (needs investigation)
 - [ ] Trim handles can be clunky - hard to select exact 8-bar section
+- [ ] Content type combinations need testing (only loop+loop verified so far)
 
 ### Future Enhancements
 
@@ -395,6 +399,44 @@ If first recording fails to sync, the reset isn't triggering.
 
 ---
 
+## Content Type Testing Matrix
+
+Recording has been verified with loop+loop mixing. Other combinations need testing:
+
+| Deck A | Deck B | Status | Notes |
+|--------|--------|--------|-------|
+| Loop | Loop | ✅ Working | Base case, fully tested |
+| Loop | Song | ⬜ Untested | Different BPM priority |
+| Loop | Radio | ⬜ Untested | Radio uses grabbed 20-sec buffer |
+| Loop | Video | ⬜ Untested | Video has separate audio element |
+| Song | Song | ⬜ Untested | Longer duration content |
+| Song | Radio | ⬜ Untested | Mixed duration/buffer content |
+| Song | Video | ⬜ Untested | |
+| Radio | Radio | ⬜ Untested | Both proxied streams |
+| Radio | Video | ⬜ Untested | |
+| Video | Video | ⬜ Untested | Both have crop data |
+
+### Special Considerations by Content Type
+
+**Songs:**
+- Longer duration than loops
+- BPM priority = 2 (higher than loops=3, so song controls tempo)
+- May have variable BPM sections
+
+**Radio:**
+- Uses `stream_url` through CORS proxy
+- GRAB button captures 20-second rolling buffer
+- Grabbed audio inherits original radio's BPM
+- Proxied URL: `/api/radio-proxy?url=${encodeURIComponent(stream_url)}`
+
+**Video:**
+- Audio plays via HTMLAudioElement (separate from video element)
+- Video element always `muted={true}`
+- Has crop data: `video_crop_x/y/width/height/zoom`
+- Has natural dimensions: `video_natural_width/height`
+
+---
+
 ## Version History
 
 | Date | Changes |
@@ -406,3 +448,5 @@ If first recording fails to sync, the reset isn't triggering.
 | Feb 3, 2026 | Fixed waveform gradient crash |
 | Feb 3, 2026 | Removed dashboard preview limit |
 | Feb 3, 2026 | Restored 4-3-2-1 pre-countdown feature |
+| Feb 3, 2026 | Fixed draft deletion (delete dependent records first) |
+| Feb 3, 2026 | Fixed draft save intermittent failure (wallet address priority) |

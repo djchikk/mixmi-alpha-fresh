@@ -129,15 +129,17 @@ export async function POST(request: NextRequest) {
         recording_payment_status: 'confirmed',
         recorded_bars: bars,
         // Set the creator as the composition/production owner
-        composition_split_1_wallet: creatorWallet || creatorSuiAddress,
+        // IMPORTANT: Use SUI address first to match dashboard query priority
+        // Dashboard uses: activePersona?.sui_address || activePersona?.wallet_address || suiAddress
+        composition_split_1_wallet: creatorSuiAddress || creatorWallet,
         composition_split_1_percentage: 100,
         composition_split_1_sui_address: creatorSuiAddress,
-        production_split_1_wallet: creatorWallet || creatorSuiAddress,
+        production_split_1_wallet: creatorSuiAddress || creatorWallet,
         production_split_1_percentage: 100,
         production_split_1_sui_address: creatorSuiAddress,
         // Add remix tag
         tags: ['remix'],
-        primary_uploader_wallet: creatorWallet || creatorSuiAddress,
+        primary_uploader_wallet: creatorSuiAddress || creatorWallet,
       })
       .select()
       .single();
