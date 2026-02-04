@@ -100,7 +100,7 @@ export default function RecordingWidget({
         body: JSON.stringify({
           bars,
           sourceTrackIds,
-          payerSuiAddress: suiAddress,
+          payerSuiAddress: activePersona?.sui_address || suiAddress,
           payerPersonaId: activePersona?.id || null,
         }),
       });
@@ -353,7 +353,7 @@ export default function RecordingWidget({
           bpm: recordingData.bpm,
           bars,
           creatorWallet: activePersona?.wallet_address || '',
-          creatorSuiAddress: suiAddress,
+          creatorSuiAddress: activePersona?.sui_address || suiAddress,
           sourceTracksMetadata: payment.sourceTracksMetadata,
         }),
       });
