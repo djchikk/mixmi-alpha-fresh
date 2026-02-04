@@ -231,6 +231,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
   // Track if user manually disabled sync (to prevent auto-sync from re-enabling)
   const userDisabledSyncRef = React.useRef<boolean>(false);
 
+  // 🔴 SYNC RESET: Ref-based function to reset sync before recording (avoids useCallback dependency issues)
+  const resetSyncForRecordingRef = React.useRef<() => void>(() => {});
+
   // Audio recording buffers for GRAB feature
   const deckARecorderRef = React.useRef<MediaRecorder | null>(null);
   const deckBRecorderRef = React.useRef<MediaRecorder | null>(null);
@@ -406,6 +409,51 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
       }
     };
   }, [mixerState.deckA.playing, mixerState.deckB.playing]);
+
+  // 🔴 SYNC RESET: Update the ref-based sync reset function whenever state changes
+  // This allows handleRecordToggle to reset sync without being in its dependency array
+  useEffect(() => {
+    resetSyncForRecordingRef.current = () => {
+      // Only reset if sync is active and both decks are loaded
+      if (!mixerState.syncActive || !mixerState.deckA.track || !mixerState.deckB.track ||
+          !mixerState.deckA.audioState || !mixerState.deckB.audioState) {
+        console.log('🔴 Sync reset skipped - conditions not met');
+        return;
+      }
+
+      console.log('🔴 Resetting sync engine before recording...');
+
+      // Stop old sync engine
+      if (syncEngineRef.current) {
+        syncEngineRef.current.stop();
+        syncEngineRef.current = null;
+      }
+
+      // Reset both decks to original BPM
+      if (mixerState.deckA.audioControls) {
+        const originalBPM = mixerState.deckA.track.bpm || 120;
+        mixerState.deckA.audioControls.setBPM(originalBPM);
+      }
+      if (mixerState.deckB.audioControls) {
+        const originalBPM = mixerState.deckB.track.bpm || 120;
+        mixerState.deckB.audioControls.setBPM(originalBPM);
+      }
+
+      // Recreate sync engine with same master
+      const audioContext = mixerState.deckA.audioState.audioContext;
+      const masterDeck = mixerState.masterDeckId || 'A';
+
+      syncEngineRef.current = new SimpleLoopSync(
+        audioContext,
+        { ...mixerState.deckA.audioState, audioControls: mixerState.deckA.audioControls, track: mixerState.deckA.track },
+        { ...mixerState.deckB.audioState, audioControls: mixerState.deckB.audioControls, track: mixerState.deckB.track },
+        masterDeck
+      );
+
+      syncEngineRef.current.enableSync();
+      console.log('🔴 Sync engine reset complete');
+    };
+  }, [mixerState]);
 
   // 🎤 Expose mixer BPM for MicWidget draft saving
   useEffect(() => {
@@ -1429,6 +1477,9 @@ export default function UniversalMixer({ className = "" }: UniversalMixerProps) 
         showToast('Load at least one track to record', 'info');
         return;
       }
+      // 🔴 SYNC FIX: Reset sync engine before recording (uses ref to avoid dependency issues)
+      resetSyncForRecordingRef.current();
+
       // Use master BPM
       const bpm = mixerState.masterBPM || 120;
       console.log(`🔴 Starting pre-countdown at ${bpm} BPM...`);
