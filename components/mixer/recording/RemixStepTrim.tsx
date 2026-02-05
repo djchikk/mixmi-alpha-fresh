@@ -78,8 +78,16 @@ export default function RemixStepTrim({
 
   // Stop playback
   const stopPlayback = useCallback(() => {
+    // Clear any pending loop timeout FIRST
+    if (loopTimeoutRef.current) {
+      clearTimeout(loopTimeoutRef.current);
+      loopTimeoutRef.current = null;
+    }
     if (sourceNodeRef.current) {
       try {
+        // CRITICAL: Remove onended handler BEFORE stopping to prevent
+        // it from scheduling a new loop when stop() triggers the callback
+        sourceNodeRef.current.onended = null;
         sourceNodeRef.current.stop();
       } catch (e) {
         // Already stopped
@@ -89,10 +97,6 @@ export default function RemixStepTrim({
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
-    }
-    if (loopTimeoutRef.current) {
-      clearTimeout(loopTimeoutRef.current);
-      loopTimeoutRef.current = null;
     }
     setPlayingBlock(null);
     setIsPlaying(false);
@@ -253,6 +257,8 @@ export default function RemixStepTrim({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Reset loop state first to prevent any callbacks from restarting
+      isLoopingRef.current = false;
       stopPlayback();
       if (audioContextRef.current) {
         audioContextRef.current.close();

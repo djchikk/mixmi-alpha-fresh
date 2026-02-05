@@ -122,6 +122,17 @@ export default function RemixCompletionModal({
     // Only aggregate once on initial load, not on every loadedTracks change
     if (loadedTracks.length > 0 && !hasAggregatedRef.current) {
       hasAggregatedRef.current = true;
+
+      console.log('🎵 [Remix] Aggregating from source tracks:', loadedTracks.map(t => ({
+        title: t.title,
+        tags: t.tags,
+        notes: t.notes?.substring(0, 50),
+        primary_location: t.primary_location,
+        locations: t.locations,
+        location_lat: t.location_lat,
+        location_lng: t.location_lng,
+      })));
+
       // Aggregate tags from all source tracks
       const allTags = new Set<string>();
       loadedTracks.forEach(track => {
@@ -152,7 +163,7 @@ export default function RemixCompletionModal({
             }
           });
         }
-        // Add primary_location if it has coordinates
+        // Add primary_location if it exists (may not have coordinates)
         if (track.primary_location && !locationMap.has(track.primary_location)) {
           locationMap.set(track.primary_location, {
             name: track.primary_location,
@@ -160,6 +171,12 @@ export default function RemixCompletionModal({
             lng: track.location_lng || 0,
           });
         }
+      });
+
+      console.log('🎵 [Remix] Aggregation result:', {
+        tags: Array.from(allTags),
+        notes: notesArray.join('\n\n').substring(0, 100),
+        locations: Array.from(locationMap.values()),
       });
 
       setRemixDetails(prev => ({
