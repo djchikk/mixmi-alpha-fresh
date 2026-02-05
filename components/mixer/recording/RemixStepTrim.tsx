@@ -126,13 +126,17 @@ export default function RemixStepTrim({
     source.connect(audioContext.destination);
 
     source.onended = () => {
+      console.log('🔄 [Loop] onended fired, isLoopingRef.current =', isLoopingRef.current);
       // ONLY check ref - the 'loop' parameter is stale from closure
       if (isLoopingRef.current) {
+        console.log('🔄 [Loop] Scheduling next iteration...');
         // Schedule next loop iteration
         loopTimeoutRef.current = setTimeout(() => {
+          console.log('🔄 [Loop] Timeout fired, calling playSelection(true)');
           playSelection(true);
         }, 50); // Small gap between loops
       } else {
+        console.log('🔄 [Loop] Not looping, stopping playback');
         setPlayingBlock(null);
         setIsPlaying(false);
         setPlaybackPosition(0);
@@ -230,15 +234,18 @@ export default function RemixStepTrim({
   // Toggle loop mode
   const toggleLoop = useCallback(() => {
     const newLooping = !isLooping;
+    console.log('🔄 [Loop] Toggle called, newLooping =', newLooping, 'isPlaying =', isPlaying);
     setIsLooping(newLooping);
     isLoopingRef.current = newLooping;
 
     if (isPlaying) {
       if (!newLooping) {
         // Turning OFF while playing - stop immediately
+        console.log('🔄 [Loop] Turning OFF while playing - stopping');
         stopPlayback();
       } else {
         // Turning ON while playing - restart with looping
+        console.log('🔄 [Loop] Turning ON while playing - restarting with loop');
         playSelection(true);
       }
     }

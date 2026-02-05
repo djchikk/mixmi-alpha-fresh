@@ -126,17 +126,38 @@ export default function SimplifiedDeckCompact({
         // Convert IPTrack format to mixer Track format if needed
         // For radio stations, preserve stream_url as separate field for proxying
         // For video clips, preserve video_url for video playback
+        // IMPORTANT: Preserve ALL metadata for remix genealogy and aggregation
         const mixerTrack = {
           id: item.track.id,
           title: item.track.title,
           artist: item.track.artist || item.track.artist_name,
           imageUrl: optimizedImageUrl,
+          cover_image_url: item.track.cover_image_url, // Preserve original cover URL
           audioUrl: item.track.audioUrl || item.track.audio_url,
           bpm: item.track.bpm, // Preserve original bpm (may be null for undetected)
           content_type: item.track.content_type,
           pack_position: item.track.pack_position, // Preserve for number badges
           is_draft: (item.track as any).is_draft, // Preserve draft status for badge
           notes: item.track.notes, // Preserve notes for CC text overlay
+          // Preserve metadata for remix aggregation
+          tags: item.track.tags,
+          primary_location: item.track.primary_location,
+          locations: item.track.locations,
+          location_lat: item.track.location_lat,
+          location_lng: item.track.location_lng,
+          // Preserve remix genealogy fields
+          remix_depth: item.track.remix_depth,
+          generation: item.track.generation,
+          source_track_ids: item.track.source_track_ids,
+          source_tracks_metadata: item.track.source_tracks_metadata,
+          // Preserve ownership fields
+          primary_uploader_wallet: item.track.primary_uploader_wallet,
+          composition_split_1_wallet: item.track.composition_split_1_wallet,
+          composition_split_1_percentage: item.track.composition_split_1_percentage,
+          composition_split_1_sui_address: item.track.composition_split_1_sui_address,
+          production_split_1_wallet: item.track.production_split_1_wallet,
+          production_split_1_percentage: item.track.production_split_1_percentage,
+          production_split_1_sui_address: item.track.production_split_1_sui_address,
           // Preserve stream_url for radio stations (needed for proxying)
           ...(item.track.content_type === 'radio_station' && item.track.stream_url && {
             stream_url: item.track.stream_url
