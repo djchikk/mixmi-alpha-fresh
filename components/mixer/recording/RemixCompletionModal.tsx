@@ -323,6 +323,7 @@ export default function RemixCompletionModal({
               onTrimStartChange={onTrimStartChange}
               onTrimEndChange={onTrimEndChange}
               onNudge={onNudge}
+              onVideoFrameCapture={hasVideo ? setCoverImageUrl : undefined}
             />
           )}
 

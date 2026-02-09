@@ -19,6 +19,7 @@ interface RemixStepTrimProps {
   onTrimStartChange: (bars: number) => void;
   onTrimEndChange: (bars: number) => void;
   onNudge: (point: 'start' | 'end', direction: 'left' | 'right', resolution: number) => void;
+  onVideoFrameCapture?: (dataUrl: string) => void; // For video cover generation
 }
 
 type Resolution = '1bar' | '1beat' | '1/16';
@@ -31,6 +32,7 @@ export default function RemixStepTrim({
   onTrimStartChange,
   onTrimEndChange,
   onNudge,
+  onVideoFrameCapture,
 }: RemixStepTrimProps) {
   const { waveformData, bpm, audioBuffer, videoBlob, hasVideo } = recordingData;
   const { startBars: trimStartBars, endBars: trimEndBars, totalBars } = trimState;
@@ -69,6 +71,66 @@ export default function RemixStepTrim({
       };
     }
   }, [hasVideo, videoBlob]);
+
+  // Capture a frame from the video for use as cover image
+  const captureVideoFrame = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !onVideoFrameCapture) return;
+
+    // Create canvas and capture frame
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 400;
+    canvas.height = video.videoHeight || 400;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Add subtle shimmer overlay to match remix aesthetic
+    const shimmerGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    shimmerGradient.addColorStop(0, 'rgba(168, 230, 207, 0.08)');
+    shimmerGradient.addColorStop(0.5, 'rgba(136, 212, 242, 0.12)');
+    shimmerGradient.addColorStop(1, 'rgba(168, 230, 207, 0.08)');
+    ctx.fillStyle = shimmerGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL('image/png');
+    console.log('🎬 [Video] Captured frame for cover');
+    onVideoFrameCapture(dataUrl);
+  }, [onVideoFrameCapture]);
+
+  // Auto-capture frame when video is ready (at trim start position)
+  useEffect(() => {
+    if (!hasVideo || !videoUrl || !onVideoFrameCapture) return;
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleLoadedData = () => {
+      // Seek to the trim start position for a better representative frame
+      const startSeconds = barsToSeconds(trimStartBars, bpm);
+      video.currentTime = startSeconds;
+    };
+
+    const handleSeeked = () => {
+      // Capture frame once video has seeked to position
+      // Small delay to ensure frame is rendered
+      setTimeout(captureVideoFrame, 100);
+    };
+
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('seeked', handleSeeked);
+
+    // If video is already loaded, trigger capture
+    if (video.readyState >= 2) {
+      handleLoadedData();
+    }
+
+    return () => {
+      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('seeked', handleSeeked);
+    };
+  }, [hasVideo, videoUrl, trimStartBars, bpm, captureVideoFrame, onVideoFrameCapture]);
 
   const barsPerBlock = PRICING.remix.barsPerBlock;
   const selectedBars = trimEndBars - trimStartBars;
