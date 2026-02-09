@@ -32,7 +32,7 @@ export default function RemixStepTrim({
   onTrimEndChange,
   onNudge,
 }: RemixStepTrimProps) {
-  const { waveformData, bpm, audioBuffer } = recordingData;
+  const { waveformData, bpm, audioBuffer, videoBlob, hasVideo } = recordingData;
   const { startBars: trimStartBars, endBars: trimEndBars, totalBars } = trimState;
 
   // Playback state
@@ -46,6 +46,10 @@ export default function RemixStepTrim({
   const [showInfo, setShowInfo] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = fit to width, >1 = zoomed in
 
+  // Video preview state
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   // Audio refs
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
@@ -53,6 +57,18 @@ export default function RemixStepTrim({
   const animationFrameRef = useRef<number | null>(null);
   const loopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isLoopingRef = useRef(false); // Ref to track current loop state for callbacks
+
+  // Create video URL from blob
+  useEffect(() => {
+    if (hasVideo && videoBlob) {
+      const url = URL.createObjectURL(videoBlob);
+      setVideoUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+        setVideoUrl(null);
+      };
+    }
+  }, [hasVideo, videoBlob]);
 
   const barsPerBlock = PRICING.remix.barsPerBlock;
   const selectedBars = trimEndBars - trimStartBars;
@@ -98,6 +114,10 @@ export default function RemixStepTrim({
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
+    // Stop and reset video
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
     setPlayingBlock(null);
     setIsPlaying(false);
     setPlaybackPosition(0);
@@ -137,6 +157,10 @@ export default function RemixStepTrim({
         }, 50); // Small gap between loops
       } else {
         console.log('🔄 [Loop] Not looping, stopping playback');
+        // Pause video
+        if (videoRef.current) {
+          videoRef.current.pause();
+        }
         setPlayingBlock(null);
         setIsPlaying(false);
         setPlaybackPosition(0);
@@ -149,6 +173,12 @@ export default function RemixStepTrim({
     source.start(0, startSeconds, duration);
     setPlayingBlock('all');
     setIsPlaying(true);
+
+    // Sync video playback
+    if (videoRef.current && videoUrl) {
+      videoRef.current.currentTime = startSeconds;
+      videoRef.current.play().catch(e => console.log('Video play error:', e));
+    }
 
     // Update playback position animation
     const updatePosition = () => {
@@ -212,6 +242,12 @@ export default function RemixStepTrim({
     setPlayingBlock(blockNum);
     setIsPlaying(true);
 
+    // Sync video playback
+    if (videoRef.current && videoUrl) {
+      videoRef.current.currentTime = startSeconds;
+      videoRef.current.play().catch(e => console.log('Video play error:', e));
+    }
+
     // Update playback position
     const totalDuration = barsToSeconds(selectedBars, bpm);
     const updatePosition = () => {
@@ -271,6 +307,7 @@ export default function RemixStepTrim({
         audioContextRef.current.close();
         audioContextRef.current = null;
       }
+      // Video URL cleanup is handled by its own useEffect
     };
   }, [stopPlayback]);
 
@@ -313,24 +350,49 @@ export default function RemixStepTrim({
         </div>
       </div>
 
-      {/* Waveform - Compact height with horizontal scroll */}
-      <div
-        className="relative overflow-x-auto rounded-lg bg-slate-800/30"
-        style={{ maxWidth: '100%' }}
-      >
-        <div style={{ width: `${100 * zoomLevel}%`, minWidth: '100%' }}>
-          <RecordingWaveform
-            waveformData={waveformData}
-            bpm={bpm}
-            totalBars={totalBars}
-            trimStartBars={trimStartBars}
-            trimEndBars={trimEndBars}
-            onTrimStartChange={onTrimStartChange}
-            onTrimEndChange={onTrimEndChange}
-            playbackPosition={normalizedWaveformPosition}
-            isPlaying={isPlaying}
-            compactHeight={true}
-          />
+      {/* Video Preview + Waveform Row */}
+      <div className="flex gap-3">
+        {/* Video Preview - Only show when hasVideo */}
+        {hasVideo && videoUrl && (
+          <div className="flex-shrink-0">
+            <div className="relative w-[120px] h-[68px] rounded-lg overflow-hidden bg-slate-800 border border-slate-700">
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                className="w-full h-full object-cover"
+                muted
+                playsInline
+              />
+              {/* Play state indicator */}
+              {!isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <Play size={20} className="text-white/80" />
+                </div>
+              )}
+            </div>
+            <div className="text-[9px] text-slate-500 text-center mt-1">Video Preview</div>
+          </div>
+        )}
+
+        {/* Waveform - Compact height with horizontal scroll */}
+        <div
+          className="flex-1 relative overflow-x-auto rounded-lg bg-slate-800/30"
+          style={{ maxWidth: '100%' }}
+        >
+          <div style={{ width: `${100 * zoomLevel}%`, minWidth: '100%' }}>
+            <RecordingWaveform
+              waveformData={waveformData}
+              bpm={bpm}
+              totalBars={totalBars}
+              trimStartBars={trimStartBars}
+              trimEndBars={trimEndBars}
+              onTrimStartChange={onTrimStartChange}
+              onTrimEndChange={onTrimEndChange}
+              playbackPosition={normalizedWaveformPosition}
+              isPlaying={isPlaying}
+              compactHeight={true}
+            />
+          </div>
         </div>
       </div>
 
