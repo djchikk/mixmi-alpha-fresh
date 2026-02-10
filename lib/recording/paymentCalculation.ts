@@ -71,9 +71,9 @@ export function calculateRecordingCost(bars: number, trackCount: number): number
 // =============================================================================
 
 export interface PaymentSplit {
-  platform: number;       // 5% - paid to platform
-  creators: number;       // 80% - paid to Gen 0 creators
-  remixerStake: number;   // 15% - stored, not paid
+  platform: number;       // 10% - paid to platform
+  creators: number;       // 90% - paid to source track creators
+  remixerStake: number;   // 10% - NOT paid, just recorded for new track's IP metadata
 }
 
 /**

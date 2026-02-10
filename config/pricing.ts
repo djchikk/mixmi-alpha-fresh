@@ -59,9 +59,9 @@ export const PRICING = {
   remix: {
     pricePerBlock: 0.10,        // $0.10 USDC per 8-bar block per track
     barsPerBlock: 8,            // 8 bars = 1 "sausage link"
-    platformCutPercent: 5,      // 5% to platform (paid)
-    creatorsCutPercent: 80,     // 80% to Gen 0 creators (paid)
-    remixerStakePercent: 15,    // 15% remixer stake (stored, not paid)
+    platformCutPercent: 10,     // 10% to platform (paid)
+    creatorsCutPercent: 90,     // 90% to source track creators (paid)
+    remixerStakePercent: 10,    // 10% remixer stake in new track's IP (NOT paid - just recorded for IP metadata)
   },
 } as const;
 
