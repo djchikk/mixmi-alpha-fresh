@@ -133,6 +133,7 @@ export default function RemixStepTrim({
   }, [hasVideo, videoUrl, trimStartBars, bpm, captureVideoFrame, onVideoFrameCapture]);
 
   const barsPerBlock = PRICING.remix.barsPerBlock;
+  const minBars = 1; // Minimum selection is 1 bar (allows partial blocks)
   const selectedBars = trimEndBars - trimStartBars;
   const blockCount = Math.ceil(selectedBars / barsPerBlock);
 
@@ -553,7 +554,7 @@ export default function RemixStepTrim({
           </span>
           <button
             onClick={() => onNudge('start', 'right', getResolutionValue())}
-            disabled={trimStartBars >= trimEndBars - barsPerBlock}
+            disabled={trimStartBars >= trimEndBars - minBars}
             className="p-1 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-30 transition-all"
           >
             <ChevronRight size={12} />
@@ -581,7 +582,7 @@ export default function RemixStepTrim({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onNudge('end', 'left', getResolutionValue())}
-            disabled={trimEndBars <= trimStartBars + barsPerBlock}
+            disabled={trimEndBars <= trimStartBars + minBars}
             className="p-1 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-30 transition-all"
           >
             <ChevronLeft size={12} />

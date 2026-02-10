@@ -35,6 +35,7 @@ export default function RecordingWaveform({
   const canvasHeight = compactHeight ? 70 : 120;
 
   const barsPerBlock = PRICING.remix.barsPerBlock; // 8 bars per block
+  const minBars = 1; // Minimum selection allows partial blocks
 
   // Calculate positions
   const getBarPosition = useCallback(
@@ -240,13 +241,13 @@ export default function RecordingWaveform({
       const snappedBars = snapTo8Bars(bars);
 
       if (isDragging === 'start') {
-        // Ensure at least 8 bars between start and end
-        if (snappedBars < trimEndBars - barsPerBlock) {
+        // Ensure at least minBars between start and end (allows partial blocks)
+        if (snappedBars < trimEndBars - minBars) {
           onTrimStartChange(Math.max(0, snappedBars));
         }
       } else if (isDragging === 'end') {
-        // Ensure at least 8 bars between start and end
-        if (snappedBars > trimStartBars + barsPerBlock) {
+        // Ensure at least minBars between start and end (allows partial blocks)
+        if (snappedBars > trimStartBars + minBars) {
           onTrimEndChange(Math.min(totalBars, snappedBars));
         }
       }
@@ -261,7 +262,7 @@ export default function RecordingWaveform({
       totalBars,
       onTrimStartChange,
       onTrimEndChange,
-      barsPerBlock,
+      minBars,
     ]
   );
 
@@ -283,11 +284,11 @@ export default function RecordingWaveform({
       const snappedBars = snapTo8Bars(bars);
 
       if (isDragging === 'start') {
-        if (snappedBars < trimEndBars - barsPerBlock) {
+        if (snappedBars < trimEndBars - minBars) {
           onTrimStartChange(Math.max(0, snappedBars));
         }
       } else if (isDragging === 'end') {
-        if (snappedBars > trimStartBars + barsPerBlock) {
+        if (snappedBars > trimStartBars + minBars) {
           onTrimEndChange(Math.min(totalBars, snappedBars));
         }
       }
@@ -314,7 +315,7 @@ export default function RecordingWaveform({
     totalBars,
     onTrimStartChange,
     onTrimEndChange,
-    barsPerBlock,
+    minBars,
   ]);
 
   // Calculate selected block count
