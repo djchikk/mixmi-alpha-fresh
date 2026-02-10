@@ -354,23 +354,25 @@ export default function RemixStepConfirm({
   const remixerStake = costInfo.totalCost * (PRICING.remix.remixerStakePercent / 100);
   const creatorsAmount = costInfo.totalCost * (PRICING.remix.creatorsCutPercent / 100);
 
-  // Merge creator payments by recipient (combine composition + production for same person)
+  // Merge creator payments by TRACK (combine composition + production for same track)
+  // This shows which tracks you're paying for, not which wallets
   const mergedCreators = useMemo(() => {
     if (!paymentData?.recipients) return [];
 
     const creatorPayments = paymentData.recipients.filter(r => r.payment_type !== 'platform');
-    const merged = new Map<string, { name: string; amount: number; address: string }>();
+    const merged = new Map<string, { name: string; amount: number; trackId: string }>();
 
     for (const r of creatorPayments) {
-      const key = r.sui_address || r.display_name || r.source_track_title || 'Unknown';
+      // Key by track ID so each track appears separately
+      const key = r.source_track_id || r.source_track_title || 'Unknown';
       const existing = merged.get(key);
       if (existing) {
         existing.amount += r.amount;
       } else {
         merged.set(key, {
-          name: r.display_name || r.source_track_title || 'Creator',
+          name: r.source_track_title || r.display_name || 'Track',
           amount: r.amount,
-          address: r.sui_address,
+          trackId: r.source_track_id || '',
         });
       }
     }
