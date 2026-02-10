@@ -106,16 +106,32 @@ export default function RemixStepTrim({
     const video = videoRef.current;
     if (!video) return;
 
+    let captureScheduled = false;
+
     const handleLoadedData = () => {
       // Seek to the trim start position for a better representative frame
       const startSeconds = barsToSeconds(trimStartBars, bpm);
-      video.currentTime = startSeconds;
+
+      // If already at start (or very close), capture directly after a delay
+      // Otherwise seek and wait for seeked event
+      if (Math.abs(video.currentTime - startSeconds) < 0.1) {
+        // Already at position - capture after brief delay for frame to render
+        if (!captureScheduled) {
+          captureScheduled = true;
+          setTimeout(captureVideoFrame, 200);
+        }
+      } else {
+        video.currentTime = startSeconds;
+      }
     };
 
     const handleSeeked = () => {
       // Capture frame once video has seeked to position
       // Small delay to ensure frame is rendered
-      setTimeout(captureVideoFrame, 100);
+      if (!captureScheduled) {
+        captureScheduled = true;
+        setTimeout(captureVideoFrame, 100);
+      }
     };
 
     video.addEventListener('loadeddata', handleLoadedData);
@@ -418,11 +434,11 @@ export default function RemixStepTrim({
         {/* Video Preview - Only show when hasVideo */}
         {hasVideo && videoUrl && (
           <div className="flex-shrink-0">
-            <div className="relative w-[120px] h-[68px] rounded-lg overflow-hidden bg-slate-800 border border-slate-700">
+            <div className="relative w-[120px] h-[68px] rounded-lg overflow-hidden bg-black border border-slate-700">
               <video
                 ref={videoRef}
                 src={videoUrl}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 muted
                 playsInline
               />
