@@ -75,7 +75,8 @@ export default function RemixStepConfirm({
         const sourceTrackIds = loadedTracks.map(t => t.id);
 
         // Debug: Log which wallet is being used
-        const payerWallet = activePersona?.sui_address || suiAddress;
+        // Priority: persona's SUI wallet > persona's linked wallet > zkLogin manager wallet
+        const payerWallet = activePersona?.sui_address || activePersona?.wallet_address || suiAddress;
         console.log('💰 [Remix Payment] Wallet debug:', {
           activePersona: activePersona ? {
             id: activePersona.id,

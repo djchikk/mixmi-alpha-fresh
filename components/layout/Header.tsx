@@ -43,8 +43,8 @@ export default function Header() {
   // Priority: active persona's SUI > persona's wallet > account SUI > account STX
   const effectiveAddress = activePersona?.sui_address || activePersona?.wallet_address || suiAddress || walletAddress;
 
-  // Display address: prefer SUI address for display (migration to SUI)
-  const displayAddress = suiAddress || walletAddress;
+  // Display address: show the persona's wallet (effectiveAddress), not the manager wallet
+  const displayAddress = effectiveAddress;
 
   // State for persona picker expansion
   const [showPersonaList, setShowPersonaList] = useState(false);
