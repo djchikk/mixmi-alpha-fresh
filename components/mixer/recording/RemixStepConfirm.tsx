@@ -135,6 +135,13 @@ export default function RemixStepConfirm({
         label: r.payment_type,
       }));
 
+      console.log('💰 [Remix Payment] Calling purchase-with-persona:', {
+        personaId: activePersona.id,
+        accountId: activePersona.account_id,
+        recipientCount: recipients.length,
+        totalAmount: recipients.reduce((sum, r) => sum + r.amountUsdc, 0),
+      });
+
       // Use the persona wallet for payment (not the zkLogin manager wallet)
       const paymentResponse = await fetch('/api/sui/purchase-with-persona', {
         method: 'POST',
@@ -148,9 +155,14 @@ export default function RemixStepConfirm({
       });
 
       const paymentResult = await paymentResponse.json();
+      console.log('💰 [Remix Payment] Response:', paymentResult);
 
       if (!paymentResponse.ok) {
-        throw new Error(paymentResult.error || 'Payment failed');
+        // Show details if available for debugging
+        const errorMsg = paymentResult.details
+          ? `${paymentResult.error}: ${paymentResult.details}`
+          : paymentResult.error || 'Payment failed';
+        throw new Error(errorMsg);
       }
 
       const txHash = paymentResult.txHash;
