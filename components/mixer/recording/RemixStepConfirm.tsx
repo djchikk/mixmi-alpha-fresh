@@ -6,9 +6,6 @@ import { RemixDetails, PaymentRecipient } from './RemixCompletionModal';
 import { RecordingCostInfo, TrimState, RecordingData } from '@/hooks/useMixerRecording';
 import { IPTrack } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { getZkLoginSession } from '@/lib/zklogin/session';
-import { getZkLoginSignature, genAddressSeed } from '@mysten/sui/zklogin';
-import { buildSplitPaymentForSponsorship } from '@/lib/sui/payment-splitter';
 import { PRICING } from '@/config/pricing';
 
 interface RemixStepConfirmProps {
@@ -33,15 +30,6 @@ interface RemixStepConfirmProps {
   hasVideo: boolean;
   coverImageUrl: string | null;
   onSuccess: (txHash: string, draftId: string) => void;
-}
-
-// Helper to safely decode base64url
-function safeBase64Decode(str: string): string {
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (base64.length % 4) {
-    base64 += '=';
-  }
-  return atob(base64);
 }
 
 export default function RemixStepConfirm({
@@ -120,8 +108,13 @@ export default function RemixStepConfirm({
   const handleConfirmAndPay = useCallback(async () => {
     if (!paymentData) return;
 
-    if (!suiAddress) {
-      setError('Please sign in to save your recording');
+    if (!activePersona) {
+      setError('Please select a persona to save your recording');
+      return;
+    }
+
+    if (!activePersona.sui_address) {
+      setError('Your persona does not have a wallet. Please contact support.');
       return;
     }
 
@@ -133,102 +126,35 @@ export default function RemixStepConfirm({
     try {
       setError(null);
       setIsProcessing(true);
-      setStatusMessage('Building transaction...');
+      setStatusMessage('Processing payment...');
 
-      // Build the split payment transaction
+      // Build recipient list for payment
       const recipients = paymentData.recipients.map((r: PaymentRecipient) => ({
         address: r.sui_address,
         amountUsdc: r.amount,
         label: r.payment_type,
       }));
 
-      let kindBytes: Uint8Array;
-      try {
-        const result = await buildSplitPaymentForSponsorship({
-          senderAddress: suiAddress,
+      // Use the persona wallet for payment (not the zkLogin manager wallet)
+      const paymentResponse = await fetch('/api/sui/purchase-with-persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personaId: activePersona.id,
+          accountId: activePersona.account_id,
           recipients,
-        });
-        kindBytes = result.kindBytes;
-      } catch (buildError) {
-        throw new Error(buildError instanceof Error ? buildError.message : 'Failed to build transaction');
-      }
-
-      // Send to sponsor endpoint
-      setStatusMessage('Getting transaction sponsored...');
-      const kindBytesBase64 = btoa(String.fromCharCode(...kindBytes));
-
-      const sponsorResponse = await fetch('/api/sui/sponsor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kindBytes: kindBytesBase64,
-          senderAddress: suiAddress,
+          // No cartItems needed for remix - we'll record separately
         }),
       });
 
-      const sponsorData = await sponsorResponse.json();
+      const paymentResult = await paymentResponse.json();
 
-      if (!sponsorResponse.ok) {
-        throw new Error(sponsorData.error || 'Failed to sponsor transaction');
+      if (!paymentResponse.ok) {
+        throw new Error(paymentResult.error || 'Payment failed');
       }
 
-      const { txBytes, sponsorSignature } = sponsorData;
-
-      // Sign with zkLogin
-      setStatusMessage('Signing transaction...');
-      const zkSession = getZkLoginSession();
-
-      if (!zkSession) {
-        throw new Error('zkLogin session expired. Please sign in again.');
-      }
-
-      const keypair = zkSession.ephemeralKeyPair;
-      const txBytesArray = Uint8Array.from(atob(txBytes), c => c.charCodeAt(0));
-      const { signature: ephemeralSignature } = await keypair.signTransaction(txBytesArray);
-
-      // Decode JWT for address seed
-      const [, payload] = zkSession.jwt.split('.');
-      if (!payload) {
-        throw new Error('Invalid JWT format');
-      }
-
-      const jwtPayload = JSON.parse(safeBase64Decode(payload));
-      const aud = Array.isArray(jwtPayload.aud) ? jwtPayload.aud[0] : jwtPayload.aud;
-
-      const addressSeed = genAddressSeed(
-        BigInt(zkSession.salt),
-        'sub',
-        jwtPayload.sub,
-        aud
-      ).toString();
-
-      const zkLoginSignature = getZkLoginSignature({
-        inputs: {
-          ...zkSession.zkProof,
-          addressSeed,
-        },
-        maxEpoch: zkSession.maxEpoch,
-        userSignature: ephemeralSignature,
-      });
-
-      // Execute the transaction
-      setStatusMessage('Processing payment...');
-
-      const executeResponse = await fetch('/api/sui/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          txBytes,
-          userSignature: zkLoginSignature,
-          sponsorSignature,
-        }),
-      });
-
-      const executeData = await executeResponse.json();
-
-      if (!executeResponse.ok) {
-        throw new Error(executeData.error || 'Transaction failed');
-      }
+      const txHash = paymentResult.txHash;
+      console.log('💰 [Remix Payment] Transaction successful:', txHash);
 
       // Upload audio
       setStatusMessage('Uploading audio...');
@@ -238,13 +164,14 @@ export default function RemixStepConfirm({
         throw new Error('Failed to create trimmed audio');
       }
 
-      // Get upload URL
+      // Get upload URL (use persona wallet address)
+      const personaWallet = activePersona.sui_address;
       const uploadUrlResponse = await fetch('/api/recording/get-upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paymentId: paymentData.id,
-          walletAddress: suiAddress,
+          walletAddress: personaWallet,
         }),
       });
 
@@ -275,7 +202,7 @@ export default function RemixStepConfirm({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               paymentId: paymentData.id,
-              walletAddress: suiAddress,
+              walletAddress: personaWallet,
               fileType: 'video',
             }),
           });
@@ -312,7 +239,7 @@ export default function RemixStepConfirm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paymentId: paymentData.id,
-          txHash: executeData.txHash,
+          txHash: txHash,
           audioUrl: uploadUrlData.publicUrl,
           videoUrl,
           title: remixDetails.name,
@@ -339,7 +266,7 @@ export default function RemixStepConfirm({
       // Success!
       setIsProcessing(false);
       setStatusMessage(null);
-      onSuccess(executeData.txHash, saveData.draft.id);
+      onSuccess(txHash, saveData.draft.id);
 
     } catch (err) {
       console.error('Payment error:', err);
@@ -551,9 +478,9 @@ export default function RemixStepConfirm({
       )}
 
       {/* Auth Warning */}
-      {!suiAddress && (
+      {!activePersona?.sui_address && (
         <div className="bg-amber-500/20 border border-amber-500/50 rounded-lg p-3 text-amber-300 text-sm text-center">
-          Please sign in with Google to publish your remix
+          {!suiAddress ? 'Please sign in with Google to publish your remix' : 'Your persona needs a wallet to publish. Please contact support.'}
         </div>
       )}
 
@@ -561,7 +488,7 @@ export default function RemixStepConfirm({
       {!isProcessing && (
         <button
           onClick={handleConfirmAndPay}
-          disabled={!paymentData || !suiAddress}
+          disabled={!paymentData || !activePersona?.sui_address}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold bg-gradient-to-r from-[#81E4F2] to-cyan-400 text-slate-900 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Check size={18} />
