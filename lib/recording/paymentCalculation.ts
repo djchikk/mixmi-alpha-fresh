@@ -208,40 +208,79 @@ export function calculateRecipientPayments(
   for (const track of loadedTracks) {
     const { composition, production } = extractIPSplits(track);
 
+    // Fallback wallet if no splits configured - use primary uploader
+    const fallbackWallet = (track as any).primary_uploader_wallet ||
+                          (track as any).composition_split_1_sui_address ||
+                          (track as any).composition_split_1_wallet;
+
     // Distribute composition amount among composition split holders
     const totalCompositionPercent = composition.reduce((sum, s) => sum + s.percentage, 0);
-    for (const split of composition) {
-      if (split.sui_address || split.wallet) {
-        const amount = compositionAmount * (split.percentage / totalCompositionPercent);
-        recipients.push({
-          sui_address: split.sui_address || split.wallet,
-          wallet_address: split.wallet,
-          amount,
-          payment_type: 'composition',
-          source_track_id: track.id,
-          source_track_title: track.title,
-          percentage: split.percentage,
-          display_name: split.display_name,
-        });
+    if (totalCompositionPercent > 0) {
+      for (const split of composition) {
+        if (split.sui_address || split.wallet) {
+          const amount = compositionAmount * (split.percentage / totalCompositionPercent);
+          recipients.push({
+            sui_address: split.sui_address || split.wallet,
+            wallet_address: split.wallet,
+            amount,
+            payment_type: 'composition',
+            source_track_id: track.id,
+            source_track_title: track.title,
+            percentage: split.percentage,
+            display_name: split.display_name,
+          });
+        }
       }
+    } else if (fallbackWallet) {
+      // No composition splits - give to primary uploader
+      console.warn(`⚠️ [Payment] Track "${track.title}" has no composition splits, using fallback wallet`);
+      recipients.push({
+        sui_address: fallbackWallet,
+        wallet_address: fallbackWallet,
+        amount: compositionAmount,
+        payment_type: 'composition',
+        source_track_id: track.id,
+        source_track_title: track.title,
+        percentage: 100,
+        display_name: undefined,
+      });
+    } else {
+      console.error(`❌ [Payment] Track "${track.title}" has no composition splits AND no fallback wallet!`);
     }
 
     // Distribute production amount among production split holders
     const totalProductionPercent = production.reduce((sum, s) => sum + s.percentage, 0);
-    for (const split of production) {
-      if (split.sui_address || split.wallet) {
-        const amount = productionAmount * (split.percentage / totalProductionPercent);
-        recipients.push({
-          sui_address: split.sui_address || split.wallet,
-          wallet_address: split.wallet,
-          amount,
-          payment_type: 'production',
-          source_track_id: track.id,
-          source_track_title: track.title,
-          percentage: split.percentage,
-          display_name: split.display_name,
-        });
+    if (totalProductionPercent > 0) {
+      for (const split of production) {
+        if (split.sui_address || split.wallet) {
+          const amount = productionAmount * (split.percentage / totalProductionPercent);
+          recipients.push({
+            sui_address: split.sui_address || split.wallet,
+            wallet_address: split.wallet,
+            amount,
+            payment_type: 'production',
+            source_track_id: track.id,
+            source_track_title: track.title,
+            percentage: split.percentage,
+            display_name: split.display_name,
+          });
+        }
       }
+    } else if (fallbackWallet) {
+      // No production splits - give to primary uploader
+      console.warn(`⚠️ [Payment] Track "${track.title}" has no production splits, using fallback wallet`);
+      recipients.push({
+        sui_address: fallbackWallet,
+        wallet_address: fallbackWallet,
+        amount: productionAmount,
+        payment_type: 'production',
+        source_track_id: track.id,
+        source_track_title: track.title,
+        percentage: 100,
+        display_name: undefined,
+      });
+    } else {
+      console.error(`❌ [Payment] Track "${track.title}" has no production splits AND no fallback wallet!`);
     }
   }
 

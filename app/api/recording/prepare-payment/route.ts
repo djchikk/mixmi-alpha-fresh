@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     const { data: sourceTracks, error: fetchError } = await supabase
       .from('ip_tracks')
       .select(`
-        id, title, bpm, remix_depth, remixer_stake_percentage,
+        id, title, bpm, remix_depth, remixer_stake_percentage, primary_uploader_wallet,
         composition_split_1_wallet, composition_split_1_percentage, composition_split_1_sui_address,
         composition_split_2_wallet, composition_split_2_percentage, composition_split_2_sui_address,
         composition_split_3_wallet, composition_split_3_percentage, composition_split_3_sui_address,

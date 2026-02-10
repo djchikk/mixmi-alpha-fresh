@@ -391,20 +391,12 @@ export default function RemixStepConfirm({
     '#C084FC', // Creator 7 - violet
   ];
 
-  // Build donut segments (platform + stake + creators)
+  // Build donut segments (stake + creators + platform at bottom)
   const donutSegments = useMemo(() => {
     const segments: { label: string; amount: number; percentage: number; color: string }[] = [];
     const total = costInfo.totalCost;
 
-    // Platform
-    segments.push({
-      label: 'Platform fee',
-      amount: platformAmount,
-      percentage: (platformAmount / total) * 100,
-      color: SLICE_COLORS[0],
-    });
-
-    // Your stake
+    // Your stake (gold - first/top)
     segments.push({
       label: 'Your remix stake',
       amount: remixerStake,
@@ -412,7 +404,7 @@ export default function RemixStepConfirm({
       color: SLICE_COLORS[1],
     });
 
-    // Creators
+    // Creators (various colors)
     mergedCreators.forEach((creator, i) => {
       segments.push({
         label: creator.name,
@@ -420,6 +412,14 @@ export default function RemixStepConfirm({
         percentage: (creator.amount / total) * 100,
         color: SLICE_COLORS[(i + 2) % SLICE_COLORS.length],
       });
+    });
+
+    // Platform (gray - last/bottom)
+    segments.push({
+      label: 'Platform fee',
+      amount: platformAmount,
+      percentage: (platformAmount / total) * 100,
+      color: SLICE_COLORS[0],
     });
 
     return segments;
