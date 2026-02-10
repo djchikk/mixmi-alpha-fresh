@@ -74,13 +74,27 @@ export default function RemixStepConfirm({
         const bars = trimState.endBars - trimState.startBars;
         const sourceTrackIds = loadedTracks.map(t => t.id);
 
+        // Debug: Log which wallet is being used
+        const payerWallet = activePersona?.sui_address || suiAddress;
+        console.log('💰 [Remix Payment] Wallet debug:', {
+          activePersona: activePersona ? {
+            id: activePersona.id,
+            username: activePersona.username,
+            wallet_address: activePersona.wallet_address,
+            sui_address: activePersona.sui_address,
+          } : null,
+          suiAddress,
+          payerWallet,
+          usingPersonaWallet: !!activePersona?.sui_address,
+        });
+
         const response = await fetch('/api/recording/prepare-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             bars,
             sourceTrackIds,
-            payerSuiAddress: activePersona?.sui_address || suiAddress,
+            payerSuiAddress: payerWallet,
             payerPersonaId: activePersona?.id || null,
           }),
         });
