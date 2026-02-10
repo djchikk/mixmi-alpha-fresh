@@ -662,6 +662,230 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     </div>
   );
 
+  // Donut chart component for IP splits
+  const IPDonutChart = ({
+    splits,
+    title,
+    size = 80
+  }: {
+    splits: Array<{ name: string; percentage: number; color: string }>;
+    title: string;
+    size?: number;
+  }) => {
+    const radius = 30;
+    const strokeWidth = 12;
+    const center = size / 2;
+    const circumference = 2 * Math.PI * radius;
+
+    // Calculate stroke dash offsets for each segment
+    let currentOffset = 0;
+    const segments = splits.map((split, index) => {
+      const dashLength = (split.percentage / 100) * circumference;
+      const segment = {
+        ...split,
+        dashArray: `${dashLength} ${circumference - dashLength}`,
+        dashOffset: -currentOffset,
+      };
+      currentOffset += dashLength;
+      return segment;
+    });
+
+    return (
+      <div className="flex flex-col items-center">
+        <div className="text-gray-400 text-xs font-semibold mb-2">{title}</div>
+        <div className="flex items-center gap-3">
+          {/* SVG Donut */}
+          <svg width={size} height={size} className="transform -rotate-90">
+            {segments.map((segment, index) => (
+              <circle
+                key={index}
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke={segment.color}
+                strokeWidth={strokeWidth}
+                strokeDasharray={segment.dashArray}
+                strokeDashoffset={segment.dashOffset}
+                className="transition-all duration-300"
+              />
+            ))}
+          </svg>
+
+          {/* Legend */}
+          <div className="flex flex-col gap-1 text-xs">
+            {splits.map((split, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: split.color }}
+                />
+                <span className="text-gray-300 truncate max-w-[100px]">
+                  {split.name}
+                </span>
+                <span className="text-gray-500">{split.percentage}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Colors for donut chart segments
+  const CHART_COLORS = [
+    '#81E4F2', // Cyan (remixer)
+    '#A8E66B', // Lime green
+    '#A084F9', // Lavender
+    '#FFC044', // Golden amber
+    '#FF6B9D', // Pink
+    '#5BB5F9', // Sky blue
+    '#E4E481', // Yellow
+  ];
+
+  // Get generation display for IP section header
+  const getGenerationHeader = () => {
+    const depth = track.remix_depth || 0;
+    if (depth === 0) return { emoji: '🌱', text: 'GEN 0 - ORIGINAL' };
+    if (depth === 1) return { emoji: '🌿', text: 'GEN 1 - REMIX' };
+    if (depth === 2) return { emoji: '🌳', text: 'GEN 2 - REMIX' };
+    return { emoji: '🌳', text: `GEN ${depth} - REMIX` };
+  };
+
+  // Build Idea splits for donut chart
+  const buildIdeaSplits = () => {
+    const splits: Array<{ name: string; percentage: number; color: string }> = [];
+    const isRemix = track.remix_depth && track.remix_depth > 0;
+
+    if (isRemix) {
+      // Remixer gets 10%
+      splits.push({
+        name: track.artist || 'Remixer',
+        percentage: PRICING.remix.remixerStakePercent,
+        color: CHART_COLORS[0],
+      });
+
+      // Remaining 90% split among source tracks' composition holders
+      const remainingPercent = 100 - PRICING.remix.remixerStakePercent;
+      const perTrackPercent = sourceTracks.length > 0 ? remainingPercent / sourceTracks.length : 0;
+
+      sourceTracks.forEach((sourceTrack, trackIndex) => {
+        // Get composition splits from source track
+        const compSplits = [];
+        if (sourceTrack.composition_split_1_wallet && sourceTrack.composition_split_1_percentage) {
+          compSplits.push({ wallet: sourceTrack.composition_split_1_wallet, percentage: sourceTrack.composition_split_1_percentage });
+        }
+        if (sourceTrack.composition_split_2_wallet && sourceTrack.composition_split_2_percentage) {
+          compSplits.push({ wallet: sourceTrack.composition_split_2_wallet, percentage: sourceTrack.composition_split_2_percentage });
+        }
+        if (sourceTrack.composition_split_3_wallet && sourceTrack.composition_split_3_percentage) {
+          compSplits.push({ wallet: sourceTrack.composition_split_3_wallet, percentage: sourceTrack.composition_split_3_percentage });
+        }
+
+        // If no splits, use track title as fallback
+        if (compSplits.length === 0) {
+          splits.push({
+            name: sourceTrack.title || `Track ${trackIndex + 1}`,
+            percentage: Math.round(perTrackPercent),
+            color: CHART_COLORS[(trackIndex + 1) % CHART_COLORS.length],
+          });
+        } else {
+          // Distribute this track's share among its composition holders
+          compSplits.forEach((split, splitIndex) => {
+            const holderPercent = (split.percentage / 100) * perTrackPercent;
+            const name = collaboratorNames[split.wallet] || sourceTrack.title || `Creator`;
+            splits.push({
+              name,
+              percentage: Math.round(holderPercent),
+              color: CHART_COLORS[(trackIndex + splitIndex + 1) % CHART_COLORS.length],
+            });
+          });
+        }
+      });
+    } else {
+      // Gen 0: Just use the track's own composition splits
+      if (ipRights && ipRights.composition_splits.length > 0) {
+        ipRights.composition_splits.forEach((split, index) => {
+          const { name } = getCollaboratorDisplay(split.wallet, 'composition', index + 1);
+          splits.push({
+            name,
+            percentage: split.percentage,
+            color: CHART_COLORS[index % CHART_COLORS.length],
+          });
+        });
+      }
+    }
+
+    return splits;
+  };
+
+  // Build Implementation splits for donut chart
+  const buildImplementationSplits = () => {
+    const splits: Array<{ name: string; percentage: number; color: string }> = [];
+    const isRemix = track.remix_depth && track.remix_depth > 0;
+
+    if (isRemix) {
+      // Remixer gets 10%
+      splits.push({
+        name: track.artist || 'Remixer',
+        percentage: PRICING.remix.remixerStakePercent,
+        color: CHART_COLORS[0],
+      });
+
+      // Remaining 90% split among source tracks' production holders
+      const remainingPercent = 100 - PRICING.remix.remixerStakePercent;
+      const perTrackPercent = sourceTracks.length > 0 ? remainingPercent / sourceTracks.length : 0;
+
+      sourceTracks.forEach((sourceTrack, trackIndex) => {
+        // Get production splits from source track
+        const prodSplits = [];
+        if (sourceTrack.production_split_1_wallet && sourceTrack.production_split_1_percentage) {
+          prodSplits.push({ wallet: sourceTrack.production_split_1_wallet, percentage: sourceTrack.production_split_1_percentage });
+        }
+        if (sourceTrack.production_split_2_wallet && sourceTrack.production_split_2_percentage) {
+          prodSplits.push({ wallet: sourceTrack.production_split_2_wallet, percentage: sourceTrack.production_split_2_percentage });
+        }
+        if (sourceTrack.production_split_3_wallet && sourceTrack.production_split_3_percentage) {
+          prodSplits.push({ wallet: sourceTrack.production_split_3_wallet, percentage: sourceTrack.production_split_3_percentage });
+        }
+
+        // If no splits, use track title as fallback
+        if (prodSplits.length === 0) {
+          splits.push({
+            name: sourceTrack.title || `Track ${trackIndex + 1}`,
+            percentage: Math.round(perTrackPercent),
+            color: CHART_COLORS[(trackIndex + 1) % CHART_COLORS.length],
+          });
+        } else {
+          // Distribute this track's share among its production holders
+          prodSplits.forEach((split, splitIndex) => {
+            const holderPercent = (split.percentage / 100) * perTrackPercent;
+            const name = collaboratorNames[split.wallet] || sourceTrack.title || `Creator`;
+            splits.push({
+              name,
+              percentage: Math.round(holderPercent),
+              color: CHART_COLORS[(trackIndex + splitIndex + 1) % CHART_COLORS.length],
+            });
+          });
+        }
+      });
+    } else {
+      // Gen 0: Just use the track's own production splits
+      if (ipRights && ipRights.production_splits.length > 0) {
+        ipRights.production_splits.forEach((split, index) => {
+          const { name } = getCollaboratorDisplay(split.wallet, 'production', index + 1);
+          splits.push({
+            name,
+            percentage: split.percentage,
+            color: CHART_COLORS[index % CHART_COLORS.length],
+          });
+        });
+      }
+    }
+
+    return splits;
+  };
+
   return typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -1218,12 +1442,6 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                   )}
                 </>
               )}
-              {!isRadioStation && getGeneration() && (
-                <div className="flex">
-                  <span className="text-gray-500 w-24">Generation:</span>
-                  <span className="text-gray-300">{getGeneration()}</span>
-                </div>
-              )}
               {/* AI Assistance Display - Only for non-radio content */}
               {!isRadioStation && (
                 <div className="flex">
@@ -1256,49 +1474,6 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             </div>
           )}
 
-          {/* Source Tracks - For Remixes Only */}
-          {track.remix_depth && track.remix_depth > 0 && (
-            <div>
-              <Divider title="SOURCE TRACKS" />
-              {loadingSourceTracks ? (
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <div className="animate-spin rounded-full h-3 w-3 border border-gray-500 border-t-transparent"></div>
-                  Loading source tracks...
-                </div>
-              ) : sourceTracks.length > 0 ? (
-                <div className="space-y-2">
-                  {sourceTracks.map((sourceTrack, index) => (
-                    <div
-                      key={sourceTrack.id}
-                      className="flex items-center gap-2 p-2 bg-slate-800/50 rounded border border-gray-700 hover:border-gray-600 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-gray-300 text-xs font-medium truncate">
-                          {sourceTrack.title}
-                        </div>
-                        <div className="text-gray-500 text-xs truncate">
-                          by {sourceTrack.artist}
-                        </div>
-                      </div>
-                      {sourceTrack.primary_uploader_wallet && (
-                        <Link
-                          href={`/store/${sourceTrack.primary_uploader_wallet}`}
-                          className="flex-shrink-0 px-2 py-1 bg-cyan-600 hover:bg-cyan-700 text-white text-xs rounded transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          View
-                        </Link>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-gray-500">
-                  No source tracks found
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Tags (including location tags) */}
           {track.tags && track.tags.length > 0 && (
@@ -1386,156 +1561,71 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           {/* IP Rights - Skip for radio stations */}
           {!isRadioStation && (
           <div>
-            <Divider title="IP RIGHTS" />
+            {/* Generation Header */}
+            {(() => {
+              const gen = getGenerationHeader();
+              return (
+                <Divider title={`${gen.emoji} ${gen.text}`} />
+              );
+            })()}
 
-            {/* For Remixes: Show IP splits grouped by source loop */}
-            {track.remix_depth && track.remix_depth > 0 && sourceTracks.length > 0 ? (
-              <>
-                {/* Loop through each source track and display its contributors */}
-                {sourceTracks.map((sourceLoop, loopIndex) => {
-                  // Collect composition splits from this source loop
-                  const compSplits = [];
-                  if (sourceLoop.composition_split_1_wallet && sourceLoop.composition_split_1_percentage) {
-                    compSplits.push({ wallet: sourceLoop.composition_split_1_wallet, percentage: sourceLoop.composition_split_1_percentage });
-                  }
-                  if (sourceLoop.composition_split_2_wallet && sourceLoop.composition_split_2_percentage) {
-                    compSplits.push({ wallet: sourceLoop.composition_split_2_wallet, percentage: sourceLoop.composition_split_2_percentage });
-                  }
-                  if (sourceLoop.composition_split_3_wallet && sourceLoop.composition_split_3_percentage) {
-                    compSplits.push({ wallet: sourceLoop.composition_split_3_wallet, percentage: sourceLoop.composition_split_3_percentage });
-                  }
-
-                  // Collect production splits from this source loop
-                  const prodSplits = [];
-                  if (sourceLoop.production_split_1_wallet && sourceLoop.production_split_1_percentage) {
-                    prodSplits.push({ wallet: sourceLoop.production_split_1_wallet, percentage: sourceLoop.production_split_1_percentage });
-                  }
-                  if (sourceLoop.production_split_2_wallet && sourceLoop.production_split_2_percentage) {
-                    prodSplits.push({ wallet: sourceLoop.production_split_2_wallet, percentage: sourceLoop.production_split_2_percentage });
-                  }
-                  if (sourceLoop.production_split_3_wallet && sourceLoop.production_split_3_percentage) {
-                    prodSplits.push({ wallet: sourceLoop.production_split_3_wallet, percentage: sourceLoop.production_split_3_percentage });
-                  }
-
-                  return (
-                    <div key={sourceLoop.id} className="mb-4">
-                      {/* Source Loop Header */}
-                      <div className="text-cyan-400 text-xs font-semibold mb-2">
-                        From: {sourceLoop.title}
-                      </div>
-
-                      {/* Composition from this loop */}
-                      <div className="mb-3">
-                        <div className="text-gray-400 text-xs font-medium mb-1 pl-2">IDEA (Composition): contributes 50%</div>
-                        <div className="space-y-1 text-xs pl-4">
-                          {compSplits.length > 0 ? (
-                            compSplits.map((split, index) => (
-                              <div key={index} className="flex items-center">
-                                <span className="text-gray-300">
-                                  • Creator: {split.percentage}% → {Math.floor(split.percentage * 0.5)}% of remix
-                                </span>
-                                <span className="text-gray-500 ml-2 text-xs">[{formatWallet(split.wallet)}]</span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-gray-500">No composition splits</div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Production from this loop */}
-                      <div>
-                        <div className="text-gray-400 text-xs font-medium mb-1 pl-2">IMPLEMENTATION (Recording): contributes 50%</div>
-                        <div className="space-y-1 text-xs pl-4">
-                          {prodSplits.length > 0 ? (
-                            prodSplits.map((split, index) => (
-                              <div key={index} className="flex items-center">
-                                <span className="text-gray-300">
-                                  • Creator: {split.percentage}% → {Math.floor(split.percentage * 0.5)}% of remix
-                                </span>
-                                <span className="text-gray-500 ml-2 text-xs">[{formatWallet(split.wallet)}]</span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-gray-500">No production splits</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Remixer Note */}
-                <div className="mt-4 p-2 bg-slate-800/50 rounded border border-gray-700">
-                  <div className="text-xs text-gray-400">
-                    <span className="font-semibold">Note:</span> Remixer ({track.artist}) receives 20% commission on sales, separate from IP ownership.
-                  </div>
+            {/* Source Tracks - For Remixes Only (moved here, before donut charts) */}
+            {track.remix_depth && track.remix_depth > 0 && sourceTracks.length > 0 && (
+              <div className="mb-4">
+                <div className="text-gray-400 text-xs font-semibold mb-2">SOURCE MATERIAL</div>
+                <div className="space-y-1">
+                  {sourceTracks.map((sourceTrack) => (
+                    <Link
+                      key={sourceTrack.id}
+                      href={`/store/${sourceTrack.primary_uploader_wallet}`}
+                      className="flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+                    >
+                      <span>→</span>
+                      <span className="truncate">{sourceTrack.title}</span>
+                    </Link>
+                  ))}
                 </div>
-              </>
-            ) : (
-              /* For Non-Remixes: Show standard IP splits */
-              <>
-                {/* Composition Rights */}
-                <div className="mb-4">
-                  <div className="text-gray-400 text-xs font-semibold mb-2">
-                    {track.content_type === 'video_clip' ? 'IDEA:' : 'IDEA (Composition):'}
-                  </div>
-                  <div className="space-y-1 text-xs pl-4">
-                    {ipRights && ipRights.composition_splits.length > 0 ? (
-                      ipRights.composition_splits.map((split, index) => {
-                        const { name, isPending } = getCollaboratorDisplay(split.wallet, 'composition', index + 1);
-                        const showWallet = !split.wallet.startsWith('pending:') && split.wallet.length > 10;
-                        return (
-                          <div key={index} className="flex items-center flex-wrap">
-                            <span className="text-gray-300">
-                              • {name}: {split.percentage}%
-                            </span>
-                            {isPending && (
-                              <span className="text-yellow-500 ml-2 text-xs">[wallet pending]</span>
-                            )}
-                            {showWallet && !isPending && (
-                              <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-gray-500">No composition splits defined</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Production Rights */}
-                <div>
-                  <div className="text-gray-400 text-xs font-semibold mb-2">
-                    {track.content_type === 'video_clip' ? 'IMPLEMENTATION:' : 'IMPLEMENTATION (Recording):'}
-                  </div>
-                  <div className="space-y-1 text-xs pl-4">
-                    {ipRights && ipRights.production_splits.length > 0 ? (
-                      ipRights.production_splits.map((split, index) => {
-                        const { name, isPending, isAI } = getCollaboratorDisplay(split.wallet, 'production', index + 1);
-                        const showWallet = !split.wallet.startsWith('pending:') && split.wallet.length > 10 && !isAI;
-                        return (
-                          <div key={index} className="flex items-center flex-wrap">
-                            <span className={isAI ? "text-cyan-400" : "text-gray-300"}>
-                              • {name}: {split.percentage}%
-                            </span>
-                            {isPending && (
-                              <span className="text-yellow-500 ml-2 text-xs">[wallet pending]</span>
-                            )}
-                            {showWallet && !isPending && (
-                              <span className="text-gray-500 ml-2">[{formatWallet(split.wallet)}]</span>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-gray-500">No production splits defined</div>
-                    )}
-                  </div>
-                </div>
-              </>
+              </div>
             )}
+
+            {/* Donut Charts for IP Splits */}
+            <div className="flex flex-col gap-4">
+              {/* Idea Donut */}
+              {(() => {
+                const ideaSplits = buildIdeaSplits();
+                return ideaSplits.length > 0 ? (
+                  <IPDonutChart
+                    splits={ideaSplits}
+                    title={track.content_type === 'video_clip' ? 'IDEA' : 'IDEA (Composition)'}
+                  />
+                ) : (
+                  <div className="text-center">
+                    <div className="text-gray-400 text-xs font-semibold mb-2">
+                      {track.content_type === 'video_clip' ? 'IDEA' : 'IDEA (Composition)'}
+                    </div>
+                    <div className="text-gray-500 text-xs">No splits defined</div>
+                  </div>
+                );
+              })()}
+
+              {/* Implementation Donut */}
+              {(() => {
+                const implSplits = buildImplementationSplits();
+                return implSplits.length > 0 ? (
+                  <IPDonutChart
+                    splits={implSplits}
+                    title={track.content_type === 'video_clip' ? 'IMPLEMENTATION' : 'IMPLEMENTATION (Recording)'}
+                  />
+                ) : (
+                  <div className="text-center">
+                    <div className="text-gray-400 text-xs font-semibold mb-2">
+                      {track.content_type === 'video_clip' ? 'IMPLEMENTATION' : 'IMPLEMENTATION (Recording)'}
+                    </div>
+                    <div className="text-gray-500 text-xs">No splits defined</div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
           )}
         </div>
