@@ -522,30 +522,15 @@ export default function CompactTrackCardWithFlip({
 
   return (
     <>
-      <div className="relative group">
-        {/* Shimmer border wrapper for remixes */}
-        {isRemix && (
-          <div
-            className="remix-shimmer-border absolute inset-0 rounded-lg"
-            style={{
-              background: 'linear-gradient(135deg, #FFFFFF 0%, #A8E6CF 14%, #FFFFFF 28%, #88D4F2 42%, #FFFFFF 56%, #B8E8D2 70%, #FFFFFF 84%, #7BC8F4 100%)',
-              backgroundSize: '400% 400%',
-              animation: 'shimmer 6s ease-in-out infinite',
-              padding: '3px',
-            }}
-          >
-            <div className="w-full h-full rounded-lg bg-slate-800" />
-          </div>
-        )}
+      <div className="relative group w-[160px] h-[160px]">
         {/* Compact Card Container - 160x160px */}
         <div
           ref={drag}
-          className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${isRemix ? '' : `${getBorderColor()} ${getBorderThickness()}`} ${getBorderStyle()} bg-slate-800 relative`}
+          className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${isRemix ? 'remix-shimmer-border' : `${getBorderColor()} ${getBorderThickness()}`} ${getBorderStyle()} bg-slate-800 relative`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           style={{
             cursor: isDragging ? 'grabbing' : 'grab',
-            ...(isRemix && { margin: '3px', width: 'calc(160px - 6px)', height: 'calc(160px - 6px)' })
           }}
         >
           <div className="relative w-full h-full">
@@ -1165,6 +1150,22 @@ export default function CompactTrackCardWithFlip({
         @keyframes shimmer {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
+        }
+
+        /* Remix shimmer border - uses pseudo-element inside the card bounds */
+        .remix-shimmer-border {
+          position: relative;
+          border: 3px solid transparent;
+          background:
+            linear-gradient(to right, #1e293b, #1e293b) padding-box,
+            linear-gradient(135deg, #FFFFFF 0%, #A8E6CF 14%, #FFFFFF 28%, #88D4F2 42%, #FFFFFF 56%, #B8E8D2 70%, #FFFFFF 84%, #7BC8F4 100%) border-box;
+          background-size: 100% 100%, 400% 400%;
+          animation: shimmer-border 6s ease-in-out infinite;
+        }
+
+        @keyframes shimmer-border {
+          0%, 100% { background-position: 0% 0%, 0% 50%; }
+          50% { background-position: 0% 0%, 100% 50%; }
         }
       `}</style>
 

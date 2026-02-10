@@ -50,6 +50,7 @@ export default function RemixStepTrim({
 
   // Video preview state
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Audio refs
@@ -101,49 +102,57 @@ export default function RemixStepTrim({
 
   // Auto-capture frame when video is ready (at trim start position)
   useEffect(() => {
-    if (!hasVideo || !videoUrl || !onVideoFrameCapture) return;
+    if (!hasVideo || !videoUrl) return;
 
     const video = videoRef.current;
     if (!video) return;
 
     let captureScheduled = false;
 
-    const handleLoadedData = () => {
-      // Seek to the trim start position for a better representative frame
-      const startSeconds = barsToSeconds(trimStartBars, bpm);
+    const handleLoadedMetadata = () => {
+      // Get video dimensions for responsive sizing
+      if (video.videoWidth && video.videoHeight) {
+        setVideoDimensions({ width: video.videoWidth, height: video.videoHeight });
+      }
+    };
 
-      // If already at start (or very close), capture directly after a delay
-      // Otherwise seek and wait for seeked event
-      if (Math.abs(video.currentTime - startSeconds) < 0.1) {
-        // Already at position - capture after brief delay for frame to render
-        if (!captureScheduled) {
-          captureScheduled = true;
-          setTimeout(captureVideoFrame, 200);
+    const handleCanPlayThrough = () => {
+      // Video is ready to play - capture frame now
+      if (!captureScheduled && onVideoFrameCapture) {
+        captureScheduled = true;
+        // Seek to trim start position
+        const startSeconds = barsToSeconds(trimStartBars, bpm);
+        if (Math.abs(video.currentTime - startSeconds) < 0.1) {
+          // Already at position - capture directly
+          setTimeout(captureVideoFrame, 100);
+        } else {
+          video.currentTime = startSeconds;
         }
-      } else {
-        video.currentTime = startSeconds;
       }
     };
 
     const handleSeeked = () => {
       // Capture frame once video has seeked to position
-      // Small delay to ensure frame is rendered
-      if (!captureScheduled) {
-        captureScheduled = true;
+      if (captureScheduled && onVideoFrameCapture) {
         setTimeout(captureVideoFrame, 100);
       }
     };
 
-    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplaythrough', handleCanPlayThrough);
     video.addEventListener('seeked', handleSeeked);
 
-    // If video is already loaded, trigger capture
-    if (video.readyState >= 2) {
-      handleLoadedData();
+    // If video is already loaded, trigger handlers
+    if (video.readyState >= 1) {
+      handleLoadedMetadata();
+    }
+    if (video.readyState >= 4) {
+      handleCanPlayThrough();
     }
 
     return () => {
-      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplaythrough', handleCanPlayThrough);
       video.removeEventListener('seeked', handleSeeked);
     };
   }, [hasVideo, videoUrl, trimStartBars, bpm, captureVideoFrame, onVideoFrameCapture]);
@@ -431,25 +440,31 @@ export default function RemixStepTrim({
 
       {/* Video Preview + Waveform Row */}
       <div className="flex gap-3">
-        {/* Video Preview - Only show when hasVideo */}
+        {/* Video Preview - responsive to actual video dimensions */}
         {hasVideo && videoUrl && (
-          <div className="flex-shrink-0">
-            <div className="relative w-[120px] h-[68px] rounded-lg overflow-hidden bg-black border border-slate-700">
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                className="w-full h-full object-contain"
-                muted
-                playsInline
-              />
-              {/* Play state indicator */}
-              {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <Play size={20} className="text-white/80" />
-                </div>
-              )}
-            </div>
-            <div className="text-[9px] text-slate-500 text-center mt-1">Video Preview</div>
+          <div
+            className="flex-shrink-0 relative rounded-lg overflow-hidden bg-black border border-slate-700"
+            style={{
+              // Max height matches waveform (70px compact), width scales to aspect ratio
+              height: '70px',
+              width: videoDimensions
+                ? `${Math.round(70 * (videoDimensions.width / videoDimensions.height))}px`
+                : '124px', // Default 16:9 fallback
+            }}
+          >
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              className="w-full h-full object-cover"
+              muted
+              playsInline
+            />
+            {/* Play state indicator */}
+            {!isPlaying && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Play size={16} className="text-white/80" />
+              </div>
+            )}
           </div>
         )}
 
