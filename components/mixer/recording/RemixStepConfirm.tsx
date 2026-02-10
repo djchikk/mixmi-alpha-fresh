@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { Check, Loader2, AlertCircle, Settings, Star } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { Check, Loader2, AlertCircle } from 'lucide-react';
 import { RemixDetails, PaymentRecipient } from './RemixCompletionModal';
 import { RecordingCostInfo, TrimState, RecordingData } from '@/hooks/useMixerRecording';
 import { IPTrack } from '@/types';
@@ -349,13 +349,115 @@ export default function RemixStepConfirm({
     onSuccess,
   ]);
 
-  // Group recipients by type for display
-  const platformPayment = paymentData?.recipients.find(r => r.payment_type === 'platform');
-  const creatorPayments = paymentData?.recipients.filter(r => r.payment_type !== 'platform') || [];
-
-  // Calculate totals for display
-  const creatorTotal = creatorPayments.reduce((sum, r) => sum + r.amount, 0);
+  // Calculate amounts
+  const platformAmount = costInfo.totalCost * (PRICING.remix.platformCutPercent / 100);
   const remixerStake = costInfo.totalCost * (PRICING.remix.remixerStakePercent / 100);
+  const creatorsAmount = costInfo.totalCost * (PRICING.remix.creatorsCutPercent / 100);
+
+  // Merge creator payments by recipient (combine composition + production for same person)
+  const mergedCreators = useMemo(() => {
+    if (!paymentData?.recipients) return [];
+
+    const creatorPayments = paymentData.recipients.filter(r => r.payment_type !== 'platform');
+    const merged = new Map<string, { name: string; amount: number; address: string }>();
+
+    for (const r of creatorPayments) {
+      const key = r.sui_address || r.display_name || r.source_track_title || 'Unknown';
+      const existing = merged.get(key);
+      if (existing) {
+        existing.amount += r.amount;
+      } else {
+        merged.set(key, {
+          name: r.display_name || r.source_track_title || 'Creator',
+          amount: r.amount,
+          address: r.sui_address,
+        });
+      }
+    }
+
+    return Array.from(merged.values()).sort((a, b) => b.amount - a.amount);
+  }, [paymentData?.recipients]);
+
+  // Colors for donut chart slices
+  const SLICE_COLORS = [
+    '#6B7280', // Platform - gray
+    '#FBBF24', // Your stake - gold
+    '#81E4F2', // Creator 1 - cyan
+    '#A084F9', // Creator 2 - purple
+    '#A8E66B', // Creator 3 - green
+    '#F472B6', // Creator 4 - pink
+    '#FB923C', // Creator 5 - orange
+    '#38BDF8', // Creator 6 - sky
+    '#C084FC', // Creator 7 - violet
+  ];
+
+  // Build donut segments (platform + stake + creators)
+  const donutSegments = useMemo(() => {
+    const segments: { label: string; amount: number; percentage: number; color: string }[] = [];
+    const total = costInfo.totalCost;
+
+    // Platform
+    segments.push({
+      label: 'Platform fee',
+      amount: platformAmount,
+      percentage: (platformAmount / total) * 100,
+      color: SLICE_COLORS[0],
+    });
+
+    // Your stake
+    segments.push({
+      label: 'Your remix stake',
+      amount: remixerStake,
+      percentage: (remixerStake / total) * 100,
+      color: SLICE_COLORS[1],
+    });
+
+    // Creators
+    mergedCreators.forEach((creator, i) => {
+      segments.push({
+        label: creator.name,
+        amount: creator.amount,
+        percentage: (creator.amount / total) * 100,
+        color: SLICE_COLORS[(i + 2) % SLICE_COLORS.length],
+      });
+    });
+
+    return segments;
+  }, [costInfo.totalCost, platformAmount, remixerStake, mergedCreators]);
+
+  // Calculate SVG donut path segments
+  const donutPaths = useMemo(() => {
+    const paths: { d: string; color: string }[] = [];
+    let currentAngle = -90; // Start from top
+    const cx = 50, cy = 50, r = 40;
+
+    for (const segment of donutSegments) {
+      const angle = (segment.percentage / 100) * 360;
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + angle;
+
+      // Convert to radians
+      const startRad = (startAngle * Math.PI) / 180;
+      const endRad = (endAngle * Math.PI) / 180;
+
+      // Calculate arc points
+      const x1 = cx + r * Math.cos(startRad);
+      const y1 = cy + r * Math.sin(startRad);
+      const x2 = cx + r * Math.cos(endRad);
+      const y2 = cy + r * Math.sin(endRad);
+
+      // Large arc flag (1 if angle > 180)
+      const largeArc = angle > 180 ? 1 : 0;
+
+      // Create arc path
+      const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+      paths.push({ d, color: segment.color });
+
+      currentAngle = endAngle;
+    }
+
+    return paths;
+  }, [donutSegments]);
 
   return (
     <div className="remix-step-confirm p-4 space-y-4">
@@ -367,84 +469,46 @@ export default function RemixStepConfirm({
         </div>
       </div>
 
-      {/* Payment Split Visualization */}
+      {/* Payment Split Visualization - Single Donut */}
       <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-        {/* Top Row: Platform & Your Stake */}
-        <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
-          <div className="flex items-center gap-2">
-            <Settings size={16} className="text-slate-400" />
-            <span className="text-sm text-slate-400">Platform 5%</span>
-            <span className="text-sm font-bold text-white">
-              ${platformPayment?.amount.toFixed(2) || '0.00'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Star size={16} className="text-[#FBBF24]" />
-            <span className="text-sm text-slate-400">Your Stake 15%</span>
-            <span className="text-sm font-bold text-[#FBBF24]">
-              ${remixerStake.toFixed(2)}
-            </span>
-          </div>
-        </div>
+        <div className="text-center text-sm text-slate-400 mb-3">Where your payment goes</div>
 
-        {/* Creator Splits */}
-        <div className="text-center mb-3">
-          <span className="text-sm text-slate-400">Creator Splits</span>
-          <span className="text-sm font-bold text-white ml-2">
-            ${creatorTotal.toFixed(2)} · 80%
-          </span>
-        </div>
-
-        {/* Placeholder for Donut Charts - Phase 3 */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Idea (Composition) */}
-          <div className="text-center">
-            <div className="text-xs text-slate-400 uppercase mb-2">💡 Idea</div>
-            <div className="bg-slate-900/50 rounded-lg p-3">
-              {/* Donut chart placeholder */}
-              <div className="w-20 h-20 mx-auto rounded-full border-4 border-[#81E4F2] flex items-center justify-center mb-2">
-                <span className="text-xs text-slate-400">50%</span>
-              </div>
-              {/* Legend */}
-              <div className="space-y-1 text-left">
-                {creatorPayments
-                  .filter(r => r.payment_type === 'composition')
-                  .map((r, i) => (
-                    <div key={i} className="flex items-center gap-1 text-[10px]">
-                      <span className="w-2 h-2 rounded-full bg-[#81E4F2]" />
-                      <span className="text-slate-300 truncate flex-1">
-                        {r.display_name || r.source_track_title || 'Creator'}
-                      </span>
-                      <span className="text-slate-400">{r.percentage}%</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
+        <div className="flex gap-4 items-start">
+          {/* Donut Chart */}
+          <div className="flex-shrink-0">
+            <svg viewBox="0 0 100 100" className="w-28 h-28">
+              {donutPaths.map((path, i) => (
+                <path key={i} d={path.d} fill={path.color} className="transition-opacity hover:opacity-80" />
+              ))}
+              {/* Center hole */}
+              <circle cx="50" cy="50" r="25" fill="#1e293b" />
+              {/* Center text */}
+              <text x="50" y="47" textAnchor="middle" className="fill-white text-[8px] font-bold">
+                ${costInfo.totalCost.toFixed(2)}
+              </text>
+              <text x="50" y="57" textAnchor="middle" className="fill-slate-400 text-[5px]">
+                USDC
+              </text>
+            </svg>
           </div>
 
-          {/* Implementation (Production) */}
-          <div className="text-center">
-            <div className="text-xs text-slate-400 uppercase mb-2">🔧 Implementation</div>
-            <div className="bg-slate-900/50 rounded-lg p-3">
-              {/* Donut chart placeholder */}
-              <div className="w-20 h-20 mx-auto rounded-full border-4 border-[#A084F9] flex items-center justify-center mb-2">
-                <span className="text-xs text-slate-400">50%</span>
+          {/* Legend */}
+          <div className="flex-1 space-y-1.5 max-h-[120px] overflow-y-auto">
+            {donutSegments.map((segment, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: segment.color }}
+                />
+                <span className="text-slate-300 truncate flex-1">{segment.label}</span>
+                <span className="text-slate-400 flex-shrink-0">
+                  ${segment.amount.toFixed(2)}
+                </span>
+                <span className="text-slate-500 text-[10px] w-8 text-right flex-shrink-0">
+                  {segment.percentage.toFixed(0)}%
+                </span>
               </div>
-              {/* Legend */}
-              <div className="space-y-1 text-left">
-                {creatorPayments
-                  .filter(r => r.payment_type === 'production')
-                  .map((r, i) => (
-                    <div key={i} className="flex items-center gap-1 text-[10px]">
-                      <span className="w-2 h-2 rounded-full bg-[#A084F9]" />
-                      <span className="text-slate-300 truncate flex-1">
-                        {r.display_name || r.source_track_title || 'Creator'}
-                      </span>
-                      <span className="text-slate-400">{r.percentage}%</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
