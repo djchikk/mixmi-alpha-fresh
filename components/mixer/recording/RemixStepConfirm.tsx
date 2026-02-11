@@ -56,7 +56,16 @@ export default function RemixStepConfirm({
   // Download pricing state and calculations
   // Downloads allowed ONLY if ALL source tracks allow downloads
   const allSourcesAllowDownloads = useMemo(() => {
-    return loadedTracks.length > 0 && loadedTracks.every(t => t.allow_downloads === true);
+    // Debug: Log what we're checking
+    console.log('🔍 [Download Check] loadedTracks:', loadedTracks.map(t => ({
+      id: t.id,
+      title: t.title,
+      allow_downloads: t.allow_downloads,
+      download_price_stx: t.download_price_stx,
+    })));
+    const result = loadedTracks.length > 0 && loadedTracks.every(t => t.allow_downloads === true);
+    console.log('🔍 [Download Check] allSourcesAllowDownloads:', result);
+    return result;
   }, [loadedTracks]);
 
   // Price floor = MAX of all source track download prices

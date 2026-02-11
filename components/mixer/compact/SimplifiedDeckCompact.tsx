@@ -158,6 +158,11 @@ export default function SimplifiedDeckCompact({
           production_split_1_wallet: item.track.production_split_1_wallet,
           production_split_1_percentage: item.track.production_split_1_percentage,
           production_split_1_sui_address: item.track.production_split_1_sui_address,
+          // Preserve download/licensing fields for remix flow
+          allow_downloads: item.track.allow_downloads,
+          download_price_stx: item.track.download_price_stx,
+          download_price_usdc: item.track.download_price_usdc,
+          license_type: item.track.license_type,
           // Preserve stream_url for radio stations (needed for proxying)
           ...(item.track.content_type === 'radio_station' && item.track.stream_url && {
             stream_url: item.track.stream_url
