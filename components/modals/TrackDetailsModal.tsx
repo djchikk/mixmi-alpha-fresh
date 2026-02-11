@@ -434,7 +434,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       supabase
         .from('ip_tracks')
         .select(`
-          id, title, artist, primary_uploader_wallet,
+          id, title, artist, primary_uploader_wallet, locations,
+          ai_assisted_idea, ai_assisted_implementation,
           composition_split_1_wallet, composition_split_1_percentage,
           composition_split_2_wallet, composition_split_2_percentage,
           composition_split_3_wallet, composition_split_3_percentage,
@@ -1008,22 +1009,82 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     return { splits, aiContribution };
   };
 
-  // Calculate TING attribution for AI-assisted content
+  // Aggregate unique locations from source tracks (for remixes)
+  const getAggregatedLocations = (): string[] => {
+    const allLocations = new Set<string>();
+
+    // Add current track's locations
+    if (track.locations && Array.isArray(track.locations)) {
+      track.locations.forEach(loc => allLocations.add(loc));
+    }
+
+    // Add source tracks' locations (for remixes)
+    sourceTracks.forEach(sourceTrack => {
+      if (sourceTrack.locations && Array.isArray(sourceTrack.locations)) {
+        sourceTrack.locations.forEach((loc: string) => allLocations.add(loc));
+      }
+    });
+
+    return Array.from(allLocations);
+  };
+
+  // Check if any source tracks have AI assistance (for inheritance)
+  const getSourceAIFlags = (): { hasAIIdea: boolean; hasAIImplementation: boolean; aiSources: string[] } => {
+    const aiSources: string[] = [];
+    let hasAIIdea = false;
+    let hasAIImplementation = false;
+
+    sourceTracks.forEach(sourceTrack => {
+      if (sourceTrack.ai_assisted_idea) {
+        hasAIIdea = true;
+        aiSources.push(sourceTrack.title);
+      }
+      if (sourceTrack.ai_assisted_implementation) {
+        hasAIImplementation = true;
+        if (!aiSources.includes(sourceTrack.title)) {
+          aiSources.push(sourceTrack.title);
+        }
+      }
+    });
+
+    return { hasAIIdea, hasAIImplementation, aiSources };
+  };
+
+  // Calculate TING attribution for AI-assisted content (including inherited from sources)
   const getTingAttribution = () => {
     const { aiContribution: ideaAI } = buildIdeaSplits();
     const { aiContribution: implAI } = buildImplementationSplits();
-    const totalAI = ideaAI + implAI;
+    const { hasAIIdea, hasAIImplementation, aiSources } = getSourceAIFlags();
 
-    if (totalAI <= 0) return null;
+    // Check if current track or any source has AI involvement
+    const currentHasAI = track.ai_assisted_idea || track.ai_assisted_implementation;
+    const sourcesHaveAI = hasAIIdea || hasAIImplementation;
 
-    // Calculate notional TING (assuming $1 base, AI gets its proportion)
-    // For display purposes, show what the AI contribution represents
-    const tingAmount = (totalAI / 100).toFixed(2);
+    if (!currentHasAI && !sourcesHaveAI && ideaAI <= 0 && implAI <= 0) {
+      return null;
+    }
+
+    // For remixes with AI sources, calculate TING based on their contribution
+    // Each AI-assisted source track contributes proportionally
+    let tingAmount = '0.00';
+    if (sourcesHaveAI && sourceTracks.length > 0) {
+      // AI sources get their share of the 90% creators cut
+      const aiSourceCount = aiSources.length;
+      const perSourcePercent = 90 / sourceTracks.length;
+      const aiPercent = aiSourceCount * perSourcePercent;
+      tingAmount = (aiPercent / 100).toFixed(2);
+    } else if (ideaAI > 0 || implAI > 0) {
+      tingAmount = ((ideaAI + implAI) / 100).toFixed(2);
+    }
+
+    // Get the persona name for the remixer
+    const remixerName = collaboratorNames[track.primary_uploader_wallet] || track.artist || 'Creator';
 
     return {
       amount: tingAmount,
-      agentName: "Creator's Agent", // Placeholder until agent naming is implemented
-      personaName: track.artist || 'Creator',
+      agentName: "Creator's Agent",
+      personaName: remixerName,
+      aiSources: aiSources.length > 0 ? aiSources : undefined,
     };
   };
 
@@ -1633,11 +1694,11 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               <Divider title="TAGS" />
               <div className="flex flex-wrap gap-1">
                 {track.tags.map((tag, index) => (
-                  <span 
-                    key={index} 
+                  <span
+                    key={index}
                     className={`px-2 py-1 rounded text-xs ${
-                      tag.startsWith('🌍') 
-                        ? 'bg-blue-600 text-white' 
+                      tag.startsWith('🌍')
+                        ? 'bg-blue-600 text-white'
                         : 'bg-slate-700 text-gray-300'
                     }`}
                   >
@@ -1647,6 +1708,26 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               </div>
             </div>
           )}
+
+          {/* Aggregated Locations (for remixes, includes source track locations) */}
+          {(() => {
+            const locations = getAggregatedLocations();
+            return locations.length > 0 && (
+              <div>
+                <Divider title="LOCATIONS" />
+                <div className="flex flex-wrap gap-1">
+                  {locations.map((location, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 rounded text-xs bg-blue-600 text-white"
+                    >
+                      🌍 {location}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Metadata - Hide BPM/Key for EPs since multiple songs have different values - Skip for radio stations */}
           {(track.bpm || track.key || track.duration) && track.content_type !== 'ep' && !isRadioStation && (
@@ -1784,10 +1865,20 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               const tingAttr = getTingAttribution();
               return tingAttr ? (
                 <div className="mt-3 pt-3 border-t border-gray-700/50">
-                  <div className="text-xs text-gray-500 flex items-center gap-1">
-                    <span>🤖</span>
-                    <span>{tingAttr.amount} TING → {tingAttr.agentName}</span>
-                    <span className="text-gray-600">(visual by {tingAttr.personaName})</span>
+                  <div className="text-xs text-gray-500">
+                    <div className="flex items-center gap-1 mb-1">
+                      <span>🤖</span>
+                      <span>{tingAttr.amount} TING → {tingAttr.agentName}</span>
+                    </div>
+                    {tingAttr.aiSources && tingAttr.aiSources.length > 0 ? (
+                      <div className="text-gray-600 ml-5">
+                        AI-assisted sources: {tingAttr.aiSources.join(', ')}
+                      </div>
+                    ) : (
+                      <div className="text-gray-600 ml-5">
+                        (visual by {tingAttr.personaName})
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : null;
