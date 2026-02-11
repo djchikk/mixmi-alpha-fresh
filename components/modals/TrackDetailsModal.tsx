@@ -873,9 +873,22 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       mergedMap.set(split.name, (mergedMap.get(split.name) || 0) + normalized);
     });
 
-    const splits = Array.from(mergedMap.entries()).map(([name, percentage], index) => ({
-      name,
-      percentage: Math.round(percentage),
+    // Round percentages and ensure they total exactly 100%
+    const entries = Array.from(mergedMap.entries());
+    const rounded = entries.map(([name, pct]) => ({ name, percentage: Math.round(pct) }));
+    const roundedTotal = rounded.reduce((sum, s) => sum + s.percentage, 0);
+    const diff = 100 - roundedTotal;
+
+    // Adjust the largest slice to make up the difference
+    if (diff !== 0 && rounded.length > 0) {
+      const largestIdx = rounded.reduce((maxIdx, s, idx, arr) =>
+        s.percentage > arr[maxIdx].percentage ? idx : maxIdx, 0);
+      rounded[largestIdx].percentage += diff;
+    }
+
+    const splits = rounded.map((s, index) => ({
+      name: s.name,
+      percentage: s.percentage,
       color: CHART_COLORS[index % CHART_COLORS.length],
     }));
 
@@ -973,9 +986,22 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       mergedMap.set(split.name, (mergedMap.get(split.name) || 0) + normalized);
     });
 
-    const splits = Array.from(mergedMap.entries()).map(([name, percentage], index) => ({
-      name,
-      percentage: Math.round(percentage),
+    // Round percentages and ensure they total exactly 100%
+    const entries = Array.from(mergedMap.entries());
+    const rounded = entries.map(([name, pct]) => ({ name, percentage: Math.round(pct) }));
+    const roundedTotal = rounded.reduce((sum, s) => sum + s.percentage, 0);
+    const diff = 100 - roundedTotal;
+
+    // Adjust the largest slice to make up the difference
+    if (diff !== 0 && rounded.length > 0) {
+      const largestIdx = rounded.reduce((maxIdx, s, idx, arr) =>
+        s.percentage > arr[maxIdx].percentage ? idx : maxIdx, 0);
+      rounded[largestIdx].percentage += diff;
+    }
+
+    const splits = rounded.map((s, index) => ({
+      name: s.name,
+      percentage: s.percentage,
       color: CHART_COLORS[index % CHART_COLORS.length],
     }));
 
