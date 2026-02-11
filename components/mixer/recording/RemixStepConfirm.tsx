@@ -53,6 +53,29 @@ export default function RemixStepConfirm({
   const { suiAddress, authType, activePersona } = useAuth();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  // Download pricing state and calculations
+  // Downloads allowed ONLY if ALL source tracks allow downloads
+  const allSourcesAllowDownloads = useMemo(() => {
+    return loadedTracks.length > 0 && loadedTracks.every(t => t.allow_downloads === true);
+  }, [loadedTracks]);
+
+  // Price floor = MAX of all source track download prices
+  const minDownloadPrice = useMemo(() => {
+    if (!allSourcesAllowDownloads) return null;
+    const prices = loadedTracks.map(t => t.download_price_stx || 0);
+    return Math.max(...prices);
+  }, [loadedTracks, allSourcesAllowDownloads]);
+
+  // Remixer's chosen download price (default to price floor)
+  const [downloadPrice, setDownloadPrice] = useState<number | null>(null);
+
+  // Initialize download price when minDownloadPrice is calculated
+  useEffect(() => {
+    if (minDownloadPrice !== null && downloadPrice === null) {
+      setDownloadPrice(minDownloadPrice);
+    }
+  }, [minDownloadPrice, downloadPrice]);
+
   // Prepare payment on mount (fetch recipients)
   useEffect(() => {
     if (paymentData || isProcessing) return;
@@ -266,6 +289,10 @@ export default function RemixStepConfirm({
           locations: remixDetails.locations,
           coverImageUrl: coverImageUrl,
           isDraft: false, // Direct to published!
+          // Download pricing
+          allowDownloads: allSourcesAllowDownloads,
+          downloadPrice: allSourcesAllowDownloads ? downloadPrice : null,
+          minDownloadPrice: minDownloadPrice,
         }),
       });
 
@@ -472,6 +499,48 @@ export default function RemixStepConfirm({
           Your 15% stake accumulates as others remix your remix
         </p>
       </div>
+
+      {/* Download Pricing Section */}
+      {allSourcesAllowDownloads && minDownloadPrice !== null ? (
+        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+          <div className="text-sm text-slate-300 font-medium mb-3">Download Pricing</div>
+          <p className="text-xs text-slate-400 mb-3">
+            All source tracks allow downloads. Set your download price (minimum ${minDownloadPrice.toFixed(2)} USDC based on source prices).
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-slate-400 text-sm">$</span>
+            <input
+              type="number"
+              min={minDownloadPrice}
+              step="0.50"
+              value={downloadPrice ?? minDownloadPrice}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && val >= minDownloadPrice) {
+                  setDownloadPrice(val);
+                }
+              }}
+              className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#81E4F2]"
+            />
+            <span className="text-slate-400 text-sm">USDC</span>
+          </div>
+          {downloadPrice !== null && downloadPrice < minDownloadPrice && (
+            <p className="text-xs text-red-400 mt-2">
+              Price must be at least ${minDownloadPrice.toFixed(2)} USDC
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+          <div className="text-sm text-slate-300 font-medium mb-2">Download Availability</div>
+          <p className="text-xs text-amber-400">
+            ⚠️ Downloads not available. One or more source tracks are Platform Remix Only.
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            Your remix can still be streamed and remixed on the platform.
+          </p>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (

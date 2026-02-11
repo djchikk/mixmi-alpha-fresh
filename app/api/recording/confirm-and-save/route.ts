@@ -43,6 +43,10 @@ export async function POST(request: NextRequest) {
       locations = [],
       coverImageUrl = null,
       isDraft = false, // Now defaults to published!
+      // Download pricing fields
+      allowDownloads = false,
+      downloadPrice = null,
+      minDownloadPrice = null,
     } = body;
 
     console.log('📁 [confirm-and-save] Request:', {
@@ -160,6 +164,12 @@ export async function POST(request: NextRequest) {
         primary_location: locations.length > 0 ? (locations[0].name || locations[0]) : null,
         locations: locations, // Store full location objects with coordinates
         primary_uploader_wallet: creatorSuiAddress || creatorWallet,
+        // Download pricing - only if all sources allow downloads
+        allow_downloads: allowDownloads,
+        download_price_stx: downloadPrice,
+        min_download_price_usdc: minDownloadPrice,
+        price_stx: downloadPrice || 1.0, // Legacy field
+        license_type: allowDownloads ? 'remix_external' : 'remix_only',
       })
       .select()
       .single();
