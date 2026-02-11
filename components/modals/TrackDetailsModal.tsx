@@ -293,6 +293,11 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       // Collect all unique wallet addresses from splits (excluding pending: prefixed ones)
       const wallets = new Set<string>();
 
+      // Add current track's primary uploader (the remixer for remixes)
+      if (track.primary_uploader_wallet) {
+        wallets.add(track.primary_uploader_wallet);
+      }
+
       // Add wallets from current track's IP splits
       if (ipRights) {
         [...ipRights.composition_splits, ...ipRights.production_splits].forEach(split => {
@@ -784,9 +789,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     const isRemix = track.remix_depth && track.remix_depth > 0;
 
     if (isRemix) {
-      // Remixer gets 10%
+      // Remixer gets 10% - look up persona name from wallet
+      const remixerName = collaboratorNames[track.primary_uploader_wallet] || track.artist || 'Remixer';
       rawSplits.push({
-        name: track.artist || 'Remixer',
+        name: remixerName,
         percentage: PRICING.remix.remixerStakePercent,
         isAI: false,
       });
@@ -883,9 +889,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     const isRemix = track.remix_depth && track.remix_depth > 0;
 
     if (isRemix) {
-      // Remixer gets 10%
+      // Remixer gets 10% - look up persona name from wallet
+      const remixerName = collaboratorNames[track.primary_uploader_wallet] || track.artist || 'Remixer';
       rawSplits.push({
-        name: track.artist || 'Remixer',
+        name: remixerName,
         percentage: PRICING.remix.remixerStakePercent,
         isAI: false,
       });
