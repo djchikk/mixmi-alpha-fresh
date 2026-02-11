@@ -290,14 +290,32 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   // Look up usernames for all collaborator wallets
   useEffect(() => {
     const lookupCollaboratorNames = async () => {
-      if (!ipRights) return;
-
       // Collect all unique wallet addresses from splits (excluding pending: prefixed ones)
       const wallets = new Set<string>();
-      [...ipRights.composition_splits, ...ipRights.production_splits].forEach(split => {
-        if (split.wallet && !split.wallet.startsWith('pending:') && split.wallet.length > 10) {
-          wallets.add(split.wallet);
+
+      // Add wallets from current track's IP splits
+      if (ipRights) {
+        [...ipRights.composition_splits, ...ipRights.production_splits].forEach(split => {
+          if (split.wallet && !split.wallet.startsWith('pending:') && split.wallet.length > 10) {
+            wallets.add(split.wallet);
+          }
+        });
+      }
+
+      // Add wallets from source tracks (for remixes)
+      sourceTracks.forEach(sourceTrack => {
+        // Primary uploader
+        if (sourceTrack.primary_uploader_wallet) {
+          wallets.add(sourceTrack.primary_uploader_wallet);
         }
+        // Composition splits
+        if (sourceTrack.composition_split_1_wallet) wallets.add(sourceTrack.composition_split_1_wallet);
+        if (sourceTrack.composition_split_2_wallet) wallets.add(sourceTrack.composition_split_2_wallet);
+        if (sourceTrack.composition_split_3_wallet) wallets.add(sourceTrack.composition_split_3_wallet);
+        // Production splits
+        if (sourceTrack.production_split_1_wallet) wallets.add(sourceTrack.production_split_1_wallet);
+        if (sourceTrack.production_split_2_wallet) wallets.add(sourceTrack.production_split_2_wallet);
+        if (sourceTrack.production_split_3_wallet) wallets.add(sourceTrack.production_split_3_wallet);
       });
 
       if (wallets.size === 0) return;
@@ -348,10 +366,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       setCollaboratorNames(names);
     };
 
-    if (isOpen && ipRights) {
+    if (isOpen && (ipRights || sourceTracks.length > 0)) {
       lookupCollaboratorNames();
     }
-  }, [isOpen, ipRights]);
+  }, [isOpen, ipRights, sourceTracks]);
 
   // Fetch individual loops if this is a loop pack OR individual songs if this is an EP OR individual stations if this is a station pack
   useEffect(() => {
@@ -792,7 +810,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
         if (compSplits.length === 0) {
           // No splits defined - attribute to track's primary uploader
-          const uploaderName = collaboratorNames[sourceTrack.primary_uploader_wallet] || 'Creator';
+          // Use artist name as fallback if wallet lookup fails
+          const uploaderName = collaboratorNames[sourceTrack.primary_uploader_wallet] || sourceTrack.artist || sourceTrack.title || 'Unknown';
           rawSplits.push({
             name: uploaderName,
             percentage: perTrackPercent,
@@ -803,7 +822,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           compSplits.forEach((split) => {
             const holderPercent = (split.percentage / 100) * perTrackPercent;
             const isAI = isAIAgent(split.wallet);
-            const name = collaboratorNames[split.wallet] || 'Creator';
+            // Use artist name as fallback if wallet lookup fails
+            const name = collaboratorNames[split.wallet] || sourceTrack.artist || sourceTrack.title || 'Unknown';
 
             if (isAI) {
               aiContribution += holderPercent;
@@ -889,7 +909,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
         if (prodSplits.length === 0) {
           // No splits defined - attribute to track's primary uploader
-          const uploaderName = collaboratorNames[sourceTrack.primary_uploader_wallet] || 'Creator';
+          // Use artist name as fallback if wallet lookup fails
+          const uploaderName = collaboratorNames[sourceTrack.primary_uploader_wallet] || sourceTrack.artist || sourceTrack.title || 'Unknown';
           rawSplits.push({
             name: uploaderName,
             percentage: perTrackPercent,
@@ -900,7 +921,8 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           prodSplits.forEach((split) => {
             const holderPercent = (split.percentage / 100) * perTrackPercent;
             const isAI = isAIAgent(split.wallet);
-            const name = collaboratorNames[split.wallet] || 'Creator';
+            // Use artist name as fallback if wallet lookup fails
+            const name = collaboratorNames[split.wallet] || sourceTrack.artist || sourceTrack.title || 'Unknown';
 
             if (isAI) {
               aiContribution += holderPercent;
