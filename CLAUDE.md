@@ -577,6 +577,16 @@ is_active BOOLEAN
 - `app/api/personas/create/route.ts` - Auto-creates agent
 - `app/api/auth/zklogin/salt/route.ts` - Auto-creates agent on signup
 - `lib/aiAssistanceUtils.ts` - Display helpers for AI status
+- `components/modals/TrackDetailsModal.tsx` - IP donut charts with TING attribution
+
+### IP Donut Charts (February 2026)
+TrackDetailsModal displays IP ownership as donut charts with this philosophy:
+- **Humans get 100% USDC** - Donut charts show only human creators, always totaling 100%
+- **AI gets TING** - AI contribution shown as separate attribution line below charts
+- **Persona names displayed** - Shows creator usernames, not source track titles
+- **Duplicate names merged** - Same creator in multiple splits combined
+
+See `docs/ip-splits-ting-attribution.md` for detailed implementation.
 
 ### Backfilling Existing Personas
 For personas created before auto-agent feature:
