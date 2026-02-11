@@ -603,6 +603,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     if (track.content_type === 'radio_station') return 'Radio Station';
     if (track.content_type === 'station_pack') return 'Radio Station Pack';
     if (track.content_type === 'video_clip') return 'Video Clip';
+    if (track.content_type === 'video_audio') return 'Video + Audio Remix';
     return 'Track';
   };
 

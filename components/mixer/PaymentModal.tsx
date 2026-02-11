@@ -382,19 +382,35 @@ export default function PaymentModal({
         throw new Error('Cannot remix this content - maximum remix depth (2 generations) exceeded. This prevents contributor lists from becoming unmanageable.');
       }
 
-      // Calculate download pricing for Gen 1 remix
-      // Gen 1 remixes can be downloaded IF both source loops allow downloads
-      // Minimum download price = sum of both loop download prices
-      const loop1AllowsDownloads = loop1.allow_downloads === true;
-      const loop2AllowsDownloads = loop2.allow_downloads === true;
-      const bothLoopsAllowDownloads = loop1AllowsDownloads && loop2AllowsDownloads;
+      // Calculate download pricing for remix
+      // Downloads allowed ONLY if ALL source tracks allow downloads
+      // Price floor = MAX of all source track download prices (remixer can set higher)
+      const allSourcesAllowDownloads = loadedTracks.every(t => t.allow_downloads === true);
 
-      let remixDownloadPrice = null;
-      if (bothLoopsAllowDownloads) {
-        const loop1DownloadPrice = loop1.download_price_stx || 0;
-        const loop2DownloadPrice = loop2.download_price_stx || 0;
-        remixDownloadPrice = loop1DownloadPrice + loop2DownloadPrice;
+      // Calculate price floor (highest source price) and default remix price
+      let minDownloadPrice: number | null = null;
+      let remixDownloadPrice: number | null = null;
+      if (allSourcesAllowDownloads && loadedTracks.length > 0) {
+        const sourcePrices = loadedTracks.map(t => t.download_price_stx || 0);
+        minDownloadPrice = Math.max(...sourcePrices);
+        // Default remix price = price floor (remixer can increase in future UI)
+        remixDownloadPrice = minDownloadPrice;
       }
+
+      // Determine content type based on sources
+      // If any source is video_clip, the remix is video_audio (mixed)
+      const hasVideoSource = loadedTracks.some(t => t.content_type === 'video_clip');
+      const hasAudioSource = loadedTracks.some(t =>
+        t.content_type === 'loop' || t.content_type === 'full_song' || t.content_type === 'mix'
+      );
+      const remixContentType = hasVideoSource && hasAudioSource ? 'video_audio'
+        : hasVideoSource ? 'video_clip'
+        : 'loop';
+
+      // Check if any source has AI assistance (for inheritance)
+      const hasAIAssistance = loadedTracks.some(t =>
+        t.ai_assisted_idea || t.ai_assisted_implementation
+      );
 
       // Prepare the new remix track data with full split attribution
       // NOTE: Use remixSplits.composition/production directly (NOT consolidated)
@@ -417,9 +433,13 @@ export default function PaymentModal({
 
         // Mix metadata
         bpm: bpm,
-        content_type: 'loop',
+        content_type: remixContentType, // 'video_audio' if mixed, 'video_clip' if video only, 'loop' otherwise
         loop_category: 'remix',
         sample_type: 'instrumentals',
+
+        // AI assistance inheritance - if any source has AI, remix inherits it
+        ai_assisted_idea: hasAIAssistance ? true : null,
+        ai_assisted_implementation: hasAIAssistance ? true : null,
 
         // Recording data
         audio_url: permanentAudioUrl, // Uploaded to Supabase storage
@@ -464,18 +484,19 @@ export default function PaymentModal({
         production_split_7_wallet: remixSplits.production[6]?.wallet,
         production_split_7_percentage: remixSplits.production[6]?.percentage,
 
-        // New pricing model (from migration)
-        // Gen 1 remixes can be downloaded IF both source loops allow downloads
-        // Download price = sum of both loop download prices (minimum)
+        // Download pricing model
+        // Downloads allowed ONLY if ALL source tracks allow downloads
+        // Price floor = MAX of source prices (stored in min_download_price_usdc)
         remix_price_stx: PRICING.mixer.loopRecording, // Recording fee per loop in USDC
-        allow_downloads: bothLoopsAllowDownloads, // Only if BOTH loops allow downloads
-        download_price_stx: remixDownloadPrice, // Sum of both loop prices, or null if not downloadable
-        price_stx: remixDownloadPrice || 1.0, // Legacy field - use download price if available, otherwise remix price
+        allow_downloads: allSourcesAllowDownloads, // Only if ALL sources allow downloads
+        min_download_price_usdc: minDownloadPrice, // Price floor (highest source price)
+        download_price_stx: remixDownloadPrice, // Remixer's price (must be >= floor)
+        price_stx: remixDownloadPrice || 1.0, // Legacy field - use download price if available
 
         // Additional metadata
         tags: ['remix', '8-bar', 'mixer'],
         description: `8-bar remix created in mixmi Mixer from bars ${selectedSegment.start + 1} to ${selectedSegment.end}`,
-        license_type: bothLoopsAllowDownloads ? 'remix_external' : 'remix_only', // remix_external if downloadable, remix_only if not
+        license_type: allSourcesAllowDownloads ? 'remix_external' : 'remix_only', // remix_external if downloadable, remix_only if not
         allow_remixing: true,
 
         created_at: new Date().toISOString(),
