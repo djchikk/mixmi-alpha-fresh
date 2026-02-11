@@ -1057,7 +1057,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
         {/* Scrollable Content */}
         <div className="overflow-y-auto max-h-[calc(70vh-120px)] p-6 space-y-4">
 
-          {/* Track Title and Artist - Top Section */}
+          {/* Track Title and Artist/Generation - Top Section */}
           <div className="mb-4">
             {track.primary_uploader_wallet ? (
               <Link
@@ -1069,7 +1069,15 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             ) : (
               <h3 className="font-bold text-white text-lg leading-tight mb-1">{track.title}</h3>
             )}
-            {track.primary_uploader_wallet ? (
+            {/* For remixes, show generation info. For originals, show artist name */}
+            {track.remix_depth && track.remix_depth > 0 ? (
+              <p className="text-gray-400 text-sm">
+                {(() => {
+                  const gen = getGenerationHeader();
+                  return `${gen.emoji} Gen ${track.remix_depth} Remix`;
+                })()}
+              </p>
+            ) : track.primary_uploader_wallet ? (
               <Link
                 href={username ? `/profile/${username}` : `/profile/${track.primary_uploader_wallet}`}
                 className="text-gray-400 text-sm hover:text-[#81E4F2] transition-colors"
@@ -1550,7 +1558,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               {!isRadioStation && (
                 <div className="flex">
                   <span className="text-gray-500 w-24">{track.remix_depth && track.remix_depth > 0 ? 'Remixer:' : 'Artist:'}</span>
-                  <span className="text-gray-300">{track.artist}</span>
+                  <span className="text-gray-300">
+                    {/* Use persona name lookup for remixer, fall back to track.artist */}
+                    {collaboratorNames[track.primary_uploader_wallet] || track.artist}
+                  </span>
                 </div>
               )}
               <div className="flex">
