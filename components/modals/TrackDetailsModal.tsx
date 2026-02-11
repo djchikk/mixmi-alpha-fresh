@@ -1010,18 +1010,32 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
   };
 
   // Aggregate unique locations from source tracks (for remixes)
+  // Locations can be strings or objects with {lat, lng, name}
   const getAggregatedLocations = (): string[] => {
     const allLocations = new Set<string>();
 
+    // Helper to extract location name from string or object
+    const extractLocationName = (loc: any): string | null => {
+      if (typeof loc === 'string') return loc;
+      if (loc && typeof loc === 'object' && loc.name) return loc.name;
+      return null;
+    };
+
     // Add current track's locations
     if (track.locations && Array.isArray(track.locations)) {
-      track.locations.forEach(loc => allLocations.add(loc));
+      track.locations.forEach(loc => {
+        const name = extractLocationName(loc);
+        if (name) allLocations.add(name);
+      });
     }
 
     // Add source tracks' locations (for remixes)
     sourceTracks.forEach(sourceTrack => {
       if (sourceTrack.locations && Array.isArray(sourceTrack.locations)) {
-        sourceTrack.locations.forEach((loc: string) => allLocations.add(loc));
+        sourceTrack.locations.forEach((loc: any) => {
+          const name = extractLocationName(loc);
+          if (name) allLocations.add(name);
+        });
       }
     });
 
