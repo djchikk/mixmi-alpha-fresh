@@ -752,24 +752,32 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     return { emoji: '🌳', text: `GEN ${depth} - REMIX` };
   };
 
-  // Build Idea splits for donut chart
-  const buildIdeaSplits = () => {
-    const splits: Array<{ name: string; percentage: number; color: string }> = [];
+  // Check if a wallet belongs to an AI agent
+  const isAIAgent = (wallet: string): boolean => {
+    if (!wallet) return false;
+    // Check if this wallet was identified as an AI agent in our lookup
+    return collaboratorNames[wallet] === "Creator's Agent";
+  };
+
+  // Build Idea splits for donut chart (humans only, 100% total)
+  const buildIdeaSplits = (): { splits: Array<{ name: string; percentage: number; color: string }>; aiContribution: number } => {
+    const rawSplits: Array<{ name: string; percentage: number; isAI: boolean }> = [];
+    let aiContribution = 0;
     const isRemix = track.remix_depth && track.remix_depth > 0;
 
     if (isRemix) {
       // Remixer gets 10%
-      splits.push({
+      rawSplits.push({
         name: track.artist || 'Remixer',
         percentage: PRICING.remix.remixerStakePercent,
-        color: CHART_COLORS[0],
+        isAI: false,
       });
 
       // Remaining 90% split among source tracks' composition holders
       const remainingPercent = 100 - PRICING.remix.remixerStakePercent;
       const perTrackPercent = sourceTracks.length > 0 ? remainingPercent / sourceTracks.length : 0;
 
-      sourceTracks.forEach((sourceTrack, trackIndex) => {
+      sourceTracks.forEach((sourceTrack) => {
         // Get composition splits from source track
         const compSplits = [];
         if (sourceTrack.composition_split_1_wallet && sourceTrack.composition_split_1_percentage) {
@@ -782,22 +790,29 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           compSplits.push({ wallet: sourceTrack.composition_split_3_wallet, percentage: sourceTrack.composition_split_3_percentage });
         }
 
-        // If no splits, use track title as fallback
         if (compSplits.length === 0) {
-          splits.push({
-            name: sourceTrack.title || `Track ${trackIndex + 1}`,
-            percentage: Math.round(perTrackPercent),
-            color: CHART_COLORS[(trackIndex + 1) % CHART_COLORS.length],
+          // No splits defined - attribute to track's primary uploader
+          const uploaderName = collaboratorNames[sourceTrack.primary_uploader_wallet] || 'Creator';
+          rawSplits.push({
+            name: uploaderName,
+            percentage: perTrackPercent,
+            isAI: false,
           });
         } else {
           // Distribute this track's share among its composition holders
-          compSplits.forEach((split, splitIndex) => {
+          compSplits.forEach((split) => {
             const holderPercent = (split.percentage / 100) * perTrackPercent;
-            const name = collaboratorNames[split.wallet] || sourceTrack.title || `Creator`;
-            splits.push({
+            const isAI = isAIAgent(split.wallet);
+            const name = collaboratorNames[split.wallet] || 'Creator';
+
+            if (isAI) {
+              aiContribution += holderPercent;
+            }
+
+            rawSplits.push({
               name,
-              percentage: Math.round(holderPercent),
-              color: CHART_COLORS[(trackIndex + splitIndex + 1) % CHART_COLORS.length],
+              percentage: holderPercent,
+              isAI,
             });
           });
         }
@@ -806,37 +821,60 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       // Gen 0: Just use the track's own composition splits
       if (ipRights && ipRights.composition_splits.length > 0) {
         ipRights.composition_splits.forEach((split, index) => {
-          const { name } = getCollaboratorDisplay(split.wallet, 'composition', index + 1);
-          splits.push({
+          const { name, isAI } = getCollaboratorDisplay(split.wallet, 'composition', index + 1);
+
+          if (isAI) {
+            aiContribution += split.percentage;
+          }
+
+          rawSplits.push({
             name,
             percentage: split.percentage,
-            color: CHART_COLORS[index % CHART_COLORS.length],
+            isAI: isAI || false,
           });
         });
       }
     }
 
-    return splits;
+    // Filter out AI and recalculate percentages to total 100%
+    const humanSplits = rawSplits.filter(s => !s.isAI);
+    const humanTotal = humanSplits.reduce((sum, s) => sum + s.percentage, 0);
+
+    // Merge splits with same name and normalize to 100%
+    const mergedMap = new Map<string, number>();
+    humanSplits.forEach(split => {
+      const normalized = humanTotal > 0 ? (split.percentage / humanTotal) * 100 : 0;
+      mergedMap.set(split.name, (mergedMap.get(split.name) || 0) + normalized);
+    });
+
+    const splits = Array.from(mergedMap.entries()).map(([name, percentage], index) => ({
+      name,
+      percentage: Math.round(percentage),
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+
+    return { splits, aiContribution };
   };
 
-  // Build Implementation splits for donut chart
-  const buildImplementationSplits = () => {
-    const splits: Array<{ name: string; percentage: number; color: string }> = [];
+  // Build Implementation splits for donut chart (humans only, 100% total)
+  const buildImplementationSplits = (): { splits: Array<{ name: string; percentage: number; color: string }>; aiContribution: number } => {
+    const rawSplits: Array<{ name: string; percentage: number; isAI: boolean }> = [];
+    let aiContribution = 0;
     const isRemix = track.remix_depth && track.remix_depth > 0;
 
     if (isRemix) {
       // Remixer gets 10%
-      splits.push({
+      rawSplits.push({
         name: track.artist || 'Remixer',
         percentage: PRICING.remix.remixerStakePercent,
-        color: CHART_COLORS[0],
+        isAI: false,
       });
 
       // Remaining 90% split among source tracks' production holders
       const remainingPercent = 100 - PRICING.remix.remixerStakePercent;
       const perTrackPercent = sourceTracks.length > 0 ? remainingPercent / sourceTracks.length : 0;
 
-      sourceTracks.forEach((sourceTrack, trackIndex) => {
+      sourceTracks.forEach((sourceTrack) => {
         // Get production splits from source track
         const prodSplits = [];
         if (sourceTrack.production_split_1_wallet && sourceTrack.production_split_1_percentage) {
@@ -849,22 +887,29 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           prodSplits.push({ wallet: sourceTrack.production_split_3_wallet, percentage: sourceTrack.production_split_3_percentage });
         }
 
-        // If no splits, use track title as fallback
         if (prodSplits.length === 0) {
-          splits.push({
-            name: sourceTrack.title || `Track ${trackIndex + 1}`,
-            percentage: Math.round(perTrackPercent),
-            color: CHART_COLORS[(trackIndex + 1) % CHART_COLORS.length],
+          // No splits defined - attribute to track's primary uploader
+          const uploaderName = collaboratorNames[sourceTrack.primary_uploader_wallet] || 'Creator';
+          rawSplits.push({
+            name: uploaderName,
+            percentage: perTrackPercent,
+            isAI: false,
           });
         } else {
           // Distribute this track's share among its production holders
-          prodSplits.forEach((split, splitIndex) => {
+          prodSplits.forEach((split) => {
             const holderPercent = (split.percentage / 100) * perTrackPercent;
-            const name = collaboratorNames[split.wallet] || sourceTrack.title || `Creator`;
-            splits.push({
+            const isAI = isAIAgent(split.wallet);
+            const name = collaboratorNames[split.wallet] || 'Creator';
+
+            if (isAI) {
+              aiContribution += holderPercent;
+            }
+
+            rawSplits.push({
               name,
-              percentage: Math.round(holderPercent),
-              color: CHART_COLORS[(trackIndex + splitIndex + 1) % CHART_COLORS.length],
+              percentage: holderPercent,
+              isAI,
             });
           });
         }
@@ -873,17 +918,58 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
       // Gen 0: Just use the track's own production splits
       if (ipRights && ipRights.production_splits.length > 0) {
         ipRights.production_splits.forEach((split, index) => {
-          const { name } = getCollaboratorDisplay(split.wallet, 'production', index + 1);
-          splits.push({
+          const { name, isAI } = getCollaboratorDisplay(split.wallet, 'production', index + 1);
+
+          if (isAI) {
+            aiContribution += split.percentage;
+          }
+
+          rawSplits.push({
             name,
             percentage: split.percentage,
-            color: CHART_COLORS[index % CHART_COLORS.length],
+            isAI: isAI || false,
           });
         });
       }
     }
 
-    return splits;
+    // Filter out AI and recalculate percentages to total 100%
+    const humanSplits = rawSplits.filter(s => !s.isAI);
+    const humanTotal = humanSplits.reduce((sum, s) => sum + s.percentage, 0);
+
+    // Merge splits with same name and normalize to 100%
+    const mergedMap = new Map<string, number>();
+    humanSplits.forEach(split => {
+      const normalized = humanTotal > 0 ? (split.percentage / humanTotal) * 100 : 0;
+      mergedMap.set(split.name, (mergedMap.get(split.name) || 0) + normalized);
+    });
+
+    const splits = Array.from(mergedMap.entries()).map(([name, percentage], index) => ({
+      name,
+      percentage: Math.round(percentage),
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+
+    return { splits, aiContribution };
+  };
+
+  // Calculate TING attribution for AI-assisted content
+  const getTingAttribution = () => {
+    const { aiContribution: ideaAI } = buildIdeaSplits();
+    const { aiContribution: implAI } = buildImplementationSplits();
+    const totalAI = ideaAI + implAI;
+
+    if (totalAI <= 0) return null;
+
+    // Calculate notional TING (assuming $1 base, AI gets its proportion)
+    // For display purposes, show what the AI contribution represents
+    const tingAmount = (totalAI / 100).toFixed(2);
+
+    return {
+      amount: tingAmount,
+      agentName: "Creator's Agent", // Placeholder until agent naming is implemented
+      personaName: track.artist || 'Creator',
+    };
   };
 
   return typeof document !== 'undefined' ? createPortal(
@@ -1592,7 +1678,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             <div className="flex flex-col gap-4">
               {/* Idea Donut */}
               {(() => {
-                const ideaSplits = buildIdeaSplits();
+                const { splits: ideaSplits } = buildIdeaSplits();
                 return ideaSplits.length > 0 ? (
                   <IPDonutChart
                     splits={ideaSplits}
@@ -1610,7 +1696,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
 
               {/* Implementation Donut */}
               {(() => {
-                const implSplits = buildImplementationSplits();
+                const { splits: implSplits } = buildImplementationSplits();
                 return implSplits.length > 0 ? (
                   <IPDonutChart
                     splits={implSplits}
@@ -1626,6 +1712,20 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 );
               })()}
             </div>
+
+            {/* TING Attribution for AI-assisted content */}
+            {(() => {
+              const tingAttr = getTingAttribution();
+              return tingAttr ? (
+                <div className="mt-3 pt-3 border-t border-gray-700/50">
+                  <div className="text-xs text-gray-500 flex items-center gap-1">
+                    <span>🤖</span>
+                    <span>{tingAttr.amount} TING → {tingAttr.agentName}</span>
+                    <span className="text-gray-600">(visual by {tingAttr.personaName})</span>
+                  </div>
+                </div>
+              ) : null;
+            })()}
           </div>
           )}
         </div>
