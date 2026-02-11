@@ -1144,12 +1144,13 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             ) : (
               <h3 className="font-bold text-white text-lg leading-tight mb-1">{track.title}</h3>
             )}
-            {/* For remixes, show generation info. For originals, show artist name */}
+            {/* For remixes, show generation info with creator. For originals, show artist name */}
             {track.remix_depth && track.remix_depth > 0 ? (
               <p className="text-gray-400 text-sm">
                 {(() => {
                   const gen = getGenerationHeader();
-                  return `${gen.emoji} Gen ${track.remix_depth} Remix`;
+                  const remixerName = collaboratorNames[track.primary_uploader_wallet] || track.artist || 'Unknown';
+                  return `${gen.emoji} Gen ${track.remix_depth} Remix by ${remixerName}`;
                 })()}
               </p>
             ) : track.primary_uploader_wallet ? (

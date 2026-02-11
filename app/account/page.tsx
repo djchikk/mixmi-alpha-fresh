@@ -1098,7 +1098,13 @@ function UploadHistoryTab({ tracks, onViewCertificate }: { tracks: Track[]; onVi
 
               <div className="flex-1 min-w-0">
                 <div className="text-white font-medium truncate">{track.title}</div>
-                <div className="text-sm text-gray-400 truncate">{track.artist}</div>
+                <div className="text-sm text-gray-400 truncate">
+                  {/* For remixes, show generation + persona name. For originals, show artist */}
+                  {track.remix_depth && track.remix_depth > 0
+                    ? `Gen ${track.remix_depth} Remix by ${activePersona?.display_name || activePersona?.username || track.artist}`
+                    : track.artist
+                  }
+                </div>
                 <div className="text-xs text-gray-500 mt-1">
                   {new Date(track.created_at).toLocaleDateString()} • {track.content_type}
                 </div>
