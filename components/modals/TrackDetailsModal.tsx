@@ -1151,7 +1151,17 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 {(() => {
                   const gen = getGenerationHeader();
                   const remixerName = collaboratorNames[track.primary_uploader_wallet] || track.artist || 'Unknown';
-                  return `${gen.emoji} Gen ${track.remix_depth} Remix by ${remixerName}`;
+                  return (
+                    <>
+                      {gen.emoji} Gen {track.remix_depth} Remix by{' '}
+                      <Link
+                        href={username ? `/profile/${username}` : `/profile/${track.primary_uploader_wallet}`}
+                        className="text-[#81E4F2] hover:underline"
+                      >
+                        {remixerName}
+                      </Link>
+                    </>
+                  );
                 })()}
               </p>
             ) : track.primary_uploader_wallet ? (

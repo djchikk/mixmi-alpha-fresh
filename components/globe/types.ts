@@ -23,6 +23,7 @@ export interface TrackNode {
   price_usdc?: number;
   download_price_stx?: number;
   download_price_usdc?: number;
+  allow_downloads?: boolean;
   bpm?: number;
   
   // Aggregation fields (optional)
