@@ -383,18 +383,11 @@ export default function RemixStepConfirm({
     '#C084FC', // Creator 7 - violet
   ];
 
-  // Build donut segments (stake + creators + platform at bottom)
+  // Build donut segments (creators + platform)
+  // Note: Remixer stake is NOT shown here - that's what you EARN going forward, not what you PAY
   const donutSegments = useMemo(() => {
     const segments: { label: string; amount: number; percentage: number; color: string }[] = [];
     const total = costInfo.totalCost;
-
-    // Your stake (gold - first/top)
-    segments.push({
-      label: 'Your remix stake',
-      amount: remixerStake,
-      percentage: (remixerStake / total) * 100,
-      color: SLICE_COLORS[1],
-    });
 
     // Creators (various colors)
     mergedCreators.forEach((creator, i) => {
@@ -415,7 +408,7 @@ export default function RemixStepConfirm({
     });
 
     return segments;
-  }, [costInfo.totalCost, platformAmount, remixerStake, mergedCreators]);
+  }, [costInfo.totalCost, platformAmount, mergedCreators]);
 
   // Calculate SVG donut path segments
   const donutPaths = useMemo(() => {
@@ -505,7 +498,7 @@ export default function RemixStepConfirm({
         </div>
 
         <p className="text-[10px] text-slate-500 text-center mt-3">
-          Your 15% stake accumulates as others remix your remix
+          Your 10% stake accumulates as others remix your remix
         </p>
       </div>
 
