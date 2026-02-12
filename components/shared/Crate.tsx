@@ -290,19 +290,20 @@ export default function Crate({ className = '' }: CrateProps) {
     // Strip -loc-X suffix if present
     const cleanId = track.id?.includes('-loc-') ? track.id.split('-loc-')[0] : track.id;
 
-    // Check if track already has remix metadata (indicating it's complete)
-    const hasCompleteData = track.composition_split_1_wallet !== undefined ||
-                           track.remix_parent_ids !== undefined ||
-                           track._enriched === true;
+    console.log('🔍 [Crate Info] Track clicked:', {
+      originalId: track.id,
+      cleanId,
+      title: track.title,
+      hasRemixDepth: track.remix_depth !== undefined,
+      remixDepth: track.remix_depth,
+      hasTags: !!track.tags,
+      tags: track.tags,
+      _enriched: track._enriched,
+    });
 
-    if (hasCompleteData) {
-      // Track already has full data, just show modal
-      setSelectedTrack(track);
-      setShowInfoModal(true);
-      return;
-    }
-
-    // Fetch full track data from Supabase
+    // Always fetch from database to ensure we have complete, up-to-date data
+    // This is important for remixes which may have been created with metadata
+    // that the Crate track object doesn't have
     setIsLoadingTrackDetails(true);
     try {
       const { data, error } = await supabase
@@ -310,6 +311,15 @@ export default function Crate({ className = '' }: CrateProps) {
         .select('*')
         .eq('id', cleanId)
         .single();
+
+      console.log('🔍 [Crate Info] Supabase fetch result:', {
+        success: !error && !!data,
+        error: error?.message,
+        dataId: data?.id,
+        dataTags: data?.tags,
+        dataRemixDepth: data?.remix_depth,
+        dataSourceTrackIds: data?.source_track_ids,
+      });
 
       if (error || !data) {
         console.warn('Could not fetch full track data, using cached data:', error);
