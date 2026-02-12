@@ -18,6 +18,11 @@ export interface TrackNode {
   // Metadata fields
   tags?: string[];
   description?: string;
+  notes?: string; // For CC text overlay and remix aggregation
+  locations?: Array<{ name: string; lat: number; lng: number }>; // Full locations array for remix aggregation
+  primary_location?: string;
+  location_lat?: number;
+  location_lng?: number;
   license?: string;
   price_stx?: string;
   price_usdc?: number;

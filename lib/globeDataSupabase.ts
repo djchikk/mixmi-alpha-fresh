@@ -38,6 +38,11 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
       // Include metadata fields
       tags: track.tags,
       description: track.description,
+      notes: track.notes, // Preserve notes for remix aggregation
+      locations: track.locations, // Preserve full locations array for remix aggregation
+      primary_location: track.primary_location, // Keep primary location name
+      location_lat: track.location_lat,
+      location_lng: track.location_lng,
       license: track.license,
       price_stx: track.price_stx,
       price_usdc: track.price_usdc,
@@ -100,6 +105,11 @@ export function convertIPTrackToNode(track: IPTrack): TrackNode | TrackNode[] {
     // Include metadata fields
     tags: track.tags,
     description: track.description,
+    notes: track.notes, // Preserve notes for remix aggregation
+    locations: track.locations, // Preserve full locations array for remix aggregation
+    primary_location: track.primary_location, // Keep primary location name
+    location_lat: track.location_lat,
+    location_lng: track.location_lng,
     license: track.license,
     price_stx: track.price_stx,
     price_usdc: track.price_usdc,
