@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useMixer } from '@/contexts/MixerContext';
 import { useDrop, useDrag } from 'react-dnd';
 import { IPTrack } from '@/types';
-import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft, Radio, Mic, MicOff } from 'lucide-react';
+import { Play, Pause, Info, GripVertical, X, ChevronRight, ChevronLeft, Radio, Mic, MicOff, Loader2 } from 'lucide-react';
 import TrackCard from '@/components/cards/TrackCard';
 import TrackDetailsModal from '@/components/modals/TrackDetailsModal';
 import InfoIcon from '@/components/shared/InfoIcon';
@@ -283,6 +283,62 @@ export default function Crate({ className = '' }: CrateProps) {
   // Pack expansion state
   const [expandedPackId, setExpandedPackId] = useState<string | null>(null);
   const [packTracks, setPackTracks] = useState<{ [key: string]: IPTrack[] }>({});
+  const [isLoadingTrackDetails, setIsLoadingTrackDetails] = useState(false);
+
+  // Fetch full track data for TrackDetailsModal (tracks in crate often have incomplete metadata)
+  const fetchFullTrackAndShowModal = async (track: any) => {
+    // Strip -loc-X suffix if present
+    const cleanId = track.id?.includes('-loc-') ? track.id.split('-loc-')[0] : track.id;
+
+    // Check if track already has remix metadata (indicating it's complete)
+    const hasCompleteData = track.composition_split_1_wallet !== undefined ||
+                           track.remix_parent_ids !== undefined ||
+                           track._enriched === true;
+
+    if (hasCompleteData) {
+      // Track already has full data, just show modal
+      setSelectedTrack(track);
+      setShowInfoModal(true);
+      return;
+    }
+
+    // Fetch full track data from Supabase
+    setIsLoadingTrackDetails(true);
+    try {
+      const { data, error } = await supabase
+        .from('ip_tracks')
+        .select('*')
+        .eq('id', cleanId)
+        .single();
+
+      if (error || !data) {
+        console.warn('Could not fetch full track data, using cached data:', error);
+        setSelectedTrack(track);
+        setShowInfoModal(true);
+        return;
+      }
+
+      // Merge fetched data with existing track data (preserve imageUrl, audioUrl mappings)
+      const enrichedTrack = {
+        ...data,
+        imageUrl: track.imageUrl || data.cover_image_url,
+        audioUrl: track.audioUrl || data.audio_url || data.stream_url,
+        _enriched: true, // Mark as enriched so we don't re-fetch
+      };
+
+      // Update track in collection so it's cached for next time
+      updateTrackInCollection(track.id, enrichedTrack);
+
+      setSelectedTrack(enrichedTrack);
+      setShowInfoModal(true);
+    } catch (err) {
+      console.error('Error fetching track details:', err);
+      setSelectedTrack(track);
+      setShowInfoModal(true);
+    } finally {
+      setIsLoadingTrackDetails(false);
+    }
+  };
   
   // Determine current context based on pathname
   const getContext = (): 'store' | 'globe' | 'mixer' => {
@@ -907,13 +963,8 @@ export default function Crate({ className = '' }: CrateProps) {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Ensure track has primary_uploader_wallet for modal links to work
-                        const trackWithWallet = {
-                          ...track,
-                          primary_uploader_wallet: track.primary_uploader_wallet || track.wallet_address || track.uploader_address
-                        };
-                        setSelectedTrack(trackWithWallet);
-                        setShowInfoModal(true);
+                        // Fetch full track data from Supabase to ensure complete metadata
+                        fetchFullTrackAndShowModal(track);
                       }}
                       title="View track details"
                     />
@@ -1205,21 +1256,23 @@ export default function Crate({ className = '' }: CrateProps) {
         </div>
       )}
 
+      {/* Loading indicator for track details fetch */}
+      {isLoadingTrackDetails && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1100]">
+          <div className="bg-slate-800 rounded-lg p-4 flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-[#81E4F2] animate-spin" />
+            <span className="text-white text-sm">Loading track details...</span>
+          </div>
+        </div>
+      )}
+
       {/* Track Details Modal - Unified for all contexts */}
       {showInfoModal && selectedTrack && (
         <TrackDetailsModal
           track={{
             ...selectedTrack,
-            cover_image_url: selectedTrack.imageUrl,
-            audio_url: selectedTrack.audioUrl,
-            // Add any other missing fields that TrackDetailsModal expects
-            tags: selectedTrack.tags || [],
-            description: selectedTrack.description || '',
-            tell_us_more: selectedTrack.tell_us_more || '',
-            notes: selectedTrack.notes || '',
-            // AI assistance flags for Creation display
-            ai_assisted_idea: selectedTrack.ai_assisted_idea,
-            ai_assisted_implementation: selectedTrack.ai_assisted_implementation
+            cover_image_url: selectedTrack.imageUrl || selectedTrack.cover_image_url,
+            audio_url: selectedTrack.audioUrl || selectedTrack.audio_url,
           }}
           isOpen={showInfoModal}
           onClose={() => {
