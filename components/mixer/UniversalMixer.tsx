@@ -936,6 +936,7 @@ export default function UniversalMixer({ className = "", getVideoCanvas, getVide
   // Load track to Deck A
   const loadTrackToDeckA = async (track: Track) => {
     console.log('🎵 UniversalMixer: Loading track to Deck A:', track);
+    console.log('🔍 [DEBUG] Deck A track allow_downloads:', (track as any).allow_downloads, 'download_price_stx:', (track as any).download_price_stx);
 
     // Check if track is protected from remixing (sacred/devotional content)
     if ((track as any).remix_protected) {

@@ -175,6 +175,8 @@ export default function SimplifiedDeckCompact({
         };
         
         console.log('🔄 Converted track for mixer:', mixerTrack);
+        console.log('🔍 [DEBUG] SimplifiedDeck - incoming item.track.allow_downloads:', item.track.allow_downloads);
+        console.log('🔍 [DEBUG] SimplifiedDeck - resulting mixerTrack.allow_downloads:', mixerTrack.allow_downloads);
         onTrackDrop(mixerTrack);
       } else {
         console.warn(`❌ No onTrackDrop handler for Deck ${deck}`);
