@@ -59,7 +59,19 @@ function DraggableTrack({ track, index, children, onRemove }: DraggableTrackProp
           pack_position: (track as any).pack_position,
           // AI assistance flags for Creation display
           ai_assisted_idea: (track as any).ai_assisted_idea,
-          ai_assisted_implementation: (track as any).ai_assisted_implementation
+          ai_assisted_implementation: (track as any).ai_assisted_implementation,
+          // Download/licensing fields for remix flow
+          allow_downloads: (track as any).allow_downloads,
+          download_price_usdc: (track as any).download_price_usdc,
+          license_type: (track as any).license_type,
+          // Metadata for remix aggregation
+          locations: (track as any).locations,
+          tags: track.tags,
+          description: (track as any).description,
+          // Remix genealogy fields
+          remix_depth: (track as any).remix_depth,
+          remix_parent_ids: (track as any).remix_parent_ids,
+          remix_protected: (track as any).remix_protected
         },
         sourceIndex: index
       };
@@ -119,9 +131,22 @@ function ExpandedPackTrack({
         download_price_stx: packTrack.download_price_stx, // Per-item price for cart
         license: packTrack.license,
         pack_position: packTrack.pack_position, // Preserve pack position for numbered badges
+        primary_uploader_wallet: packTrack.primary_uploader_wallet,
         // AI assistance flags for Creation display
         ai_assisted_idea: (packTrack as any).ai_assisted_idea,
-        ai_assisted_implementation: (packTrack as any).ai_assisted_implementation
+        ai_assisted_implementation: (packTrack as any).ai_assisted_implementation,
+        // Download/licensing fields for remix flow
+        allow_downloads: (packTrack as any).allow_downloads,
+        download_price_usdc: (packTrack as any).download_price_usdc,
+        license_type: (packTrack as any).license_type,
+        // Metadata for remix aggregation
+        locations: (packTrack as any).locations,
+        tags: packTrack.tags,
+        description: packTrack.description,
+        // Remix genealogy fields
+        remix_depth: (packTrack as any).remix_depth,
+        remix_parent_ids: (packTrack as any).remix_parent_ids,
+        remix_protected: (packTrack as any).remix_protected
       },
       sourceIndex: -1
     }),
