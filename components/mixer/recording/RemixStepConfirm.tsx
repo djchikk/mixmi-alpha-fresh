@@ -339,110 +339,6 @@ export default function RemixStepConfirm({
     onSuccess,
   ]);
 
-  // Calculate amounts
-  const platformAmount = costInfo.totalCost * (PRICING.remix.platformCutPercent / 100);
-  const remixerStake = costInfo.totalCost * (PRICING.remix.remixerStakePercent / 100);
-  const creatorsAmount = costInfo.totalCost * (PRICING.remix.creatorsCutPercent / 100);
-
-  // Merge creator payments by TRACK (combine composition + production for same track)
-  // This shows which tracks you're paying for, not which wallets
-  const mergedCreators = useMemo(() => {
-    if (!paymentData?.recipients) return [];
-
-    const creatorPayments = paymentData.recipients.filter(r => r.payment_type !== 'platform');
-    const merged = new Map<string, { name: string; amount: number; trackId: string }>();
-
-    for (const r of creatorPayments) {
-      // Key by track ID so each track appears separately
-      const key = r.source_track_id || r.source_track_title || 'Unknown';
-      const existing = merged.get(key);
-      if (existing) {
-        existing.amount += r.amount;
-      } else {
-        merged.set(key, {
-          name: r.source_track_title || r.display_name || 'Track',
-          amount: r.amount,
-          trackId: r.source_track_id || '',
-        });
-      }
-    }
-
-    return Array.from(merged.values()).sort((a, b) => b.amount - a.amount);
-  }, [paymentData?.recipients]);
-
-  // Colors for donut chart slices
-  const SLICE_COLORS = [
-    '#6B7280', // Platform - gray
-    '#FBBF24', // Your stake - gold
-    '#81E4F2', // Creator 1 - cyan
-    '#A084F9', // Creator 2 - purple
-    '#A8E66B', // Creator 3 - green
-    '#F472B6', // Creator 4 - pink
-    '#FB923C', // Creator 5 - orange
-    '#38BDF8', // Creator 6 - sky
-    '#C084FC', // Creator 7 - violet
-  ];
-
-  // Build donut segments (creators + platform)
-  // Note: Remixer stake is NOT shown here - that's what you EARN going forward, not what you PAY
-  const donutSegments = useMemo(() => {
-    const segments: { label: string; amount: number; percentage: number; color: string }[] = [];
-    const total = costInfo.totalCost;
-
-    // Creators (various colors)
-    mergedCreators.forEach((creator, i) => {
-      segments.push({
-        label: creator.name,
-        amount: creator.amount,
-        percentage: (creator.amount / total) * 100,
-        color: SLICE_COLORS[(i + 2) % SLICE_COLORS.length],
-      });
-    });
-
-    // Platform (gray - last/bottom)
-    segments.push({
-      label: 'Platform fee',
-      amount: platformAmount,
-      percentage: (platformAmount / total) * 100,
-      color: SLICE_COLORS[0],
-    });
-
-    return segments;
-  }, [costInfo.totalCost, platformAmount, mergedCreators]);
-
-  // Calculate SVG donut path segments
-  const donutPaths = useMemo(() => {
-    const paths: { d: string; color: string }[] = [];
-    let currentAngle = -90; // Start from top
-    const cx = 50, cy = 50, r = 40;
-
-    for (const segment of donutSegments) {
-      const angle = (segment.percentage / 100) * 360;
-      const startAngle = currentAngle;
-      const endAngle = currentAngle + angle;
-
-      // Convert to radians
-      const startRad = (startAngle * Math.PI) / 180;
-      const endRad = (endAngle * Math.PI) / 180;
-
-      // Calculate arc points
-      const x1 = cx + r * Math.cos(startRad);
-      const y1 = cy + r * Math.sin(startRad);
-      const x2 = cx + r * Math.cos(endRad);
-      const y2 = cy + r * Math.sin(endRad);
-
-      // Large arc flag (1 if angle > 180)
-      const largeArc = angle > 180 ? 1 : 0;
-
-      // Create arc path
-      const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-      paths.push({ d, color: segment.color });
-
-      currentAngle = endAngle;
-    }
-
-    return paths;
-  }, [donutSegments]);
 
   return (
     <div className="remix-step-confirm p-4 space-y-4">
@@ -454,51 +350,12 @@ export default function RemixStepConfirm({
         </div>
       </div>
 
-      {/* Payment Split Visualization - Single Donut */}
+      {/* What you get */}
       <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-        <div className="text-center text-sm text-slate-400 mb-3">Where your payment goes</div>
-
-        <div className="flex gap-4 items-start">
-          {/* Donut Chart */}
-          <div className="flex-shrink-0">
-            <svg viewBox="0 0 100 100" className="w-28 h-28">
-              {donutPaths.map((path, i) => (
-                <path key={i} d={path.d} fill={path.color} className="transition-opacity hover:opacity-80" />
-              ))}
-              {/* Center hole */}
-              <circle cx="50" cy="50" r="25" fill="#1e293b" />
-              {/* Center text */}
-              <text x="50" y="47" textAnchor="middle" className="fill-white text-[8px] font-bold">
-                ${costInfo.totalCost.toFixed(2)}
-              </text>
-              <text x="50" y="57" textAnchor="middle" className="fill-slate-400 text-[5px]">
-                USDC
-              </text>
-            </svg>
-          </div>
-
-          {/* Legend */}
-          <div className="flex-1 space-y-1.5 max-h-[120px] overflow-y-auto">
-            {donutSegments.map((segment, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs">
-                <span
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: segment.color }}
-                />
-                <span className="text-slate-300 truncate flex-1">{segment.label}</span>
-                <span className="text-slate-400 flex-shrink-0">
-                  ${segment.amount.toFixed(2)}
-                </span>
-                <span className="text-slate-500 text-[10px] w-8 text-right flex-shrink-0">
-                  {segment.percentage.toFixed(0)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-[10px] text-slate-500 text-center mt-3">
-          Your 10% stake accumulates as others remix your remix
+        <p className="text-sm text-slate-300 text-center">
+          🌿 You earn a <span className="text-[#81E4F2] font-semibold">10% stake</span> in this remix.
+          <br />
+          <span className="text-xs text-slate-500">It grows as others remix your work.</span>
         </p>
       </div>
 
