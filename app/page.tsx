@@ -1367,6 +1367,10 @@ export default function HomePage() {
                     // AI assistance flags for Creation display
                     ai_assisted_idea: leftComparisonTrack.ai_assisted_idea,
                     ai_assisted_implementation: leftComparisonTrack.ai_assisted_implementation,
+                    // Download/licensing fields for remix flow
+                    allow_downloads: leftComparisonTrack.allow_downloads,
+                    download_price_stx: leftComparisonTrack.download_price_stx,
+                    download_price_usdc: leftComparisonTrack.download_price_usdc,
                     // Required fields for IPTrack
                     wallet_address: '',
                     created_at: new Date().toISOString(),
@@ -1432,6 +1436,10 @@ export default function HomePage() {
                     // AI assistance flags for Creation display
                     ai_assisted_idea: rightComparisonTrack.ai_assisted_idea,
                     ai_assisted_implementation: rightComparisonTrack.ai_assisted_implementation,
+                    // Download/licensing fields for remix flow
+                    allow_downloads: rightComparisonTrack.allow_downloads,
+                    download_price_stx: rightComparisonTrack.download_price_stx,
+                    download_price_usdc: rightComparisonTrack.download_price_usdc,
                     // Required fields for IPTrack
                     wallet_address: '',
                     created_at: new Date().toISOString(),
@@ -1497,6 +1505,10 @@ export default function HomePage() {
                     // AI assistance flags for Creation display
                     ai_assisted_idea: centerTrackCard.ai_assisted_idea,
                     ai_assisted_implementation: centerTrackCard.ai_assisted_implementation,
+                    // Download/licensing fields for remix flow
+                    allow_downloads: centerTrackCard.allow_downloads,
+                    download_price_stx: centerTrackCard.download_price_stx,
+                    download_price_usdc: centerTrackCard.download_price_usdc,
                     wallet_address: '',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -1645,6 +1657,7 @@ export default function HomePage() {
                                 price_usdc: track.price_usdc,
                                 download_price_stx: track.download_price_stx,
                                 download_price_usdc: track.download_price_usdc,
+                                allow_downloads: track.allow_downloads,
                                 content_type: track.content_type || track.genre || 'loop',
                                 bpm: track.bpm,
                                 tags: track.tags || [],
@@ -1710,6 +1723,7 @@ export default function HomePage() {
                                 price_usdc: track.price_usdc,
                                 download_price_stx: track.download_price_stx,
                                 download_price_usdc: track.download_price_usdc,
+                                allow_downloads: track.allow_downloads,
                               content_type: track.content_type || track.genre || 'loop',
                               bpm: track.bpm,
                               tags: track.tags || [],
@@ -1768,6 +1782,10 @@ export default function HomePage() {
                         // AI assistance flags for Creation display
                         ai_assisted_idea: pinnedCard.node.ai_assisted_idea,
                         ai_assisted_implementation: pinnedCard.node.ai_assisted_implementation,
+                        // Download/licensing fields for remix flow
+                        allow_downloads: pinnedCard.node.allow_downloads,
+                        download_price_stx: pinnedCard.node.download_price_stx,
+                        download_price_usdc: pinnedCard.node.download_price_usdc,
                         wallet_address: '',
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
@@ -1875,6 +1893,7 @@ export default function HomePage() {
                             price_usdc: track.price_usdc,
                             download_price_stx: track.download_price_stx,
                             download_price_usdc: track.download_price_usdc,
+                            allow_downloads: track.allow_downloads,
                             bpm: track.bpm,
                             duration: track.duration,
                             description: track.description,
@@ -1942,6 +1961,7 @@ export default function HomePage() {
                               price_usdc: track.price_usdc,
                               download_price_stx: track.download_price_stx,
                               download_price_usdc: track.download_price_usdc,
+                              allow_downloads: track.allow_downloads,
                               bpm: track.bpm,
                               duration: track.duration,
                               description: track.description,
@@ -2003,6 +2023,10 @@ export default function HomePage() {
                       // AI assistance flags for Creation display
                       ai_assisted_idea: displayTrack.ai_assisted_idea,
                       ai_assisted_implementation: displayTrack.ai_assisted_implementation,
+                      // Download/licensing fields for remix flow
+                      allow_downloads: displayTrack.allow_downloads,
+                      download_price_stx: displayTrack.download_price_stx,
+                      download_price_usdc: displayTrack.download_price_usdc,
                       // Required fields for IPTrack
                       wallet_address: '',
                       created_at: new Date().toISOString(),
