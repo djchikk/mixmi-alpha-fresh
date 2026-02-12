@@ -323,8 +323,20 @@ export default function CompactTrackCardWithFlip({
         notes: track.notes,
         // AI assistance flags for Creation display - explicitly preserve
         ai_assisted_idea: (track as any).ai_assisted_idea,
-        ai_assisted_implementation: (track as any).ai_assisted_implementation
+        ai_assisted_implementation: (track as any).ai_assisted_implementation,
+        // Download/licensing fields - explicitly preserve for remix flow
+        allow_downloads: (track as any).allow_downloads,
+        download_price_stx: (track as any).download_price_stx,
+        download_price_usdc: (track as any).download_price_usdc,
+        license_type: (track as any).license_type,
       };
+
+      console.log('🎯 [Drag] Track being dragged:', {
+        id: optimizedTrack.id,
+        title: optimizedTrack.title,
+        allow_downloads: optimizedTrack.allow_downloads,
+        download_price_stx: optimizedTrack.download_price_stx,
+      });
 
       return { track: optimizedTrack, source: 'globe' };
     },
