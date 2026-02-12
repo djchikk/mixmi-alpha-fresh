@@ -1358,6 +1358,11 @@ export default function HomePage() {
                     bpm: leftComparisonTrack.bpm, // Don't default to 128 for songs
                     tags: leftComparisonTrack.tags || [],
                     description: leftComparisonTrack.description || '',
+                    notes: leftComparisonTrack.notes || '', // For remix aggregation
+                    locations: leftComparisonTrack.locations || [], // For remix aggregation
+                    primary_location: leftComparisonTrack.primary_location || leftComparisonTrack.location,
+                    location_lat: leftComparisonTrack.location_lat,
+                    location_lng: leftComparisonTrack.location_lng,
                     license: leftComparisonTrack.license || '',
                     primary_uploader_wallet: leftComparisonTrack.uploaderAddress || leftComparisonTrack.wallet_address,
                     // Pre-generated thumbnails
@@ -1427,6 +1432,11 @@ export default function HomePage() {
                     bpm: rightComparisonTrack.bpm, // Don't default to 128 for songs
                     tags: rightComparisonTrack.tags || [],
                     description: rightComparisonTrack.description || '',
+                    notes: rightComparisonTrack.notes || '', // For remix aggregation
+                    locations: rightComparisonTrack.locations || [], // For remix aggregation
+                    primary_location: rightComparisonTrack.primary_location || rightComparisonTrack.location,
+                    location_lat: rightComparisonTrack.location_lat,
+                    location_lng: rightComparisonTrack.location_lng,
                     license: rightComparisonTrack.license || '',
                     primary_uploader_wallet: rightComparisonTrack.uploaderAddress || rightComparisonTrack.wallet_address,
                     // Pre-generated thumbnails
@@ -1496,6 +1506,11 @@ export default function HomePage() {
                     bpm: centerTrackCard.bpm,
                     tags: centerTrackCard.tags || [],
                     description: centerTrackCard.description || '',
+                    notes: centerTrackCard.notes || '', // For remix aggregation
+                    locations: centerTrackCard.locations || [], // For remix aggregation
+                    primary_location: centerTrackCard.primary_location || centerTrackCard.location,
+                    location_lat: centerTrackCard.location_lat,
+                    location_lng: centerTrackCard.location_lng,
                     license: centerTrackCard.license || '',
                     primary_uploader_wallet: centerTrackCard.uploaderAddress || centerTrackCard.wallet_address,
                     // Pre-generated thumbnails
@@ -1662,6 +1677,11 @@ export default function HomePage() {
                                 bpm: track.bpm,
                                 tags: track.tags || [],
                                 description: track.description || '',
+                                notes: track.notes || '', // For remix aggregation
+                                locations: track.locations || [], // For remix aggregation
+                                primary_location: track.primary_location || track.location,
+                                location_lat: track.location_lat,
+                                location_lng: track.location_lng,
                                 license: track.license || '',
                                 primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
                                 // Pre-generated thumbnails
@@ -1728,6 +1748,11 @@ export default function HomePage() {
                               bpm: track.bpm,
                               tags: track.tags || [],
                               description: track.description || '',
+                              notes: track.notes || '', // For remix aggregation
+                              locations: track.locations || [], // For remix aggregation
+                              primary_location: track.primary_location || track.location,
+                              location_lat: track.location_lat,
+                              location_lng: track.location_lng,
                               license: track.license || '',
                               primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
                               // Pre-generated thumbnails
@@ -1771,6 +1796,11 @@ export default function HomePage() {
                         bpm: pinnedCard.node.bpm,
                         tags: pinnedCard.node.tags || [],
                         description: pinnedCard.node.description || '',
+                        notes: pinnedCard.node.notes || '', // For remix aggregation
+                        locations: pinnedCard.node.locations || [], // For remix aggregation
+                        primary_location: pinnedCard.node.primary_location || pinnedCard.node.location,
+                        location_lat: pinnedCard.node.location_lat,
+                        location_lng: pinnedCard.node.location_lng,
                         license: pinnedCard.node.license || '',
                         primary_uploader_wallet: pinnedCard.node.uploaderAddress || pinnedCard.node.wallet_address,
                         // Pre-generated thumbnails
@@ -1897,7 +1927,11 @@ export default function HomePage() {
                             bpm: track.bpm,
                             duration: track.duration,
                             description: track.description,
-                            primary_location: track.location,
+                            notes: track.notes || '', // For remix aggregation
+                            locations: track.locations || [], // For remix aggregation
+                            primary_location: track.primary_location || track.location,
+                            location_lat: track.location_lat,
+                            location_lng: track.location_lng,
                             primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
                             // Pre-generated thumbnails
                             thumb_64_url: track.thumb_64_url,
@@ -1965,7 +1999,11 @@ export default function HomePage() {
                               bpm: track.bpm,
                               duration: track.duration,
                               description: track.description,
-                              primary_location: track.location,
+                              notes: track.notes || '', // For remix aggregation
+                              locations: track.locations || [], // For remix aggregation
+                              primary_location: track.primary_location || track.location,
+                              location_lat: track.location_lat,
+                              location_lng: track.location_lng,
                               primary_uploader_wallet: track.uploaderAddress || track.wallet_address,
                               // Pre-generated thumbnails
                               thumb_64_url: track.thumb_64_url,
@@ -2012,6 +2050,11 @@ export default function HomePage() {
                       bpm: displayTrack.bpm, // Don't default to 128 - preserve NULL for songs
                       tags: displayTrack.tags || [],
                       description: displayTrack.description || '',
+                      notes: displayTrack.notes || '', // For remix aggregation
+                      locations: displayTrack.locations || [], // For remix aggregation
+                      primary_location: displayTrack.primary_location || displayTrack.location,
+                      location_lat: displayTrack.location_lat,
+                      location_lng: displayTrack.location_lng,
                       license: displayTrack.license || '',
                       primary_uploader_wallet: displayTrack.uploaderAddress || displayTrack.wallet_address,
                       // Pre-generated thumbnails
