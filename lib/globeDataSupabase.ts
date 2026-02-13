@@ -197,20 +197,6 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
       return [];
     }
     
-    // Processing tracks data
-    // Debug: Log first track's price fields from raw Supabase data
-    if (data.length > 0) {
-      const sampleTrack = data.find(t => t.id === '949624fc-5403-4bce-92cd-6fc080eb019e') || data[0];
-      console.log('🔍 [Globe Debug] Raw Supabase data sample:', {
-        id: sampleTrack.id,
-        title: sampleTrack.title,
-        price_stx: sampleTrack.price_stx,
-        price_usdc: sampleTrack.price_usdc,
-        download_price_stx: sampleTrack.download_price_stx,
-        download_price_usdc: sampleTrack.download_price_usdc,
-      });
-    }
-
     // Convert IP tracks to globe nodes
     const nodes: TrackNode[] = [];
 
@@ -223,19 +209,6 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
       }
     }
 
-    // Debug: Log converted node's price fields
-    const sampleNode = nodes.find(n => n.id.startsWith('949624fc-5403-4bce-92cd-6fc080eb019e'));
-    if (sampleNode) {
-      console.log('🔍 [Globe Debug] Converted TrackNode sample:', {
-        id: sampleNode.id,
-        title: sampleNode.title,
-        price_stx: sampleNode.price_stx,
-        price_usdc: sampleNode.price_usdc,
-        download_price_stx: sampleNode.download_price_stx,
-        download_price_usdc: sampleNode.download_price_usdc,
-      });
-    }
-    
     // Add sample profile images for testing
     // In production, these would come from user profiles
     const artistMap = new Map<string, string>();

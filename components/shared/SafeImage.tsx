@@ -72,6 +72,7 @@ export default function SafeImage({
         src={imgSrc}
         alt={alt}
         className={className}
+        loading={priority ? undefined : "lazy"}
         onError={handleError}
         style={fill ? { 
           width: '100%', 

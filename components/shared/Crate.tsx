@@ -290,17 +290,6 @@ export default function Crate({ className = '' }: CrateProps) {
     // Strip -loc-X suffix if present
     const cleanId = track.id?.includes('-loc-') ? track.id.split('-loc-')[0] : track.id;
 
-    console.log('🔍 [Crate Info] Track clicked:', {
-      originalId: track.id,
-      cleanId,
-      title: track.title,
-      hasRemixDepth: track.remix_depth !== undefined,
-      remixDepth: track.remix_depth,
-      hasTags: !!track.tags,
-      tags: track.tags,
-      _enriched: track._enriched,
-    });
-
     // Always fetch from database to ensure we have complete, up-to-date data
     // This is important for remixes which may have been created with metadata
     // that the Crate track object doesn't have
@@ -311,15 +300,6 @@ export default function Crate({ className = '' }: CrateProps) {
         .select('*')
         .eq('id', cleanId)
         .single();
-
-      console.log('🔍 [Crate Info] Supabase fetch result:', {
-        success: !error && !!data,
-        error: error?.message,
-        dataId: data?.id,
-        dataTags: data?.tags,
-        dataRemixDepth: data?.remix_depth,
-        dataSourceTrackIds: data?.source_track_ids,
-      });
 
       if (error || !data) {
         console.warn('Could not fetch full track data, using cached data:', error);
@@ -384,8 +364,6 @@ export default function Crate({ className = '' }: CrateProps) {
                        item.track.content_type === 'station_pack';
 
         if (isPack && (window as any).expandPackInCrate) {
-          console.log('📦 Auto-expanding pack dropped to crate:', item.track.title);
-
           // Use requestAnimationFrame for reliable timing after render
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -429,19 +407,15 @@ export default function Crate({ className = '' }: CrateProps) {
     };
 
     (window as any).clearCollection = () => {
-      console.log('🗑️ Crate: Clearing all tracks from collection');
       clearCollection();
     };
 
     (window as any).updateInCollection = (trackId: string, updates: any) => {
-      console.log('🔄 Crate: Updating track in collection:', trackId, updates);
       updateTrackInCollection(trackId, updates);
     };
 
     // Expose pack expansion function
     (window as any).expandPackInCrate = async (packTrack: any) => {
-      console.log('📦 Crate: Auto-expanding pack:', packTrack.id);
-
       // Set expanded state
       setExpandedPackId(packTrack.id);
 
@@ -470,8 +444,6 @@ export default function Crate({ className = '' }: CrateProps) {
 
     // Expose helper function to add pack to crate and auto-expand it
     (window as any).addPackToCrate = (packTrack: any) => {
-      console.log('📦 Crate: Adding and unpacking pack:', packTrack.title);
-
       // Add pack to collection if not already there
       const exists = collection.some(t => t.id === packTrack.id);
       if (!exists) {
@@ -508,8 +480,6 @@ export default function Crate({ className = '' }: CrateProps) {
     if (!track.audioUrl) return;
 
     const isRadioStation = track.content_type === 'radio_station' || track.content_type === 'station_pack';
-    console.log('🎧 Crate preview:', { trackId: track.id, isRadioStation, audioUrl: track.audioUrl });
-
     // If clicking the same track that's playing, pause it
     if (playingTrack === track.id && currentAudio) {
       currentAudio.pause();

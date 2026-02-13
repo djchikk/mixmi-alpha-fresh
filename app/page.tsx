@@ -161,14 +161,12 @@ export default function HomePage() {
 
   // Callback for VideoMixerLarge to set the handle
   const handleVideoMixerReady = useCallback((handle: VideoMixerLargeHandle | null) => {
-    console.log('🎬 VideoMixerLarge handle ready:', handle ? 'set' : 'null');
     videoMixerHandleRef.current = handle;
   }, []);
 
   // Getter callbacks for video recording - use the ref to always get current value
   const getVideoCanvas = useCallback(() => {
     const canvas = videoMixerHandleRef.current?.getCanvas() ?? null;
-    console.log('🎬 getVideoCanvas called, result:', canvas ? 'canvas found' : 'null');
     return canvas;
   }, []);
   const getVideoElements = useCallback(() => {
@@ -418,7 +416,6 @@ export default function HomePage() {
       };
 
       setPinnedCards(prev => [...prev, newPinnedCard]);
-      console.log('📌 Pinned card from search:', node.title);
     },
     collect: (monitor) => ({
       isOverScreen: monitor.isOver(),
@@ -445,7 +442,6 @@ export default function HomePage() {
   // Lock card position when a node is first selected
   useEffect(() => {
     if (selectedNode && !isCardPositionLocked) {
-      console.log('🎯 Locking card position on node select:', mousePosition);
       setCardPosition({ x: mousePosition.x, y: mousePosition.y });
       setIsCardPositionLocked(true);
     }
@@ -697,72 +693,64 @@ export default function HomePage() {
   };
 
   // Poll for mixer state updates from window object
+  const prevMixerStateRef = useRef<any>(null);
   useEffect(() => {
     const updateMixerState = () => {
-      if (typeof window !== 'undefined' && (window as any).mixerState) {
-        setMixerState((window as any).mixerState);
+      if (typeof window !== 'undefined') {
+        const current = (window as any).mixerState;
+        if (current !== prevMixerStateRef.current) {
+          prevMixerStateRef.current = current;
+          setMixerState(current || null);
+        }
       }
     };
 
-    // Initial update
     updateMixerState();
-
-    // Poll every 100ms for updates
-    const interval = setInterval(updateMixerState, 100);
+    const interval = setInterval(updateMixerState, 250);
 
     return () => clearInterval(interval);
   }, []);
 
   // Load widget visibility from localStorage on mount (client-side only)
   useEffect(() => {
-    console.log('🔧 Loading widget visibility from localStorage...');
     if (typeof window !== 'undefined') {
       const savedMixer = localStorage.getItem('mixer-widget-visible');
       const savedPlaylist = localStorage.getItem('playlist-widget-visible');
       const savedRadio = localStorage.getItem('radio-widget-visible');
-
-      console.log('🔧 Found:', { savedMixer, savedPlaylist, savedRadio });
 
       if (savedMixer !== null) setIsMixerVisible(savedMixer === 'true');
       if (savedPlaylist !== null) setIsPlaylistVisible(savedPlaylist === 'true');
       if (savedRadio !== null) setIsRadioVisible(savedRadio === 'true');
 
       setHasLoadedVisibility(true); // Use state to ensure proper sequencing
-      console.log('✅ Widget visibility loaded');
     }
   }, []); // Run once on mount
 
   // Persist widget visibility states to localStorage (but not until after initial load)
   useEffect(() => {
     if (!hasLoadedVisibility) {
-      console.log('⏭️ Skipping mixer visibility save (waiting for initial load)');
       return;
     }
     if (typeof window !== 'undefined') {
       localStorage.setItem('mixer-widget-visible', String(isMixerVisible));
-      console.log('💾 Mixer visibility saved:', isMixerVisible);
     }
   }, [isMixerVisible, hasLoadedVisibility]);
 
   useEffect(() => {
     if (!hasLoadedVisibility) {
-      console.log('⏭️ Skipping playlist visibility save (waiting for initial load)');
       return;
     }
     if (typeof window !== 'undefined') {
       localStorage.setItem('playlist-widget-visible', String(isPlaylistVisible));
-      console.log('💾 Playlist visibility saved:', isPlaylistVisible);
     }
   }, [isPlaylistVisible, hasLoadedVisibility]);
 
   useEffect(() => {
     if (!hasLoadedVisibility) {
-      console.log('⏭️ Skipping radio visibility save (waiting for initial load)');
       return;
     }
     if (typeof window !== 'undefined') {
       localStorage.setItem('radio-widget-visible', String(isRadioVisible));
-      console.log('💾 Radio visibility saved:', isRadioVisible);
     }
   }, [isRadioVisible, hasLoadedVisibility]);
 
@@ -819,15 +807,12 @@ export default function HomePage() {
   // Fill all widgets with content
   const handleFillWidgets = async () => {
     try {
-      console.log('🎲 FILL: Starting to populate widgets...');
-
       // First, remove previously FILL-added tracks from crate
       if (fillAddedTrackIds.size > 0 && typeof window !== 'undefined' && (window as any).removeFromCollection) {
         // Convert to array to avoid issues with Set iteration
         Array.from(fillAddedTrackIds).forEach((trackId: string) => {
           (window as any).removeFromCollection(trackId);
         });
-        console.log(`🗑️ FILL: Cleared ${fillAddedTrackIds.size} previous FILL tracks from crate`);
       }
 
       // 1. MIXER: Load predetermined loops that mix well together
@@ -845,16 +830,7 @@ export default function HomePage() {
 
         if (testDisco && testLoop && typeof window !== 'undefined' && (window as any).loadMixerTracks) {
           (window as any).loadMixerTracks(testDisco, testLoop);
-          console.log('🎛️ FILL: Loaded Test Disco to Deck A and test loop audio upload to Deck B');
-        } else {
-          console.log('🎛️ FILL: Missing one or both tracks:', {
-            hasTestDisco: !!testDisco,
-            hasTestLoop: !!testLoop,
-            hasMethod: !!(window as any).loadMixerTracks
-          });
         }
-      } else {
-        console.log('🎛️ FILL: Could not find both mixer tracks');
       }
 
       // 2. PLAYLIST: Add 5 random tracks (mix of loops & songs)
@@ -871,7 +847,6 @@ export default function HomePage() {
 
         if (typeof window !== 'undefined' && (window as any).fillPlaylist) {
           (window as any).fillPlaylist(selected);
-          console.log('📝 FILL: Added 5 tracks to playlist');
         }
       }
 
@@ -888,7 +863,6 @@ export default function HomePage() {
 
         if (typeof window !== 'undefined' && (window as any).loadRadioTrack) {
           (window as any).loadRadioTrack(randomTrack);
-          console.log('📻 FILL: Loaded radio track');
         }
       }
 
@@ -912,8 +886,6 @@ export default function HomePage() {
             (window as any).addToCollection(track);
             newFillTrackIds.add(track.id);
           });
-          console.log(`📦 FILL: Added ${newFillTrackIds.size} tracks to crate collection`);
-          console.log('📦 FILL: New track IDs:', Array.from(newFillTrackIds));
         }
 
         // Update the tracked FILL-added IDs
@@ -924,10 +896,8 @@ export default function HomePage() {
       if (originalNodes.length > 0) {
         const randomNode = originalNodes[Math.floor(Math.random() * originalNodes.length)];
         setCenterTrackCard(randomNode);
-        console.log('🌍 FILL: Launched centered globe track card');
       }
 
-      console.log('✅ FILL: All widgets populated!');
       setIsFilled(true);
     } catch (error) {
       console.error('❌ FILL: Error populating widgets:', error);
@@ -937,30 +907,24 @@ export default function HomePage() {
   // Reset all widgets and crate
   const handleResetWidgets = () => {
     try {
-      console.log('🔄 RESET: Clearing all widgets and crate...');
-
       // Clear mixer decks
       if (typeof window !== 'undefined' && (window as any).clearMixerDecks) {
         (window as any).clearMixerDecks();
-        console.log('🎛️ RESET: Cleared mixer decks');
       }
 
       // Clear playlist
       if (typeof window !== 'undefined' && (window as any).clearPlaylist) {
         (window as any).clearPlaylist();
-        console.log('📝 RESET: Cleared playlist');
       }
 
       // Clear radio
       if (typeof window !== 'undefined' && (window as any).clearRadio) {
         (window as any).clearRadio();
-        console.log('📻 RESET: Cleared radio');
       }
 
       // Clear crate (all tracks)
       if (typeof window !== 'undefined' && (window as any).clearCollection) {
         (window as any).clearCollection();
-        console.log('📦 RESET: Cleared crate');
       }
 
       // Clear center track card
@@ -971,8 +935,6 @@ export default function HomePage() {
 
       // Reset filled state
       setIsFilled(false);
-
-      console.log('✅ RESET: All widgets and crate cleared!');
     } catch (error) {
       console.error('❌ RESET: Error clearing widgets:', error);
     }
@@ -1121,12 +1083,10 @@ export default function HomePage() {
 
       if (isRadioStation) {
         // Radio stations: Just try to play immediately, don't wait for canplay
-        console.log('📻 Attempting to play radio station stream:', url);
         try {
           await audio.play();
           setCurrentAudio(audio);
           setPlayingTrackId(trackId);
-          console.log('✅ Radio station playing successfully');
 
           // 20-second preview timeout for radio stations (only Radio Widget plays indefinitely)
           const timeoutId = setTimeout(() => {
@@ -1193,8 +1153,6 @@ export default function HomePage() {
   };
 
   const handlePlayPreview = (trackId: string, audioUrl?: string, isRadioStation?: boolean) => {
-    console.log('🎧 handlePlayPreview called:', { trackId, audioUrl, isRadioStation });
-
     if (!audioUrl) {
       console.warn('⚠️ No audioUrl provided for track:', trackId);
       return;
@@ -1202,7 +1160,6 @@ export default function HomePage() {
 
     // If clicking the same track that's playing, pause it
     if (playingTrackId === trackId && currentAudio) {
-      console.log('⏸️ Pausing currently playing track');
       currentAudio.pause();
       currentAudio.remove();
       setPlayingTrackId(null);
@@ -2085,7 +2042,7 @@ export default function HomePage() {
                     onStopPreview={handleStopPreview}
                     showEditControls={false}
                     onPurchase={(track) => {
-                      console.log('Purchase track:', track);
+                      // TODO: implement purchase flow
                     }}
                   />
                   </div>

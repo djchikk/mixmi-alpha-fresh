@@ -66,7 +66,6 @@ export default function SimplifiedDeckCompact({
     type: 'TRACK_CARD', // Use TRACK_CARD to match Crate expectations
     item: () => {
       if (currentTrack) {
-        console.log(`🎛️ Deck ${deck} track being dragged back to Crate:`, currentTrack);
         return { track: currentTrack, sourceIndex: -1 }; // -1 indicates from deck
       }
       return null;
@@ -87,13 +86,10 @@ export default function SimplifiedDeckCompact({
   const [{ isOver, canDrop, isGlobeDrag, isVideoDrag }, drop] = useDrop(() => ({
     accept: ['CRATE_TRACK', 'COLLECTION_TRACK', 'TRACK_CARD', 'GLOBE_CARD', 'RADIO_TRACK'],
     drop: (item: { track: any; sourceDeck?: string; sourceIndex: number }) => {
-      console.log(`🎯 Deck ${deck} received drop:`, item);
-      
       // 📦 Check if this is a pack - if so, unpack it!
       if (item.track.content_type === 'loop_pack' ||
           item.track.content_type === 'ep' ||
           item.track.content_type === 'station_pack') {
-        console.log(`📦 Pack detected, unpacking to Deck ${deck} crate:`, item.track);
         if (onPackDrop) {
           onPackDrop(item.track);
         }
@@ -101,20 +97,16 @@ export default function SimplifiedDeckCompact({
       }
 
       if (onTrackDrop) {
-        console.log(`✅ Calling onTrackDrop for Deck ${deck}`);
-
         // 🎛️ SMART FILTERING: Allow loops, songs, radio stations, grabbed radio, and video clips in mixer
         const allowedTypes = ['loop', 'full_song', 'radio_station', 'grabbed_radio', 'video_clip'];
         if (!allowedTypes.includes(item.track.content_type)) {
           const contentTypeName = item.track.content_type;
-          console.log(`🚫 Mixer: Rejected ${contentTypeName} - Not a playable type`);
           showToast(`🎛️ ${contentTypeName} cannot be played in the mixer. Try dragging to the Crate or Playlist instead.`, 'info', 5000);
           return;
         }
 
         // 🎬 Video redirect notification - let user know video goes to Video Widget
         if (item.track.content_type === 'video_clip') {
-          console.log(`🎬 Video clip detected on Deck ${deck} - will display in Video Widget`);
           showToast(`🎬 Video loaded to Deck ${deck}! Check the Video Widget for playback.`, 'success', 3000);
         }
 
@@ -174,9 +166,6 @@ export default function SimplifiedDeckCompact({
           })
         };
         
-        console.log('🔄 Converted track for mixer:', mixerTrack);
-        console.log('🔍 [DEBUG] SimplifiedDeck - incoming item.track.allow_downloads:', item.track.allow_downloads);
-        console.log('🔍 [DEBUG] SimplifiedDeck - resulting mixerTrack.allow_downloads:', mixerTrack.allow_downloads);
         onTrackDrop(mixerTrack);
       } else {
         console.warn(`❌ No onTrackDrop handler for Deck ${deck}`);

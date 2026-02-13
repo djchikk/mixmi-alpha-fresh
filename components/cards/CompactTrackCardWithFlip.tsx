@@ -181,17 +181,14 @@ export default function CompactTrackCardWithFlip({
   useEffect(() => {
     const fetchPackTracks = async () => {
       if (!isPackExpanded || (track.content_type !== 'loop_pack' && track.content_type !== 'ep' && track.content_type !== 'station_pack')) {
-        console.log('🔍 Not fetching pack tracks:', { isPackExpanded, content_type: track.content_type });
         return;
       }
       if (packLoops.length > 0) {
-        console.log('🔍 Pack tracks already loaded:', packLoops.length);
         return; // Already loaded
       }
 
       setLoadingLoops(true);
       const packId = track.pack_id || track.id.split('-loc-')[0];
-      console.log('🔍 Fetching pack tracks for:', packId, track.content_type);
 
       // For loop packs, fetch loops. For EPs, fetch full songs. For station packs, fetch radio stations
       const contentTypeToFetch = track.content_type === 'loop_pack' ? 'loop' : track.content_type === 'station_pack' ? 'radio_station' : 'full_song';
@@ -206,7 +203,6 @@ export default function CompactTrackCardWithFlip({
       if (error) {
         console.error('❌ Error fetching pack tracks:', error);
       } else if (data) {
-        console.log('✅ Fetched pack tracks:', data.length, data);
         setPackLoops(data as IPTrack[]);
       }
       setLoadingLoops(false);
@@ -331,13 +327,6 @@ export default function CompactTrackCardWithFlip({
         license_type: (track as any).license_type,
       };
 
-      console.log('🎯 [Drag] Track being dragged:', {
-        id: optimizedTrack.id,
-        title: optimizedTrack.title,
-        allow_downloads: optimizedTrack.allow_downloads,
-        download_price_stx: optimizedTrack.download_price_stx,
-      });
-
       return { track: optimizedTrack, source: 'globe' };
     },
     collect: (monitor) => ({
@@ -421,17 +410,6 @@ export default function CompactTrackCardWithFlip({
     // For radio stations, use stream_url; otherwise use audio_url
     const audioSource = track.stream_url || track.audio_url;
     const isRadioStation = track.content_type === 'radio_station' || track.content_type === 'station_pack';
-
-    console.log('🎵 Play button clicked:', {
-      trackId: track.id,
-      title: track.title,
-      content_type: track.content_type,
-      isRadioStation,
-      isPlaying,
-      stream_url: track.stream_url,
-      audio_url: track.audio_url,
-      audioSource
-    });
 
     onPlayPreview(track.id, audioSource, isRadioStation);
   };
