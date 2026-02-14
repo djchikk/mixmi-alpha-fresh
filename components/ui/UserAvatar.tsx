@@ -16,7 +16,7 @@ interface UserAvatarProps {
 /**
  * Avatar with FaceHash fallback. Shows uploaded image/video if available,
  * otherwise renders a deterministic cute face from the name string.
- * Handles border internally so the face is always perfectly centered.
+ * Uses box-shadow for borders so the face fills the container edge-to-edge.
  */
 export function UserAvatar({
   src,
@@ -30,19 +30,16 @@ export function UserAvatar({
   const radius = rounded ? '50%' : '12px';
   const isVideo = src && (src.includes('.mp4') || src.includes('.webm') || src.includes('video/'));
 
-  // Inner content size accounts for border
-  const innerSize = borderColor ? size - borderWidth * 2 : size;
   const outerStyle: React.CSSProperties = {
     width: size,
     height: size,
     borderRadius: radius,
     overflow: 'hidden',
     flexShrink: 0,
+    // Use box-shadow instead of border — doesn't affect sizing,
+    // so the face fills edge-to-edge with no corner gaps
     ...(borderColor ? {
-      border: `${borderWidth}px solid ${borderColor}`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      boxShadow: `0 0 0 ${borderWidth}px ${borderColor}`,
     } : {}),
   };
 
@@ -51,7 +48,7 @@ export function UserAvatar({
       <div className={className} style={outerStyle}>
         <video
           src={src}
-          style={{ width: innerSize, height: innerSize, objectFit: 'cover', borderRadius: radius }}
+          style={{ width: size, height: size, objectFit: 'cover' }}
           autoPlay
           loop
           muted
@@ -65,8 +62,8 @@ export function UserAvatar({
     <div className={className} style={outerStyle}>
       <Avatar
         style={{
-          width: innerSize,
-          height: innerSize,
+          width: size,
+          height: size,
           borderRadius: radius,
           overflow: 'hidden',
         }}
@@ -79,7 +76,7 @@ export function UserAvatar({
         <AvatarFallback
           name={name}
           facehashProps={{
-            size: innerSize,
+            size,
             variant: 'gradient',
             intensity3d: 'subtle',
             showInitial: false,
