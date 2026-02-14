@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Persona } from '@/contexts/AuthContext';
 import { Plus, Star, RefreshCw, QrCode, ExternalLink } from 'lucide-react';
 import { PRICING } from '@/config/pricing';
-import { generateAvatar } from '@/lib/avatarUtils';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import AddPersonaModal from '@/components/modals/AddPersonaModal';
 import QRCodeModal from '@/components/shared/QRCodeModal';
 
@@ -105,7 +105,6 @@ export default function WalletsTab({
           (!p.sui_address && !p.wallet_address)
         );
         const managerAvatar = managerPersona?.avatar_url;
-        const isVideo = managerAvatar && (managerAvatar.includes('.mp4') || managerAvatar.includes('.webm') || managerAvatar.includes('video/'));
 
         return (
         <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
@@ -113,22 +112,11 @@ export default function WalletsTab({
             <div className="flex items-center gap-3">
               {/* Manager avatar - shows linked persona's avatar */}
               <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0 border-2 border-[#81E4F2]/50">
-                {isVideo ? (
-                  <video
-                    src={managerAvatar}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <img
-                    src={managerAvatar || generateAvatar(suiAddress)}
-                    alt="Manager"
-                    className="w-full h-full object-cover"
-                  />
-                )}
+                <UserAvatar
+                  src={managerAvatar}
+                  name={suiAddress}
+                  size={40}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <h3 className="text-white font-semibold">Manager Account</h3>
@@ -284,34 +272,11 @@ export default function WalletsTab({
 
                       {/* Avatar */}
                       <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0">
-                        {(() => {
-                          const avatarSrc = persona.avatar_url;
-                          const isVideo = avatarSrc && (avatarSrc.includes('.mp4') || avatarSrc.includes('.webm') || avatarSrc.includes('video/'));
-
-                          if (isVideo) {
-                            return (
-                              <video
-                                src={avatarSrc}
-                                className="w-full h-full object-cover"
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                              />
-                            );
-                          }
-
-                          return (
-                            <img
-                              src={avatarSrc || generateAvatar(persona.username || persona.id)}
-                              alt={persona.display_name || persona.username || 'Persona'}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = generateAvatar(persona.username || persona.id);
-                              }}
-                            />
-                          );
-                        })()}
+                        <UserAvatar
+                          src={persona.avatar_url}
+                          name={persona.username || persona.id}
+                          size={48}
+                        />
                       </div>
 
                       {/* Info */}

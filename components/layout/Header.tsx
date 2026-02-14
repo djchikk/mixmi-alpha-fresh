@@ -14,7 +14,7 @@ import SignInModal from "../modals/SignInModal";
 import IPTrackModal from "../modals/IPTrackModal";
 import RadioStationModal from "../modals/RadioStationModal";
 import ContentTypeSelector from "../modals/ContentTypeSelector";
-import { generateAvatar } from "@/lib/avatarUtils";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { TourButton } from "../onboarding/TourButton";
 import { PRICING } from "@/config/pricing";
 
@@ -103,7 +103,7 @@ export default function Header() {
         return;
       }
 
-      // For zkLogin users or users without profile data: use DiceBear (handled in render)
+      // For zkLogin users or users without profile data: FaceHash fallback (handled in render)
       setAvatarUrl(null);
     };
 
@@ -234,35 +234,11 @@ export default function Header() {
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
                 <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-accent/50">
-                  {(() => {
-                    // If activePersona exists, use its avatar or dicebear for that persona
-                    // Don't fall back to main profile's avatar - that would show wrong persona's image
-                    const displayAvatar = activePersona
-                      ? activePersona.avatar_url
-                      : (avatarUrl || null);
-                    const dicebearSeed = activePersona?.username || activePersona?.id || effectiveAddress || '';
-                    const isVideo = displayAvatar && (displayAvatar.includes('.mp4') || displayAvatar.includes('.webm') || displayAvatar.includes('video/'));
-
-                    if (isVideo) {
-                      return (
-                        <video
-                          src={displayAvatar}
-                          className="w-full h-full object-cover"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                        />
-                      );
-                    }
-                    return (
-                      <img
-                        src={displayAvatar || generateAvatar(dicebearSeed)}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    );
-                  })()}
+                  <UserAvatar
+                    src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
+                    name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
+                    size={36}
+                  />
                 </div>
               </button>
 
@@ -276,34 +252,11 @@ export default function Header() {
                       className="w-full flex items-center gap-3 hover:opacity-80 transition-opacity"
                     >
                       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent/50 flex-shrink-0">
-                        {(() => {
-                          // Same logic as header button - don't fall back to main profile's avatar
-                          const displayAvatar = activePersona
-                            ? activePersona.avatar_url
-                            : (avatarUrl || null);
-                          const dicebearSeed = activePersona?.username || activePersona?.id || effectiveAddress || '';
-                          const isVideo = displayAvatar && (displayAvatar.includes('.mp4') || displayAvatar.includes('.webm') || displayAvatar.includes('video/'));
-
-                          if (isVideo) {
-                            return (
-                              <video
-                                src={displayAvatar}
-                                className="w-full h-full object-cover"
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                              />
-                            );
-                          }
-                          return (
-                            <img
-                              src={displayAvatar || generateAvatar(dicebearSeed)}
-                              alt="Profile"
-                              className="w-full h-full object-cover"
-                            />
-                          );
-                        })()}
+                        <UserAvatar
+                          src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
+                          name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
+                          size={48}
+                        />
                       </div>
                       <div className="flex-1 min-w-0 text-left">
                         <div className="text-sm font-medium text-white truncate">
@@ -337,22 +290,11 @@ export default function Header() {
                           }`}
                         >
                           <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-600 flex-shrink-0">
-                            {persona.avatar_url && (persona.avatar_url.includes('.mp4') || persona.avatar_url.includes('.webm') || persona.avatar_url.includes('video/')) ? (
-                              <video
-                                src={persona.avatar_url}
-                                className="w-full h-full object-cover"
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                              />
-                            ) : (
-                              <img
-                                src={persona.avatar_url || generateAvatar(persona.username || '')}
-                                alt={persona.username || 'Persona'}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
+                            <UserAvatar
+                              src={persona.avatar_url}
+                              name={persona.username || persona.id || ''}
+                              size={32}
+                            />
                           </div>
                           <div className="flex-1 min-w-0 text-left">
                             <div className="text-sm text-white truncate">
@@ -528,34 +470,11 @@ export default function Header() {
                   {/* User Info */}
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-accent/50">
-                      {(() => {
-                        // Same logic - don't fall back to main profile's avatar
-                        const displayAvatar = activePersona
-                          ? activePersona.avatar_url
-                          : (avatarUrl || null);
-                        const dicebearSeed = activePersona?.username || activePersona?.id || effectiveAddress || '';
-                        const isVideo = displayAvatar && (displayAvatar.includes('.mp4') || displayAvatar.includes('.webm') || displayAvatar.includes('video/'));
-
-                        if (isVideo) {
-                          return (
-                            <video
-                              src={displayAvatar}
-                              className="w-full h-full object-cover"
-                              autoPlay
-                              loop
-                              muted
-                              playsInline
-                            />
-                          );
-                        }
-                        return (
-                          <img
-                            src={displayAvatar || generateAvatar(dicebearSeed)}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                          />
-                        );
-                      })()}
+                      <UserAvatar
+                        src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
+                        name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
+                        size={40}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white truncate">

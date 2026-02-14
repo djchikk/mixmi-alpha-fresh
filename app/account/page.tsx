@@ -20,7 +20,7 @@ import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
 import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check } from 'lucide-react';
 import { Track } from '@/components/mixer/types';
 import Crate from '@/components/shared/Crate';
-import { generateAvatar } from '@/lib/avatarUtils';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import WalletsTab from '@/components/account/WalletsTab';
 
 type Tab = "uploads" | "library" | "history" | "settings" | "earnings" | "wallets";
@@ -174,9 +174,8 @@ export default function AccountPage() {
           }
         }
 
-        // Priority 3: Dicebear fallback
-        console.log('[Dashboard] Using dicebear fallback');
-        setProfileImage(generateAvatar(currentPersona.username || currentPersona.id));
+        // Priority 3: FaceHash fallback (handled by UserAvatar component)
+        setProfileImage(null);
         return;
       }
 
@@ -1441,21 +1440,14 @@ function SettingsTab({
     }
   };
 
-  // IMPORTANT: When activePersona exists, use its avatar OR dicebear for that persona
+  // IMPORTANT: When activePersona exists, use its avatar OR FaceHash for that persona
   // Don't fall back to profile.avatar_url - that might be from a different persona's user_profiles
   const displayAvatar = activePersona
     ? activePersona.avatar_url  // Use persona's avatar (may be null)
     : profile.avatar_url;        // Only fall back to profile if no activePersona
-  const dicebearSeed = activePersona?.username || activePersona?.id || effectiveWallet || '';
+  const avatarSeed = activePersona?.username || activePersona?.id || effectiveWallet || '';
   const displayNameValue = activePersona?.display_name || profile.display_name;
   const displayUsername = activePersona?.username || profile.username;
-
-  // Check if video
-  const isVideo = displayAvatar && (
-    displayAvatar.includes('.mp4') ||
-    displayAvatar.includes('.webm') ||
-    displayAvatar.includes('video/')
-  );
 
   return (
     <div>
@@ -1479,38 +1471,15 @@ function SettingsTab({
                       onClick={() => setIsImageModalOpen(true)}
                       className="relative w-48 h-48 rounded-2xl overflow-hidden bg-[#1E293B] group cursor-pointer"
                     >
-                      {displayAvatar ? (
+                      {(displayAvatar || activePersona) ? (
                         <>
-                          {isVideo ? (
-                            <video
-                              src={displayAvatar}
-                              className="w-full h-full object-cover"
-                              autoPlay
-                              loop
-                              muted
-                              playsInline
-                            />
-                          ) : (
-                            <img
-                              src={displayAvatar}
-                              alt="Profile"
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                          {/* Overlay for existing image */}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Image className="w-10 h-10 text-white" />
-                          </div>
-                        </>
-                      ) : activePersona ? (
-                        /* Show dicebear for persona without avatar */
-                        <>
-                          <img
-                            src={generateAvatar(dicebearSeed)}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
+                          <UserAvatar
+                            src={displayAvatar}
+                            name={avatarSeed}
+                            size={192}
+                            rounded={false}
                           />
-                          {/* Overlay for dicebear */}
+                          {/* Overlay for edit */}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Image className="w-10 h-10 text-white" />
                           </div>
