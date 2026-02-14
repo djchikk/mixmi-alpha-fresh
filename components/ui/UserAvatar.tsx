@@ -58,7 +58,13 @@ export function UserAvatar({ src, name, size = 40, className, rounded = true }: 
       />
       <AvatarFallback
         name={name}
-        facehashProps={{ size, variant: 'gradient', intensity3d: 'subtle', showInitial: false }}
+        facehashProps={{
+          size,
+          variant: 'gradient',
+          intensity3d: 'subtle',
+          showInitial: false,
+          colors: ['#A084F9', '#A8E66B', '#5BB5F9', '#FFC044', '#81E4F2', '#9772F4', '#FF6B9D', '#FFD57A'],
+        }}
       />
     </Avatar>
   );
