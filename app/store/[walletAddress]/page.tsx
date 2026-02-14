@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import Crate from '@/components/shared/Crate';
 import CompactTrackCardWithFlip from '@/components/cards/CompactTrackCardWithFlip';
 import { supabase } from '@/lib/supabase';
@@ -612,36 +613,12 @@ export default function CreatorStorePage() {
               className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300 cursor-pointer"
               title="Go to Profile"
             >
-              {profileImage ? (
-                profileImage.includes('.mp4') || profileImage.includes('.webm') || profileImage.includes('video/') ? (
-                  <video
-                    src={profileImage}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    onError={() => {
-                      console.error('Failed to load profile video');
-                    }}
-                  />
-                ) : (
-                  <img
-                    src={profileThumb96Url || profileImage}
-                    alt={creatorName || 'Creator'}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error('Failed to load profile image');
-                      // Hide the broken image and show fallback
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                )
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
-                  {creatorName ? creatorName.charAt(0).toUpperCase() : 'M'}
-                </div>
-              )}
+              <UserAvatar
+                src={profileThumb96Url || profileImage}
+                name={creatorName || walletOrUsername || 'user'}
+                size={56}
+                rounded={false}
+              />
             </Link>
 
             <div>

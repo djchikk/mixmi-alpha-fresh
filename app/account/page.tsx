@@ -319,21 +319,12 @@ export default function AccountPage() {
               className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:border-[#a3f3ff] transition-colors cursor-pointer"
               title="View your profile"
             >
-              {profileImage ? (
-                <img
-                  src={profileThumb96Url || profileImage}
-                  alt={displayName || 'User'}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.error('Failed to load profile image');
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[#81E4F2] text-2xl font-semibold">
-                  {displayName ? displayName.charAt(0).toUpperCase() : walletAddress ? walletAddress.charAt(0).toUpperCase() : 'A'}
-                </div>
-              )}
+              <UserAvatar
+                src={profileThumb96Url || profileImage}
+                name={activePersona?.username || displayName || walletAddress || 'user'}
+                size={56}
+                rounded={false}
+              />
             </button>
 
             <div>

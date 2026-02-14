@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Gift, Wallet, Music, DollarSign, CheckCircle, AlertCircle, LogIn, UserPlus, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 interface ClaimInfo {
   displayName: string;
@@ -238,9 +239,11 @@ export default function ClaimPage() {
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#1E293B] flex items-center justify-center text-[#A8E66B] font-bold">
-                            {(persona.display_name || persona.username).charAt(0).toUpperCase()}
-                          </div>
+                          <UserAvatar
+                            src={null}
+                            name={persona.username || persona.display_name || persona.id}
+                            size={40}
+                          />
                           <div>
                             <div className="text-white font-medium">
                               {persona.display_name || persona.username}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 interface User {
   walletAddress: string | null;
@@ -258,19 +259,11 @@ export default function CollaboratorAutosuggest({
             >
               <div className="flex items-center gap-3">
                 {/* Avatar */}
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-600 flex-shrink-0">
-                  {user.avatarUrl ? (
-                    <img
-                      src={user.avatarUrl}
-                      alt={user.displayName || user.username || 'User'}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-                      {(user.displayName || user.username || '?')[0].toUpperCase()}
-                    </div>
-                  )}
-                </div>
+                <UserAvatar
+                  src={user.avatarUrl}
+                  name={user.username || user.displayName || user.walletAddress || '?'}
+                  size={32}
+                />
 
                 {/* User info */}
                 <div className="flex-1 min-w-0">

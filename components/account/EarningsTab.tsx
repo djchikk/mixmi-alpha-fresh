@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Persona } from '@/contexts/AuthContext';
 import { DollarSign, ArrowUpRight, Clock, Users, ExternalLink, Wallet, Send, RefreshCw, Copy, Check, ChevronDown, ChevronUp, QrCode, AlertCircle, UserPlus, Link2, UserCheck, Search } from 'lucide-react';
 import QRCodeModal from '@/components/shared/QRCodeModal';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 interface Earning {
   id: string;
@@ -537,10 +538,11 @@ export default function EarningsTab({
                   key={persona.id}
                   className="px-4 py-3 flex items-center gap-4 hover:bg-[#0a0f1a]/30"
                 >
-                  {/* Avatar placeholder */}
-                  <div className="w-8 h-8 rounded-full bg-[#1E293B] flex items-center justify-center text-xs text-[#A8E66B] font-bold flex-shrink-0">
-                    {(persona.display_name || persona.username || '?').charAt(0).toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    src={null}
+                    name={persona.username || persona.id || '?'}
+                    size={32}
+                  />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -948,10 +950,11 @@ export default function EarningsTab({
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        {/* Avatar placeholder */}
-                        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">
-                          {tbd.displayName.charAt(0).toUpperCase()}
-                        </div>
+                        <UserAvatar
+                          src={null}
+                          name={tbd.username || tbd.displayName}
+                          size={40}
+                        />
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-white font-medium">{tbd.displayName}</span>
