@@ -63,7 +63,18 @@ export function UserAvatar({ src, name, size = 40, className, rounded = true }: 
           variant: 'gradient',
           intensity3d: 'subtle',
           showInitial: false,
-          colors: ['#A084F9', '#A8E66B', '#5BB5F9', '#FFC044', '#81E4F2', '#9772F4', '#FF6B9D', '#FFD57A'],
+          colors: [
+            '#FF6B9D', // Bubblegum pink
+            '#C084FC', // Soft violet
+            '#67E8F9', // Aqua splash
+            '#FCA5D0', // Cotton candy
+            '#86EFAC', // Mint green
+            '#FCD34D', // Sunshine yellow
+            '#F9A8D4', // Rose petal
+            '#7DD3FC', // Baby blue
+            '#D8B4FE', // Lilac
+            '#6EE7B7', // Seafoam
+          ],
         }}
       />
     </Avatar>
