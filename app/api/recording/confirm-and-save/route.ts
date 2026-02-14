@@ -210,7 +210,22 @@ export async function POST(request: NextRequest) {
       })
       .eq('recording_payment_id', paymentId);
 
-    console.log('📁 [confirm-and-save] Success!');
+    // Trigger thumbnail generation for the cover image (fire-and-forget)
+    if (coverImageUrl && !coverImageUrl.startsWith('data:')) {
+      try {
+        const baseUrl = request.nextUrl.origin;
+        fetch(`${baseUrl}/api/tracks/generate-thumbnails`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trackId: draftTrack.id,
+            coverImageUrl: coverImageUrl,
+          }),
+        }).catch(err => console.error('Thumbnail generation request failed:', err));
+      } catch (err) {
+        console.error('Failed to trigger thumbnail generation:', err);
+      }
+    }
 
     return NextResponse.json({
       success: true,

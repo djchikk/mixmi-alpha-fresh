@@ -388,6 +388,7 @@ export default function CompactTrackCardWithFlip({
 
   // Check if this is a remix (has remix_depth > 0)
   const isRemix = ((track as any).remix_depth || 0) > 0 || ((track as any).generation || 0) > 0;
+  const isVideoRemix = isRemix && !!(track as any).video_url;
 
 
   // Handle play click - supports audio_url (tracks), stream_url (radio), and video_url (videos)
@@ -516,7 +517,7 @@ export default function CompactTrackCardWithFlip({
         {/* Compact Card Container - 160x160px */}
         <div
           ref={drag}
-          className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${isRemix ? 'remix-shimmer-border' : `${getBorderColor()} ${getBorderThickness()}`} ${getBorderStyle()} bg-slate-800 relative`}
+          className={`w-[160px] h-[160px] rounded-lg overflow-hidden transition-all duration-300 ${isRemix ? (isVideoRemix ? 'remix-video-shimmer-border' : 'remix-audio-shimmer-border') : `${getBorderColor()} ${getBorderThickness()}`} ${getBorderStyle()} bg-slate-800 relative`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           style={{
@@ -1142,13 +1143,24 @@ export default function CompactTrackCardWithFlip({
           50% { background-position: 100% 50%; }
         }
 
-        /* Remix shimmer border - uses pseudo-element inside the card bounds */
-        .remix-shimmer-border {
+        /* Audio remix shimmer border — lavender + lime green */
+        .remix-audio-shimmer-border {
           position: relative;
           border: 3px solid transparent;
           background:
             linear-gradient(to right, #1e293b, #1e293b) padding-box,
-            linear-gradient(135deg, #FFFFFF 0%, #A8E6CF 14%, #FFFFFF 28%, #88D4F2 42%, #FFFFFF 56%, #B8E8D2 70%, #FFFFFF 84%, #7BC8F4 100%) border-box;
+            linear-gradient(135deg, #FFFFFF 0%, #9772F4 14%, #FFFFFF 28%, #A8E66B 42%, #FFFFFF 56%, #A084F9 70%, #FFFFFF 84%, #A8E66B 100%) border-box;
+          background-size: 100% 100%, 400% 400%;
+          animation: shimmer-border 6s ease-in-out infinite;
+        }
+
+        /* Video remix shimmer border — deeper sky blues */
+        .remix-video-shimmer-border {
+          position: relative;
+          border: 3px solid transparent;
+          background:
+            linear-gradient(to right, #1e293b, #1e293b) padding-box,
+            linear-gradient(135deg, #FFFFFF 0%, #2792F5 14%, #FFFFFF 28%, #5BB5F9 42%, #FFFFFF 56%, #2792F5 70%, #FFFFFF 84%, #1E7AD4 100%) border-box;
           background-size: 100% 100%, 400% 400%;
           animation: shimmer-border 6s ease-in-out infinite;
         }
