@@ -111,13 +111,12 @@ export default function WalletsTab({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               {/* Manager avatar - shows linked persona's avatar */}
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0 border-2 border-[#81E4F2]/50">
-                <UserAvatar
-                  src={managerAvatar}
-                  name={suiAddress}
-                  size={40}
-                />
-              </div>
+              <UserAvatar
+                src={managerAvatar}
+                name={suiAddress}
+                size={40}
+                borderColor="rgba(129,228,242,0.5)"
+              />
               <div className="flex items-center gap-2">
                 <h3 className="text-white font-semibold">Manager Account</h3>
                 <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">zkLogin</span>

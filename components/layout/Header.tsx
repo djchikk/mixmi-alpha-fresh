@@ -233,13 +233,12 @@ export default function Header() {
                 onClick={() => setShowAvatarDropdown(!showAvatarDropdown)}
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
-                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-accent/50">
-                  <UserAvatar
-                    src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
-                    name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
-                    size={36}
-                  />
-                </div>
+                <UserAvatar
+                  src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
+                  name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
+                  size={36}
+                  borderColor="rgba(129,228,242,0.5)"
+                />
               </button>
 
               {/* Avatar Dropdown Menu */}
@@ -251,13 +250,12 @@ export default function Header() {
                       onClick={() => setShowPersonaList(!showPersonaList)}
                       className="w-full flex items-center gap-3 hover:opacity-80 transition-opacity"
                     >
-                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent/50 flex-shrink-0">
-                        <UserAvatar
-                          src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
-                          name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
-                          size={48}
-                        />
-                      </div>
+                      <UserAvatar
+                        src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
+                        name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
+                        size={48}
+                        borderColor="rgba(129,228,242,0.5)"
+                      />
                       <div className="flex-1 min-w-0 text-left">
                         <div className="text-sm font-medium text-white truncate">
                           {activePersona?.display_name || activePersona?.username || username || 'mixmi User'}
@@ -289,13 +287,13 @@ export default function Header() {
                             activePersona?.id === persona.id ? 'bg-[#1E293B]/30' : ''
                           }`}
                         >
-                          <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-600 flex-shrink-0">
-                            <UserAvatar
-                              src={persona.avatar_url}
-                              name={persona.username || persona.id || ''}
-                              size={32}
-                            />
-                          </div>
+                          <UserAvatar
+                            src={persona.avatar_url}
+                            name={persona.username || persona.id || ''}
+                            size={32}
+                            borderColor="#4B5563"
+                            borderWidth={1}
+                          />
                           <div className="flex-1 min-w-0 text-left">
                             <div className="text-sm text-white truncate">
                               {persona.display_name || persona.username}
@@ -469,13 +467,12 @@ export default function Header() {
                 <div className="flex flex-col gap-3">
                   {/* User Info */}
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-accent/50">
-                      <UserAvatar
-                        src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
-                        name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
-                        size={40}
-                      />
-                    </div>
+                    <UserAvatar
+                      src={activePersona ? activePersona.avatar_url : (avatarUrl || null)}
+                      name={activePersona?.username || activePersona?.id || effectiveAddress || ''}
+                      size={40}
+                      borderColor="rgba(129,228,242,0.5)"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white truncate">
                         {username || 'mixmi User'}

@@ -316,7 +316,7 @@ export default function AccountPage() {
           <div className="flex items-center gap-4 mb-8">
             <button
               onClick={() => router.push(`/profile/${activePersona?.username || walletAddress}`)}
-              className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:border-[#a3f3ff] transition-colors cursor-pointer"
+              className="hover:opacity-90 transition-opacity cursor-pointer"
               title="View your profile"
             >
               <UserAvatar
@@ -324,6 +324,7 @@ export default function AccountPage() {
                 name={activePersona?.username || displayName || walletAddress || 'user'}
                 size={56}
                 rounded={false}
+                borderColor="#81E4F2"
               />
             </button>
 

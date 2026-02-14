@@ -610,7 +610,7 @@ export default function CreatorStorePage() {
           <div className="flex items-center gap-4 mb-6 pt-6">
             <Link
               href={`/profile/${walletOrUsername}`}
-              className="w-14 h-14 rounded-lg overflow-hidden border-2 border-[#81E4F2] bg-slate-800 hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300 cursor-pointer"
+              className="hover:shadow-[0_0_20px_rgba(129,228,242,0.5)] transition-all duration-300 cursor-pointer rounded-xl"
               title="Go to Profile"
             >
               <UserAvatar
@@ -618,6 +618,7 @@ export default function CreatorStorePage() {
                 name={creatorName || walletOrUsername || 'user'}
                 size={56}
                 rounded={false}
+                borderColor="#81E4F2"
               />
             </Link>
 
