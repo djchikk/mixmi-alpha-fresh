@@ -290,14 +290,19 @@ export default function Crate({ className = '' }: CrateProps) {
     // Strip -loc-X suffix if present
     const cleanId = track.id?.includes('-loc-') ? track.id.split('-loc-')[0] : track.id;
 
-    // Always fetch from database to ensure we have complete, up-to-date data
-    // This is important for remixes which may have been created with metadata
-    // that the Crate track object doesn't have
+    // If already enriched with full data, skip Supabase fetch
+    if (track._enriched === true && track.tags !== undefined && track.content_type) {
+      setSelectedTrack(track);
+      setShowInfoModal(true);
+      return;
+    }
+
+    // Fetch from database for tracks that haven't been enriched yet
     setIsLoadingTrackDetails(true);
     try {
       const { data, error } = await supabase
         .from('ip_tracks')
-        .select('*')
+        .select('id, title, artist, content_type, audio_url, stream_url, video_url, cover_image_url, thumb_160_url, thumb_256_url, tags, description, notes, bpm, price_stx, price_usdc, download_price_stx, download_price_usdc, allow_downloads, primary_location, locations, location_lat, location_lng, primary_uploader_wallet, uploader_address, composition_split_1_wallet, composition_split_1_percentage, composition_split_1_sui_address, production_split_1_wallet, production_split_1_percentage, production_split_1_sui_address, ai_assisted_idea, ai_assisted_implementation, remix_depth, remix_parent_ids, remix_protected, license_type, created_at, updated_at, pack_id, pack_position, portal_username')
         .eq('id', cleanId)
         .single();
 
