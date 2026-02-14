@@ -1264,8 +1264,14 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Globe fills entire container */}
-        <div className="w-full h-full relative">
+        {/* Globe fills entire container - fade in smoothly */}
+        <div
+          className="w-full h-full relative"
+          style={{
+            opacity: isLoadingTracks ? 0 : 1,
+            transition: 'opacity 1.2s ease-out',
+          }}
+        >
           <Globe
             nodes={globeNodes}
             onNodeClick={handleNodeClick}
