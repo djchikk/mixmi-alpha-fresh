@@ -117,7 +117,10 @@ function extractCollaboratorNames(extractedData: any): string[] {
  * Creates preferences lazily for non-default personas on first upload.
  */
 async function loadAgentProfile(personaId: string | undefined, walletAddress: string): Promise<string> {
-  if (!personaId) return '';
+  if (!personaId) {
+    console.log('🤖 Agent profile: no personaId provided (legacy wallet user?)');
+    return '';
+  }
 
   try {
     // Load persona with agent_mission + linked agent_preferences
@@ -204,7 +207,9 @@ async function loadAgentProfile(personaId: string | undefined, walletAddress: st
 
     if (parts.length === 0) return '';
 
-    return `\n\n## Agent Profile for ${persona.display_name || persona.username}\n${parts.join('\n\n')}\n\nWhen suggesting defaults, use their preferences but always confirm. If they correct you, accept gracefully — they may be trying something new.\n`;
+    const profile = `\n\n## Agent Profile for ${persona.display_name || persona.username}\n${parts.join('\n\n')}\n\nWhen suggesting defaults, use their preferences but always confirm. If they correct you, accept gracefully — they may be trying something new.\n`;
+    console.log('🤖 Agent profile loaded:', { persona: persona.display_name || persona.username, uploadCount: prefs?.upload_count ?? 0, hasMission: !!persona.agent_mission, sectionsLoaded: parts.length });
+    return profile;
   } catch (error) {
     console.error('Error loading agent profile:', error);
     return '';
