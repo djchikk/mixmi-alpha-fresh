@@ -846,7 +846,7 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
 
       if (attachment.file.type.startsWith('video/') || VIDEO_EXTS.test(attachment.file.name)) {
         fileCategory = 'video';
-        storagePath = 'audio'; // Use audio path for now — video-clips may have restrictions
+        storagePath = 'video-clips'; // Separate Supabase bucket
       } else if (attachment.file.type.startsWith('image/') || IMAGE_EXTS.test(attachment.file.name)) {
         fileCategory = 'image';
         storagePath = 'cover-images';
@@ -856,13 +856,16 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
       const timestamp = Date.now();
       const ext = attachment.file.name.split('.').pop()?.toLowerCase() || 'bin';
       const uniqueName = `${walletAddress.substring(0, 10)}-${timestamp}.${ext}`;
-      const filePath = `${storagePath}/${uniqueName}`;
+
+      // Video uses its own bucket; audio/images use user-content bucket with subfolder
+      const bucket = fileCategory === 'video' ? 'video-clips' : 'user-content';
+      const filePath = fileCategory === 'video' ? uniqueName : `${storagePath}/${uniqueName}`;
 
       // Upload directly to Supabase Storage from the browser
-      console.log('📤 Uploading to Supabase:', { filePath, type: attachment.file.type, size: attachment.file.size });
+      console.log('📤 Uploading to Supabase:', { bucket, filePath, type: attachment.file.type, size: attachment.file.size });
 
       const { error: uploadError } = await supabase.storage
-        .from('user-content')
+        .from(bucket)
         .upload(filePath, attachment.file, {
           contentType: attachment.file.type,
           cacheControl: '3600',
@@ -876,7 +879,7 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('user-content')
+        .from(bucket)
         .getPublicUrl(filePath);
 
       const result = {
