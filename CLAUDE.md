@@ -259,7 +259,7 @@ All prices now in USDC (centralized in `config/pricing.ts`):
 mixer: { loopRecording: 0.10, songSection: 0.10, videoClip: 0.10 }
 download: { loop: 2.00, song: 1.00, videoClip: 2.00 }
 contact: { inquiryFee: 1.00, creatorCutPercent: 100 }
-account: { maxPersonas: 5, maxTbdWallets: 5 }
+account: { maxPersonas: 80, maxTbdWallets: 5 }
 ```
 
 ### New Database Tables (Accounting System)

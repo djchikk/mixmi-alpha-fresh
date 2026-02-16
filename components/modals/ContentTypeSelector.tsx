@@ -1,13 +1,13 @@
 "use client";
 
 import React from 'react';
-import { Music, Radio, Video, X, MessageCircle, Globe } from 'lucide-react';
+import { Music, Video, X, Globe } from 'lucide-react';
 
 interface ContentTypeSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectMusic: () => void;
-  onSelectRadio: () => void;
+  onSelectRadio: () => void; // Kept in interface for Header compatibility
   onSelectVideo: () => void;
   onSelectChat?: () => void;
 }
@@ -66,7 +66,7 @@ export default function ContentTypeSelector({
           </div>
 
           {/* Manual Form Options - Secondary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Music Option */}
             <button
               onClick={onSelectMusic}
@@ -83,22 +83,6 @@ export default function ContentTypeSelector({
               </div>
             </button>
 
-            {/* Radio Option */}
-            <button
-              onClick={onSelectRadio}
-              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#FFC044]/50 rounded-xl p-5 transition-all duration-200"
-            >
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                  <Radio className="w-6 h-6 text-[#FFC044]" />
-                </div>
-                <div className="text-center">
-                  <h3 className="text-base font-semibold text-white mb-1">Radio</h3>
-                  <p className="text-xs text-gray-500">Live stream URLs</p>
-                </div>
-              </div>
-            </button>
-
             {/* Video Option */}
             <button
               onClick={onSelectVideo}
@@ -110,7 +94,7 @@ export default function ContentTypeSelector({
                 </div>
                 <div className="text-center">
                   <h3 className="text-base font-semibold text-white mb-1">Video</h3>
-                  <p className="text-xs text-gray-500">5-second clips</p>
+                  <p className="text-xs text-gray-500">Video clips</p>
                 </div>
               </div>
             </button>

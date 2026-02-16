@@ -49,9 +49,9 @@ export const PRICING = {
     saveableUnitBars: 8,          // Pay per 8-bar section saved
   },
 
-  // Account limits (high limit for alpha testing)
+  // Account limits
   account: {
-    maxPersonas: 999,  // Effectively unlimited during alpha
+    maxPersonas: 80,  // Manager accounts for pilot communities need headroom
     maxTbdWallets: 5,
   },
 

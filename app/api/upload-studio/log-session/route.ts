@@ -49,6 +49,7 @@ function extractKeywordContext(text: string, keywords: string[]): string {
 interface SessionLogRequest {
   conversationId: string;
   walletAddress: string;
+  personaId?: string;
 
   // Layer 1: Raw transcript
   messages: Array<{
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
     const {
       conversationId,
       walletAddress,
+      personaId,
       messages,
       uploadedFiles,
       inferredData,
@@ -171,6 +173,7 @@ export async function POST(request: NextRequest) {
     const sessionRecord = {
       conversation_id: conversationId,
       wallet_address: effectiveWallet || walletAddress,
+      persona_id: personaId || null,
 
       // Layer 1: Transcript (keep as summary/cache)
       messages: messages || [],

@@ -31,6 +31,88 @@ interface FileAttachment {
   url?: string; // After upload
   status: 'pending' | 'uploading' | 'uploaded' | 'error';
   progress?: number;
+  duration?: number; // Detected duration in seconds
+}
+
+/**
+ * Detect audio duration client-side using HTMLAudioElement.
+ * Returns duration in seconds, or null if detection fails.
+ */
+function detectAudioDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    const objectUrl = URL.createObjectURL(file);
+    audio.preload = 'metadata';
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl);
+      audio.src = '';
+      audio.load();
+    };
+
+    audio.onloadedmetadata = () => {
+      const duration = audio.duration;
+      cleanup();
+      if (duration && isFinite(duration) && duration > 0) {
+        resolve(Math.round(duration * 10) / 10); // Round to 1 decimal
+      } else {
+        resolve(null);
+      }
+    };
+
+    audio.onerror = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, 5000);
+
+    audio.src = objectUrl;
+  });
+}
+
+/**
+ * Detect video duration client-side using HTMLVideoElement.
+ * Returns duration in seconds, or null if detection fails.
+ */
+function detectVideoDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    const objectUrl = URL.createObjectURL(file);
+    video.preload = 'metadata';
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl);
+      video.src = '';
+      video.load();
+    };
+
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      cleanup();
+      if (duration && isFinite(duration) && duration > 0) {
+        resolve(Math.round(duration * 10) / 10);
+      } else {
+        resolve(null);
+      }
+    };
+
+    video.onerror = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, 5000);
+
+    video.src = objectUrl;
+  });
 }
 
 interface ExtractedTrackData {
@@ -98,13 +180,16 @@ interface ExtractedTrackData {
   original_filenames?: string[];
   // Multi-file BPM tracking
   detected_bpms?: number[];
+  // File metadata for content type intelligence
+  file_durations?: number[]; // Duration of each uploaded file in seconds
 }
 
 interface ConversationalUploaderProps {
   walletAddress: string;
+  personaId?: string;
 }
 
-export default function ConversationalUploader({ walletAddress }: ConversationalUploaderProps) {
+export default function ConversationalUploader({ walletAddress, personaId }: ConversationalUploaderProps) {
   const { showToast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -167,6 +252,50 @@ export default function ConversationalUploader({ walletAddress }: Conversational
   useEffect(() => {
     return () => cleanupLocationSearch();
   }, [cleanupLocationSearch]);
+
+  // Auto-save draft periodically (every 30 seconds) when there's enough data
+  const draftIdRef = useRef<string | null>(null);
+  const lastDraftDataRef = useRef<string>('');
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      // Only save if we have at least one uploaded file
+      const hasFile = extractedData.audio_url ||
+                      extractedData.video_url ||
+                      (extractedData.loop_files && extractedData.loop_files.length > 0);
+
+      if (!hasFile || !conversationId || isSubmitting) return;
+
+      // Only save if data has changed since last save
+      const dataSnapshot = JSON.stringify(extractedData);
+      if (dataSnapshot === lastDraftDataRef.current) return;
+
+      try {
+        const response = await fetch('/api/upload-studio/save-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId,
+            walletAddress,
+            personaId,
+            extractedData
+          })
+        });
+
+        const result = await response.json();
+        if (result.success && result.draftId) {
+          draftIdRef.current = result.draftId;
+          lastDraftDataRef.current = dataSnapshot;
+          console.log('💾 Draft auto-saved');
+        }
+      } catch (error) {
+        // Silent fail — auto-save is best-effort
+        console.warn('Draft auto-save failed:', error);
+      }
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [extractedData, conversationId, walletAddress, personaId, isSubmitting]);
 
   // Voice recording functions
   const startRecording = async () => {
@@ -325,6 +454,7 @@ export default function ConversationalUploader({ walletAddress }: Conversational
         body: JSON.stringify({
           conversationId,
           walletAddress,
+          personaId,
           messages: messages.map(m => ({
             role: m.role,
             content: m.content,
@@ -364,6 +494,7 @@ export default function ConversationalUploader({ walletAddress }: Conversational
         const data = {
           conversationId,
           walletAddress,
+          personaId,
           messages: messages.map(m => ({
             role: m.role,
             content: m.content,
@@ -471,6 +602,7 @@ export default function ConversationalUploader({ walletAddress }: Conversational
           attachments: [],
           currentData: extractedData,
           walletAddress,
+          personaId,
           messageHistory: messages.map(m => ({
             role: m.role,
             content: m.content
@@ -725,6 +857,21 @@ export default function ConversationalUploader({ walletAddress }: Conversational
         a.id === attachment.id ? { ...a, status: 'uploaded', url: result.url, progress: 100 } : a
       ));
 
+      // Detect duration client-side for audio/video files
+      let detectedDuration: number | null = null;
+      if (attachment.type === 'audio') {
+        detectedDuration = await detectAudioDuration(attachment.file);
+      } else if (attachment.type === 'video') {
+        detectedDuration = await detectVideoDuration(attachment.file);
+      }
+
+      // Store duration on the attachment
+      if (detectedDuration) {
+        setAttachments(prev => prev.map(a =>
+          a.id === attachment.id ? { ...a, duration: detectedDuration! } : a
+        ));
+      }
+
       // Update extracted data based on file type
       if (attachment.type === 'audio') {
         // Check if there's already a video clip in progress - can't mix audio with video clips
@@ -743,6 +890,7 @@ export default function ConversationalUploader({ walletAddress }: Conversational
           const existingLoopFiles = prev.loop_files || [];
           const existingEpFiles = prev.ep_files || [];
           const existingFilenames = prev.original_filenames || [];
+          const existingDurations = prev.file_durations || [];
 
           // If there's already an audio file, we might be building a pack/EP
           // Store both in arrays for the chatbot to later determine the type
@@ -761,6 +909,10 @@ export default function ConversationalUploader({ walletAddress }: Conversational
               loop_files: allAudioFiles,
               ep_files: allAudioFiles,
               original_filenames: allFilenames,
+              // Track file durations for content type intelligence
+              file_durations: detectedDuration
+                ? [...existingDurations, detectedDuration]
+                : existingDurations,
               // Store detected BPMs for validation
               ...(result.bpm && {
                 bpm: result.bpm,
@@ -777,6 +929,8 @@ export default function ConversationalUploader({ walletAddress }: Conversational
             audio_url: result.url,
             // Store original filename for first file too
             original_filenames: result.originalFilename ? [result.originalFilename] : [],
+            // Track duration
+            file_durations: detectedDuration ? [detectedDuration] : [],
             // If BPM was detected, add it
             ...(result.bpm && {
               bpm: result.bpm,
@@ -915,10 +1069,12 @@ Feel free to try again with a different file, or let me know if you need help!`,
           attachments: userMessage.attachments?.map(a => ({
             type: a.type,
             url: a.url,
-            name: a.name
+            name: a.name,
+            duration: a.duration // Include detected duration
           })),
           currentData: extractedData,
           walletAddress,
+          personaId, // For agent profile loading + session tracking
           messageHistory: messages.map(m => ({
             role: m.role,
             content: m.content
@@ -1083,6 +1239,7 @@ Feel free to try again with a different file, or let me know if you need help!`,
         body: JSON.stringify({
           trackData: extractedData,
           walletAddress,
+          personaId,
           conversationId
         })
       });
@@ -1297,7 +1454,7 @@ Would you like to upload another track, or shall I show you where to find your n
 
             {/* What you can upload */}
             <div className="text-sm text-gray-500 space-y-1">
-              <p>Loops, loop packs, songs, EPs, video clips, radio stations</p>
+              <p>Loops, loop packs, songs, EPs, video clips</p>
               <p>Set pricing, splits, and licensing as we chat</p>
             </div>
           </div>

@@ -110,7 +110,7 @@ export default function UploadStudioPage() {
   return (
     <div className="min-h-screen bg-[#0a0e1a]">
       <Header />
-      <ConversationalUploader walletAddress={effectiveWallet!} />
+      <ConversationalUploader walletAddress={effectiveWallet!} personaId={activePersona?.id} />
     </div>
   );
 }

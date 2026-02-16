@@ -247,10 +247,146 @@ async function createManagedPersonasForSplits(
   }
 }
 
+/**
+ * Update agent_preferences after a successful upload.
+ * Simple frequency tracking — learns defaults from what the creator actually does.
+ * Fire-and-forget: errors here should never block the upload response.
+ */
+async function updateAgentPreferences(
+  personaId: string | undefined,
+  walletAddress: string,
+  trackData: TrackSubmission,
+  contentType: string
+): Promise<void> {
+  if (!personaId) return;
+
+  try {
+    // Load existing preferences
+    const { data: prefs, error: prefsError } = await supabase
+      .from('agent_preferences')
+      .select('*')
+      .eq('persona_id', personaId)
+      .maybeSingle();
+
+    if (prefsError) {
+      console.warn('⚠️ Could not load preferences for learning:', prefsError);
+      return;
+    }
+
+    // If no preferences row exists, create one (lazy creation for non-default personas)
+    if (!prefs) {
+      const { error: insertError } = await supabase
+        .from('agent_preferences')
+        .insert({ persona_id: personaId })
+        .select('*')
+        .single();
+
+      if (insertError) {
+        console.warn('⚠️ Could not create preferences for learning:', insertError);
+        return;
+      }
+      // Re-fetch after creation
+      const { data: newPrefs } = await supabase
+        .from('agent_preferences')
+        .select('*')
+        .eq('persona_id', personaId)
+        .maybeSingle();
+
+      if (!newPrefs) return;
+      return updateAgentPreferences(personaId, walletAddress, trackData, contentType);
+    }
+
+    const updates: Record<string, any> = {
+      upload_count: (prefs.upload_count || 0) + 1,
+      updated_at: new Date().toISOString()
+    };
+
+    // Content type: set on first upload, keep most recent
+    updates.typical_content_type = contentType;
+
+    // BPM range: expand range based on this upload
+    if (trackData.bpm && trackData.bpm > 0) {
+      const currentRange = prefs.typical_bpm_range || {};
+      const currentMin = currentRange.min || trackData.bpm;
+      const currentMax = currentRange.max || trackData.bpm;
+      updates.typical_bpm_range = {
+        min: Math.min(currentMin, trackData.bpm),
+        max: Math.max(currentMax, trackData.bpm)
+      };
+    }
+
+    // Tags: merge non-location tags (keep top 10 most recent unique)
+    const nonLocationTags = (trackData.tags || []).filter(t => !t.startsWith('🌍'));
+    if (nonLocationTags.length > 0) {
+      const existingTags: string[] = prefs.default_tags || [];
+      // New tags first (most recent), then existing, deduplicated
+      const merged = [...new Set([...nonLocationTags, ...existingTags])].slice(0, 10);
+      updates.default_tags = merged;
+    }
+
+    // Cultural tags: merge location tags (keep top 5)
+    const locationTags = (trackData.tags || [])
+      .filter(t => t.startsWith('🌍'))
+      .map(t => t.replace('🌍 ', ''));
+    if (locationTags.length > 0) {
+      const existingCultural: string[] = prefs.default_cultural_tags || [];
+      const merged = [...new Set([...locationTags, ...existingCultural])].slice(0, 5);
+      updates.default_cultural_tags = merged;
+    }
+
+    // Licensing defaults: use most recent values
+    if (trackData.allow_remixing !== undefined) {
+      updates.default_allow_remixing = trackData.allow_remixing;
+    }
+    if (trackData.allow_downloads !== undefined) {
+      updates.default_allow_downloads = trackData.allow_downloads;
+    }
+    if (trackData.download_price_stx && trackData.allow_downloads) {
+      updates.default_download_price_usdc = trackData.download_price_stx;
+    }
+
+    // Splits template: store if there are named collaborators
+    const namedSplits: Array<{ name: string; percentage: number; role: string }> = [];
+    for (const split of (trackData.composition_splits || [])) {
+      if (split.name && split.name !== trackData.artist) {
+        namedSplits.push({ name: split.name, percentage: split.percentage, role: 'composition' });
+      }
+    }
+    for (const split of (trackData.production_splits || [])) {
+      if (split.name && split.name !== trackData.artist) {
+        namedSplits.push({ name: split.name, percentage: split.percentage, role: 'production' });
+      }
+    }
+    if (namedSplits.length > 0) {
+      updates.default_splits_template = namedSplits;
+    }
+
+    // Save
+    const { error: updateError } = await supabase
+      .from('agent_preferences')
+      .update(updates)
+      .eq('persona_id', personaId);
+
+    if (updateError) {
+      console.warn('⚠️ Preference learning failed:', updateError);
+    } else {
+      console.log('🧠 Agent preferences updated:', {
+        personaId: personaId.substring(0, 8) + '...',
+        uploadCount: updates.upload_count,
+        contentType: updates.typical_content_type,
+        tagsLearned: nonLocationTags.length,
+        culturalTagsLearned: locationTags.length
+      });
+    }
+  } catch (error) {
+    console.warn('⚠️ Preference learning error (non-fatal):', error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { trackData, walletAddress, conversationId } = body;
+    const { trackData, walletAddress, personaId, conversationId } = body;
 
     // Debug logging
     console.log('📥 Submit request received:', {
@@ -356,7 +492,8 @@ export async function POST(request: NextRequest) {
         trackData,
         contentType,
         effectiveWallet,
-        conversationId
+        conversationId,
+        personaId
       );
     }
 
@@ -697,6 +834,20 @@ export async function POST(request: NextRequest) {
       await savePendingCollaborators(trackId, pendingCollaborators, effectiveWallet);
     }
 
+    // Learn preferences from this upload (fire-and-forget)
+    updateAgentPreferences(personaId, effectiveWallet, trackData, contentType).catch(() => {});
+
+    // Clean up draft if one exists for this conversation (fire-and-forget)
+    if (conversationId) {
+      supabase
+        .from('ip_tracks')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('is_draft', true)
+        .then(() => console.log('🗑️ Draft cleaned up'))
+        .catch(() => {});
+    }
+
     return NextResponse.json({
       success: true,
       trackId,
@@ -809,7 +960,8 @@ async function handleMultiFileSubmission(
   trackData: TrackSubmission,
   contentType: string,
   effectiveWallet: string,
-  conversationId: string
+  conversationId: string,
+  personaId?: string
 ) {
   const now = new Date().toISOString();
   const packId = uuidv4();
@@ -1227,6 +1379,20 @@ async function handleMultiFileSubmission(
   }
 
   console.log(`✅ ${contentType} saved with ${files.length} tracks:`, data[0]);
+
+  // Learn preferences from this upload (fire-and-forget)
+  updateAgentPreferences(personaId, effectiveWallet, trackData, contentType).catch(() => {});
+
+  // Clean up draft if one exists for this conversation (fire-and-forget)
+  if (conversationId) {
+    supabase
+      .from('ip_tracks')
+      .delete()
+      .eq('conversation_id', conversationId)
+      .eq('is_draft', true)
+      .then(() => console.log('🗑️ Draft cleaned up'))
+      .catch(() => {});
+  }
 
   return NextResponse.json({
     success: true,
