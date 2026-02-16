@@ -836,16 +836,6 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
     ));
 
     try {
-      let result: {
-        url: string;
-        type: string;
-        filename: string;
-        originalFilename: string;
-        size: number;
-        bpm: number | null;
-        duration: number | null;
-      };
-
       // Determine file category and storage path
       const AUDIO_EXTS = /\.(mp3|wav|flac|m4a|ogg)$/i;
       const VIDEO_EXTS = /\.(mp4|mov|avi|webm)$/i;
