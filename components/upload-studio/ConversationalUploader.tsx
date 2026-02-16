@@ -836,22 +836,44 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
     ));
 
     try {
-      const formData = new FormData();
-      formData.append('file', attachment.file);
-      formData.append('type', attachment.type);
-      formData.append('walletAddress', walletAddress);
-
-      const response = await fetch('/api/upload-studio/upload-file', {
+      // Step 1: Get a signed upload URL from the server (tiny request, no file data)
+      const signedUrlResponse = await fetch('/api/upload-studio/signed-upload-url', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: attachment.file.name,
+          fileType: attachment.file.type,
+          fileSize: attachment.file.size,
+          walletAddress
+        })
       });
 
-      const result = await response.json();
+      const signedUrlResult = await signedUrlResponse.json();
 
-      if (!response.ok) {
-        // Throw with the server's error message for better user feedback
-        throw new Error(result.error || 'Upload failed');
+      if (!signedUrlResponse.ok) {
+        throw new Error(signedUrlResult.error || 'Failed to prepare upload');
       }
+
+      // Step 2: Upload file directly to Supabase Storage (bypasses Vercel 4.5MB limit)
+      const uploadResponse = await fetch(signedUrlResult.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': attachment.file.type },
+        body: attachment.file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+      }
+
+      const result = {
+        url: signedUrlResult.publicUrl,
+        type: signedUrlResult.fileCategory,
+        filename: signedUrlResult.fileName,
+        originalFilename: attachment.file.name,
+        size: attachment.file.size,
+        bpm: null as number | null,
+        duration: null as number | null
+      };
 
       setAttachments(prev => prev.map(a =>
         a.id === attachment.id ? { ...a, status: 'uploaded', url: result.url, progress: 100 } : a
