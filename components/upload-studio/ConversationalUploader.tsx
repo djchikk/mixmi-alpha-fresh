@@ -846,74 +846,58 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
         duration: number | null;
       };
 
-      const USE_SIGNED_URL_THRESHOLD = 4 * 1024 * 1024; // 4MB
+      // Determine file category and storage path
+      const AUDIO_EXTS = /\.(mp3|wav|flac|m4a|ogg)$/i;
+      const VIDEO_EXTS = /\.(mp4|mov|avi|webm)$/i;
+      const IMAGE_EXTS = /\.(jpg|jpeg|png|gif|webp)$/i;
 
-      if (attachment.file.size >= USE_SIGNED_URL_THRESHOLD) {
-        // Large files: signed URL → direct to Supabase (bypasses Vercel 4.5MB body limit)
-        const signedUrlResponse = await fetch('/api/upload-studio/signed-upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: attachment.file.name,
-            fileType: attachment.file.type,
-            fileSize: attachment.file.size,
-            walletAddress
-          })
-        });
+      let fileCategory: 'audio' | 'video' | 'image' = 'audio';
+      let storagePath = 'audio';
 
-        const signedUrlResult = await signedUrlResponse.json();
-
-        if (!signedUrlResponse.ok) {
-          throw new Error(signedUrlResult.error || 'Failed to prepare upload');
-        }
-
-        const { error: uploadError } = await supabase.storage
-          .from('user-content')
-          .uploadToSignedUrl(signedUrlResult.path, signedUrlResult.token, attachment.file, {
-            contentType: attachment.file.type
-          });
-
-        if (uploadError) {
-          throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-
-        result = {
-          url: signedUrlResult.publicUrl,
-          type: signedUrlResult.fileCategory,
-          filename: signedUrlResult.fileName,
-          originalFilename: attachment.file.name,
-          size: attachment.file.size,
-          bpm: null,
-          duration: null
-        };
-      } else {
-        // Small files: upload through server (simpler, handles thumbnails for images)
-        const formData = new FormData();
-        formData.append('file', attachment.file);
-        formData.append('type', attachment.type);
-        formData.append('walletAddress', walletAddress);
-
-        const response = await fetch('/api/upload-studio/upload-file', {
-          method: 'POST',
-          body: formData
-        });
-
-        const serverResult = await response.json();
-
-        if (!response.ok) {
-          throw new Error(serverResult.error || 'Upload failed');
-        }
-
-        result = {
-          url: serverResult.url,
-          type: serverResult.type || attachment.type,
-          filename: serverResult.filename,
-          originalFilename: attachment.file.name,
-          size: attachment.file.size,
-          bpm: serverResult.bpm || null,
-          duration: serverResult.duration || null
-        };
+      if (attachment.file.type.startsWith('video/') || VIDEO_EXTS.test(attachment.file.name)) {
+        fileCategory = 'video';
+        storagePath = 'video-clips';
+      } else if (attachment.file.type.startsWith('image/') || IMAGE_EXTS.test(attachment.file.name)) {
+        fileCategory = 'image';
+        storagePath = 'cover-images';
       }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const ext = attachment.file.name.split('.').pop()?.toLowerCase() || 'bin';
+      const uniqueName = `${walletAddress.substring(0, 10)}-${timestamp}.${ext}`;
+      const filePath = `${storagePath}/${uniqueName}`;
+
+      // Upload directly to Supabase Storage from the browser
+      console.log('📤 Uploading to Supabase:', { filePath, type: attachment.file.type, size: attachment.file.size });
+
+      const { error: uploadError } = await supabase.storage
+        .from('user-content')
+        .upload(filePath, attachment.file, {
+          contentType: attachment.file.type,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('📤 Upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('user-content')
+        .getPublicUrl(filePath);
+
+      const result = {
+        url: urlData.publicUrl,
+        type: fileCategory,
+        filename: uniqueName,
+        originalFilename: attachment.file.name,
+        size: attachment.file.size,
+        bpm: null as number | null,
+        duration: null as number | null
+      };
 
       setAttachments(prev => prev.map(a =>
         a.id === attachment.id ? { ...a, status: 'uploaded', url: result.url, progress: 100 } : a
