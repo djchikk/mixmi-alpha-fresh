@@ -855,11 +855,15 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
       }
 
       // Step 2: Upload file directly to Supabase Storage (bypasses Vercel 4.5MB limit)
-      const { error: uploadError } = await supabase.storage
+      console.log('📤 Upload step 2:', { path: signedUrlResult.path, token: signedUrlResult.token?.substring(0, 20) + '...', fileType: attachment.file.type, fileSize: attachment.file.size });
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('user-content')
         .uploadToSignedUrl(signedUrlResult.path, signedUrlResult.token, attachment.file, {
           contentType: attachment.file.type
         });
+
+      console.log('📤 Upload result:', { data: uploadData, error: uploadError });
 
       if (uploadError) {
         throw new Error(`Upload failed: ${uploadError.message}`);
