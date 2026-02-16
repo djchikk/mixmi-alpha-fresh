@@ -695,8 +695,8 @@ export async function POST(request: NextRequest) {
       loop_category: contentType === 'loop' ? (trackData.loop_category || 'instrumental') : null,
       sample_type: contentType === 'loop' ? 'instrumentals' : 'FULL SONGS',
 
-      // BPM handling
-      bpm: contentType === 'full_song' || contentType === 'ep' ? null : (trackData.bpm || null),
+      // BPM handling - all content types can have BPM (everything is remixable)
+      bpm: trackData.bpm || null,
       key: trackData.key || null,
       duration: trackData.duration || null,
 
