@@ -5,6 +5,9 @@ import { generateThumbnails, THUMBNAIL_SIZES } from '@/lib/thumbnailGenerator';
 // Force dynamic to prevent build-time evaluation (uses sharp via thumbnailGenerator)
 export const dynamic = 'force-dynamic';
 
+// Allow up to 60 seconds for file uploads (video files need more time)
+export const maxDuration = 60;
+
 // Initialize Supabase with service role for uploads
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
