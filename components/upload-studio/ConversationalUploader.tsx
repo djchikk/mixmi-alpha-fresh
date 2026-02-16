@@ -836,48 +836,84 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
     ));
 
     try {
-      // Step 1: Get a signed upload URL from the server (tiny request, no file data)
-      const signedUrlResponse = await fetch('/api/upload-studio/signed-upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: attachment.file.name,
-          fileType: attachment.file.type,
-          fileSize: attachment.file.size,
-          walletAddress
-        })
-      });
+      let result: {
+        url: string;
+        type: string;
+        filename: string;
+        originalFilename: string;
+        size: number;
+        bpm: number | null;
+        duration: number | null;
+      };
 
-      const signedUrlResult = await signedUrlResponse.json();
+      const USE_SIGNED_URL_THRESHOLD = 4 * 1024 * 1024; // 4MB
 
-      if (!signedUrlResponse.ok) {
-        throw new Error(signedUrlResult.error || 'Failed to prepare upload');
-      }
-
-      // Step 2: Upload file directly to Supabase Storage (bypasses Vercel 4.5MB limit)
-      console.log('📤 Upload step 2:', { path: signedUrlResult.path, token: signedUrlResult.token?.substring(0, 20) + '...', fileType: attachment.file.type, fileSize: attachment.file.size });
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('user-content')
-        .uploadToSignedUrl(signedUrlResult.path, signedUrlResult.token, attachment.file, {
-          contentType: attachment.file.type
+      if (attachment.file.size >= USE_SIGNED_URL_THRESHOLD) {
+        // Large files: signed URL → direct to Supabase (bypasses Vercel 4.5MB body limit)
+        const signedUrlResponse = await fetch('/api/upload-studio/signed-upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: attachment.file.name,
+            fileType: attachment.file.type,
+            fileSize: attachment.file.size,
+            walletAddress
+          })
         });
 
-      console.log('📤 Upload result:', { data: uploadData, error: uploadError });
+        const signedUrlResult = await signedUrlResponse.json();
 
-      if (uploadError) {
-        throw new Error(`Upload failed: ${uploadError.message}`);
+        if (!signedUrlResponse.ok) {
+          throw new Error(signedUrlResult.error || 'Failed to prepare upload');
+        }
+
+        const { error: uploadError } = await supabase.storage
+          .from('user-content')
+          .uploadToSignedUrl(signedUrlResult.path, signedUrlResult.token, attachment.file, {
+            contentType: attachment.file.type
+          });
+
+        if (uploadError) {
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+
+        result = {
+          url: signedUrlResult.publicUrl,
+          type: signedUrlResult.fileCategory,
+          filename: signedUrlResult.fileName,
+          originalFilename: attachment.file.name,
+          size: attachment.file.size,
+          bpm: null,
+          duration: null
+        };
+      } else {
+        // Small files: upload through server (simpler, handles thumbnails for images)
+        const formData = new FormData();
+        formData.append('file', attachment.file);
+        formData.append('type', attachment.type);
+        formData.append('walletAddress', walletAddress);
+
+        const response = await fetch('/api/upload-studio/upload-file', {
+          method: 'POST',
+          body: formData
+        });
+
+        const serverResult = await response.json();
+
+        if (!response.ok) {
+          throw new Error(serverResult.error || 'Upload failed');
+        }
+
+        result = {
+          url: serverResult.url,
+          type: serverResult.type || attachment.type,
+          filename: serverResult.filename,
+          originalFilename: attachment.file.name,
+          size: attachment.file.size,
+          bpm: serverResult.bpm || null,
+          duration: serverResult.duration || null
+        };
       }
-
-      const result = {
-        url: signedUrlResult.publicUrl,
-        type: signedUrlResult.fileCategory,
-        filename: signedUrlResult.fileName,
-        originalFilename: attachment.file.name,
-        size: attachment.file.size,
-        bpm: null as number | null,
-        duration: null as number | null
-      };
 
       setAttachments(prev => prev.map(a =>
         a.id === attachment.id ? { ...a, status: 'uploaded', url: result.url, progress: 100 } : a
