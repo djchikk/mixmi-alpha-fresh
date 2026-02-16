@@ -846,7 +846,7 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
 
       if (attachment.file.type.startsWith('video/') || VIDEO_EXTS.test(attachment.file.name)) {
         fileCategory = 'video';
-        storagePath = 'video-clips';
+        storagePath = 'audio'; // Use audio path for now — video-clips may have restrictions
       } else if (attachment.file.type.startsWith('image/') || IMAGE_EXTS.test(attachment.file.name)) {
         fileCategory = 'image';
         storagePath = 'cover-images';
