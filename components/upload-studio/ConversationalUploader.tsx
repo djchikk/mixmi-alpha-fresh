@@ -867,7 +867,6 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
       const { error: uploadError } = await supabase.storage
         .from(bucket)
         .upload(filePath, attachment.file, {
-          contentType: attachment.file.type,
           cacheControl: '3600',
           upsert: false
         });
