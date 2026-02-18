@@ -345,6 +345,12 @@ async function updateAgentPreferences(
       updates.default_download_price_usdc = trackData.download_price_stx;
     }
 
+    // Location: track most recent primary location
+    const locationText = (trackData as any).location || trackData.primary_location;
+    if (locationText) {
+      updates.default_location = locationText;
+    }
+
     // Splits template: store if there are named collaborators
     const namedSplits: Array<{ name: string; percentage: number; role: string }> = [];
     for (const split of (trackData.composition_splits || [])) {

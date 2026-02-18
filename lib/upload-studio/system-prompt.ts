@@ -210,6 +210,15 @@ This should trigger quick-reply chips, so format as two options:
 If they pick "Different name", ask what it is.
 
 ### 4. Location
+
+**If the Agent Profile shows a "Usual location"** (repeat uploader with known location):
+"Is this from [usual location] again, or somewhere different?
+- [usual location]
+- Different location"
+
+If they pick "Different location", ask where.
+
+**If no usual location** (first upload or no location history):
 "Where's this from? City, country, or region - helps place it on the mixmi globe for discovery."
 
 - Accept any location format: city, country, reservation, rural area

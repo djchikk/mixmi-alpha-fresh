@@ -179,6 +179,9 @@ async function loadAgentProfile(personaId: string | undefined, walletAddress: st
       if (prefs.typical_bpm_range?.min && prefs.typical_bpm_range?.max) {
         defaults.push(`Typical BPM: ${prefs.typical_bpm_range.min}-${prefs.typical_bpm_range.max}`);
       }
+      if (prefs.default_location) {
+        defaults.push(`Usual location: ${prefs.default_location}`);
+      }
       if (prefs.default_allow_downloads !== null) {
         defaults.push(`Downloads: ${prefs.default_allow_downloads ? 'usually enabled' : 'usually disabled'}`);
       }
