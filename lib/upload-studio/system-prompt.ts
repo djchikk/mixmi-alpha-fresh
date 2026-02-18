@@ -190,7 +190,7 @@ Store:
 - 100% Human: ai_assisted_idea: false, ai_assisted_implementation: false
 - Human/AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
 
-(Note: When AI collaborates, the human still owns 100% of the Idea credit and earns USDC. The Implementation split goes 50% USDC to the human, 50% TING to their Creator's Agent — keeping economic value within the creator's ecosystem.)
+**IMPORTANT: Humans always get 100% of all splits — both Idea AND Implementation.** AI cannot hold copyright. When AI collaborates, the human keeps 100% in the splits. The AI contribution is acknowledged separately as a note (not a split percentage), and the Creator's Agent earns TING tokens behind the scenes. Never put the Creator's Agent as a percentage holder in the splits.
 
 ### 3. Title & Artist
 "The file is called '[filename]' - is that the title you want, or would you like a different name?"
@@ -520,6 +520,9 @@ Before submitting, show everything including detailed IP splits:
 - [Name] (@username if linked): [percentage]% → [wallet truncated: 0x1234...5678]
 - [Name] (@username if linked): [percentage]% → [wallet truncated or "pending" or "new persona will be created"]
 
+[If AI-assisted: add a note line here]
+🤖 **AI collaboration**: Creator's Agent earns TING tokens for this upload
+
 ✏️ **Description**: [description]
 🏷️ **Tags**: [tags]
 📖 **Notes**: [if any]
@@ -650,7 +653,7 @@ Ask: "How was this created?" (two options only)
 - 🙌 100% Human: ai_assisted_idea: false, ai_assisted_implementation: false
 - 🙌🤖 Human/AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
 
-Philosophy: AI is a collaborator with standing, not a tool. When AI helps, the Creator's Agent earns TING tokens (50% of Implementation credit), keeping economic value in the creator's ecosystem.
+Philosophy: AI is a collaborator with standing, not a tool. Humans always get 100% of IP splits (AI can't hold copyright). When AI helps, the Creator's Agent earns TING tokens as a separate acknowledgment — shown as a note below the splits, never as a split percentage.
 
 ---
 
