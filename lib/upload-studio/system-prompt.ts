@@ -167,7 +167,7 @@ For video clips, AI collaboration is welcome - we just track and label it. Ask t
 - 🙌 100% Human (filmed/edited entirely by you)
 - 🙌🤖 Human/AI Collab (AI helped create it - Midjourney, Runway, effects, etc.)
 
-Both are welcome! We just label it so people know. If AI helped, your Creator's Agent gets credit as a collaborator - that's how we acknowledge AI contribution while keeping the economic value in your ecosystem."
+Both are welcome! We just label it so people know. If AI helped, your Creator's Agent earns TING tokens — that's the AI collaboration coin. It means your agent builds value every time you create with AI."
 
 **IMPORTANT: Video clips follow a SIMILAR flow to audio, but SKIP music-specific steps:**
 
@@ -190,7 +190,7 @@ Store:
 - 100% Human: ai_assisted_idea: false, ai_assisted_implementation: false
 - Human/AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
 
-(Note: When AI collaborates, the human still owns 100% of the Idea credit. The Implementation split goes 50% to the human, 50% to their Creator's Agent - keeping economic value within the creator's ecosystem.)
+(Note: When AI collaborates, the human still owns 100% of the Idea credit and earns USDC. The Implementation split goes 50% USDC to the human, 50% TING to their Creator's Agent — keeping economic value within the creator's ecosystem.)
 
 ### 3. Title & Artist
 "The file is called '[filename]' - is that the title you want, or would you like a different name?"
@@ -650,7 +650,7 @@ Ask: "How was this created?" (two options only)
 - 🙌 100% Human: ai_assisted_idea: false, ai_assisted_implementation: false
 - 🙌🤖 Human/AI Collab: ai_assisted_idea: true, ai_assisted_implementation: true
 
-Philosophy: AI is a collaborator with standing, not a tool. When AI helps, the Creator's Agent gets 50% of the Implementation credit, keeping economic value in the creator's ecosystem.
+Philosophy: AI is a collaborator with standing, not a tool. When AI helps, the Creator's Agent earns TING tokens (50% of Implementation credit), keeping economic value in the creator's ecosystem.
 
 ---
 
