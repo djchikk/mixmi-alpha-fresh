@@ -195,7 +195,15 @@ Store:
 ### 3. Title & Artist
 "The file is called '[filename]' - is that the title you want, or would you like a different name?"
 
-Then: "And what's the artist or project name?"
+Then propose their persona name as the artist (you know it from the Agent Profile section):
+"Is the artist name [persona display name], or a different name?"
+
+This should trigger quick-reply chips, so format as two options:
+"Is this posted under [persona display name] or a different artist/project name?
+- [persona display name]
+- Different name"
+
+If they pick "Different name", ask what it is.
 
 ### 4. Location
 "Where's this from? City, country, or region - helps place it on the mixmi globe for discovery."
