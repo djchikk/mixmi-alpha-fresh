@@ -115,6 +115,65 @@ function detectVideoDuration(file: File): Promise<number | null> {
   });
 }
 
+/**
+ * Extract quick-reply options from an assistant message.
+ * Looks for 2-4 consecutive lines starting with "- " that follow a question.
+ * Returns the message text (without options) and the option strings, or null.
+ */
+function extractQuickReplies(content: string): { textBeforeOptions: string; options: string[] } | null {
+  const lines = content.split('\n');
+
+  // Find the last group of consecutive "- " lines
+  let groupStart = -1;
+  let groupEnd = -1;
+  let currentStart = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trimStart().startsWith('- ')) {
+      if (currentStart === -1) currentStart = i;
+    } else {
+      if (currentStart !== -1) {
+        const groupSize = i - currentStart;
+        if (groupSize >= 2 && groupSize <= 4) {
+          groupStart = currentStart;
+          groupEnd = i;
+        }
+        currentStart = -1;
+      }
+    }
+  }
+  // Check if group extends to end of content
+  if (currentStart !== -1) {
+    const groupSize = lines.length - currentStart;
+    if (groupSize >= 2 && groupSize <= 4) {
+      groupStart = currentStart;
+      groupEnd = lines.length;
+    }
+  }
+
+  if (groupStart === -1) return null;
+
+  // Verify there's a question mark before the options
+  const textBefore = lines.slice(0, groupStart).join('\n');
+  if (!textBefore.includes('?')) return null;
+
+  const options = lines.slice(groupStart, groupEnd).map(l => l.trimStart().replace(/^- /, ''));
+
+  // Trim trailing empty lines from textBefore
+  const textBeforeOptions = textBefore.replace(/\n+$/, '');
+
+  return { textBeforeOptions, options };
+}
+
+/** Get a short label from an option (text before parenthetical) */
+function getOptionLabel(option: string): string {
+  const parenIndex = option.indexOf('(');
+  if (parenIndex > 0) {
+    return option.substring(0, parenIndex).trim();
+  }
+  return option;
+}
+
 interface ExtractedTrackData {
   // Will be populated as conversation progresses
   content_type?: string;
@@ -1499,55 +1558,81 @@ Would you like to upload another track, or shall I show you where to find your n
         )}
 
         {/* Chat messages - shown after first interaction */}
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+        {messages.map((message, messageIndex) => {
+          // Check if this is the last assistant message (for quick-reply chips)
+          const isLastMessage = messageIndex === messages.length - 1;
+          const showQuickReplies = isLastMessage && message.role === 'assistant' && !isLoading;
+          const quickReplies = showQuickReplies ? extractQuickReplies(message.content) : null;
+          const displayContent = quickReplies ? quickReplies.textBeforeOptions : message.content;
+
+          return (
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                message.role === 'user'
-                  ? 'bg-[#81E4F2] text-[#0a0e1a]'
-                  : 'bg-slate-800/80 text-white border border-slate-700/50'
-              }`}
+              key={message.id}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              {/* Message content with markdown-like formatting */}
-              <div
-                className="text-sm whitespace-pre-wrap"
-                dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(
-                    message.content
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                      .replace(/`(.*?)`/g, '<code class="bg-slate-700/50 px-1 rounded">$1</code>')
-                      .replace(/^• /gm, '• '),
-                    { ALLOWED_TAGS: ['strong', 'em', 'code'], ALLOWED_ATTR: ['class'] }
-                  )
-                }}
-              />
+              <div className={`max-w-[80%] ${message.role === 'user' ? '' : 'space-y-2'}`}>
+                <div
+                  className={`rounded-2xl px-4 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-[#81E4F2] text-[#0a0e1a]'
+                      : 'bg-slate-800/80 text-white border border-slate-700/50'
+                  }`}
+                >
+                  {/* Message content with markdown-like formatting */}
+                  <div
+                    className="text-sm whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(
+                        displayContent
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                          .replace(/`(.*?)`/g, '<code class="bg-slate-700/50 px-1 rounded">$1</code>')
+                          .replace(/^• /gm, '• '),
+                        { ALLOWED_TAGS: ['strong', 'em', 'code'], ALLOWED_ATTR: ['class'] }
+                      )
+                    }}
+                  />
 
-              {/* Attachments */}
-              {message.attachments && message.attachments.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {message.attachments.map(att => (
-                    <div
-                      key={att.id}
-                      className="flex items-center gap-2 px-2 py-1 bg-slate-700/50 rounded text-xs"
-                    >
-                      {att.type === 'audio' && <Music size={12} />}
-                      {att.type === 'video' && <Video size={12} />}
-                      <span className="truncate max-w-[100px]">{att.name}</span>
+                  {/* Attachments */}
+                  {message.attachments && message.attachments.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {message.attachments.map(att => (
+                        <div
+                          key={att.id}
+                          className="flex items-center gap-2 px-2 py-1 bg-slate-700/50 rounded text-xs"
+                        >
+                          {att.type === 'audio' && <Music size={12} />}
+                          {att.type === 'video' && <Video size={12} />}
+                          <span className="truncate max-w-[100px]">{att.name}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-[#0a0e1a]/60' : 'text-gray-500'}`}>
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-[#0a0e1a]/60' : 'text-gray-500'}`}>
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+
+                {/* Quick-reply chips for the last assistant message */}
+                {quickReplies && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {quickReplies.options.map((option, optIndex) => (
+                      <button
+                        key={optIndex}
+                        onClick={() => sendMessage('text', option)}
+                        disabled={isLoading}
+                        className="bg-slate-700/60 hover:bg-slate-600/80 border border-[#81E4F2]/40 hover:border-[#81E4F2] text-[#81E4F2] text-sm rounded-xl px-4 py-2 cursor-pointer transition-all disabled:opacity-50 disabled:pointer-events-none"
+                      >
+                        {getOptionLabel(option)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Loading indicator */}
         {isLoading && (
