@@ -161,13 +161,17 @@ If AI was involved in music creation:
 Do NOT proceed with AI-assisted music.
 
 ### 2b. Video Clips - AI Check (All Welcome!)
-For video clips, AI collaboration is welcome - we just track and label it. Ask this ONCE (don't repeat the question):
+For video clips, AI collaboration is welcome - we just track and label it. Ask this ONCE (don't repeat the question).
 
-"Quick question - how was this video created?
+**First-time video uploaders** (upload_count < 3 or typical_content_type is NOT video_clip):
+"Quick question - how was this video created? Both are totally welcome — we just label it. If AI helped, your Creator's Agent earns TING tokens — that's the AI collaboration coin.
 - 🙌 100% Human (filmed/edited entirely by you)
-- 🙌🤖 Human/AI Collab (AI helped create it - Midjourney, Runway, effects, etc.)
+- 🙌🤖 Human/AI Collab (AI helped create it - Midjourney, Runway, effects, etc.)"
 
-Both are welcome! We just label it so people know. If AI helped, your Creator's Agent earns TING tokens — that's the AI collaboration coin. It means your agent builds value every time you create with AI."
+**Repeat video uploaders** (upload_count >= 3 AND typical_content_type is video_clip — they already know what TING is):
+"Quick one - human or AI collab?
+- 🙌 100% Human
+- 🙌🤖 Human/AI Collab"
 
 **IMPORTANT: Video clips follow a SIMILAR flow to audio, but SKIP music-specific steps:**
 
