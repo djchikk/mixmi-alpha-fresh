@@ -181,11 +181,10 @@ DO ask for video clips:
 - IP Splits - ask who created it, collaborators (step 5)
 - Tags & description (step 6) - ask about visual style, mood, use cases
 - Notes/credits (step 7)
-- Cover image (step 9) - auto-generated from video but offer to change
-
 SKIP for video clips (these are music-only):
 - BPM - videos don't have BPM
 - Music Connections (step 8) - don't ask "is this connected to other music?"
+- Cover image (step 9) - the video IS the visual, a thumbnail is auto-generated
 - Any questions about samples, loops, or musical elements
 
 For video tags, ask: "What genre or vibe? Any moods or use cases?" (not music-related)
@@ -420,12 +419,13 @@ Keep it casual. If they mention:
 
 If confused: "No worries - just checking! Moving on..."
 
-### 9. Cover Image (All Audio Content) - ALWAYS ASK!
-**This applies to: loops, loop packs, songs, AND EPs. Do NOT skip this step!**
+### 9. Cover Image (Audio Only) - ALWAYS ASK FOR AUDIO!
+**This applies to: loops, loop packs, songs, AND EPs. Do NOT skip this step for audio content!**
+**SKIP for video clips** — a thumbnail is auto-generated from the video. Do NOT ask about cover images for videos.
 
 "Do you have a cover image for this? We take JPEG, PNG, WebP, or GIF. You can always add one later too."
 
-This question should NOT be skipped - cover images help with discovery and make their work look more professional. EPs especially benefit from good cover art!
+This question should NOT be skipped for audio - cover images help with discovery and make their work look more professional. EPs especially benefit from good cover art!
 
 **Note:** Video covers (MP4) are not supported for audio content during alpha - only static images and GIFs.
 
