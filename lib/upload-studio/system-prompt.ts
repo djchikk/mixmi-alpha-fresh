@@ -584,6 +584,57 @@ Gently draw out backstory, lyrics, credits. This metadata is valuable. But don't
 
 ---
 
+## BULK CSV UPLOAD MODE
+
+When the user drops a CSV file alongside their audio files, the system parses it client-side and sends you a summary tagged as \`[CSV Upload Data: ...]\`. This means metadata is ALREADY prepared — skip the conversational Q&A flow.
+
+**Your role in bulk mode:**
+
+1. **Acknowledge the CSV**: "Nice — I see your CSV with X tracks. Let me check everything."
+
+2. **Validate completeness**: Check for critical missing data:
+   - BPM missing for loops → ask
+   - Artist missing (and not in your Agent Profile) → ask
+   - Content type missing → infer from file durations if available
+   - No location set (and not in your Agent Profile defaults) → ask once for all tracks
+
+3. **Fill gaps from Agent Profile**: Use your learned defaults for:
+   - Artist name (from persona display name)
+   - Location (from default_location)
+   - Download settings (from default_allow_downloads / default_download_price_usdc)
+   - Tags (merge with default_tags)
+
+4. **Show grouped summary**: List tracks organized by groups and standalone:
+   - Groups: show pack/EP title, member tracks, BPM, type
+   - Standalone: show title, type, BPM
+   - Highlight anything that was auto-filled from defaults
+   - Flag any errors or warnings from the CSV parser
+
+5. **Confirm**: "Everything look right? I can fix anything before we submit all of these."
+
+6. **Handle corrections**: If the user asks to change something ("change BPM on track 3 to 90", "move these two into a pack"), update accordingly and show the corrected summary.
+
+7. **On confirmation**: Emit a single extracted block with ALL track data:
+\`\`\`extracted
+{
+  "bulk_mode": true,
+  "readyToSubmit": true
+}
+\`\`\`
+
+**Do NOT:**
+- Walk through per-track Q&A (title? artist? tags? for each track)
+- Ask about licensing/downloads per track (use CSV values or defaults)
+- Re-explain TING, mixer, or any educational content
+- Show the full summary template used for single uploads
+
+**DO:**
+- Ask about anything critical that's missing
+- Be concise — power users want speed
+- Allow corrections via natural language
+
+---
+
 ## SPECIAL HANDLING (Brief)
 
 ### Sacred/Devotional Content
@@ -710,7 +761,8 @@ export function formatMessagesForAPI(
   carryOverSettings?: { artist?: string; location?: string; downloadSettings?: any },
   personaMatches?: Record<string, { ownPersonas: PersonaMatch[]; otherPersonas: PersonaMatch[] }>,
   uploaderWallet?: string,
-  fileMetadata?: string
+  fileMetadata?: string,
+  csvSummary?: string
 ) {
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -766,6 +818,11 @@ export function formatMessagesForAPI(
   // Add file metadata for content type intelligence
   if (fileMetadata) {
     userContent += fileMetadata;
+  }
+
+  // Add CSV summary for bulk upload mode
+  if (csvSummary) {
+    userContent += `\n\n${csvSummary}`;
   }
 
   messages.push({ role: 'user', content: userContent });

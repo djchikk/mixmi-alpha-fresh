@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
 import UploadPreviewCard from './UploadPreviewCard';
 import DOMPurify from 'dompurify';
+import { parseCSV, matchFilesToCSV, buildCSVSummary, type CSVParseResult, type MatchResult, type CSVTrackRow } from '@/lib/upload-studio/csv-parser';
 
 // Initialize Supabase client for thumbnail uploads
 const supabase = createClient(
@@ -268,6 +269,20 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
   const [isDragOver, setIsDragOver] = useState(false);
   const [sessionStartTime] = useState<Date>(new Date()); // Track when session started
   const sessionLoggedRef = useRef(false); // Prevent double-logging
+
+  // Bulk CSV upload state
+  const [bulkMode, setBulkMode] = useState(false);
+  const [csvData, setCsvData] = useState<CSVParseResult | null>(null);
+  const [csvMatchResult, setCsvMatchResult] = useState<MatchResult | null>(null);
+  const [csvSummaryText, setCsvSummaryText] = useState<string>('');
+  const [bulkProgress, setBulkProgress] = useState<{
+    total: number;
+    completed: number;
+    current: string;
+    errors: Array<{ title: string; error: string }>;
+  } | null>(null);
+  // Store dropped files for bulk matching (separate from attachments which get cleared after upload)
+  const bulkFilesRef = useRef<File[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -724,6 +739,77 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
     }
   };
 
+  // Process a CSV file for bulk upload mode
+  const processCSVFile = async (csvFile: File, mediaFiles: File[]) => {
+    try {
+      const csvText = await csvFile.text();
+      const parsed = parseCSV(csvText);
+
+      // Store media files for matching
+      bulkFilesRef.current = [...bulkFilesRef.current, ...mediaFiles];
+
+      // Match files to CSV rows
+      const matchResult = matchFilesToCSV(bulkFilesRef.current, parsed.rows);
+
+      setCsvData(parsed);
+      setCsvMatchResult(matchResult);
+      setBulkMode(true);
+
+      // Build summary for chatbot
+      const summary = buildCSVSummary(parsed, matchResult);
+      setCsvSummaryText(summary);
+
+      // Show a user message about the CSV
+      const csvUserMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: `[Dropped CSV: ${csvFile.name} with ${parsed.rows.length} tracks${mediaFiles.length > 0 ? ` and ${mediaFiles.length} audio files` : ''}]`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, csvUserMessage]);
+
+      // Send to chatbot for validation
+      setIsLoading(true);
+      const response = await fetch('/api/upload-studio/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          message: `I'm doing a bulk upload with a CSV file. Please validate and summarize.`,
+          attachments: [],
+          currentData: extractedData,
+          walletAddress,
+          personaId,
+          messageHistory: messages.map(m => ({ role: m.role, content: m.content })),
+          csvSummary: summary
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Chat request failed');
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: result.message,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+
+      if (result.extractedData) {
+        setExtractedData(prev => ({ ...prev, ...result.extractedData }));
+      }
+      if (result.readyToSubmit) {
+        setIsReadyToSubmit(true);
+      }
+    } catch (error) {
+      console.error('CSV processing error:', error);
+      showToast('Failed to process CSV file', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle file selection
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -733,25 +819,39 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
     setShowWelcomeHero(false);
     addInitialGreeting();
 
-    const newAttachments: FileAttachment[] = files.map(file => {
-      let type: 'audio' | 'video' | 'image' = 'audio';
-      if (file.type.startsWith('video/')) type = 'video';
-      if (file.type.startsWith('image/')) type = 'image';
+    // Detect CSV files for bulk mode
+    const csvFiles = files.filter(f => f.name.endsWith('.csv') || f.type === 'text/csv');
+    const mediaFiles = files.filter(f => !f.name.endsWith('.csv') && f.type !== 'text/csv');
 
-      return {
-        id: crypto.randomUUID(),
-        name: file.name,
-        type,
-        file,
-        status: 'pending'
-      };
-    });
+    if (csvFiles.length > 0) {
+      // Bulk mode: process CSV + any media files
+      await processCSVFile(csvFiles[0], mediaFiles);
 
-    setAttachments(prev => [...prev, ...newAttachments]);
-
-    // Upload files immediately
-    for (const attachment of newAttachments) {
-      await uploadFile(attachment);
+      // Still upload media files for bulk matching
+      if (mediaFiles.length > 0) {
+        const newAttachments: FileAttachment[] = mediaFiles.map(file => {
+          let type: 'audio' | 'video' | 'image' = 'audio';
+          if (file.type.startsWith('video/')) type = 'video';
+          if (file.type.startsWith('image/')) type = 'image';
+          return { id: crypto.randomUUID(), name: file.name, type, file, status: 'pending' };
+        });
+        setAttachments(prev => [...prev, ...newAttachments]);
+        for (const attachment of newAttachments) {
+          await uploadFile(attachment);
+        }
+      }
+    } else {
+      // Normal mode: media files only
+      const newAttachments: FileAttachment[] = mediaFiles.map(file => {
+        let type: 'audio' | 'video' | 'image' = 'audio';
+        if (file.type.startsWith('video/')) type = 'video';
+        if (file.type.startsWith('image/')) type = 'image';
+        return { id: crypto.randomUUID(), name: file.name, type, file, status: 'pending' };
+      });
+      setAttachments(prev => [...prev, ...newAttachments]);
+      for (const attachment of newAttachments) {
+        await uploadFile(attachment);
+      }
     }
 
     // Clear the input
@@ -1203,7 +1303,8 @@ Feel free to try again with a different file, or let me know if you need help!`,
             role: m.role,
             content: m.content
           })),
-          personaMatchesFromPrevious // Include persona matches from previous response
+          personaMatchesFromPrevious, // Include persona matches from previous response
+          csvSummary: bulkMode ? csvSummaryText : undefined // Include CSV data for bulk mode
         })
       });
 
@@ -1312,43 +1413,57 @@ Feel free to try again with a different file, or let me know if you need help!`,
     setShowWelcomeHero(false);
     addInitialGreeting();
 
-    // Filter for supported file types
-    const supportedFiles = files.filter(file => {
+    // Detect CSV files for bulk mode
+    const csvFiles = files.filter(f => f.name.endsWith('.csv') || f.type === 'text/csv');
+    const nonCsvFiles = files.filter(f => !f.name.endsWith('.csv') && f.type !== 'text/csv');
+
+    // Filter non-CSV for supported media types
+    const supportedFiles = nonCsvFiles.filter(file => {
       const isAudio = file.type.startsWith('audio/');
       const isVideo = file.type.startsWith('video/');
       const isImage = file.type.startsWith('image/');
       return isAudio || isVideo || isImage;
     });
 
-    if (supportedFiles.length === 0) {
-      showToast('⚠️ Please drop audio, video, or image files', 'warning');
+    if (csvFiles.length === 0 && supportedFiles.length === 0) {
+      showToast('Please drop audio, video, image, or CSV files', 'warning');
       return;
     }
 
-    if (supportedFiles.length < files.length) {
-      showToast(`ℹ️ ${files.length - supportedFiles.length} unsupported file(s) skipped`, 'info');
+    const skippedCount = nonCsvFiles.length - supportedFiles.length;
+    if (skippedCount > 0) {
+      showToast(`${skippedCount} unsupported file(s) skipped`, 'info');
     }
 
-    // Create attachments from dropped files
-    const newAttachments: FileAttachment[] = supportedFiles.map(file => {
-      let type: 'audio' | 'video' | 'image' = 'audio';
-      if (file.type.startsWith('video/')) type = 'video';
-      if (file.type.startsWith('image/')) type = 'image';
+    if (csvFiles.length > 0) {
+      // Bulk mode: process CSV + media files
+      await processCSVFile(csvFiles[0], supportedFiles);
 
-      return {
-        id: crypto.randomUUID(),
-        name: file.name,
-        type,
-        file,
-        status: 'pending'
-      };
-    });
-
-    setAttachments(prev => [...prev, ...newAttachments]);
-
-    // Upload files immediately
-    for (const attachment of newAttachments) {
-      await uploadFile(attachment);
+      // Still upload media files
+      if (supportedFiles.length > 0) {
+        const newAttachments: FileAttachment[] = supportedFiles.map(file => {
+          let type: 'audio' | 'video' | 'image' = 'audio';
+          if (file.type.startsWith('video/')) type = 'video';
+          if (file.type.startsWith('image/')) type = 'image';
+          return { id: crypto.randomUUID(), name: file.name, type, file, status: 'pending' };
+        });
+        setAttachments(prev => [...prev, ...newAttachments]);
+        for (const attachment of newAttachments) {
+          await uploadFile(attachment);
+        }
+      }
+    } else {
+      // Normal mode: media files only
+      const newAttachments: FileAttachment[] = supportedFiles.map(file => {
+        let type: 'audio' | 'video' | 'image' = 'audio';
+        if (file.type.startsWith('video/')) type = 'video';
+        if (file.type.startsWith('image/')) type = 'image';
+        return { id: crypto.randomUUID(), name: file.name, type, file, status: 'pending' };
+      });
+      setAttachments(prev => [...prev, ...newAttachments]);
+      for (const attachment of newAttachments) {
+        await uploadFile(attachment);
+      }
     }
   };
 
@@ -1433,6 +1548,175 @@ Would you like to post another track, or shall I show you where to find your new
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Bulk submit all tracks from CSV
+  const submitBulk = async () => {
+    if (!csvData || !csvMatchResult) return;
+    setIsSubmitting(true);
+
+    const results: Array<{ title: string; status: 'success' | 'error'; error?: string }> = [];
+    const { matched } = csvMatchResult;
+    const { groups, ungrouped } = csvData;
+
+    // Build submission units: groups (pack/EP) + standalone tracks
+    type SubmitUnit = {
+      type: 'standalone';
+      row: CSVTrackRow;
+      fileUrl: string;
+    } | {
+      type: 'group';
+      groupName: string;
+      groupType: string;
+      groupTitle: string;
+      members: Array<{ row: CSVTrackRow; fileUrl: string }>;
+    };
+
+    const units: SubmitUnit[] = [];
+
+    // Map filename → uploaded URL from matched results
+    const fileUrlMap = new Map<string, string>();
+    for (const m of matched) {
+      // Find the uploaded URL from attachments
+      const att = attachments.find(a => a.name === m.file.name && a.url);
+      if (att?.url) {
+        fileUrlMap.set(m.row.filename.toLowerCase(), att.url);
+      }
+    }
+
+    // Build group units
+    for (const [groupName, members] of groups) {
+      const typeDef = members.find(m => m.group_type);
+      const groupType = typeDef?.group_type || 'loop_pack';
+      const groupTitle = members.find(m => m.group_title)?.group_title || groupName;
+      const groupMembers = members
+        .map(row => {
+          const url = fileUrlMap.get(row.filename.toLowerCase());
+          return url ? { row, fileUrl: url } : null;
+        })
+        .filter((m): m is { row: CSVTrackRow; fileUrl: string } => m !== null);
+
+      if (groupMembers.length > 0) {
+        units.push({ type: 'group', groupName, groupType, groupTitle, members: groupMembers });
+      }
+    }
+
+    // Build standalone units
+    for (const row of ungrouped) {
+      const url = fileUrlMap.get(row.filename.toLowerCase());
+      if (url) {
+        units.push({ type: 'standalone', row, fileUrl: url });
+      }
+    }
+
+    const total = units.length;
+    setBulkProgress({ total, completed: 0, current: '', errors: [] });
+
+    for (let i = 0; i < units.length; i++) {
+      const unit = units[i];
+      const unitTitle = unit.type === 'group' ? unit.groupTitle : unit.row.title;
+      setBulkProgress(prev => prev ? { ...prev, current: unitTitle, completed: i } : null);
+
+      try {
+        let trackData: any;
+
+        if (unit.type === 'standalone') {
+          const r = unit.row;
+          trackData = {
+            content_type: r.content_type || 'loop',
+            title: r.title,
+            artist: r.artist || extractedData.artist,
+            bpm: r.bpm,
+            description: r.description,
+            notes: r.notes,
+            tags: r.tags,
+            primary_location: r.location,
+            audio_url: unit.fileUrl,
+            allow_downloads: r.allow_downloads,
+            download_price_stx: r.download_price,
+            ai_assisted_idea: r.ai_assisted_idea || false,
+            ai_assisted_implementation: r.ai_assisted_implementation || false,
+            composition_splits: r.composition_splits,
+            production_splits: r.production_splits,
+          };
+        } else {
+          // Group (pack/EP)
+          const firstRow = unit.members[0].row;
+          const isEP = unit.groupType === 'ep';
+          trackData = {
+            content_type: unit.groupType,
+            [isEP ? 'ep_title' : 'pack_title']: unit.groupTitle,
+            artist: firstRow.artist || extractedData.artist,
+            bpm: firstRow.bpm,
+            description: firstRow.description,
+            notes: firstRow.notes,
+            tags: firstRow.tags,
+            primary_location: firstRow.location,
+            allow_downloads: firstRow.allow_downloads,
+            download_price_stx: firstRow.download_price,
+            ai_assisted_idea: firstRow.ai_assisted_idea || false,
+            ai_assisted_implementation: firstRow.ai_assisted_implementation || false,
+            composition_splits: firstRow.composition_splits,
+            production_splits: firstRow.production_splits,
+            [isEP ? 'ep_files' : 'loop_files']: unit.members.map(m => m.fileUrl),
+            original_filenames: unit.members.map(m => m.row.filename),
+            track_metadata: unit.members.map((m, idx) => ({
+              title: m.row.title,
+              bpm: m.row.bpm || null,
+              position: idx + 1
+            })),
+          };
+        }
+
+        const response = await fetch('/api/upload-studio/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trackData, walletAddress, personaId, conversationId })
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Submission failed');
+        }
+
+        results.push({ title: unitTitle, status: 'success' });
+      } catch (error: any) {
+        results.push({ title: unitTitle, status: 'error', error: error.message });
+      }
+    }
+
+    // Final progress
+    const successCount = results.filter(r => r.status === 'success').length;
+    const errorCount = results.filter(r => r.status === 'error').length;
+    setBulkProgress({
+      total,
+      completed: total,
+      current: '',
+      errors: results.filter(r => r.status === 'error').map(r => ({ title: r.title, error: r.error || '' }))
+    });
+
+    // Show result message
+    const successMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: errorCount === 0
+        ? `**All ${successCount} tracks registered successfully!** They're now on the globe and in your Creator Store.`
+        : `**${successCount} of ${total} registered.** ${errorCount} had errors:\n${results.filter(r => r.status === 'error').map(r => `- ${r.title}: ${r.error}`).join('\n')}`,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, successMessage]);
+    setIsReadyToSubmit(false);
+    setIsSubmitting(false);
+    setBulkMode(false);
+    setCsvData(null);
+    setCsvMatchResult(null);
+    setBulkProgress(null);
+    setExtractedData({});
+    showToast(
+      errorCount === 0 ? `${successCount} tracks registered!` : `${successCount} registered, ${errorCount} failed`,
+      errorCount === 0 ? 'success' : 'warning'
+    );
   };
 
   // Get cover image URL from extractedData or from uploaded image attachments
@@ -1750,7 +2034,7 @@ Would you like to post another track, or shall I show you where to find your new
       )}
 
       {/* Ready to Submit Banner */}
-      {isReadyToSubmit && (
+      {isReadyToSubmit && !bulkMode && (
         <div className="px-6 py-3 bg-green-900/30 border-t border-green-500/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1780,6 +2064,59 @@ Would you like to post another track, or shall I show you where to find your new
         </div>
       )}
 
+      {/* Bulk submit banner */}
+      {isReadyToSubmit && bulkMode && csvData && (
+        <div className="px-6 py-3 bg-green-900/30 border-t border-green-500/30">
+          {bulkProgress ? (
+            // Progress view
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-green-300 font-medium">
+                  Registering {bulkProgress.completed} of {bulkProgress.total}...
+                </p>
+                <Loader2 size={16} className="animate-spin text-green-400" />
+              </div>
+              {bulkProgress.current && (
+                <p className="text-green-400/70 text-sm">{bulkProgress.current}</p>
+              )}
+              <div className="w-full bg-green-900/50 rounded-full h-2">
+                <div
+                  className="bg-green-400 h-2 rounded-full transition-all"
+                  style={{ width: `${(bulkProgress.completed / bulkProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            // Ready to submit view
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="text-green-400" size={20} />
+                <div>
+                  <p className="text-green-300 font-medium">Bulk upload ready!</p>
+                  <p className="text-green-400/70 text-sm">
+                    {csvData.rows.length} tracks ({csvData.groups.size} groups, {csvData.ungrouped.length} standalone)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={submitBulk}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-400 transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    Registering...
+                  </span>
+                ) : (
+                  `Register All ${csvData.rows.length} Tracks`
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="px-6 py-4 border-t border-slate-700/50">
         <div className="flex items-end gap-3">
@@ -1806,7 +2143,7 @@ Would you like to post another track, or shall I show you where to find your new
             ref={fileInputRef}
             type="file"
             multiple
-            accept="audio/*,video/*,image/*"
+            accept="audio/*,video/*,image/*,.csv"
             onChange={handleFileSelect}
             className="hidden"
           />

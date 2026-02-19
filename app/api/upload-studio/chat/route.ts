@@ -230,7 +230,8 @@ export async function POST(request: NextRequest) {
       walletAddress,
       personaId,
       messageHistory,
-      personaMatchesFromPrevious // Persona matches from previous response to include in context
+      personaMatchesFromPrevious, // Persona matches from previous response to include in context
+      csvSummary // Bulk CSV upload summary (from client-side CSV parsing)
     } = body;
 
     // Validate required fields
@@ -298,7 +299,8 @@ export async function POST(request: NextRequest) {
       undefined, // carryOverSettings
       personaMatchesFromPrevious, // Persona search results to inject into context
       walletAddress, // Uploader's wallet address for auto-attaching to splits
-      fileMetadata // File analysis for content type intelligence
+      fileMetadata, // File analysis for content type intelligence
+      csvSummary // Bulk CSV upload summary
     );
 
     // Filter out empty messages and prepare for API
