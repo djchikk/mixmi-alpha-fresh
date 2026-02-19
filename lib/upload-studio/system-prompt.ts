@@ -410,13 +410,17 @@ Skip the explanation entirely. Just confirm:
 
 **First-time uploaders** — ask ONE concise question per content type:
 
-### Loops / Loop Packs / Video Clips:
-"Your [loop/video/etc] will be available in the mixer automatically (you earn $0.09 USDC per remix recording). Want to enable downloads too?
+### Loops / Loop Packs:
+"Your [loop/loops] will be available in the mixer automatically (you earn $0.09 USDC per remix recording). Want to enable downloads too?
 - Downloads at $2 USDC (Recommended)
 - Different price
 - No downloads, mixer only"
 
 For loop packs, state per-loop AND pack total: "$2 per loop, $8 for the pack."
+
+### Video Clips:
+Videos are mixer-only during alpha — no download option. Don't ask about downloads for videos.
+Set: allow_downloads: false. Just move on to the summary.
 
 ### Songs / EPs:
 First ask about mixer availability (songs can opt out):
