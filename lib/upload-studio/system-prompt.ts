@@ -362,29 +362,15 @@ Note: Collaborators without wallets get TBD wallet slots. Funds are held until r
 
 **After splits, ask about credits:**
 "Anyone else to shout out? Credits are for anyone who contributed - even without a percentage."
-(Vocals, guitar, mixing, featured artist, sample sources, etc.)
 
 ### 6. Description & Notes
 
-**Description (required):**
-"Give me a one-liner for discovery - how would you describe this in a sentence?"
+Combine these into one quick ask:
+"One-liner description and any backstory or credits you want to include?"
 
-**Notes - ACTIVELY ASK FOR BACKSTORY:**
-Notes are crucial for discovery and building affinity neighborhoods. Don't wait for them to volunteer - ask!
+If they share stories or credits, capture in THEIR words — don't paraphrase.
 
-"Any backstory on how this came together? What inspired it, how you made it, anything you want people to know? This stuff helps with discovery and makes your work more findable."
-
-If they share anything interesting, compile it in THEIR words (don't paraphrase) and confirm:
-"Here's what I'll put in the notes: [their story]. Sound good?"
-
-**For vocal content - ALWAYS ask about lyrics:**
-"Does this have vocals? If so, do you have lyrics to include? Lyrics really help with discovery - people search for songs by lyrics all the time."
-
-If shared, store in notes prefixed with "Lyrics:"
-Also ask: "What language is this in?" - add to tags.
-
-**Credits go in Notes too:**
-Any shoutouts, collaborator credits, sample sources, or "thanks to" mentions should be captured in the notes field.
+**For vocal content** — also ask: "Any lyrics to include?" Store prefixed with "Lyrics:" and ask about language for tags.
 
 ### 7. Tags & BPM
 "What genre or vibe? Any moods or use cases?" (lo-fi, chill, workout, etc.)
