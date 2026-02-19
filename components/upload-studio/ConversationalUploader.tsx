@@ -1559,6 +1559,16 @@ Would you like to post another track, or shall I show you where to find your new
     const { matched } = csvMatchResult;
     const { groups, ungrouped } = csvData;
 
+    // Debug: log state at submission time
+    console.log('📦 [Bulk Submit] Starting...', {
+      matchedCount: matched.length,
+      groupCount: groups.size,
+      ungroupedCount: ungrouped.length,
+      attachmentCount: attachments.length,
+      uploadedAttachments: attachments.filter(a => a.status === 'uploaded' && a.url).length,
+      extractedDataKeys: Object.keys(extractedData),
+    });
+
     // Build submission units: groups (pack/EP) + standalone tracks
     type SubmitUnit = {
       type: 'standalone';
@@ -1581,8 +1591,16 @@ Would you like to post another track, or shall I show you where to find your new
       const att = attachments.find(a => a.name === m.file.name && a.url);
       if (att?.url) {
         fileUrlMap.set(m.row.filename.toLowerCase(), att.url);
+      } else {
+        console.warn('📦 [Bulk Submit] No uploaded URL for:', m.file.name,
+          '| Attachment found:', !!attachments.find(a => a.name === m.file.name),
+          '| Has URL:', !!attachments.find(a => a.name === m.file.name)?.url,
+          '| Status:', attachments.find(a => a.name === m.file.name)?.status);
       }
     }
+
+    console.log('📦 [Bulk Submit] fileUrlMap:', fileUrlMap.size, 'entries',
+      Array.from(fileUrlMap.keys()));
 
     // Build group units
     for (const [groupName, members] of groups) {
@@ -1592,6 +1610,9 @@ Would you like to post another track, or shall I show you where to find your new
       const groupMembers = members
         .map(row => {
           const url = fileUrlMap.get(row.filename.toLowerCase());
+          if (!url) {
+            console.warn('📦 [Bulk Submit] No URL for group member:', row.filename);
+          }
           return url ? { row, fileUrl: url } : null;
         })
         .filter((m): m is { row: CSVTrackRow; fileUrl: string } => m !== null);
@@ -1610,7 +1631,46 @@ Would you like to post another track, or shall I show you where to find your new
     }
 
     const total = units.length;
+    console.log('📦 [Bulk Submit] Units to submit:', total);
+
+    if (total === 0) {
+      // No units — something went wrong with file matching
+      console.error('📦 [Bulk Submit] ERROR: No submission units! File URLs could not be matched.');
+      console.error('📦 Attachments:', attachments.map(a => ({ name: a.name, status: a.status, hasUrl: !!a.url })));
+      console.error('📦 CSV rows:', csvData.rows.map(r => r.filename));
+      showToast('No files could be matched to CSV rows. Check the console for details.', 'error');
+      setIsSubmitting(false);
+      return;
+    }
+
     setBulkProgress({ total, completed: 0, current: '', errors: [] });
+
+    // Merge chatbot-extracted data with CSV data
+    // The chatbot collects splits, downloads, description etc. during conversation
+    // These override CSV values when present (user confirmed them in chat)
+    const chatSplits = {
+      composition_splits: extractedData.composition_splits,
+      production_splits: extractedData.production_splits,
+    };
+    const chatOverrides = {
+      artist: extractedData.artist,
+      description: extractedData.description,
+      notes: extractedData.notes,
+      tags: extractedData.tags,
+      primary_location: extractedData.location || extractedData.primary_location,
+      allow_downloads: extractedData.allow_downloads,
+      download_price_stx: extractedData.download_price_stx || extractedData.download_price,
+      ai_assisted_idea: extractedData.ai_assisted_idea,
+      ai_assisted_implementation: extractedData.ai_assisted_implementation,
+      cover_image_url: extractedData.cover_image_url,
+    };
+
+    console.log('📦 [Bulk Submit] Chat overrides:', {
+      hasSplits: !!(chatSplits.composition_splits || chatSplits.production_splits),
+      hasArtist: !!chatOverrides.artist,
+      hasDownloads: chatOverrides.allow_downloads,
+      hasLocation: !!chatOverrides.primary_location,
+    });
 
     for (let i = 0; i < units.length; i++) {
       const unit = units[i];
@@ -1625,19 +1685,21 @@ Would you like to post another track, or shall I show you where to find your new
           trackData = {
             content_type: r.content_type || 'loop',
             title: r.title,
-            artist: r.artist || extractedData.artist,
+            artist: r.artist || chatOverrides.artist,
             bpm: r.bpm,
-            description: r.description,
-            notes: r.notes,
-            tags: r.tags,
-            primary_location: r.location,
+            description: r.description || chatOverrides.description,
+            notes: r.notes || chatOverrides.notes,
+            tags: r.tags || chatOverrides.tags,
+            primary_location: r.location || chatOverrides.primary_location,
             audio_url: unit.fileUrl,
-            allow_downloads: r.allow_downloads,
-            download_price_stx: r.download_price,
-            ai_assisted_idea: r.ai_assisted_idea || false,
-            ai_assisted_implementation: r.ai_assisted_implementation || false,
-            composition_splits: r.composition_splits,
-            production_splits: r.production_splits,
+            allow_downloads: r.allow_downloads ?? chatOverrides.allow_downloads,
+            download_price_stx: r.download_price || chatOverrides.download_price_stx,
+            ai_assisted_idea: r.ai_assisted_idea || chatOverrides.ai_assisted_idea || false,
+            ai_assisted_implementation: r.ai_assisted_implementation || chatOverrides.ai_assisted_implementation || false,
+            cover_image_url: chatOverrides.cover_image_url,
+            // Splits: prefer CSV if present, fall back to chatbot-collected
+            composition_splits: r.composition_splits || chatSplits.composition_splits,
+            production_splits: r.production_splits || chatSplits.production_splits,
           };
         } else {
           // Group (pack/EP)
@@ -1646,18 +1708,20 @@ Would you like to post another track, or shall I show you where to find your new
           trackData = {
             content_type: unit.groupType,
             [isEP ? 'ep_title' : 'pack_title']: unit.groupTitle,
-            artist: firstRow.artist || extractedData.artist,
+            artist: firstRow.artist || chatOverrides.artist,
             bpm: firstRow.bpm,
-            description: firstRow.description,
-            notes: firstRow.notes,
-            tags: firstRow.tags,
-            primary_location: firstRow.location,
-            allow_downloads: firstRow.allow_downloads,
-            download_price_stx: firstRow.download_price,
-            ai_assisted_idea: firstRow.ai_assisted_idea || false,
-            ai_assisted_implementation: firstRow.ai_assisted_implementation || false,
-            composition_splits: firstRow.composition_splits,
-            production_splits: firstRow.production_splits,
+            description: firstRow.description || chatOverrides.description,
+            notes: firstRow.notes || chatOverrides.notes,
+            tags: firstRow.tags || chatOverrides.tags,
+            primary_location: firstRow.location || chatOverrides.primary_location,
+            allow_downloads: firstRow.allow_downloads ?? chatOverrides.allow_downloads,
+            download_price_stx: firstRow.download_price || chatOverrides.download_price_stx,
+            ai_assisted_idea: firstRow.ai_assisted_idea || chatOverrides.ai_assisted_idea || false,
+            ai_assisted_implementation: firstRow.ai_assisted_implementation || chatOverrides.ai_assisted_implementation || false,
+            cover_image_url: chatOverrides.cover_image_url,
+            // Splits: prefer CSV if present, fall back to chatbot-collected
+            composition_splits: firstRow.composition_splits || chatSplits.composition_splits,
+            production_splits: firstRow.production_splits || chatSplits.production_splits,
             [isEP ? 'ep_files' : 'loop_files']: unit.members.map(m => m.fileUrl),
             original_filenames: unit.members.map(m => m.row.filename),
             track_metadata: unit.members.map((m, idx) => ({
@@ -1667,6 +1731,15 @@ Would you like to post another track, or shall I show you where to find your new
             })),
           };
         }
+
+        console.log('📦 [Bulk Submit] Submitting unit:', {
+          type: unit.type,
+          title: unitTitle,
+          contentType: trackData.content_type,
+          hasAudioUrl: !!trackData.audio_url,
+          hasLoopFiles: !!trackData.loop_files?.length,
+          hasSplits: !!(trackData.composition_splits || trackData.production_splits),
+        });
 
         const response = await fetch('/api/upload-studio/submit', {
           method: 'POST',
