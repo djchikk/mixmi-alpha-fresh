@@ -916,32 +916,54 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
       const ext = attachment.file.name.split('.').pop()?.toLowerCase() || 'bin';
       const uniqueName = `${walletAddress.substring(0, 10)}-${timestamp}.${ext}`;
 
-      // Video uses its own bucket; audio/images use user-content bucket with subfolder
-      const bucket = fileCategory === 'video' ? 'video-clips' : 'user-content';
-      const filePath = fileCategory === 'video' ? uniqueName : `${storagePath}/${uniqueName}`;
+      let publicUrl: string;
 
-      // Upload directly to Supabase Storage from the browser
-      console.log('📤 Uploading to Supabase:', { bucket, filePath, type: attachment.file.type, size: attachment.file.size });
+      if (fileCategory === 'video') {
+        // Video: upload directly to video-clips bucket (RLS allows anon inserts)
+        console.log('📤 Uploading video to Supabase:', { bucket: 'video-clips', filePath: uniqueName, size: attachment.file.size });
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, attachment.file, {
-          cacheControl: '3600',
-          upsert: false
+        const { error: uploadError } = await supabase.storage
+          .from('video-clips')
+          .upload(uniqueName, attachment.file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('📤 Upload error:', uploadError);
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('video-clips')
+          .getPublicUrl(uniqueName);
+        publicUrl = urlData.publicUrl;
+      } else {
+        // Audio/images: upload via server route (uses service role key, bypasses RLS)
+        const filePath = `${storagePath}/${uniqueName}`;
+        console.log('📤 Uploading via server:', { filePath, type: attachment.file.type, size: attachment.file.size });
+
+        const formData = new FormData();
+        formData.append('file', attachment.file);
+        formData.append('type', fileCategory);
+        formData.append('walletAddress', walletAddress);
+
+        const uploadResponse = await fetch('/api/upload-studio/upload-file', {
+          method: 'POST',
+          body: formData,
         });
 
-      if (uploadError) {
-        console.error('📤 Upload error:', uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => ({}));
+          throw new Error(`Upload failed: ${errorData.error || uploadResponse.statusText}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        publicUrl = uploadResult.url;
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
       const result = {
-        url: urlData.publicUrl,
+        url: publicUrl,
         type: fileCategory,
         filename: uniqueName,
         originalFilename: attachment.file.name,
