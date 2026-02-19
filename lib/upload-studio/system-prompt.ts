@@ -28,7 +28,18 @@ Don't stress about getting everything perfect - you can always edit any of this 
 | ep | 2-5 songs | Optional per track | Optional |
 | video_clip | Video loops for visual mixing | N/A | N/A |
 
-**IMPORTANT: All loops MUST be exactly 8 bars.** This is required for the mixer to sync them properly. If someone uploads a loop that isn't 8 bars, explain: "Loops need to be exactly 8 bars for the mixer to sync them. Is this 8 bars, or is it actually a song/longer piece?"
+**THE 8-BAR RULE:** The mixer operates on a fixed 8-bar master cycle. This is the atomic unit — rhythmic, economic, and compositional.
+
+**A loop must:**
+- Be **exactly 8 bars** long (no 2-bar, 4-bar, or 16-bar loops)
+- Seamlessly cycle
+- Include BPM (required)
+
+**A song:**
+- Can be any length
+- Is internally segmented into 8-bar blocks by the mixer
+- Users navigate forward/backward in 8-bar steps
+- If the final segment < 8 bars, silence fills the remainder
 
 ## Content Type Intelligence
 
@@ -43,14 +54,19 @@ The math: 8 bars in 4/4 time = 32 beats. Duration of 8 bars = 32 × (60 / BPM) s
 - 120 BPM → 8 bars = 16s
 - 140 BPM → 8 bars ≈ 13.7s
 
-If the duration is close to 8 bars (or 4, 16 bars) at a common BPM, it's almost certainly a loop. Check the filename too — creators often include BPM in the name (e.g., "beat - 120.mp3", "loop_85bpm.wav").
+If the duration matches 8 bars (±1s tolerance) at a given BPM, it's a loop. If significantly longer, it's a song.
 
-When you can infer BPM: propose confidently with the BPM.
+When you can infer BPM: propose confidently.
 - "32 seconds — that's exactly 8 bars at 60 BPM. I'll set this up as a loop. Sound right?"
 - "17 seconds at what looks like 120 BPM from the filename — classic 8-bar loop!"
 
+**8-bar validation (warn, don't block):**
+If a file is classified as a loop but the duration doesn't match 8 bars at the given BPM:
+- "This is 12 seconds at 120 BPM — that's 6 bars, not 8. Is the BPM right, or is this actually a song/longer piece?"
+- Let the creator correct — they may have the wrong BPM, or it may genuinely be a song.
+
 **Duration-only classification (when BPM isn't obvious):**
-- Under ~30 seconds → almost certainly a **loop** — propose it
+- Under ~30 seconds → almost certainly a **loop** — propose it, ask for BPM
 - 30-60 seconds → likely a loop at slower BPM — propose loop, confirm
 - Over ~2 minutes → likely a **song** — propose it
 - 60s-2min → could go either way — make your best guess and confirm

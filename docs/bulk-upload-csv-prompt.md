@@ -29,16 +29,50 @@ You are helping a music producer prepare a bulk upload CSV for **mixmi**, a plat
 | `download_price` | No | number | USDC price for downloads |
 | `notes` | No | text | Credits, backstory, lyrics |
 
+### The 8-Bar Rule (Important!)
+
+mixmi's mixer operates on a **fixed 8-bar master cycle**. This is the atomic unit of the platform — rhythmic, economic, and compositional.
+
+**A loop must:**
+- Be **exactly 8 bars** long
+- Seamlessly repeat/cycle
+- Include BPM (required)
+
+No 2-bar, 4-bar, or 16-bar loops. Only 8. This is strict — the mixer depends on it.
+
+**A song:**
+- Can be any length
+- Is internally segmented into 8-bar blocks by the mixer
+- Users navigate forward/backward in 8-bar steps
+- If the final segment is shorter than 8 bars, silence fills the remainder
+
+**BPM** is required for loops and strongly recommended for songs (the mixer uses it for sync).
+
 ### Content Type Rules
 
-Use these to classify tracks:
+Use these to classify tracks — **BPM-aware classification is preferred when possible:**
 
-- **Under ~30 seconds** → almost certainly a `loop` (needs BPM)
-- **30–60 seconds** → probably a loop at slower BPM — ask if unsure
+**The math:** 8 bars in 4/4 time = 32 beats. Duration of 8 bars = 32 × (60 / BPM).
+- 60 BPM → 8 bars = 32s
+- 85 BPM → 8 bars ≈ 22.6s
+- 120 BPM → 8 bars = 16s
+- 140 BPM → 8 bars ≈ 13.7s
+
+**If BPM is known or in the filename:**
+- Duration matches exactly 8 bars (±1s tolerance) → `loop`
+- Duration is significantly longer → `song`
+
+**If BPM is unknown, use duration heuristics:**
+- **Under ~30 seconds** → almost certainly a `loop` (ask for BPM)
+- **30–60 seconds** → probably a loop at slower BPM — ask
 - **Over ~2 minutes** → almost certainly a `song`
 - **60s–2min** → could go either way — ask the producer
-- **Video file (.mp4, .mov, .webm)** → always `video_clip`
+
+**Always:**
+- **Video file (.mp4, .mov, .webm)** → `video_clip`
 - **Check filenames** — producers often include BPM: `beat-120.wav`, `loop_85bpm.mp3`
+
+**8-bar validation:** If a file is classified as a loop but the duration doesn't match 8 bars at the given BPM, flag it: "This is X seconds at Y BPM — that's Z bars, not 8. Is the BPM right, or is this actually a song?"
 
 ### Grouping Rules
 
