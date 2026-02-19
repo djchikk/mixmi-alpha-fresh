@@ -68,9 +68,9 @@ export default function UploadStudioPage() {
         <Header />
         <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
           <div className="text-center max-w-md mx-auto p-8">
-            <h1 className="text-2xl font-bold text-white mb-4">Upload Studio</h1>
+            <h1 className="text-2xl font-bold text-white mb-4">Post Studio</h1>
             <p className="text-gray-400 mb-2">
-              Sign in to start uploading your work through our conversational assistant.
+              Sign in to start posting your work through our conversational assistant.
             </p>
             <p className="text-gray-500 text-sm">
               Click <span className="text-[#81E4F2]">Sign In</span> in the top right corner to get started.

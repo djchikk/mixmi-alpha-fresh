@@ -1378,7 +1378,7 @@ Your creative work is now:
 • Visible on the mixmi globe
 • Ready for discovery and collaboration
 
-Would you like to upload another track, or shall I show you where to find your new upload?`,
+Would you like to post another track, or shall I show you where to find your new post?`,
         timestamp: new Date()
       };
 
@@ -1504,7 +1504,7 @@ Would you like to upload another track, or shall I show you where to find your n
       <div className="px-6 py-4 border-b border-slate-700/50">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-white">Upload Studio</h1>
+            <h1 className="text-xl font-semibold text-white">Post Studio</h1>
             <p className="text-sm text-gray-400">Chat with AI to register your music</p>
           </div>
 
@@ -1658,7 +1658,7 @@ Would you like to upload another track, or shall I show you where to find your n
               <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
                 <span className="flex items-center gap-2">
                   <Loader2 size={12} className="animate-spin text-[#81E4F2]" />
-                  Uploading files...
+                  Processing files...
                 </span>
                 <span>
                   {attachments.filter(a => a.status === 'uploaded').length} of {attachments.length} ready
@@ -1850,7 +1850,7 @@ Would you like to upload another track, or shall I show you where to find your n
                   setLastInputMode('text');
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={attachments.length > 0 ? "Hit send when you're done uploading, or type here..." : "Type here or use the mic to chat by voice..."}
+                placeholder={attachments.length > 0 ? "Hit send when files are ready, or type here..." : "Type here or use the mic to chat by voice..."}
                 rows={1}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
                 style={{ minHeight: '48px', maxHeight: '120px' }}

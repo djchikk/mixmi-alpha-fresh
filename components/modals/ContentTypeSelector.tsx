@@ -27,7 +27,7 @@ export default function ContentTypeSelector({
       <div className="bg-[#0f1419] rounded-xl shadow-2xl w-full max-w-2xl border border-white/10">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <h2 className="text-2xl font-bold text-white">What would you like to upload?</h2>
+          <h2 className="text-2xl font-bold text-white">What would you like to post?</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
@@ -38,7 +38,7 @@ export default function ContentTypeSelector({
 
         {/* Content */}
         <div className="p-8">
-          {/* Chat Upload - Hero Option */}
+          {/* Chat Post - Hero Option */}
           {onSelectChat && (
             <button
               onClick={onSelectChat}
@@ -50,7 +50,7 @@ export default function ContentTypeSelector({
                   <Globe className="w-7 h-7 text-[#81E4F2]" />
                 </div>
                 <div className="text-left flex-1">
-                  <h3 className="text-lg font-semibold text-white mb-1">Chat Upload</h3>
+                  <h3 className="text-lg font-semibold text-white mb-1">Chat Post</h3>
                   <p className="text-sm text-gray-400">Drop files — I'll help with the rest</p>
                   <p className="text-xs text-gray-500 mt-1">Loops, songs, EPs, video clips</p>
                 </div>

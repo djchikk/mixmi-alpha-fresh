@@ -209,7 +209,7 @@ export default function Header() {
           }}
           className="text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95 transition-all duration-300 tracking-wide"
         >
-          upload
+          post
         </button>
         <button
           onClick={() => {
@@ -446,7 +446,7 @@ export default function Header() {
               }}
               className="text-gray-300 hover:text-white font-medium active:scale-95 transition-all duration-300 text-left"
             >
-              Upload
+              Post
             </button>
 
             <button
