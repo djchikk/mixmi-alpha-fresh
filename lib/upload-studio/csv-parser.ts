@@ -155,7 +155,8 @@ function parseBoolean(val: string): boolean | undefined {
 
 function parseSplits(val: string): Array<{ name: string; percentage: number }> | undefined {
   if (!val.trim()) return undefined;
-  const parts = val.split(',').map(p => p.trim()).filter(Boolean);
+  // Accept pipes or commas as separators (pipes preferred to avoid CSV conflicts)
+  const parts = val.split(/[|,]/).map(p => p.trim()).filter(Boolean);
   const splits: Array<{ name: string; percentage: number }> = [];
 
   for (const part of parts) {
