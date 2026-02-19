@@ -5,6 +5,7 @@ import { getWalletFromAuthIdentity } from '@/lib/auth/wallet-mapping';
 import { parseLocationsAndGetCoordinates } from '@/lib/locationLookup';
 import { PRICING } from '@/config/pricing';
 import { generateKeypair, getAddressFromKeypair } from '@/lib/sui/keypair-manager';
+import { buildRewardAgentTransaction, executeAsAdmin, isTingConfigured, TING_REWARDS } from '@/lib/sui/ting';
 
 // Helper to check if two locations are duplicates (by coordinates, name, or containment)
 // Common country abbreviations and their full names
@@ -386,6 +387,58 @@ async function updateAgentPreferences(
     }
   } catch (error) {
     console.warn('⚠️ Preference learning error (non-fatal):', error);
+  }
+}
+
+/**
+ * Reward persona's AI agent with TING tokens for AI-assisted uploads.
+ * Fire-and-forget: errors here should never block the upload response.
+ */
+async function rewardAgentForAIAssist(
+  personaId: string | undefined,
+  trackData: TrackSubmission,
+  contentType: string
+): Promise<void> {
+  if (!personaId) return;
+  if (!trackData.ai_assisted_implementation && !trackData.ai_assisted_idea) return;
+  if (!isTingConfigured()) {
+    console.log('🤖 TING not configured, skipping agent reward');
+    return;
+  }
+
+  try {
+    // Look up persona's AI agent
+    const { data: agent } = await supabase
+      .from('ai_agents')
+      .select('agent_address')
+      .eq('persona_id', personaId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (!agent?.agent_address) {
+      console.log('🤖 No AI agent found for persona, skipping TING reward');
+      return;
+    }
+
+    const amount = TING_REWARDS.implementationHelp; // 10 TING
+    const reason = `AI assisted with ${contentType} "${trackData.title}"`;
+
+    const tx = buildRewardAgentTransaction(agent.agent_address, amount);
+    const result = await executeAsAdmin(tx);
+
+    // Log the reward
+    await supabase.from('ting_rewards').insert({
+      agent_address: agent.agent_address,
+      reward_type: 'implementationHelp',
+      amount,
+      reason,
+      transaction_digest: result.digest,
+      created_at: new Date().toISOString(),
+    });
+
+    console.log(`🤖 TING reward: ${amount} TING → ${agent.agent_address.substring(0, 10)}... for "${trackData.title}"`);
+  } catch (error) {
+    console.warn('⚠️ TING reward failed (non-fatal):', error);
   }
 }
 
@@ -842,6 +895,9 @@ export async function POST(request: NextRequest) {
 
     // Learn preferences from this upload (fire-and-forget)
     updateAgentPreferences(personaId, effectiveWallet, trackData, contentType).catch(() => {});
+
+    // Reward AI agent with TING if AI-assisted (fire-and-forget)
+    rewardAgentForAIAssist(personaId, trackData, contentType).catch(() => {});
 
     // Clean up draft if one exists for this conversation (fire-and-forget)
     if (conversationId) {
@@ -1388,6 +1444,9 @@ async function handleMultiFileSubmission(
 
   // Learn preferences from this upload (fire-and-forget)
   updateAgentPreferences(personaId, effectiveWallet, trackData, contentType).catch(() => {});
+
+  // Reward AI agent with TING if AI-assisted (fire-and-forget)
+  rewardAgentForAIAssist(personaId, trackData, contentType).catch(() => {});
 
   // Clean up draft if one exists for this conversation (fire-and-forget)
   if (conversationId) {
