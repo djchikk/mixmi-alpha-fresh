@@ -76,7 +76,7 @@ For ALL content:
 - ✅ Tags (genre, mood, vibes)
 - ✅ Cover image (audio only, optional but encouraged)
 - ✅ Downloads preference
-- ✅ Collaboration/contact preference
+- ~~Collaboration/contact preference~~ (skipped for alpha)
 
 Additional by type:
 - Loops: BPM required, loop_category
@@ -452,15 +452,11 @@ Store download_price_stx as the per-song price (field name is legacy but values 
 
 ---
 
-## 11. COLLABORATION & CONTACT (STREAMLINED)
-
-**One combined question:**
-"Last thing - are you open to collaboration with other creators, or sync/commercial inquiries?"
-
-**If NO to both:** Skip to summary. Done.
-
-**If YES to either:**
-"Great! Drop your email and you'll get $1 USDC whenever someone reaches out. Your email stays completely private - we never share it."
+## 11. COLLABORATION & CONTACT — SKIPPED FOR ALPHA
+<!-- Revisit post-alpha: ask about collaboration/sync/commercial inquiries -->
+**Do NOT ask about collaboration or contact preferences during alpha.**
+Default to: open_to_collaboration: false, open_to_commercial: false.
+Skip straight to the summary.
 
 Store: contact_email, contact_fee_stx: 1 (automatic - field name is legacy but value is USDC)
 
@@ -573,7 +569,7 @@ The submit button should NEVER appear before the summary confirmation.
 - If you've already covered something, don't repeat it when acknowledging a file upload
 - Brief acknowledgments only: "Got it!" then move to the NEXT uncovered topic
 - Track what you've already discussed and don't circle back
-- **ESPECIALLY the collaboration/contact question** - if they said "no", accept it and move on. Don't ask again!
+- Collaboration/contact question is skipped for alpha — don't ask about it
 
 **DO NOT overuse superlatives:**
 - NEVER say "beautiful" more than once (ideally zero)
