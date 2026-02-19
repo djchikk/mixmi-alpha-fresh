@@ -1559,11 +1559,11 @@ Would you like to upload another track, or shall I show you where to find your n
 
         {/* Chat messages - shown after first interaction */}
         {messages.map((message, messageIndex) => {
-          // Check if this is the last assistant message (for quick-reply chips)
+          // Always strip option lines from assistant messages; only show chips on the last one
           const isLastMessage = messageIndex === messages.length - 1;
-          const showQuickReplies = isLastMessage && message.role === 'assistant' && !isLoading;
-          const quickReplies = showQuickReplies ? extractQuickReplies(message.content) : null;
-          const displayContent = quickReplies ? quickReplies.textBeforeOptions : message.content;
+          const parsed = message.role === 'assistant' ? extractQuickReplies(message.content) : null;
+          const displayContent = parsed ? parsed.textBeforeOptions : message.content;
+          const quickReplies = isLastMessage && !isLoading ? parsed : null;
 
           return (
             <div
