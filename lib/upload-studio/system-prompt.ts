@@ -491,7 +491,6 @@ Before submitting, show everything including detailed IP splits:
 🖼️ **Cover**: [yes/no]
 ⬇️ **Downloads**: [enabled at $X USDC per song/loop / disabled]
 🎛️ **Mixer**: [available / protected]
-🤝 **Open to**: [collabs/commercial/neither]
 
 Does this all look correct? If any splits look wrong, let me know and I can fix them. Ready to save?"
 

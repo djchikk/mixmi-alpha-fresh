@@ -165,6 +165,11 @@ function extractQuickReplies(content: string): { textBeforeOptions: string; opti
   return { textBeforeOptions, options };
 }
 
+/** Strip any ```extracted...``` code blocks that slipped through API parsing */
+function stripExtractedBlocks(content: string): string {
+  return content.replace(/```extracted\n?[\s\S]*?```/g, '').trim();
+}
+
 /** Get a short label from an option (text before parenthetical) */
 function getOptionLabel(option: string): string {
   const parenIndex = option.indexOf('(');
@@ -1581,10 +1586,11 @@ Would you like to post another track, or shall I show you where to find your new
 
         {/* Chat messages - shown after first interaction */}
         {messages.map((message, messageIndex) => {
-          // Always strip option lines from assistant messages; only show chips on the last one
+          // Strip extracted code blocks and option lines from assistant messages
           const isLastMessage = messageIndex === messages.length - 1;
-          const parsed = message.role === 'assistant' ? extractQuickReplies(message.content) : null;
-          const displayContent = parsed ? parsed.textBeforeOptions : message.content;
+          const cleanContent = message.role === 'assistant' ? stripExtractedBlocks(message.content) : message.content;
+          const parsed = message.role === 'assistant' ? extractQuickReplies(cleanContent) : null;
+          const displayContent = parsed ? parsed.textBeforeOptions : cleanContent;
           const quickReplies = isLastMessage && !isLoading ? parsed : null;
 
           return (
