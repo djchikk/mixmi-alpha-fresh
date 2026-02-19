@@ -49,7 +49,7 @@ Formula: 8-bar duration = 32 × (60 / BPM) seconds.
 | `title` | **Yes** | text | Display title for the track |
 | `artist` | **Yes** | text | Artist or project name |
 | `content_type` | **Yes** | text | `loop`, `song`, or `video_clip` |
-| `bpm` | Loops: required. Songs: optional. | number | Beats per minute (60–200) |
+| `bpm` | Loops: required. Songs: optional. | whole number | Beats per minute (60–200). **Must be a whole number** — no decimals (e.g., 120 not 120.5). |
 | `tags` | No | text | Semicolon-separated: `lo-fi;chill;ambient` |
 | `description` | No | text | One-line description for discovery |
 | `location` | No | text | City, country, or region (for the globe pin) |
@@ -210,6 +210,7 @@ morning-coffee.mp3,Morning Coffee,DJ Sandy,song,95,acoustic;morning;guitar,Acous
 - **Group fields on first row only** — `group_type` and `group_title` only on the first row of each group
 - **Loops need BPM** — required for the mixer to sync
 - **Songs can have BPM too** — include it if the producer knows it
+- **BPM must be a whole number** — the mixer can't handle decimals. Round 102.4 → 102 (or ask the producer)
 - **Don't guess BPM** — if you're not sure, ask the producer
 - **Notes** — always ask if the producer has credits, backstory, or lyrics to include
 - **Validate, don't block** — if something looks off, warn and offer options

@@ -244,14 +244,18 @@ export function parseCSV(csvText: string): CSVParseResult {
       errors.push({ row: rowNum, column: 'content_type', message: `Invalid content_type "${rawContentType}". Use: loop, song, video_clip, loop_pack, or ep` });
     }
 
-    // BPM
+    // BPM (must be a whole number — mixer can't handle decimals)
     const bpmRaw = data['bpm'];
     let bpm: number | undefined;
     if (bpmRaw) {
-      bpm = parseFloat(bpmRaw);
-      if (isNaN(bpm) || bpm < 30 || bpm > 300) {
+      const bpmFloat = parseFloat(bpmRaw);
+      if (isNaN(bpmFloat) || bpmFloat < 30 || bpmFloat > 300) {
         errors.push({ row: rowNum, column: 'bpm', message: `Invalid BPM "${bpmRaw}". Must be 30-300.` });
-        bpm = undefined;
+      } else if (!Number.isInteger(bpmFloat)) {
+        bpm = Math.round(bpmFloat);
+        warnings.push({ row: rowNum, message: `BPM "${bpmRaw}" rounded to ${bpm} — mixer requires whole numbers` });
+      } else {
+        bpm = bpmFloat;
       }
     }
 

@@ -22,7 +22,7 @@ Don't stress about getting everything perfect - you can always edit any of this 
 
 | Type | Description | BPM | Mixer |
 |------|-------------|-----|-------|
-| loop | **8-bar loops** for remixing in the mixer | Required (60-200) | Required |
+| loop | **8-bar loops** for remixing in the mixer | Required (60-200, whole numbers only) | Required |
 | loop_pack | 2-5 **8-bar loops**, same BPM | Required (all must match) | Required |
 | song | Complete songs | Optional but helpful | Optional (can opt out) |
 | ep | 2-5 songs | Optional per track | Optional |
@@ -33,7 +33,9 @@ Don't stress about getting everything perfect - you can always edit any of this 
 **A loop must:**
 - Be **exactly 8 bars** long (no 2-bar, 4-bar, or 16-bar loops)
 - Seamlessly cycle
-- Include BPM (required)
+- Include BPM (required, must be a whole number — no decimals)
+
+**BPM must be a whole number.** The mixer cannot handle fractional BPMs like 102.4 or 85.5. If a creator gives a decimal, round it and confirm: "I'll round that to 102 — the mixer needs whole numbers. Sound right?"
 
 **A song:**
 - Can be any length
@@ -387,6 +389,8 @@ If they share stories or credits, capture in THEIR words — don't paraphrase.
 
 For songs without BPM yet:
 "Do you know the BPM? Optional, but helps with mixer sectioning."
+
+**BPM values must be whole numbers** (no decimals). If a creator says "102.4 BPM", round to 102 and confirm.
 
 ### 8. Music Connections (Optional)
 "Is this connected to other music? Like from another track of yours, or related to something you've released?"
