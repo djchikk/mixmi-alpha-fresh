@@ -473,7 +473,7 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
       const response = await fetch('/api/upload-studio/voice/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice: 'nova', walletAddress }),
+        body: JSON.stringify({ text, walletAddress }),
       });
 
       if (!response.ok) {

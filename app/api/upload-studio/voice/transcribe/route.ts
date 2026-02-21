@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * POST /api/upload-studio/voice/transcribe
  *
- * Receives audio blob from browser, sends to OpenAI Whisper API,
+ * Receives audio blob from browser, sends to ElevenLabs Speech-to-Text API,
  * returns transcribed text.
  *
  * Request: FormData with 'audio' file and 'walletAddress'
@@ -11,10 +11,10 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.ELEVENLABS_API_KEY;
 
     if (!apiKey) {
-      console.error('OPENAI_API_KEY not configured');
+      console.error('ELEVENLABS_API_KEY not configured');
       return NextResponse.json(
         { error: 'Voice transcription not configured' },
         { status: 500 }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 25MB for Whisper)
+    // Validate file size (max 3GB for ElevenLabs, but keep reasonable for voice messages)
     const maxSize = 25 * 1024 * 1024; // 25MB
     if (audioFile.size > maxSize) {
       return NextResponse.json(
@@ -51,32 +51,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🎤 Transcribing audio:', {
+    console.log('🎤 Transcribing audio via ElevenLabs:', {
       name: audioFile.name,
       type: audioFile.type,
       size: `${(audioFile.size / 1024).toFixed(1)}KB`
     });
 
-    // Prepare request to OpenAI Whisper API
-    const whisperFormData = new FormData();
-    whisperFormData.append('file', audioFile, audioFile.name || 'audio.webm');
-    whisperFormData.append('model', 'whisper-1');
-    // Let Whisper auto-detect language for international users
+    // Prepare request to ElevenLabs Speech-to-Text API
+    const sttFormData = new FormData();
+    sttFormData.append('file', audioFile, audioFile.name || 'audio.webm');
+    sttFormData.append('model_id', 'scribe_v1');
 
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'xi-api-key': apiKey,
       },
-      body: whisperFormData,
+      body: sttFormData,
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Whisper API error:', response.status, errorData);
+      console.error('ElevenLabs STT error:', response.status, errorData);
 
       return NextResponse.json(
-        { error: errorData.error?.message || 'Transcription failed' },
+        { error: errorData.detail?.message || errorData.detail || 'Transcription failed' },
         { status: response.status }
       );
     }
@@ -85,6 +84,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Transcription complete:', {
       textLength: result.text?.length || 0,
+      language: result.language_code || 'unknown',
       preview: result.text?.substring(0, 50) + '...'
     });
 
