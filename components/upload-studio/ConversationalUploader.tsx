@@ -1334,9 +1334,10 @@ Feel free to try again with a different file, or let me know if you need help!`,
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Speak response if user used voice input
+      // Speak response if user used voice input — strip chip options from TTS
       if (inputMode === 'voice' && result.message) {
-        speakResponse(result.message);
+        const parsed = extractQuickReplies(result.message);
+        speakResponse(parsed ? parsed.textBeforeOptions : result.message);
       }
 
       // Update extracted data if provided
@@ -1537,6 +1538,12 @@ Would you like to post another track, or shall I show you where to find your new
       setIsReadyToSubmit(false);
       setExtractedData({});
       showToast('🎉 Track registered successfully!', 'success');
+
+      // Voice the success message if user was in voice mode
+      if (lastInputMode === 'voice') {
+        const spokenSuccess = `Success! Your ${contentTypeName} "${displayTitle || 'track'}" has been registered! Your creative work is now timestamped on the blockchain, visible on the mixmi globe, and ready for discovery and collaboration. Would you like to post another track, or shall I show you where to find your new post?`;
+        speakResponse(spokenSuccess);
+      }
 
     } catch (error: any) {
       console.error('Submit error:', error);
@@ -1820,6 +1827,14 @@ Would you like to post another track, or shall I show you where to find your new
       errorCount === 0 ? `${successCount} tracks registered!` : `${successCount} registered, ${errorCount} failed`,
       errorCount === 0 ? 'success' : 'warning'
     );
+
+    // Voice the bulk success message if user was in voice mode
+    if (lastInputMode === 'voice') {
+      const spokenBulk = errorCount === 0
+        ? `All ${successCount} tracks registered successfully! They're now on the globe and in your Creator Store.`
+        : `${successCount} of ${total} registered. ${errorCount} had errors.`;
+      speakResponse(spokenBulk);
+    }
   };
 
   // Get cover image URL from extractedData or from uploaded image attachments
