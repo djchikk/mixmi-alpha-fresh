@@ -2050,7 +2050,7 @@ Would you like to post another track, or shall I show you where to find your new
                     {quickReplies.options.map((option, optIndex) => (
                       <button
                         key={optIndex}
-                        onClick={() => sendMessage('text', option)}
+                        onClick={() => sendMessage(lastInputMode, option)}
                         disabled={isLoading}
                         className="bg-slate-700/60 hover:bg-slate-600/80 border border-[#81E4F2]/40 hover:border-[#81E4F2] text-[#81E4F2] text-sm rounded-xl px-4 py-2 cursor-pointer transition-all disabled:opacity-50 disabled:pointer-events-none"
                       >
