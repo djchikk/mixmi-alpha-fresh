@@ -773,6 +773,10 @@ export default function CompactTrackCardWithFlip({
                         if (track.content_type === 'full_song' || track.content_type === 'ep') {
                           // Check new download_price_stx field first
                           if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
+                            // For EPs, show total pack price (price_stx); for songs, show per-item price
+                            const displayPrice = track.content_type === 'ep'
+                              ? (track.price_stx || track.download_price_stx)
+                              : track.download_price_stx;
                             return track.download_price_stx === 0 ? (
                               <button
                                 onClick={handlePurchaseClick}
@@ -785,9 +789,9 @@ export default function CompactTrackCardWithFlip({
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                                title="Download price in USDC - click to add to cart"
+                                title={track.content_type === 'ep' ? "Download full EP - click to add to cart" : "Download price in USDC - click to add to cart"}
                               >
-                                {track.download_price_stx}
+                                {displayPrice}
                               </button>
                             );
                           }
@@ -832,7 +836,8 @@ export default function CompactTrackCardWithFlip({
 
                           // PRIORITY 2: Check if pack has download_price_stx (new model)
                           if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
-                            // Pack has download price - show buy button
+                            // Pack has download price - show buy button with TOTAL pack price
+                            const packTotal = track.price_stx || track.download_price_stx;
                             return track.download_price_stx === 0 ? (
                               <button
                                 onClick={handlePurchaseClick}
@@ -847,7 +852,7 @@ export default function CompactTrackCardWithFlip({
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
                                 title="Download full pack - click to add to cart"
                               >
-                                {track.download_price_stx}
+                                {packTotal}
                               </button>
                             );
                           }

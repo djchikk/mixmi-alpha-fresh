@@ -195,10 +195,6 @@ const { users } = await response.json();
 
 ## Known Issues
 
-### Loop Pack Pricing Display
-- TrackDetailsModal shows per-loop price labeled as "full pack" price
-- Should use `price_stx` for pack total, `download_price_stx` for per-loop
-
 ### Edit Form - Video Covers
 - Edit form doesn't accept video clips as cover images (chatbot does)
 - Fix: Update `IPTrackModal.tsx` cover image upload to accept video

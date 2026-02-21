@@ -1537,7 +1537,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                     <>
                       <div className="flex">
                         <span className="text-gray-500 w-24">Download:</span>
-                        <span className="text-gray-300">${ipRights.price_stx || ipRights.download_price_stx} USDC (full pack)</span>
+                        <span className="text-gray-300">${(ipRights.download_price_stx * (packLoops.length || 1)).toFixed(2)} USDC (full pack)</span>
                       </div>
                       {packLoops.length > 1 && (
                         <div className="flex">
@@ -1580,7 +1580,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                     <>
                       <div className="flex">
                         <span className="text-gray-500 w-24">Download:</span>
-                        <span className="text-gray-300">${ipRights.price_stx || ipRights.download_price_stx} USDC (full EP)</span>
+                        <span className="text-gray-300">${(ipRights.download_price_stx * (packLoops.length || 1)).toFixed(2)} USDC (full EP)</span>
                       </div>
                       {packLoops.length > 1 && (
                         <div className="flex">
