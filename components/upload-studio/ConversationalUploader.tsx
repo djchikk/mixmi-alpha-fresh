@@ -1280,8 +1280,11 @@ Feel free to try again with a different file, or let me know if you need help!`,
     setInputValue('');
     setIsLoading(true);
 
-    // Clear attachments that were sent
-    setAttachments(prev => prev.filter(a => a.status !== 'uploaded'));
+    // Clear attachments that were sent — but NOT in bulk mode
+    // Bulk mode needs the uploaded URLs for submission later
+    if (!bulkMode) {
+      setAttachments(prev => prev.filter(a => a.status !== 'uploaded'));
+    }
 
     try {
       const response = await fetch('/api/upload-studio/chat', {
