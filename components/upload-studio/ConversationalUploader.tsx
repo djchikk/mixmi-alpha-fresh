@@ -198,12 +198,14 @@ interface ExtractedTrackData {
   ai_assisted_idea?: boolean;
   ai_assisted_implementation?: boolean;
   allow_downloads?: boolean;
-  download_price_stx?: number;
+  download_price_usdc?: number;
+  download_price_stx?: number; // Legacy fallback
   open_to_collaboration?: boolean;
   open_to_commercial?: boolean;
   // Contact access
   contact_email?: string;
-  contact_fee_stx?: number;
+  contact_fee_usdc?: number;
+  contact_fee_stx?: number; // Legacy fallback
   // Splits (ownership) - with persona matching support
   composition_splits?: Array<{
     wallet?: string;
@@ -1660,9 +1662,9 @@ Would you like to post another track, or shall I show you where to find your new
       production_splits: extractedData.production_splits,
     };
     // Resolve download price: check multiple field names the chatbot might use
-    const chatDownloadPrice = extractedData.download_price_stx
+    const chatDownloadPrice = extractedData.download_price_usdc
       || extractedData.download_price
-      || extractedData.download_price_usdc;
+      || extractedData.download_price_stx;
 
     const chatOverrides = {
       artist: extractedData.artist,
@@ -1671,7 +1673,7 @@ Would you like to post another track, or shall I show you where to find your new
       tags: extractedData.tags,
       primary_location: extractedData.location || extractedData.primary_location,
       allow_downloads: extractedData.allow_downloads,
-      download_price_stx: chatDownloadPrice,
+      download_price_usdc: chatDownloadPrice,
       ai_assisted_idea: extractedData.ai_assisted_idea,
       ai_assisted_implementation: extractedData.ai_assisted_implementation,
       cover_image_url: extractedData.cover_image_url,
@@ -1681,7 +1683,7 @@ Would you like to post another track, or shall I show you where to find your new
       hasSplits: !!(chatSplits.composition_splits || chatSplits.production_splits),
       hasArtist: !!chatOverrides.artist,
       hasDownloads: chatOverrides.allow_downloads,
-      downloadPrice: chatOverrides.download_price_stx,
+      downloadPrice: chatOverrides.download_price_usdc,
       hasLocation: !!chatOverrides.primary_location,
     });
     console.log('📦 [Bulk Submit] Full extractedData:', JSON.stringify(extractedData, null, 2));
@@ -1701,7 +1703,7 @@ Would you like to post another track, or shall I show you where to find your new
           // Price cascade: CSV → chatbot → platform default by content type
           const defaultPrice = contentType === 'song' || contentType === 'full_song'
             ? PRICING.download.song : PRICING.download.loop;
-          const downloadPrice = r.download_price || chatOverrides.download_price_stx || (isDownloads ? defaultPrice : undefined);
+          const downloadPrice = r.download_price || chatOverrides.download_price_usdc || (isDownloads ? defaultPrice : undefined);
 
           trackData = {
             content_type: contentType,
@@ -1714,7 +1716,7 @@ Would you like to post another track, or shall I show you where to find your new
             primary_location: r.location || chatOverrides.primary_location,
             audio_url: unit.fileUrl,
             allow_downloads: isDownloads,
-            download_price_stx: downloadPrice,
+            download_price_usdc: downloadPrice,
             ai_assisted_idea: r.ai_assisted_idea || chatOverrides.ai_assisted_idea || false,
             ai_assisted_implementation: r.ai_assisted_implementation || chatOverrides.ai_assisted_implementation || false,
             cover_image_url: chatOverrides.cover_image_url,
@@ -1729,7 +1731,7 @@ Would you like to post another track, or shall I show you where to find your new
           const isDownloads = firstRow.allow_downloads ?? chatOverrides.allow_downloads ?? false;
           // Price cascade: CSV → chatbot → platform default by content type
           const defaultPrice = isEP ? PRICING.download.song : PRICING.download.loop;
-          const downloadPrice = firstRow.download_price || chatOverrides.download_price_stx || (isDownloads ? defaultPrice : undefined);
+          const downloadPrice = firstRow.download_price || chatOverrides.download_price_usdc || (isDownloads ? defaultPrice : undefined);
 
           trackData = {
             content_type: unit.groupType,
@@ -1741,7 +1743,7 @@ Would you like to post another track, or shall I show you where to find your new
             tags: firstRow.tags || chatOverrides.tags,
             primary_location: firstRow.location || chatOverrides.primary_location,
             allow_downloads: isDownloads,
-            download_price_stx: downloadPrice,
+            download_price_usdc: downloadPrice,
             ai_assisted_idea: firstRow.ai_assisted_idea || chatOverrides.ai_assisted_idea || false,
             ai_assisted_implementation: firstRow.ai_assisted_implementation || chatOverrides.ai_assisted_implementation || false,
             cover_image_url: chatOverrides.cover_image_url,
@@ -1766,7 +1768,7 @@ Would you like to post another track, or shall I show you where to find your new
           hasLoopFiles: !!trackData.loop_files?.length,
           hasSplits: !!(trackData.composition_splits || trackData.production_splits),
           allowDownloads: trackData.allow_downloads,
-          downloadPrice: trackData.download_price_stx,
+          downloadPrice: trackData.download_price_usdc,
         });
 
         const response = await fetch('/api/upload-studio/submit', {

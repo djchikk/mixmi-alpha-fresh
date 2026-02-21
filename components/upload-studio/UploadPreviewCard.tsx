@@ -17,7 +17,7 @@ interface ExtractedData {
   description?: string;
   notes?: string;
   allow_downloads?: boolean;
-  download_price_stx?: number;
+  download_price_usdc?: number;
   composition_splits?: Array<{ name: string; percentage: number }>;
   production_splits?: Array<{ name: string; percentage: number }>;
 }
@@ -85,7 +85,7 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
       notes: data.notes,
       tags: data.tags,
       cover_image_url: coverImageUrl || data.cover_image_url,
-      download_price_stx: data.download_price_stx,
+      download_price_usdc: data.download_price_usdc,
       allow_downloads: data.allow_downloads,
       // Location info
       location: data.location,
@@ -181,12 +181,12 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
               <div className="bg-black/40 rounded-md px-1.5 py-1 flex items-center justify-between self-stretch">
                 {/* Price/Badge */}
                 <div>
-                  {data.allow_downloads !== false && data.download_price_stx !== undefined ? (
+                  {data.allow_downloads !== false && data.download_price_usdc !== undefined ? (
                     <span
                       className="bg-[#81E4F2] text-slate-900 font-bold py-0.5 px-2 rounded text-xs"
                       style={{ animation: 'fadeSlideIn 0.3s ease-out' }}
                     >
-                      {data.download_price_stx === 0 ? 'Free' : data.download_price_stx}
+                      {data.download_price_usdc === 0 ? 'Free' : data.download_price_usdc}
                     </span>
                   ) : data.content_type === 'loop' || data.content_type === 'loop_pack' ? (
                     <span

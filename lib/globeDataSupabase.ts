@@ -180,10 +180,9 @@ export async function fetchGlobeTracksFromSupabase(): Promise<TrackNode[]> {
     // This excludes individual tracks within packs/EPs but includes the pack/EP containers themselves
     const { data, error } = await supabase
       .from('ip_tracks')
-      // Fields for globe rendering, card display, and drag-drop. Pricing, splits,
-      // and download fields are omitted — they're re-fetched on demand by the mixer
-      // (SimplifiedMixer.tsx select('*') on deck load) and Crate info modal.
-      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, thumb_64_url, thumb_160_url, thumb_256_url, tags, description, notes, bpm, uploader_address, primary_uploader_wallet, locations, remix_protected, pack_id, pack_position, portal_username, ai_assisted_idea, ai_assisted_implementation')
+      // Fields for globe rendering, card display, drag-drop, and pricing.
+      // Splits are omitted — they're re-fetched on demand by the mixer and Crate info modal.
+      .select('id, title, artist, content_type, location_lat, location_lng, primary_location, audio_url, stream_url, video_url, cover_image_url, thumb_64_url, thumb_160_url, thumb_256_url, tags, description, notes, bpm, uploader_address, primary_uploader_wallet, locations, remix_protected, pack_id, pack_position, portal_username, ai_assisted_idea, ai_assisted_implementation, allow_downloads, download_price_usdc, download_price_stx, price_usdc, price_stx')
       .is('deleted_at', null) // Exclude soft-deleted tracks from globe display
       .or('pack_id.is.null,pack_position.eq.0') // Standalone content OR pack/EP container records
       .order('created_at', { ascending: false })

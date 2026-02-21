@@ -109,9 +109,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const downloadPriceUsdc = rawPriceUsdc != null ? parseFloat(rawPriceUsdc) : 2.00;
-      const rawPriceStx = track.download_price_stx ?? track.price_stx;
-      const downloadPriceStx = rawPriceStx != null ? parseFloat(rawPriceStx) : 2.5;
+      const downloadPriceUsdc = rawPriceUsdc != null ? parseFloat(rawPriceUsdc) : 1.00;
 
       console.log('🛒 Adding to cart:', {
         id: track.id,
@@ -126,7 +124,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         title: track.title || track.name,
         artist: track.artist || 'Unknown Artist',
         price_usdc: downloadPriceUsdc,
-        price_stx: downloadPriceStx.toString(),
         license: track.license || 'Standard',
         primary_uploader_wallet: track.primary_uploader_wallet
       };

@@ -769,15 +769,18 @@ export default function CompactTrackCardWithFlip({
                       {/* Buy Button OR Remix Icon (left) - compact */}
                       <div className="pl-2">
                       {(() => {
+                        // Resolve USDC prices with STX fallback for legacy tracks
+                        const downloadPrice = track.download_price_usdc ?? track.download_price_stx ?? null;
+                        const totalPrice = track.price_usdc || track.price_stx || null;
+
                         // Songs and EPs ALWAYS show download price (never mixer icon)
                         if (track.content_type === 'full_song' || track.content_type === 'ep') {
-                          // Check new download_price_stx field first
-                          if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
-                            // For EPs, show total pack price (price_stx); for songs, show per-item price
+                          if (downloadPrice !== null && downloadPrice !== undefined) {
+                            // For EPs, show total pack price; for songs, show per-item price
                             const displayPrice = track.content_type === 'ep'
-                              ? (track.price_stx || track.download_price_stx)
-                              : track.download_price_stx;
-                            return track.download_price_stx === 0 ? (
+                              ? (totalPrice || downloadPrice)
+                              : downloadPrice;
+                            return downloadPrice === 0 ? (
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
@@ -795,15 +798,15 @@ export default function CompactTrackCardWithFlip({
                               </button>
                             );
                           }
-                          // Fallback to legacy price_stx
-                          if (track.price_stx) {
+                          // Fallback to total price
+                          if (totalPrice) {
                             return (
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                                title="Download price - click to add to cart"
+                                title="Download price in USDC - click to add to cart"
                               >
-                                {track.price_stx}
+                                {totalPrice}
                               </button>
                             );
                           }
@@ -834,11 +837,10 @@ export default function CompactTrackCardWithFlip({
                             );
                           }
 
-                          // PRIORITY 2: Check if pack has download_price_stx (new model)
-                          if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
-                            // Pack has download price - show buy button with TOTAL pack price
-                            const packTotal = track.price_stx || track.download_price_stx;
-                            return track.download_price_stx === 0 ? (
+                          // PRIORITY 2: Pack has download price — show total pack price
+                          if (downloadPrice !== null) {
+                            const packTotal = totalPrice || downloadPrice;
+                            return downloadPrice === 0 ? (
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
@@ -857,29 +859,15 @@ export default function CompactTrackCardWithFlip({
                             );
                           }
 
-                          // PRIORITY 3: Check allow_downloads === true with legacy price_stx
-                          if (track.allow_downloads === true && track.price_stx) {
+                          // PRIORITY 3: Legacy packs with total price only
+                          if (totalPrice && track.allow_downloads !== false) {
                             return (
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
                                 title="Download full pack - click to add to cart"
                               >
-                                {track.price_stx}
-                              </button>
-                            );
-                          }
-
-                          // PRIORITY 4: Legacy packs with price_stx but no allow_downloads flag set
-                          // These are old tracks - assume downloadable
-                          if (track.price_stx && track.allow_downloads !== false) {
-                            return (
-                              <button
-                                onClick={handlePurchaseClick}
-                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                                title="Download full pack - click to add to cart"
-                              >
-                                {track.price_stx}
+                                {totalPrice}
                               </button>
                             );
                           }
@@ -910,10 +898,9 @@ export default function CompactTrackCardWithFlip({
                             );
                           }
 
-                          // PRIORITY 2: Check if loop has download_price_stx (new model)
-                          if (track.download_price_stx !== null && track.download_price_stx !== undefined) {
-                            // Loop has download price - show buy button
-                            return track.download_price_stx === 0 ? (
+                          // PRIORITY 2: Loop has download price
+                          if (downloadPrice !== null) {
+                            return downloadPrice === 0 ? (
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
@@ -927,34 +914,20 @@ export default function CompactTrackCardWithFlip({
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
                                 title="Download price in USDC - click to add to cart"
                               >
-                                {track.download_price_stx}
+                                {downloadPrice}
                               </button>
                             );
                           }
 
-                          // PRIORITY 3: Check allow_downloads === true with legacy price_stx
-                          if (track.allow_downloads === true && track.price_stx) {
+                          // PRIORITY 3: Legacy loops with total price only
+                          if (totalPrice && track.allow_downloads !== false) {
                             return (
                               <button
                                 onClick={handlePurchaseClick}
                                 className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                                title="Download price - click to add to cart"
+                                title="Download price in USDC - click to add to cart"
                               >
-                                {track.price_stx}
-                              </button>
-                            );
-                          }
-
-                          // PRIORITY 4: Legacy tracks with price_stx but no allow_downloads flag set
-                          // These are old tracks - assume downloadable
-                          if (track.price_stx && track.allow_downloads !== false) {
-                            return (
-                              <button
-                                onClick={handlePurchaseClick}
-                                className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                                title="Download price - click to add to cart"
-                              >
-                                {track.price_stx}
+                                {totalPrice}
                               </button>
                             );
                           }
@@ -1005,15 +978,15 @@ export default function CompactTrackCardWithFlip({
                           );
                         }
 
-                        // Fallback for unknown content types: check for price_stx
-                        if (track.price_stx) {
+                        // Fallback for unknown content types: check for any price
+                        if (downloadPrice || totalPrice) {
                           return (
                             <button
                               onClick={handlePurchaseClick}
                               className="bg-accent text-slate-900 font-bold py-0.5 px-2 rounded transition-all transform hover:scale-105 text-xs"
-                              title="Download price - click to add to cart"
+                              title="Download price in USDC - click to add to cart"
                             >
-                              {track.price_stx}
+                              {downloadPrice || totalPrice}
                             </button>
                           );
                         }

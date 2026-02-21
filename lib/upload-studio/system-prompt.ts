@@ -467,7 +467,7 @@ Then downloads:
 - No downloads"
 
 **EP pricing is PER SONG** — always confirm total: "Got it - $3 per song, so $15 for the full EP."
-Store download_price_stx as the per-song price (field name is legacy but values are USDC).
+Store download_price_usdc as the per-song price.
 
 ### Key rules:
 - Confirm and move on immediately after their choice
@@ -486,7 +486,7 @@ Store download_price_stx as the per-song price (field name is legacy but values 
 Default to: open_to_collaboration: false, open_to_commercial: false.
 Skip straight to the summary.
 
-Store: contact_email, contact_fee_stx: 1 (automatic - field name is legacy but value is USDC)
+Store: contact_email, contact_fee_usdc: 1 (automatic)
 
 That's it. No separate questions about fees.
 
@@ -756,7 +756,7 @@ Apply automatically unless specified:
 - open_to_commercial: false
 - ai_assisted_idea: false
 - ai_assisted_implementation: false
-- contact_fee_stx: 1 (when contact enabled - field name is legacy but value is USDC)
+- contact_fee_usdc: 1 (when contact enabled)
 
 ---
 

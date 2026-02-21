@@ -60,13 +60,13 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
     composition_splits: Array<{ percentage: number; wallet: string }>;
     production_splits: Array<{ percentage: number; wallet: string }>;
     notes: string;
-    price_stx: number;
+    price_usdc: number;
     remix_price: number;
     license_type: string;
     license_selection: string;
     allow_downloads: boolean;
-    remix_price_stx: number;
-    download_price_stx: number | null;
+    remix_price_usdc: number;
+    download_price_usdc: number | null;
   } | null>(null);
 
   // Pending collaborators state
@@ -210,9 +210,9 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           production_split_5_percentage, production_split_5_wallet, production_split_5_sui_address,
           production_split_6_percentage, production_split_6_wallet, production_split_6_sui_address,
           production_split_7_percentage, production_split_7_wallet, production_split_7_sui_address,
-          uploader_address, primary_uploader_wallet, notes, price_stx, remix_price,
+          uploader_address, primary_uploader_wallet, notes, price_usdc, price_stx, remix_price,
           license_type, license_selection, source_track_ids,
-          allow_downloads, remix_price_stx, download_price_stx
+          allow_downloads, remix_price_usdc, remix_price_stx, download_price_usdc, download_price_stx
         `)
         .eq('id', baseId)
         .single()
@@ -274,13 +274,13 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               composition_splits: compositionSplits,
               production_splits: productionSplits,
               notes: data.notes || '',
-              price_stx: data.price_stx || 0,
+              price_usdc: data.price_usdc || data.price_stx || 0,
               remix_price: data.remix_price || 0,
               license_type: data.license_type || '',
               license_selection: data.license_selection || '',
               allow_downloads: data.allow_downloads || false,
-              remix_price_stx: data.remix_price_stx || 1.0,
-              download_price_stx: data.download_price_stx || null
+              remix_price_usdc: data.remix_price_usdc || data.remix_price_stx || 0.10,
+              download_price_usdc: data.download_price_usdc ?? data.download_price_stx ?? null
             });
           }
         });
@@ -1532,17 +1532,17 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               </div>
               {track.content_type === 'loop_pack' ? (
                 <>
-                  {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                  {ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
                     // Downloadable pack: Show total pack price and per-loop price
                     <>
                       <div className="flex">
                         <span className="text-gray-500 w-24">Download:</span>
-                        <span className="text-gray-300">${(ipRights.download_price_stx * (packLoops.length || 1)).toFixed(2)} USDC (full pack)</span>
+                        <span className="text-gray-300">${(ipRights.download_price_usdc * (packLoops.length || 1)).toFixed(2)} USDC (full pack)</span>
                       </div>
                       {packLoops.length > 1 && (
                         <div className="flex">
                           <span className="text-gray-500 w-24">Per loop:</span>
-                          <span className="text-gray-300">${ipRights.download_price_stx} USDC</span>
+                          <span className="text-gray-300">${ipRights.download_price_usdc} USDC</span>
                         </div>
                       )}
                     </>
@@ -1561,10 +1561,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               ) : track.content_type === 'loop' ? (
                 // Loops: Show different pricing based on allow_downloads
                 <>
-                  {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                  {ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
                     <div className="flex">
                       <span className="text-gray-500 w-24">Download:</span>
-                      <span className="text-gray-300">${ipRights.download_price_stx} USDC</span>
+                      <span className="text-gray-300">${ipRights.download_price_usdc} USDC</span>
                     </div>
                   ) : (
                     <div className="flex">
@@ -1576,16 +1576,16 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               ) : track.content_type === 'ep' ? (
                 // EPs: Show total EP price and per-song price
                 <>
-                  {ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                  {ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
                     <>
                       <div className="flex">
                         <span className="text-gray-500 w-24">Download:</span>
-                        <span className="text-gray-300">${(ipRights.download_price_stx * (packLoops.length || 1)).toFixed(2)} USDC (full EP)</span>
+                        <span className="text-gray-300">${(ipRights.download_price_usdc * (packLoops.length || 1)).toFixed(2)} USDC (full EP)</span>
                       </div>
                       {packLoops.length > 1 && (
                         <div className="flex">
                           <span className="text-gray-500 w-24">Per song:</span>
-                          <span className="text-gray-300">${ipRights.download_price_stx} USDC</span>
+                          <span className="text-gray-300">${ipRights.download_price_usdc} USDC</span>
                         </div>
                       )}
                     </>
@@ -1602,10 +1602,10 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 </>
               ) : (
                 // Songs: Only show download price if downloads are enabled
-                ipRights?.allow_downloads && ipRights?.download_price_stx !== null ? (
+                ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
                   <div className="flex">
                     <span className="text-gray-500 w-24">Download:</span>
-                    <span className="text-gray-300">${ipRights.download_price_stx} USDC</span>
+                    <span className="text-gray-300">${ipRights.download_price_usdc} USDC</span>
                   </div>
                 ) : (
                   <div className="flex">

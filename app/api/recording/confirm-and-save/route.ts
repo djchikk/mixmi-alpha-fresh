@@ -166,9 +166,13 @@ export async function POST(request: NextRequest) {
         primary_uploader_wallet: creatorSuiAddress || creatorWallet,
         // Download pricing - only if all sources allow downloads
         allow_downloads: allowDownloads,
-        download_price_stx: downloadPrice,
+        // USDC Pricing (primary)
+        download_price_usdc: downloadPrice,
         min_download_price_usdc: minDownloadPrice,
-        price_stx: downloadPrice || 1.0, // Legacy field
+        price_usdc: downloadPrice || 1.0,
+        // Legacy STX columns (same USDC values for backwards compat)
+        download_price_stx: downloadPrice,
+        price_stx: downloadPrice || 1.0,
         license_type: allowDownloads ? 'remix_external' : 'remix_only',
       })
       .select()

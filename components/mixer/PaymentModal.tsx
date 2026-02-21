@@ -146,8 +146,8 @@ export default function PaymentModal({
     const mixBasePrice = PRICING.mixer.loopRecording * 2; // $0.10 per loop × 2 loops = $0.20
 
     // Get source track download prices
-    const deckAPrice = deckATrack?.download_price_usdc || deckATrack?.price_stx || PRICING.download.loop;
-    const deckBPrice = deckBTrack?.download_price_usdc || deckBTrack?.price_stx || PRICING.download.loop;
+    const deckAPrice = deckATrack?.download_price_usdc || deckATrack?.price_usdc || PRICING.download.loop;
+    const deckBPrice = deckBTrack?.download_price_usdc || deckBTrack?.price_usdc || PRICING.download.loop;
 
     // Loop only: Just the recording fee for the mix
     const loopOnly = mixBasePrice;
@@ -391,7 +391,7 @@ export default function PaymentModal({
       let minDownloadPrice: number | null = null;
       let remixDownloadPrice: number | null = null;
       if (allSourcesAllowDownloads && loadedTracks.length > 0) {
-        const sourcePrices = loadedTracks.map(t => t.download_price_stx || 0);
+        const sourcePrices = loadedTracks.map(t => t.download_price_usdc || t.download_price_stx || 0);
         minDownloadPrice = Math.max(...sourcePrices);
         // Default remix price = price floor (remixer can increase in future UI)
         remixDownloadPrice = minDownloadPrice;
@@ -487,11 +487,16 @@ export default function PaymentModal({
         // Download pricing model
         // Downloads allowed ONLY if ALL source tracks allow downloads
         // Price floor = MAX of source prices (stored in min_download_price_usdc)
-        remix_price_stx: PRICING.mixer.loopRecording, // Recording fee per loop in USDC
+        // USDC Pricing (primary)
+        remix_price_usdc: PRICING.mixer.loopRecording,
         allow_downloads: allSourcesAllowDownloads, // Only if ALL sources allow downloads
         min_download_price_usdc: minDownloadPrice, // Price floor (highest source price)
-        download_price_stx: remixDownloadPrice, // Remixer's price (must be >= floor)
-        price_stx: remixDownloadPrice || 1.0, // Legacy field - use download price if available
+        download_price_usdc: remixDownloadPrice, // Remixer's price (must be >= floor)
+        price_usdc: remixDownloadPrice || 1.0,
+        // Legacy STX columns (same USDC values for backwards compat)
+        remix_price_stx: PRICING.mixer.loopRecording,
+        download_price_stx: remixDownloadPrice,
+        price_stx: remixDownloadPrice || 1.0,
 
         // Additional metadata
         tags: ['remix', '8-bar', 'mixer'],
@@ -714,11 +719,11 @@ export default function PaymentModal({
                   <div className="flex flex-col gap-1 pl-6">
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Check className="w-3 h-3" />
-                      <span>Deck A: {deckATrack?.title || 'Unknown'} (${deckATrack?.download_price_usdc || deckATrack?.price_stx || PRICING.download.loop} USDC)</span>
+                      <span>Deck A: {deckATrack?.title || 'Unknown'} (${deckATrack?.download_price_usdc || deckATrack?.price_usdc || PRICING.download.loop} USDC)</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Check className="w-3 h-3" />
-                      <span>Deck B: {deckBTrack?.title || 'Unknown'} (${deckBTrack?.download_price_usdc || deckBTrack?.price_stx || PRICING.download.loop} USDC)</span>
+                      <span>Deck B: {deckBTrack?.title || 'Unknown'} (${deckBTrack?.download_price_usdc || deckBTrack?.price_usdc || PRICING.download.loop} USDC)</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Check className="w-3 h-3" />
