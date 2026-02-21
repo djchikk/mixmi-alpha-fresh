@@ -465,8 +465,9 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
   };
 
   const speakResponse = async (text: string) => {
-    // Note: The decision to speak is made in sendMessage based on inputMode parameter
-    // No need to double-check state here (it may not have updated yet)
+    // Cancel any current speech before starting new speech (prevents overlapping)
+    stopSpeaking();
+
     try {
       setIsSpeaking(true);
 
@@ -2238,21 +2239,25 @@ Would you like to post another track, or shall I show you where to find your new
       {/* Input Area */}
       <div className="px-6 py-4 border-t border-slate-700/50">
         <div className="flex items-end gap-3">
-          {/* Voice Input Button */}
+          {/* Voice Input Button — also stops speech when bot is talking */}
           <button
-            onClick={isRecording ? stopRecording : startRecording}
+            onClick={isSpeaking ? stopSpeaking : isRecording ? stopRecording : startRecording}
             disabled={isTranscribing || isLoading}
             className={`p-3 rounded-xl transition-colors ${
               isRecording
                 ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                : isTranscribing
-                  ? 'bg-slate-700'
-                  : 'bg-slate-800 hover:bg-slate-700'
+                : isSpeaking
+                  ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
+                  : isTranscribing
+                    ? 'bg-slate-700'
+                    : 'bg-slate-800 hover:bg-slate-700'
             } disabled:opacity-50`}
-            title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Voice input'}
+            title={isSpeaking ? 'Stop speaking' : isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Voice input'}
           >
             {isTranscribing ? (
               <Loader2 size={20} className="text-[#81E4F2] animate-spin" />
+            ) : isSpeaking ? (
+              <Mic size={20} className="text-[#81E4F2] animate-pulse" />
             ) : (
               <Mic size={20} className={isRecording ? 'text-white' : 'text-gray-400'} />
             )}
