@@ -16,9 +16,9 @@ export const PRICING = {
 
   // Offline download defaults (creator can adjust)
   download: {
-    loop: 2.00,
+    loop: 1.00,
     song: 1.00,
-    videoClip: 2.00,
+    videoClip: 1.00,
   },
 
   // Streaming (future)

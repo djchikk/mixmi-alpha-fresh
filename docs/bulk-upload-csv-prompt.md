@@ -191,11 +191,11 @@ Good tags include:
 
 ```csv
 filename,title,artist,content_type,bpm,tags,description,location,group,group_type,group_title,composition_splits,production_splits,allow_downloads,download_price,notes
-sunset-groove-120.wav,Sunset Groove,DJ Sandy,loop,120,lo-fi;chill;sunset,Chill sunset loop for easy vibes,Los Angeles,,,,DJ Sandy:100,DJ Sandy:100,true,2.00,
-midnight-bass-120.wav,Midnight Bass,DJ Sandy,loop,120,lo-fi;bass;night,Deep bass loop for layering,Los Angeles,,,,DJ Sandy:100,DJ Sandy:100,true,2.00,
-tokyo-rain-01.wav,Tokyo Rain 1,DJ Sandy,loop,85,ambient;rain;japanese,Rain ambiance with synth pad,Tokyo,tokyo-rain,loop_pack,Tokyo Rain Pack,DJ Sandy:100,DJ Sandy:100,true,2.00,
-tokyo-rain-02.wav,Tokyo Rain 2,DJ Sandy,loop,85,ambient;rain;japanese,Melodic layer for rain pack,Tokyo,tokyo-rain,,,DJ Sandy:100,DJ Sandy:100,true,2.00,
-tokyo-rain-03.wav,Tokyo Rain 3,DJ Sandy,loop,85,ambient;rain;japanese,Percussive rain texture,Tokyo,tokyo-rain,,,DJ Sandy:100,DJ Sandy:100,true,2.00,
+sunset-groove-120.wav,Sunset Groove,DJ Sandy,loop,120,lo-fi;chill;sunset,Chill sunset loop for easy vibes,Los Angeles,,,,DJ Sandy:100,DJ Sandy:100,true,1.00,
+midnight-bass-120.wav,Midnight Bass,DJ Sandy,loop,120,lo-fi;bass;night,Deep bass loop for layering,Los Angeles,,,,DJ Sandy:100,DJ Sandy:100,true,1.00,
+tokyo-rain-01.wav,Tokyo Rain 1,DJ Sandy,loop,85,ambient;rain;japanese,Rain ambiance with synth pad,Tokyo,tokyo-rain,loop_pack,Tokyo Rain Pack,DJ Sandy:100,DJ Sandy:100,true,1.00,
+tokyo-rain-02.wav,Tokyo Rain 2,DJ Sandy,loop,85,ambient;rain;japanese,Melodic layer for rain pack,Tokyo,tokyo-rain,,,DJ Sandy:100,DJ Sandy:100,true,1.00,
+tokyo-rain-03.wav,Tokyo Rain 3,DJ Sandy,loop,85,ambient;rain;japanese,Percussive rain texture,Tokyo,tokyo-rain,,,DJ Sandy:100,DJ Sandy:100,true,1.00,
 morning-coffee.mp3,Morning Coffee,DJ Sandy,song,95,acoustic;morning;guitar,Acoustic morning vibes,Los Angeles,,,,DJ Sandy:60|Chloe P:40,DJ Sandy:100,false,,Recorded live at home studio - summer 2024
 ```
 

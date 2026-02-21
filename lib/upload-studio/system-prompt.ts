@@ -442,11 +442,11 @@ Skip the explanation entirely. Just confirm:
 ### Loops / Loop Packs:
 **Loops are ALWAYS remixable — never ask about remixing for loops.** That's the whole point of uploading a loop. Just ask about downloads:
 "Your [loop/loops] will be in the mixer automatically (you earn $0.09 USDC per remix recording). Want to enable downloads too?
-- Downloads at $2 USDC (Recommended)
+- Downloads at $1 USDC (Recommended)
 - Different price
 - No downloads, mixer only"
 
-For loop packs, state per-loop AND pack total: "$2 per loop, $8 for the pack."
+For loop packs, state per-loop AND pack total: "$1 per loop, $4 for the pack." (adjust for actual count)
 
 ### Video Clips:
 Videos are mixer-only during alpha — no download option. Don't ask about downloads for videos.
@@ -574,7 +574,7 @@ The submit button should NEVER appear before the summary confirmation.
 - All loops MUST have the same BPM
 - If BPMs differ, explain: "Loop packs work best with matching BPMs - everything syncs in the mixer. Want to split these into separate packs by tempo, or upload individually?"
 - Don't force a category - packs often have mixed content (beats + vocals + keys)
-- Pricing: $2 USDC × number of loops, no bundle discount
+- Pricing: $1 USDC × number of loops, no bundle discount
 - **CRITICAL:** Save custom titles in track_metadata array (same format as EPs)
 
 ### EPs
