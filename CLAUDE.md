@@ -253,10 +253,17 @@ DELETE FROM zklogin_users WHERE email = 'user@gmail.com';
 All prices now in USDC (centralized in `config/pricing.ts`):
 ```typescript
 mixer: { loopRecording: 0.10, songSection: 0.10, videoClip: 0.10 }
-download: { loop: 2.00, song: 1.00, videoClip: 2.00 }
+download: { loop: 1.00, song: 1.00, videoClip: 1.00 }
 contact: { inquiryFee: 1.00, creatorCutPercent: 100 }
 account: { maxPersonas: 80, maxTbdWallets: 5 }
 ```
+
+### Database Price Fields (February 2026 Cleanup)
+The database has both `_stx` (legacy) and `_usdc` (primary) columns. All code reads `_usdc` first with `_stx` fallback. All writes go to both columns with identical USDC values.
+- **Read pattern**: `track.download_price_usdc ?? track.download_price_stx`
+- **Write pattern**: Set both `download_price_usdc` and `download_price_stx` to the same USDC value
+- **Display code**: Always reference `_usdc` fields — never display `_stx` directly
+- The `_stx` columns will be dropped in a future migration once all legacy data is confirmed migrated
 
 ### New Database Tables (Accounting System)
 - **accounts** - Parent account linking multiple auth methods
