@@ -58,9 +58,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Prepare request to ElevenLabs Speech-to-Text API
+    // Hint English to keep transcription in Latin script — covers our alpha
+    // languages (English, French, Spanish, Swahili, Danish) without Cyrillic confusion
     const sttFormData = new FormData();
     sttFormData.append('file', audioFile, audioFile.name || 'audio.webm');
     sttFormData.append('model_id', 'scribe_v1');
+    sttFormData.append('language_code', 'eng');
 
     const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
       method: 'POST',
