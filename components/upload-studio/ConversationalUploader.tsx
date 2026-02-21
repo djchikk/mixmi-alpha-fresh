@@ -8,6 +8,7 @@ import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
 import UploadPreviewCard from './UploadPreviewCard';
 import DOMPurify from 'dompurify';
 import { parseCSV, matchFilesToCSV, buildCSVSummary, type CSVParseResult, type MatchResult, type CSVTrackRow } from '@/lib/upload-studio/csv-parser';
+import { PRICING } from '@/config/pricing';
 
 // Initialize Supabase client for thumbnail uploads
 const supabase = createClient(
@@ -338,6 +339,9 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
 
   useEffect(() => {
     const interval = setInterval(async () => {
+      // Skip draft auto-save in bulk mode — bulk handles its own submission
+      if (bulkMode) return;
+
       // Only save if we have at least one uploaded file
       const hasFile = extractedData.audio_url ||
                       extractedData.video_url ||
@@ -374,7 +378,7 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
     }, 30000); // Every 30 seconds
 
     return () => clearInterval(interval);
-  }, [extractedData, conversationId, walletAddress, personaId, isSubmitting]);
+  }, [extractedData, conversationId, walletAddress, personaId, isSubmitting, bulkMode]);
 
   // Voice recording functions
   const startRecording = async () => {
@@ -1655,6 +1659,11 @@ Would you like to post another track, or shall I show you where to find your new
       composition_splits: extractedData.composition_splits,
       production_splits: extractedData.production_splits,
     };
+    // Resolve download price: check multiple field names the chatbot might use
+    const chatDownloadPrice = extractedData.download_price_stx
+      || extractedData.download_price
+      || extractedData.download_price_usdc;
+
     const chatOverrides = {
       artist: extractedData.artist,
       description: extractedData.description,
@@ -1662,7 +1671,7 @@ Would you like to post another track, or shall I show you where to find your new
       tags: extractedData.tags,
       primary_location: extractedData.location || extractedData.primary_location,
       allow_downloads: extractedData.allow_downloads,
-      download_price_stx: extractedData.download_price_stx || extractedData.download_price,
+      download_price_stx: chatDownloadPrice,
       ai_assisted_idea: extractedData.ai_assisted_idea,
       ai_assisted_implementation: extractedData.ai_assisted_implementation,
       cover_image_url: extractedData.cover_image_url,
@@ -1672,8 +1681,10 @@ Would you like to post another track, or shall I show you where to find your new
       hasSplits: !!(chatSplits.composition_splits || chatSplits.production_splits),
       hasArtist: !!chatOverrides.artist,
       hasDownloads: chatOverrides.allow_downloads,
+      downloadPrice: chatOverrides.download_price_stx,
       hasLocation: !!chatOverrides.primary_location,
     });
+    console.log('📦 [Bulk Submit] Full extractedData:', JSON.stringify(extractedData, null, 2));
 
     for (let i = 0; i < units.length; i++) {
       const unit = units[i];
@@ -1685,8 +1696,15 @@ Would you like to post another track, or shall I show you where to find your new
 
         if (unit.type === 'standalone') {
           const r = unit.row;
+          const contentType = r.content_type || 'loop';
+          const isDownloads = r.allow_downloads ?? chatOverrides.allow_downloads ?? false;
+          // Price cascade: CSV → chatbot → platform default by content type
+          const defaultPrice = contentType === 'song' || contentType === 'full_song'
+            ? PRICING.download.song : PRICING.download.loop;
+          const downloadPrice = r.download_price || chatOverrides.download_price_stx || (isDownloads ? defaultPrice : undefined);
+
           trackData = {
-            content_type: r.content_type || 'loop',
+            content_type: contentType,
             title: r.title,
             artist: r.artist || chatOverrides.artist,
             bpm: r.bpm,
@@ -1695,8 +1713,8 @@ Would you like to post another track, or shall I show you where to find your new
             tags: r.tags || chatOverrides.tags,
             primary_location: r.location || chatOverrides.primary_location,
             audio_url: unit.fileUrl,
-            allow_downloads: r.allow_downloads ?? chatOverrides.allow_downloads,
-            download_price_stx: r.download_price || chatOverrides.download_price_stx,
+            allow_downloads: isDownloads,
+            download_price_stx: downloadPrice,
             ai_assisted_idea: r.ai_assisted_idea || chatOverrides.ai_assisted_idea || false,
             ai_assisted_implementation: r.ai_assisted_implementation || chatOverrides.ai_assisted_implementation || false,
             cover_image_url: chatOverrides.cover_image_url,
@@ -1708,6 +1726,11 @@ Would you like to post another track, or shall I show you where to find your new
           // Group (pack/EP)
           const firstRow = unit.members[0].row;
           const isEP = unit.groupType === 'ep';
+          const isDownloads = firstRow.allow_downloads ?? chatOverrides.allow_downloads ?? false;
+          // Price cascade: CSV → chatbot → platform default by content type
+          const defaultPrice = isEP ? PRICING.download.song : PRICING.download.loop;
+          const downloadPrice = firstRow.download_price || chatOverrides.download_price_stx || (isDownloads ? defaultPrice : undefined);
+
           trackData = {
             content_type: unit.groupType,
             [isEP ? 'ep_title' : 'pack_title']: unit.groupTitle,
@@ -1717,8 +1740,8 @@ Would you like to post another track, or shall I show you where to find your new
             notes: firstRow.notes || chatOverrides.notes,
             tags: firstRow.tags || chatOverrides.tags,
             primary_location: firstRow.location || chatOverrides.primary_location,
-            allow_downloads: firstRow.allow_downloads ?? chatOverrides.allow_downloads,
-            download_price_stx: firstRow.download_price || chatOverrides.download_price_stx,
+            allow_downloads: isDownloads,
+            download_price_stx: downloadPrice,
             ai_assisted_idea: firstRow.ai_assisted_idea || chatOverrides.ai_assisted_idea || false,
             ai_assisted_implementation: firstRow.ai_assisted_implementation || chatOverrides.ai_assisted_implementation || false,
             cover_image_url: chatOverrides.cover_image_url,
@@ -1742,6 +1765,8 @@ Would you like to post another track, or shall I show you where to find your new
           hasAudioUrl: !!trackData.audio_url,
           hasLoopFiles: !!trackData.loop_files?.length,
           hasSplits: !!(trackData.composition_splits || trackData.production_splits),
+          allowDownloads: trackData.allow_downloads,
+          downloadPrice: trackData.download_price_stx,
         });
 
         const response = await fetch('/api/upload-studio/submit', {
