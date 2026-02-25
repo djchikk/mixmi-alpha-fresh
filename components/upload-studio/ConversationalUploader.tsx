@@ -5,7 +5,6 @@ import { Send, Mic, Upload, Music, Video, Loader2, CheckCircle, X, Globe, MapPin
 import { useToast } from '@/contexts/ToastContext';
 import { createClient } from '@supabase/supabase-js';
 import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
-import UploadPreviewCard from './UploadPreviewCard';
 import DOMPurify from 'dompurify';
 import { parseCSV, matchFilesToCSV, buildCSVSummary, type CSVParseResult, type MatchResult, type CSVTrackRow } from '@/lib/upload-studio/csv-parser';
 import { PRICING } from '@/config/pricing';
@@ -1838,25 +1837,6 @@ Would you like to post another track, or shall I show you where to find your new
     }
   };
 
-  // Get cover image URL from extractedData or from uploaded image attachments
-  const getCoverImageUrl = () => {
-    // First check extractedData
-    if (extractedData.cover_image_url) return extractedData.cover_image_url;
-
-    // Then check for uploaded image attachments
-    const imageAttachment = attachments.find(a => a.type === 'image' && a.status === 'uploaded' && a.url);
-    if (imageAttachment?.url) return imageAttachment.url;
-
-    // For video clips, we might have a video but no cover yet
-    const videoAttachment = attachments.find(a => a.type === 'video' && a.status === 'uploaded' && a.url);
-    if (videoAttachment?.url && extractedData.content_type === 'video_clip') {
-      // Could show video thumbnail, but for now just return null
-      return null;
-    }
-
-    return null;
-  };
-
   return (
     <div
       className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto px-4 relative"
@@ -2008,75 +1988,56 @@ Would you like to post another track, or shall I show you where to find your new
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Pending Attachments */}
+      {/* Compact Attachment Status - progress summary instead of individual pills */}
       {attachments.length > 0 && (
-        <div className="px-6 py-2 border-t border-slate-700/50">
-          {/* Upload Progress Bar - shows when files are uploading */}
-          {attachments.some(a => a.status === 'uploading' || a.status === 'pending') && (
-            <div className="mb-3">
-              <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
-                <span className="flex items-center gap-2">
-                  <Loader2 size={12} className="animate-spin text-[#81E4F2]" />
-                  Processing files...
-                </span>
-                <span>
-                  {attachments.filter(a => a.status === 'uploaded').length} of {attachments.length} ready
-                </span>
-              </div>
-              <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#81E4F2] to-[#6BC4D4] transition-all duration-300 ease-out"
-                  style={{
-                    width: `${(attachments.filter(a => a.status === 'uploaded').length / attachments.length) * 100}%`
-                  }}
-                />
-              </div>
-            </div>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {attachments.map(att => (
-              <div
-                key={att.id}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                  att.status === 'uploading' ? 'bg-blue-900/30 border border-blue-500/30' :
-                  att.status === 'uploaded' ? 'bg-green-900/30 border border-green-500/30' :
-                  att.status === 'error' ? 'bg-red-900/30 border border-red-500/30' :
-                  'bg-slate-800 border border-slate-700'
-                }`}
-              >
-                {/* Image thumbnail preview */}
-                {att.type === 'image' && (
-                  <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
-                    <img
-                      src={URL.createObjectURL(att.file)}
-                      alt={att.name}
-                      className="w-full h-full object-cover"
-                    />
+        <div className="px-6 py-1.5 border-t border-slate-700/50 flex-shrink-0">
+          {(() => {
+            const uploading = attachments.filter(a => a.status === 'uploading' || a.status === 'pending');
+            const uploaded = attachments.filter(a => a.status === 'uploaded');
+            const errors = attachments.filter(a => a.status === 'error');
+
+            if (uploading.length > 0) {
+              // Still processing
+              return (
+                <div className="flex items-center gap-3">
+                  <Loader2 size={14} className="animate-spin text-[#81E4F2] flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                      <span>Processing files...</span>
+                      <span>{uploaded.length} of {attachments.length} ready</span>
+                    </div>
+                    <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#81E4F2] to-[#6BC4D4] transition-all duration-300 ease-out"
+                        style={{ width: `${(uploaded.length / attachments.length) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                )}
-                {att.type === 'audio' && <Music size={14} />}
-                {att.type === 'video' && <Video size={14} />}
-                <span className="truncate max-w-[150px] text-white">{att.name}</span>
+                </div>
+              );
+            }
 
-                {att.status === 'uploading' && (
-                  <Loader2 size={14} className="animate-spin text-blue-400" />
-                )}
-                {att.status === 'uploaded' && (
+            // All done - compact summary
+            return (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs">
                   <CheckCircle size={14} className="text-green-400" />
-                )}
-                {att.status === 'error' && (
-                  <span className="text-red-400 text-xs">Failed</span>
-                )}
-
+                  <span className="text-green-400">
+                    {uploaded.length} file{uploaded.length !== 1 ? 's' : ''} attached
+                  </span>
+                  {errors.length > 0 && (
+                    <span className="text-red-400 ml-2">{errors.length} failed</span>
+                  )}
+                </div>
                 <button
-                  onClick={() => removeAttachment(att.id)}
-                  className="ml-1 text-gray-400 hover:text-white"
+                  onClick={() => setAttachments([])}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
                 >
-                  <X size={14} />
+                  Clear
                 </button>
               </div>
-            ))}
-          </div>
+            );
+          })()}
         </div>
       )}
 
@@ -2164,40 +2125,24 @@ Would you like to post another track, or shall I show you where to find your new
         </div>
       )}
 
-      {/* Drop Zone + Preview - compact utility row above input */}
-      <div className="flex flex-row gap-3 px-6 py-2 border-t border-slate-700/30 flex-shrink-0 items-center">
-        {/* File Drop Zone - compact */}
-        {!isReadyToSubmit && (
+      {/* Drop Zone - full width compact row above input */}
+      {!isReadyToSubmit && (
+        <div className="px-6 py-2 border-t border-slate-700/30 flex-shrink-0">
           <div
             onClick={() => fileInputRef.current?.click()}
-            className={`h-[56px] flex-1 max-w-[180px] rounded-lg border border-dashed transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`h-[44px] w-full rounded-lg border border-dashed transition-all cursor-pointer flex items-center justify-center gap-2 ${
               isDragOver
                 ? 'border-[#81E4F2] bg-[#81E4F2]/10'
                 : 'border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/50'
             }`}
           >
             <Upload size={14} className={isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'} />
-            {attachments.filter(a => a.status === 'uploaded').length > 0 ? (
-              <span className="text-xs text-green-400 font-medium">
-                {attachments.filter(a => a.status === 'uploaded').length} file{attachments.filter(a => a.status === 'uploaded').length !== 1 ? 's' : ''}
-              </span>
-            ) : (
-              <span className={`text-xs ${isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'}`}>
-                Drop or browse
-              </span>
-            )}
+            <span className={`text-xs ${isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'}`}>
+              Drop files here or browse
+            </span>
           </div>
-        )}
-
-        {/* Preview Card - compact inline */}
-        <div className="flex-1 min-w-0">
-          <UploadPreviewCard
-            data={extractedData}
-            coverImageUrl={getCoverImageUrl() || undefined}
-            compact
-          />
         </div>
-      </div>
+      )}
 
       {/* Input Area - pinned to bottom */}
       <div className="px-6 py-4 border-t border-slate-700/50 flex-shrink-0">
