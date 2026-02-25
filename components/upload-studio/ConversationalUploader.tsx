@@ -5,6 +5,7 @@ import { Send, Mic, Upload, Music, Video, Loader2, CheckCircle, X, Globe, MapPin
 import { useToast } from '@/contexts/ToastContext';
 import { createClient } from '@supabase/supabase-js';
 import { useLocationAutocomplete } from '@/hooks/useLocationAutocomplete';
+import UploadPreviewCard from './UploadPreviewCard';
 import DOMPurify from 'dompurify';
 import { parseCSV, matchFilesToCSV, buildCSVSummary, type CSVParseResult, type MatchResult, type CSVTrackRow } from '@/lib/upload-studio/csv-parser';
 import { PRICING } from '@/config/pricing';
@@ -1914,38 +1915,73 @@ Would you like to post another track, or shall I show you where to find your new
           const displayContent = parsed ? parsed.textBeforeOptions : cleanContent;
           const quickReplies = isLastMessage && !isLoading ? parsed : null;
 
+          // Summary message: last assistant message when ready to submit
+          const isSummaryMessage = isLastMessage && message.role === 'assistant' && isReadyToSubmit && !bulkMode;
+
           return (
             <div
               key={message.id}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[80%] ${message.role === 'user' ? '' : 'space-y-2'}`}>
-                <div
-                  className={`rounded-2xl px-4 py-3 ${
-                    message.role === 'user'
-                      ? 'bg-[#81E4F2] text-[#0a0e1a]'
-                      : 'bg-slate-800/80 text-white border border-slate-700/50'
-                  }`}
-                >
-                  {/* Message content with markdown-like formatting */}
-                  <div
-                    className="text-sm whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(
-                        displayContent
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                          .replace(/`(.*?)`/g, '<code class="bg-slate-700/50 px-1 rounded">$1</code>')
-                          .replace(/^• /gm, '• '),
-                        { ALLOWED_TAGS: ['strong', 'em', 'code'], ALLOWED_ATTR: ['class'] }
-                      )
-                    }}
-                  />
-
-                  <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-[#0a0e1a]/60' : 'text-gray-500'}`}>
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <div className={`${isSummaryMessage ? 'max-w-[95%] w-full' : 'max-w-[80%]'} ${message.role === 'user' ? '' : 'space-y-2'}`}>
+                {/* Two-column layout for summary message */}
+                {isSummaryMessage ? (
+                  <div className="flex flex-col sm:flex-row gap-4 rounded-2xl px-4 py-3 bg-slate-800/80 text-white border border-slate-700/50">
+                    {/* Left: text summary */}
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="text-sm whitespace-pre-wrap"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(
+                            displayContent
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                              .replace(/`(.*?)`/g, '<code class="bg-slate-700/50 px-1 rounded">$1</code>')
+                              .replace(/^• /gm, '• '),
+                            { ALLOWED_TAGS: ['strong', 'em', 'code'], ALLOWED_ATTR: ['class'] }
+                          )
+                        }}
+                      />
+                      <div className="text-xs mt-1 text-gray-500">
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                    {/* Right: preview card */}
+                    <div className="flex-shrink-0 sm:self-start">
+                      <UploadPreviewCard
+                        data={extractedData as any}
+                        coverImageUrl={extractedData.cover_image_url}
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div
+                    className={`rounded-2xl px-4 py-3 ${
+                      message.role === 'user'
+                        ? 'bg-[#81E4F2] text-[#0a0e1a]'
+                        : 'bg-slate-800/80 text-white border border-slate-700/50'
+                    }`}
+                  >
+                    {/* Message content with markdown-like formatting */}
+                    <div
+                      className="text-sm whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(
+                          displayContent
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            .replace(/`(.*?)`/g, '<code class="bg-slate-700/50 px-1 rounded">$1</code>')
+                            .replace(/^• /gm, '• '),
+                          { ALLOWED_TAGS: ['strong', 'em', 'code'], ALLOWED_ATTR: ['class'] }
+                        )
+                      }}
+                    />
+
+                    <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-[#0a0e1a]/60' : 'text-gray-500'}`}>
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Quick-reply chips for the last assistant message */}
                 {quickReplies && (
