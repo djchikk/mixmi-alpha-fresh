@@ -197,6 +197,9 @@ export default function IPTrackModal({
   const [visibleCompositionSplits, setVisibleCompositionSplits] = useState(1);
   const [visibleProductionSplits, setVisibleProductionSplits] = useState(1);
 
+  // Wallet address → username lookup for split fields
+  const [walletUsernames, setWalletUsernames] = useState<Record<string, string>>({});
+
   // Crop callback
   const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -441,7 +444,70 @@ export default function IPTrackModal({
     }
     // Remove dependencies that might cause re-renders
   }, [isOpen, track?.id]); // Only depend on track.id, not the whole track object
-  
+
+  // Batch lookup wallet addresses → usernames for split fields
+  useEffect(() => {
+    if (!isOpen || !track) return;
+
+    const wallets = new Set<string>();
+    const splitFields = [
+      'composition_split_1_wallet', 'composition_split_2_wallet', 'composition_split_3_wallet',
+      'production_split_1_wallet', 'production_split_2_wallet', 'production_split_3_wallet',
+    ] as const;
+
+    for (const field of splitFields) {
+      const val = (track as any)[field];
+      if (val && typeof val === 'string' && !val.startsWith('pending:') && (val.startsWith('0x') || val.startsWith('SP') || val.startsWith('ST'))) {
+        wallets.add(val);
+      }
+    }
+
+    if (wallets.size === 0) return;
+
+    const lookupUsernames = async () => {
+      const addressList = Array.from(wallets);
+      // Query personas first (primary), then user_profiles as fallback
+      const { data: personas } = await supabase
+        .from('personas')
+        .select('wallet_address, sui_address, username')
+        .or(addressList.map(a => `wallet_address.eq.${a},sui_address.eq.${a}`).join(','))
+        .eq('is_active', true);
+
+      const map: Record<string, string> = {};
+      if (personas) {
+        for (const p of personas) {
+          if (p.wallet_address && addressList.includes(p.wallet_address)) {
+            map[p.wallet_address] = p.username;
+          }
+          if (p.sui_address && addressList.includes(p.sui_address)) {
+            map[p.sui_address] = p.username;
+          }
+        }
+      }
+
+      // Fallback: check user_profiles for any unresolved addresses
+      const unresolved = addressList.filter(a => !map[a]);
+      if (unresolved.length > 0) {
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('wallet_address, username')
+          .in('wallet_address', unresolved);
+
+        if (profiles) {
+          for (const p of profiles) {
+            if (p.wallet_address && p.username) {
+              map[p.wallet_address] = p.username;
+            }
+          }
+        }
+      }
+
+      setWalletUsernames(map);
+    };
+
+    lookupUsernames();
+  }, [isOpen, track?.id]);
+
   // Smart default behavior for wallet checkbox - prefer active persona's wallet, then SUI address
   useEffect(() => {
     if (useVerificationWallet && (!formData.wallet_address || formData.wallet_address.trim() === '')) {
@@ -2065,63 +2131,75 @@ export default function IPTrackModal({
             const rawValue = (formData[`composition_split_${num}_wallet` as keyof typeof formData] as string) || '';
             const isPending = rawValue.startsWith('pending:');
             const displayValue = isPending ? rawValue.replace('pending:', '') : rawValue;
+            const resolvedUsername = !isPending && rawValue ? walletUsernames[rawValue] : null;
 
             return (
-            <div key={num} className="flex gap-3 items-center">
-              <div className="flex-1 relative">
-                <CollaboratorAutosuggest
-                  value={displayValue}
-                  onChange={(value) => {
-                    handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
-                    // Validate wallet address format (reject alpha codes)
-                    if (value.trim() && !isValidStacksAddress(value) && !value.startsWith('0x') && isAlphaCode(value)) {
-                      showToast('❌ Please enter a valid wallet address (0x... for SUI or SP.../SM... for Stacks)', 'error');
-                    }
-                  }}
-                  className="input-field"
-                  placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
-                  uploaderWallet={num > 1 ? walletToUse : undefined}
-                />
-                {isPending && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-600/30 rounded pointer-events-none">
-                    unresolved
-                  </span>
+            <div key={num}>
+              <div className="flex gap-3 items-center">
+                <div className="flex-1 relative">
+                  <CollaboratorAutosuggest
+                    value={displayValue}
+                    onChange={(value) => {
+                      handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
+                      // Validate wallet address format (reject alpha codes)
+                      if (value.trim() && !isValidStacksAddress(value) && !value.startsWith('0x') && isAlphaCode(value)) {
+                        showToast('❌ Please enter a valid wallet address (0x... for SUI or SP.../SM... for Stacks)', 'error');
+                      }
+                    }}
+                    onUserSelect={(user) => {
+                      const wallet = user.suiAddress || user.walletAddress || '';
+                      if (wallet && user.username) {
+                        setWalletUsernames(prev => ({ ...prev, [wallet]: user.username! }));
+                      }
+                    }}
+                    className="input-field"
+                    placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
+                    uploaderWallet={num > 1 ? walletToUse : undefined}
+                  />
+                  {isPending && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-600/30 rounded pointer-events-none">
+                      unresolved
+                    </span>
+                  )}
+                </div>
+                <div className="w-24">
+                  <input
+                    type="number"
+                    value={formData[`composition_split_${num}_percentage` as keyof typeof formData] as number}
+                    onChange={(e) => handleInputChange(`composition_split_${num}_percentage` as keyof typeof formData, parseFloat(e.target.value) || 0)}
+                    className="input-field text-center"
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </div>
+                {/* Remove button for collaborators (not first row) */}
+                {num > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Clear this split and shift others up
+                      if (num === 2) {
+                        handleInputChange('composition_split_2_wallet', formData.composition_split_3_wallet);
+                        handleInputChange('composition_split_2_percentage', formData.composition_split_3_percentage);
+                      }
+                      handleInputChange('composition_split_3_wallet', '');
+                      handleInputChange('composition_split_3_percentage', 0);
+                      setVisibleCompositionSplits(prev => Math.max(1, prev - 1));
+                    }}
+                    className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors"
+                    title="Remove collaborator"
+                  >
+                    ✕
+                  </button>
                 )}
+                {/* Spacer for first row alignment */}
+                {num === 1 && visibleCompositionSplits > 1 && <div className="w-8" />}
               </div>
-              <div className="w-24">
-                <input
-                  type="number"
-                  value={formData[`composition_split_${num}_percentage` as keyof typeof formData] as number}
-                  onChange={(e) => handleInputChange(`composition_split_${num}_percentage` as keyof typeof formData, parseFloat(e.target.value) || 0)}
-                  className="input-field text-center"
-                  placeholder="0"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-              </div>
-              {/* Remove button for collaborators (not first row) */}
-              {num > 1 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Clear this split and shift others up
-                    if (num === 2) {
-                      handleInputChange('composition_split_2_wallet', formData.composition_split_3_wallet);
-                      handleInputChange('composition_split_2_percentage', formData.composition_split_3_percentage);
-                    }
-                    handleInputChange('composition_split_3_wallet', '');
-                    handleInputChange('composition_split_3_percentage', 0);
-                    setVisibleCompositionSplits(prev => Math.max(1, prev - 1));
-                  }}
-                  className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors"
-                  title="Remove collaborator"
-                >
-                  ✕
-                </button>
+              {resolvedUsername && (
+                <div className="ml-0.5 mt-0.5 text-xs text-[#81E4F2]">@{resolvedUsername}</div>
               )}
-              {/* Spacer for first row alignment */}
-              {num === 1 && visibleCompositionSplits > 1 && <div className="w-8" />}
             </div>
             );
           })}
@@ -2176,63 +2254,75 @@ export default function IPTrackModal({
             const rawValue = (formData[`production_split_${num}_wallet` as keyof typeof formData] as string) || '';
             const isPending = rawValue.startsWith('pending:');
             const displayValue = isPending ? rawValue.replace('pending:', '') : rawValue;
+            const resolvedUsername = !isPending && rawValue ? walletUsernames[rawValue] : null;
 
             return (
-            <div key={num} className="flex gap-3 items-center">
-              <div className="flex-1 relative">
-                <CollaboratorAutosuggest
-                  value={displayValue}
-                  onChange={(value) => {
-                    handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);
-                    // Validate wallet address format (reject alpha codes)
-                    if (value.trim() && !isValidStacksAddress(value) && !value.startsWith('0x') && isAlphaCode(value)) {
-                      showToast('❌ Please enter a valid wallet address (0x... for SUI or SP.../SM... for Stacks)', 'error');
-                    }
-                  }}
-                  className="input-field"
-                  placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
-                  uploaderWallet={num > 1 ? walletToUse : undefined}
-                />
-                {isPending && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-600/30 rounded pointer-events-none">
-                    unresolved
-                  </span>
+            <div key={num}>
+              <div className="flex gap-3 items-center">
+                <div className="flex-1 relative">
+                  <CollaboratorAutosuggest
+                    value={displayValue}
+                    onChange={(value) => {
+                      handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);
+                      // Validate wallet address format (reject alpha codes)
+                      if (value.trim() && !isValidStacksAddress(value) && !value.startsWith('0x') && isAlphaCode(value)) {
+                        showToast('❌ Please enter a valid wallet address (0x... for SUI or SP.../SM... for Stacks)', 'error');
+                      }
+                    }}
+                    onUserSelect={(user) => {
+                      const wallet = user.suiAddress || user.walletAddress || '';
+                      if (wallet && user.username) {
+                        setWalletUsernames(prev => ({ ...prev, [wallet]: user.username! }));
+                      }
+                    }}
+                    className="input-field"
+                    placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
+                    uploaderWallet={num > 1 ? walletToUse : undefined}
+                  />
+                  {isPending && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-600/30 rounded pointer-events-none">
+                      unresolved
+                    </span>
+                  )}
+                </div>
+                <div className="w-24">
+                  <input
+                    type="number"
+                    value={formData[`production_split_${num}_percentage` as keyof typeof formData] as number}
+                    onChange={(e) => handleInputChange(`production_split_${num}_percentage` as keyof typeof formData, parseFloat(e.target.value) || 0)}
+                    className="input-field text-center"
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </div>
+                {/* Remove button for collaborators (not first row) */}
+                {num > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Clear this split and shift others up
+                      if (num === 2) {
+                        handleInputChange('production_split_2_wallet', formData.production_split_3_wallet);
+                        handleInputChange('production_split_2_percentage', formData.production_split_3_percentage);
+                      }
+                      handleInputChange('production_split_3_wallet', '');
+                      handleInputChange('production_split_3_percentage', 0);
+                      setVisibleProductionSplits(prev => Math.max(1, prev - 1));
+                    }}
+                    className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors"
+                    title="Remove collaborator"
+                  >
+                    ✕
+                  </button>
                 )}
+                {/* Spacer for first row alignment */}
+                {num === 1 && visibleProductionSplits > 1 && <div className="w-8" />}
               </div>
-              <div className="w-24">
-                <input
-                  type="number"
-                  value={formData[`production_split_${num}_percentage` as keyof typeof formData] as number}
-                  onChange={(e) => handleInputChange(`production_split_${num}_percentage` as keyof typeof formData, parseFloat(e.target.value) || 0)}
-                  className="input-field text-center"
-                  placeholder="0"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-              </div>
-              {/* Remove button for collaborators (not first row) */}
-              {num > 1 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Clear this split and shift others up
-                    if (num === 2) {
-                      handleInputChange('production_split_2_wallet', formData.production_split_3_wallet);
-                      handleInputChange('production_split_2_percentage', formData.production_split_3_percentage);
-                    }
-                    handleInputChange('production_split_3_wallet', '');
-                    handleInputChange('production_split_3_percentage', 0);
-                    setVisibleProductionSplits(prev => Math.max(1, prev - 1));
-                  }}
-                  className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors"
-                  title="Remove collaborator"
-                >
-                  ✕
-                </button>
+              {resolvedUsername && (
+                <div className="ml-0.5 mt-0.5 text-xs text-[#81E4F2]">@{resolvedUsername}</div>
               )}
-              {/* Spacer for first row alignment */}
-              {num === 1 && visibleProductionSplits > 1 && <div className="w-8" />}
             </div>
             );
           })}
