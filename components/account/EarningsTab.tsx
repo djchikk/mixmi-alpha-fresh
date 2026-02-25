@@ -801,19 +801,17 @@ export default function EarningsTab({
         </button>
         <button
           onClick={() => setView('resolve')}
-          className={`px-4 py-2 rounded-lg text-sm transition-colors relative ${
+          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
             view === 'resolve'
               ? 'bg-amber-500 text-slate-900 font-medium'
-              : (pendingSplits.length + tbdPersonas.length) > 0
-                ? 'bg-amber-900/40 text-amber-400 border border-amber-500/50 hover:bg-amber-900/60 animate-pulse'
-                : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+              : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
           }`}
         >
           <span className="flex items-center gap-2">
-            <AlertCircle className={`w-4 h-4 ${(pendingSplits.length + tbdPersonas.length) > 0 && view !== 'resolve' ? 'text-amber-400' : ''}`} />
+            <AlertCircle className={`w-4 h-4 ${(pendingSplits.length + tbdPersonas.length) > 0 ? 'text-amber-400' : ''}`} />
             Resolve
             {(pendingSplits.length + tbdPersonas.length) > 0 && (
-              <span className="px-1.5 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">
+              <span className="px-1.5 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full animate-pulse">
                 {pendingSplits.length + tbdPersonas.length}
               </span>
             )}
@@ -1122,20 +1120,18 @@ export default function EarningsTab({
                       >
                         <div className="flex items-start justify-between">
                           <div>
-                            <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setExpandedPending(prev => ({ ...prev, [pending.name]: !prev[pending.name] }))}
+                              className="flex items-center gap-2 group"
+                            >
                               <span className="text-white font-medium">{pending.name}</span>
                               <span className="text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-600/30 rounded">
                                 pending
                               </span>
-                            </div>
-                            <button
-                              onClick={() => setExpandedPending(prev => ({ ...prev, [pending.name]: !prev[pending.name] }))}
-                              className="flex items-center gap-1.5 text-xs text-gray-400 mt-1.5 hover:text-amber-400 transition-colors group"
-                            >
-                              <span>{uniqueTrackCount} track{uniqueTrackCount !== 1 ? 's' : ''} · {splitSummary}</span>
+                              <span className="text-xs text-gray-500">{uniqueTrackCount} track{uniqueTrackCount !== 1 ? 's' : ''}</span>
                               {isExpanded
-                                ? <ChevronUp className="w-4 h-4 text-amber-500 group-hover:text-amber-400" />
-                                : <ChevronDown className="w-4 h-4 text-amber-500 group-hover:text-amber-400" />
+                                ? <ChevronUp className="w-4 h-4 text-amber-500 group-hover:text-amber-300 transition-colors" />
+                                : <ChevronDown className="w-4 h-4 text-amber-500 group-hover:text-amber-300 transition-colors" />
                               }
                             </button>
                           </div>
