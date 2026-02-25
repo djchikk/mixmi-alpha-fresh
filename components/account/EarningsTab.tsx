@@ -254,11 +254,13 @@ export default function EarningsTab({
 
       if (error) {
         console.error('Error fetching TBD personas:', error);
+        setLoadingTbd(false);
         return;
       }
 
       if (!tbdData || tbdData.length === 0) {
         setTbdPersonas([]);
+        setLoadingTbd(false);
         return;
       }
 
