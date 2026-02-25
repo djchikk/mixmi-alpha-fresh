@@ -1926,7 +1926,7 @@ Would you like to post another track, or shall I show you where to find your new
               <div className={`${isSummaryMessage ? 'max-w-[95%] w-full' : 'max-w-[80%]'} ${message.role === 'user' ? '' : 'space-y-2'}`}>
                 {/* Two-column layout for summary message */}
                 {isSummaryMessage ? (
-                  <div className="flex flex-col sm:flex-row gap-4 rounded-2xl px-4 py-3 bg-slate-800/80 text-white border border-slate-700/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-2xl px-4 py-3 bg-slate-800/80 text-white border border-slate-700/50">
                     {/* Left: text summary */}
                     <div className="flex-1 min-w-0">
                       <div
@@ -1947,7 +1947,7 @@ Would you like to post another track, or shall I show you where to find your new
                       </div>
                     </div>
                     {/* Right: preview card */}
-                    <div className="flex-shrink-0 sm:self-start">
+                    <div className="flex-shrink-0 sm:self-center">
                       <UploadPreviewCard
                         data={extractedData as any}
                         coverImageUrl={extractedData.cover_image_url}
