@@ -25,9 +25,10 @@ interface ExtractedData {
 interface UploadPreviewCardProps {
   data: ExtractedData;
   coverImageUrl?: string;
+  compact?: boolean;
 }
 
-export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreviewCardProps) {
+export default function UploadPreviewCard({ data, coverImageUrl, compact }: UploadPreviewCardProps) {
   const [showDetails, setShowDetails] = useState(false);
 
   // Get border color based on content type
@@ -112,6 +113,65 @@ export default function UploadPreviewCard({ data, coverImageUrl }: UploadPreview
     });
   }
 
+  // Compact mode: horizontal mini-card for utility row
+  if (compact) {
+    return (
+      <div
+        className="flex items-center gap-2 h-[56px] rounded-lg overflow-hidden bg-slate-800/60 transition-all duration-300 cursor-pointer hover:bg-slate-800"
+        style={{
+          border: hasContent ? `2px solid ${borderColor}` : '2px dashed #4B5563',
+        }}
+        onClick={hasContent && data.title ? () => setShowDetails(true) : undefined}
+      >
+        {/* Thumbnail */}
+        <div className="w-[52px] h-[52px] flex-shrink-0 relative">
+          {coverUrl ? (
+            <SafeImage
+              src={coverUrl}
+              alt={data.title || 'Cover'}
+              className="w-full h-full object-cover"
+              fill
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+            </div>
+          )}
+        </div>
+
+        {/* Text info */}
+        <div className="flex-1 min-w-0 pr-3 py-1">
+          {data.title ? (
+            <p className="text-xs font-medium text-[#81E4F2] truncate">{data.title}</p>
+          ) : (
+            <p className="text-[10px] text-gray-500">Preview</p>
+          )}
+          {data.artist && (
+            <p className="text-[10px] text-gray-400 truncate">{data.artist}</p>
+          )}
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {typeLabel && (
+              <span className="text-[9px] font-mono font-medium" style={{ color: borderColor }}>{typeLabel}</span>
+            )}
+            {data.bpm && data.content_type !== 'video_clip' && data.content_type !== 'ep' && (
+              <span className="text-[9px] font-mono text-gray-400">{data.bpm}bpm</span>
+            )}
+          </div>
+        </div>
+
+        {/* Details modal */}
+        <TrackDetailsModal
+          track={buildPreviewTrack()}
+          isOpen={showDetails}
+          onClose={() => setShowDetails(false)}
+        />
+      </div>
+    );
+  }
+
+  // Full mode: 160x160 square card
   return (
     <div className="flex flex-col items-center">
       {/* Label */}
