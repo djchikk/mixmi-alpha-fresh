@@ -831,6 +831,16 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
 
     if (csvFiles.length > 0) {
       // Bulk mode: process CSV + any media files
+      // Add CSV to attachments for UI tracking (processed locally, not uploaded)
+      const csvAttachment: FileAttachment = {
+        id: crypto.randomUUID(),
+        name: csvFiles[0].name,
+        type: 'audio' as const, // type field doesn't have 'csv', tracked by name
+        file: csvFiles[0],
+        status: 'uploaded',
+      };
+      setAttachments(prev => [...prev, csvAttachment]);
+
       await processCSVFile(csvFiles[0], mediaFiles);
 
       // Still upload media files for bulk matching
@@ -2272,27 +2282,39 @@ Would you like to post another track, or shall I show you where to find your new
             )}
           </div>
 
-          {/* Send Button - always visible outside input */}
-          <button
-            onClick={isAskingForLocation && locationInput.trim()
-              ? () => handleLocationSelect(locationInput.trim())
-              : () => sendMessage('text')
-            }
-            disabled={isLoading ||
-              attachments.some(a => a.status === 'uploading' || a.status === 'pending') || (
-              isAskingForLocation
-                ? !locationInput.trim()
-                : (!inputValue.trim() && attachments.filter(a => a.status === 'uploaded').length === 0)
-            )}
-            className="p-3 bg-[#81E4F2] hover:bg-[#6BC4D4] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-            title={attachments.some(a => a.status === 'uploading' || a.status === 'pending') ? 'Wait for uploads to complete' : 'Send message'}
-          >
-            <Send size={20} className="text-[#0a0e1a]" />
-          </button>
+          {/* Send Button - pulses when files ready to send */}
+          {(() => {
+            const filesReady = !isLoading && attachments.filter(a => a.status === 'uploaded').length > 0 && !inputValue.trim();
+            return (
+              <button
+                onClick={isAskingForLocation && locationInput.trim()
+                  ? () => handleLocationSelect(locationInput.trim())
+                  : () => sendMessage('text')
+                }
+                disabled={isLoading ||
+                  attachments.some(a => a.status === 'uploading' || a.status === 'pending') || (
+                  isAskingForLocation
+                    ? !locationInput.trim()
+                    : (!inputValue.trim() && attachments.filter(a => a.status === 'uploaded').length === 0)
+                )}
+                className={`p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 ${
+                  filesReady
+                    ? 'bg-green-500 hover:bg-green-400 animate-pulse'
+                    : 'bg-[#81E4F2] hover:bg-[#6BC4D4]'
+                }`}
+                title={filesReady ? 'Send files to chatbot' : attachments.some(a => a.status === 'uploading' || a.status === 'pending') ? 'Wait for uploads to complete' : 'Send message'}
+              >
+                <Send size={20} className="text-[#0a0e1a]" />
+              </button>
+            );
+          })()}
         </div>
 
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Type or speak • Enter to send • Shift+Enter for new line
+          {attachments.filter(a => a.status === 'uploaded').length > 0 && !inputValue.trim()
+            ? 'Hit send to share your files with the chatbot'
+            : 'Type or speak • Enter to send • Shift+Enter for new line'
+          }
         </p>
       </div>
     </div>
