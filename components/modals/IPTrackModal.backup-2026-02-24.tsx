@@ -26,15 +26,6 @@ import SimplifiedLicensingStep from "./steps/SimplifiedLicensingStep";
 import { useAuth } from "@/contexts/AuthContext";
 import { isValidStacksAddress, isAlphaCode, getWalletFromAuthIdentity } from "@/lib/auth/wallet-mapping";
 
-// Content type accent colors from design system
-const CONTENT_TYPE_COLORS: Record<string, { color: string; bgAlpha: string }> = {
-  loop:      { color: '#A084F9', bgAlpha: 'rgba(160, 132, 249, 0.15)' },
-  loop_pack: { color: '#A084F9', bgAlpha: 'rgba(160, 132, 249, 0.15)' },
-  full_song: { color: '#A8E66B', bgAlpha: 'rgba(168, 230, 107, 0.15)' },
-  ep:        { color: '#A8E66B', bgAlpha: 'rgba(168, 230, 107, 0.15)' },
-  video_clip:{ color: '#5BB5F9', bgAlpha: 'rgba(91, 181, 249, 0.15)' },
-};
-
 interface IPTrackModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -913,7 +904,7 @@ export default function IPTrackModal({
   }, [saveStatus, onClose, resetForm]);
 
   // Handle final submission
-  const handleSubmit = async (publishDraft?: boolean) => {
+  const handleSubmit = async () => {
     // Force a visible alert to confirm this function is called
     console.warn('🚨🚨🚨 HANDLESUBMIT CALLED');
     
@@ -1184,7 +1175,7 @@ export default function IPTrackModal({
     }
 
     try {
-      await submitTrack(updatedFormData, errors, publishDraft);
+      await submitTrack(updatedFormData, errors);
     } catch (error) {
       console.error('💥 Save failed:', error);
       setValidationErrors([error instanceof Error ? error.message : 'Failed to save track']);
@@ -1265,40 +1256,80 @@ export default function IPTrackModal({
           {/* Music content types - show when category is 'music' or undefined (default/legacy) */}
           {(!contentCategory || contentCategory === 'music') && (
             <>
-              {/* Content type buttons with design system colors */}
-              {([
-                { type: 'loop', label: '8-Bar Loop' },
-                { type: 'loop_pack', label: 'Loop Pack' },
-                { type: 'full_song', label: 'Song' },
-                { type: 'ep', label: 'EP (2-5 songs)' },
-              ] as const).map(({ type, label }) => {
-                const isSelected = formData.content_type === type;
-                const colors = CONTENT_TYPE_COLORS[type];
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => handleInputChange('content_type', type)}
-                    className="flex items-center justify-center border-2 rounded-lg transition-all"
-                    style={{
-                      padding: '14px',
-                      minHeight: '54px',
-                      background: isSelected ? colors.bgAlpha : 'rgba(255, 255, 255, 0.03)',
-                      borderColor: isSelected ? colors.color : 'rgba(255, 255, 255, 0.08)',
-                      color: isSelected ? colors.color : '#8b92a6',
-                      borderRadius: '12px'
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+              {/* Top left: 8-Bar Loop */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'loop')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'loop' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'loop' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'loop' ? '#e5e7eb' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                8-Bar Loop
+              </button>
+
+              {/* Top right: Loop Pack */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'loop_pack')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'loop_pack' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'loop_pack' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'loop_pack' ? '#e5e7eb' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                Loop Pack
+              </button>
+
+              {/* Bottom left: Song */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'full_song')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'full_song' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'full_song' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'full_song' ? '#e5e7eb' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                Song
+              </button>
+
+              {/* Bottom right: EP */}
+              <button
+                type="button"
+                onClick={() => handleInputChange('content_type', 'ep')}
+                className="flex items-center justify-center border-2 rounded-lg transition-all"
+                style={{
+                  padding: '14px',
+                  minHeight: '54px',
+                  background: formData.content_type === 'ep' ? 'rgba(229, 231, 235, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: formData.content_type === 'ep' ? '#e5e7eb' : 'rgba(255, 255, 255, 0.08)',
+                  color: formData.content_type === 'ep' ? '#e5e7eb' : '#8b92a6',
+                  borderRadius: '12px'
+                }}
+              >
+                EP (2-5 songs)
+              </button>
             </>
           )}
 
           {/* Visual content types - show ONLY when category is 'visual' */}
           {(contentCategory === 'visual') && (
             <>
+              {/* Video Clip - Permanently ON until still images are added */}
               <button
                 type="button"
                 onClick={() => handleInputChange('content_type', 'video_clip')}
@@ -1306,9 +1337,9 @@ export default function IPTrackModal({
                 style={{
                   padding: '14px',
                   minHeight: '54px',
-                  background: CONTENT_TYPE_COLORS.video_clip.bgAlpha,
-                  borderColor: CONTENT_TYPE_COLORS.video_clip.color,
-                  color: CONTENT_TYPE_COLORS.video_clip.color,
+                  background: 'rgba(56, 189, 248, 0.15)', // Always active
+                  borderColor: '#5BB5F9', // Always active
+                  color: '#5BB5F9', // Always active
                   borderRadius: '12px'
                 }}
               >
@@ -2107,16 +2138,11 @@ export default function IPTrackModal({
 
         {/* Split inputs - dynamic visibility */}
         <div className="space-y-3">
-          {[1, 2, 3].slice(0, visibleCompositionSplits).map((num) => {
-            const rawValue = (formData[`composition_split_${num}_wallet` as keyof typeof formData] as string) || '';
-            const isPending = rawValue.startsWith('pending:');
-            const displayValue = isPending ? rawValue.replace('pending:', '') : rawValue;
-
-            return (
+          {[1, 2, 3].slice(0, visibleCompositionSplits).map((num) => (
             <div key={num} className="flex gap-3 items-center">
-              <div className="flex-1 relative">
+              <div className="flex-1">
                 <CollaboratorAutosuggest
-                  value={displayValue}
+                  value={formData[`composition_split_${num}_wallet` as keyof typeof formData] as string || ''}
                   onChange={(value) => {
                     handleInputChange(`composition_split_${num}_wallet` as keyof typeof formData, value);
                     // Validate wallet address format (reject alpha codes)
@@ -2128,11 +2154,6 @@ export default function IPTrackModal({
                   placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
                   uploaderWallet={num > 1 ? walletToUse : undefined}
                 />
-                {isPending && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-600/30 rounded pointer-events-none">
-                    unresolved
-                  </span>
-                )}
               </div>
               <div className="w-24">
                 <input
@@ -2169,8 +2190,7 @@ export default function IPTrackModal({
               {/* Spacer for first row alignment */}
               {num === 1 && visibleCompositionSplits > 1 && <div className="w-8" />}
             </div>
-            );
-          })}
+          ))}
         </div>
 
         {/* Add collaborator button */}
@@ -2218,16 +2238,11 @@ export default function IPTrackModal({
 
         {/* Split inputs - dynamic visibility */}
         <div className="space-y-3">
-          {[1, 2, 3].slice(0, visibleProductionSplits).map((num) => {
-            const rawValue = (formData[`production_split_${num}_wallet` as keyof typeof formData] as string) || '';
-            const isPending = rawValue.startsWith('pending:');
-            const displayValue = isPending ? rawValue.replace('pending:', '') : rawValue;
-
-            return (
+          {[1, 2, 3].slice(0, visibleProductionSplits).map((num) => (
             <div key={num} className="flex gap-3 items-center">
-              <div className="flex-1 relative">
+              <div className="flex-1">
                 <CollaboratorAutosuggest
-                  value={displayValue}
+                  value={formData[`production_split_${num}_wallet` as keyof typeof formData] as string || ''}
                   onChange={(value) => {
                     handleInputChange(`production_split_${num}_wallet` as keyof typeof formData, value);
                     // Validate wallet address format (reject alpha codes)
@@ -2239,11 +2254,6 @@ export default function IPTrackModal({
                   placeholder={num === 1 ? 'Your wallet (0x...)' : 'Search user or enter wallet'}
                   uploaderWallet={num > 1 ? walletToUse : undefined}
                 />
-                {isPending && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-600/30 rounded pointer-events-none">
-                    unresolved
-                  </span>
-                )}
               </div>
               <div className="w-24">
                 <input
@@ -2280,8 +2290,7 @@ export default function IPTrackModal({
               {/* Spacer for first row alignment */}
               {num === 1 && visibleProductionSplits > 1 && <div className="w-8" />}
             </div>
-            );
-          })}
+          ))}
         </div>
 
         {/* Add collaborator button */}
@@ -3534,37 +3543,15 @@ export default function IPTrackModal({
             </button>
 
             {currentStep === getStepsArray.length - 1 ? (
-              track?.is_draft ? (
-                // Draft editing: show Save Draft + Publish buttons
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleSubmit()}
-                    disabled={isSaving || !termsAccepted}
-                    className="px-4 py-1.5 rounded-lg font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 border border-gray-400 text-gray-300 hover:bg-gray-700"
-                    title={!termsAccepted ? 'Please accept the terms of service' : 'Save changes without publishing'}
-                  >
-                    {isSaving ? 'Saving...' : 'Save Draft'}
-                  </button>
-                  <button
-                    onClick={() => handleSubmit(true)}
-                    disabled={isSaving || !termsAccepted}
-                    className="px-4 py-1.5 rounded-lg font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 bg-green-600 text-white hover:bg-green-500"
-                    title={!termsAccepted ? 'Please accept the terms of service' : 'Publish this track to the globe'}
-                  >
-                    {isSaving ? 'Publishing...' : 'Publish'}
-                  </button>
-                </div>
-              ) : (
               <button
-                onClick={() => handleSubmit()}
+                onClick={handleSubmit}
                 disabled={isSaving || !termsAccepted}
                 className="px-4 py-1.5 rounded-lg font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 bg-gray-200 text-[#0a0e1a] hover:bg-gray-300"
                 title={!termsAccepted ? 'Please accept the terms of service' : ''}
               >
-                {isSaving ? 'Saving...' : (track ? 'Update Track' :
+                {isSaving ? 'Saving...' : (track ? 'Update Track' : 
                   formData.content_type === 'loop_pack' ? 'Create Pack' : 'Create Track')}
               </button>
-              )
             ) : (
               <button
                 onClick={nextStep}

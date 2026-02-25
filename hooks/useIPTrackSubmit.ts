@@ -119,7 +119,7 @@ interface UseIPTrackSubmitProps {
 interface UseIPTrackSubmitReturn {
   isSaving: boolean;
   saveStatus: 'idle' | 'saving' | 'complete';
-  submitTrack: (formData: SubmitFormData, validationErrors: string[]) => Promise<void>;
+  submitTrack: (formData: SubmitFormData, validationErrors: string[], publishDraft?: boolean) => Promise<void>;
 }
 
 // Helper function to process loop pack uploads
@@ -485,7 +485,7 @@ export function useIPTrackSubmit({
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'complete'>('idle');
 
-  const submitTrack = async (formData: SubmitFormData, validationErrors: string[]) => {
+  const submitTrack = async (formData: SubmitFormData, validationErrors: string[], publishDraft?: boolean) => {
     if (validationErrors.length > 0) {
       console.log('❌ VALIDATION ERRORS:', validationErrors);
       throw new Error(validationErrors.join(', '));
@@ -751,9 +751,26 @@ export function useIPTrackSubmit({
       if (track) {
         // Update existing track
         console.log('🔄 UPDATING existing track...');
+
+        // Preserve chatbot-specific fields that should not be overwritten during edit
+        // These are set by the chatbot upload flow and must survive form edits
+        const {
+          upload_source,   // Preserved: chatbot sets 'conversational'
+          conversation_id, // Preserved: links to chatbot conversation
+          is_draft,        // Preserved: managed separately via publishDraft flag
+          created_at,      // Preserved: never overwrite creation timestamp
+          ...updatePayload
+        } = mappedTrackData as any;
+
+        // If publishing a draft, explicitly set is_draft to false
+        if (publishDraft) {
+          (updatePayload as any).is_draft = false;
+          console.log('📢 Publishing draft - setting is_draft to false');
+        }
+
         const { error } = await authSession.supabase
           .from('ip_tracks')
-          .update(mappedTrackData)
+          .update(updatePayload)
           .eq('id', track.id);
 
         if (error) {
@@ -809,6 +826,40 @@ export function useIPTrackSubmit({
                 .from('ip_tracks')
                 .update({ bpm: null })
                 .eq('id', track.id);
+            }
+          }
+        }
+
+        // Draft publish: also publish child tracks and clean up other conversation drafts
+        if (publishDraft) {
+          // Publish child tracks (for packs/EPs)
+          if (track.content_type === 'ep' || track.content_type === 'loop_pack') {
+            const { error: childPublishError } = await authSession.supabase
+              .from('ip_tracks')
+              .update({ is_draft: false })
+              .eq('pack_id', track.id)
+              .eq('is_draft', true);
+
+            if (childPublishError) {
+              console.warn('⚠️ Failed to publish child tracks:', childPublishError);
+            } else {
+              console.log('✅ Child tracks published');
+            }
+          }
+
+          // Clean up other drafts from the same conversation (if any)
+          if ((track as any).conversation_id) {
+            const { error: cleanupError } = await authSession.supabase
+              .from('ip_tracks')
+              .delete()
+              .eq('conversation_id', (track as any).conversation_id)
+              .eq('is_draft', true)
+              .neq('id', track.id);
+
+            if (cleanupError) {
+              console.warn('⚠️ Failed to clean up conversation drafts:', cleanupError);
+            } else {
+              console.log('✅ Conversation drafts cleaned up');
             }
           }
         }

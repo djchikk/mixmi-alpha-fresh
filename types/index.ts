@@ -161,6 +161,10 @@ export interface IPTrack {
   // Draft system (for mic recordings)
   is_draft?: boolean; // True for mic recordings that haven't been finalized
 
+  // Chatbot upload provenance
+  upload_source?: string; // 'conversational' for chatbot-created, undefined for form-created
+  conversation_id?: string; // Links to the chatbot conversation that created this track
+
   // Audio Enhancement (FFmpeg)
   enhanced_audio_url?: string; // URL to enhanced version in Supabase Storage
   enhancement_type?: 'auto' | 'voice' | 'clean' | 'warm' | 'studio' | 'punchy'; // Type of enhancement applied
