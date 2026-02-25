@@ -28,7 +28,7 @@ When a creator uploads a track with collaborators, there are two ways an unresol
 
 **What:** A real managed persona with a generated SUI wallet, created under the uploader's account.
 
-**When created:** When the user explicitly clicks "Create managed wallet for [Name]" in either the chatbot upload or the edit form's CollaboratorAutosuggest dropdown.
+**When created:** When the user explicitly clicks "Create managed wallet for [Name]" in the chatbot upload, the edit form's CollaboratorAutosuggest dropdown, or the Resolve tab's autocomplete (added Feb 25, 2026).
 
 **Example database records:**
 - `personas` row: `username = 'kwame-tbd'`, `sui_address = '0xabc...'`
@@ -73,6 +73,8 @@ There are three places a user can resolve unresolved collaborators:
 - Groups by collaborator name across all tracks
 - Shows: name, track count, split summary, expandable track list
 - CollaboratorAutosuggest input for searching/matching
+- If no user found, **"Create managed wallet"** option creates a TBD persona (Feb 25, 2026)
+- Creating a TBD wallet auto-refreshes Wallets tab and Managed Accounts dropdown
 - **"Resolve" button** — batch-updates ALL matching `pending:Name` splits across ALL tracks in one click
 - Calls `POST /api/earnings/resolve-pending`
 
@@ -117,6 +119,11 @@ User goes to Earnings > Resolve tab
 System scans tracks for pending: splits, groups by name
     ↓
 User searches for collaborator via autocomplete
+    ↓
+├── FOUND → Select user → wallet fills input
+├── NOT FOUND → "Create managed wallet" → TBD persona created → wallet fills input
+│   └── Wallets tab & Managed Accounts refresh automatically
+└── MANUAL → Paste wallet address directly
     ↓
 User clicks "Resolve"
     ↓
@@ -201,16 +208,24 @@ Batch-resolve `pending:` splits across multiple tracks.
 ## Testing Checklist (Feb 25, 2026)
 
 ### Pending Splits Resolution
-- [ ] Upload a track via chatbot with an unresolved collaborator (e.g., "me and Kwame, 50/50")
-- [ ] Verify `pending:Kwame` appears in the database split fields
-- [ ] Go to Account > Earnings > Resolve tab
-- [ ] Verify "Kwame" appears in Pending Collaborators section
+- [x] Upload a track via chatbot with an unresolved collaborator (e.g., "me and Ray, 50/50")
+- [x] Verify `pending:Ray` appears in the database split fields
+- [x] Go to Account > Earnings > Resolve tab
+- [x] Verify collaborator appears in Pending Collaborators section
 - [ ] Click track count to expand — verify correct track titles shown
-- [ ] Search for a user via autocomplete in the resolve input
+- [x] Search for a user via autocomplete in the resolve input
 - [ ] Click Resolve — verify the split is updated in the database
-- [ ] Verify "Kwame" disappears from pending list after resolution
+- [ ] Verify collaborator disappears from pending list after resolution
 - [ ] Open the track in edit form — verify wallet shows with @username label
 - [ ] Verify badge counter decrements
+
+### TBD Wallet Creation from Resolve Tab (NEW - Feb 25)
+- [x] Search for a name with no matches in Resolve tab autocomplete
+- [x] Verify "Create managed wallet for [Name]" option appears
+- [x] Click create — verify wallet fills into the resolve input
+- [x] Verify TBD persona appears in TBD Collaborators section below
+- [x] Verify TBD wallet appears in Wallets tab
+- [x] Verify TBD wallet appears in Managed Accounts dropdown
 
 ### Wallet Username Labels (Edit Form)
 - [ ] Open a track with collaborator wallets in edit form
@@ -222,3 +237,16 @@ Batch-resolve `pending:` splits across multiple tracks.
 - [ ] Open edit form licensing step for a song — verify simplified "$0.10 per remix use" wording
 - [ ] Start a chatbot upload for a song — verify mixer question uses new wording
 - [ ] Start a chatbot upload for a loop — verify mixer earnings uses new wording
+
+---
+
+## Bug Fixes (Feb 25, 2026)
+
+### Infinite Spinner on Resolve Tab
+**Problem:** Resolve tab showed an infinite spinner, never rendering content.
+
+**Root cause:** `fetchTbdPersonas()` had two early-return paths (error and empty data) that didn't call `setLoadingTbd(false)`. The Resolve view spinner waits for both `loadingTbd` AND `loadingPending` to be false, so if the TBD fetch returned early (e.g., zero TBD personas), the spinner was stuck permanently.
+
+**Fix:** Added `setLoadingTbd(false)` to both early-return paths in `fetchTbdPersonas()`.
+
+**Commit:** `ca96bd3`
