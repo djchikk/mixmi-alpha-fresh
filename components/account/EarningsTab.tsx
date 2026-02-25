@@ -69,6 +69,7 @@ interface EarningsTabProps {
   activePersona: Persona | null;
   suiAddress: string | null;
   refreshPersonas?: () => Promise<void>;
+  onTracksChanged?: () => void;
 }
 
 export default function EarningsTab({
@@ -77,6 +78,7 @@ export default function EarningsTab({
   activePersona,
   suiAddress,
   refreshPersonas,
+  onTracksChanged,
 }: EarningsTabProps) {
   const [earnings, setEarnings] = useState<Earning[]>([]);
   const [treasuryHoldings, setTreasuryHoldings] = useState<TreasuryHolding[]>([]);
@@ -413,6 +415,8 @@ export default function EarningsTab({
           return next;
         });
         await fetchPendingSplits();
+        // Refresh parent track list so edit form gets fresh data
+        onTracksChanged?.();
       } else {
         console.error('Failed to resolve pending:', result.error);
       }

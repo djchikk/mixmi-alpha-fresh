@@ -616,6 +616,7 @@ export default function AccountPage() {
                   activePersona={activePersona}
                   suiAddress={suiAddress}
                   refreshPersonas={refreshPersonas}
+                  onTracksChanged={fetchTracks}
                 />
               )}
               {activeTab === "wallets" && (
