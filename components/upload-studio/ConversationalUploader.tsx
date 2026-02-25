@@ -1861,7 +1861,7 @@ Would you like to post another track, or shall I show you where to find your new
       {/* Messages Area */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0"
+        className="flex-1 overflow-y-auto px-6 pt-6 pb-4 space-y-4 min-h-0"
       >
         {/* Welcome Hero - empty state for chat, hidden once messages exist */}
         {showWelcomeHero && messages.length === 0 && (
@@ -1931,22 +1931,6 @@ Would you like to post another track, or shall I show you where to find your new
                       )
                     }}
                   />
-
-                  {/* Attachments */}
-                  {message.attachments && message.attachments.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {message.attachments.map(att => (
-                        <div
-                          key={att.id}
-                          className="flex items-center gap-2 px-2 py-1 bg-slate-700/50 rounded text-xs"
-                        >
-                          {att.type === 'audio' && <Music size={12} />}
-                          {att.type === 'video' && <Video size={12} />}
-                          <span className="truncate max-w-[100px]">{att.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
 
                   <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-[#0a0e1a]/60' : 'text-gray-500'}`}>
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -2133,20 +2117,52 @@ Would you like to post another track, or shall I show you where to find your new
             className={`h-[44px] w-full rounded-lg border border-dashed transition-all cursor-pointer flex items-center justify-center gap-2 ${
               isDragOver
                 ? 'border-[#81E4F2] bg-[#81E4F2]/10'
-                : 'border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/50'
+                : attachments.length > 0
+                  ? 'border-green-600/50 bg-green-900/10 hover:bg-green-900/20'
+                  : 'border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/50'
             }`}
           >
-            <Upload size={14} className={isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'} />
-            <span className={`text-xs ${isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'}`}>
-              Drop files here or browse
-            </span>
+            {attachments.length > 0 ? (
+              <>
+                {/* Categorized file summary */}
+                <div className="flex items-center gap-3 text-xs">
+                  {(() => {
+                    const audioCount = attachments.filter(a => a.type === 'audio').length;
+                    const imageCount = attachments.filter(a => a.type === 'image').length;
+                    const videoCount = attachments.filter(a => a.type === 'video').length;
+                    const csvCount = attachments.filter(a => a.name?.endsWith('.csv')).length;
+                    const parts: React.ReactNode[] = [];
+                    if (audioCount > 0) parts.push(<span key="audio" className="text-green-400">🎵 {audioCount} audio</span>);
+                    if (imageCount > 0) parts.push(<span key="image" className="text-green-400">🖼️ {imageCount} image{imageCount !== 1 ? 's' : ''}</span>);
+                    if (videoCount > 0) parts.push(<span key="video" className="text-green-400">🎬 {videoCount} video{videoCount !== 1 ? 's' : ''}</span>);
+                    if (csvCount > 0) parts.push(<span key="csv" className="text-green-400">📋 {csvCount} CSV</span>);
+                    return parts.length > 0 ? parts.reduce((prev, curr, i) => <>{prev}{i > 0 && <span className="text-slate-600 mx-1">·</span>}{curr}</>) : null;
+                  })()}
+                  <span className="text-slate-500">·</span>
+                  <span className="text-gray-500">+ more</span>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setAttachments([]); }}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors ml-2"
+                >
+                  Clear
+                </button>
+              </>
+            ) : (
+              <>
+                <Upload size={14} className={isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'} />
+                <span className={`text-xs ${isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'}`}>
+                  Drop files here or browse
+                </span>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {/* Input Area - pinned to bottom */}
       <div className="px-6 py-4 border-t border-slate-700/50 flex-shrink-0">
-        <div className="flex items-end gap-3">
+        <div className="flex items-center gap-3">
           <input
             ref={fileInputRef}
             type="file"
@@ -2226,14 +2242,14 @@ Would you like to post another track, or shall I show you where to find your new
                   onKeyDown={handleKeyDown}
                   placeholder="Type or speak..."
                   rows={1}
-                  className="w-full pl-4 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
+                  className="w-full pl-4 pr-14 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
                   style={{ minHeight: '48px', maxHeight: '120px' }}
                 />
-                {/* Mic button inside input, right side */}
+                {/* Mic button inside input, right side, vertically centered */}
                 <button
                   onClick={isSpeaking ? stopSpeaking : isRecording ? stopRecording : startRecording}
                   disabled={isTranscribing || isLoading}
-                  className={`absolute right-3 bottom-3 p-1 rounded-lg transition-colors ${
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors ${
                     isRecording
                       ? 'bg-red-500 animate-pulse'
                       : isSpeaking
@@ -2245,11 +2261,11 @@ Would you like to post another track, or shall I show you where to find your new
                   title={isSpeaking ? 'Stop speaking' : isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Voice input'}
                 >
                   {isTranscribing ? (
-                    <Loader2 size={18} className="text-[#81E4F2] animate-spin" />
+                    <Loader2 size={22} className="text-[#81E4F2] animate-spin" />
                   ) : isSpeaking ? (
-                    <Mic size={18} className="text-[#81E4F2] animate-pulse" />
+                    <Mic size={22} className="text-[#81E4F2] animate-pulse" />
                   ) : (
-                    <Mic size={18} className={isRecording ? 'text-white' : 'text-gray-400'} />
+                    <Mic size={22} className={isRecording ? 'text-white' : 'text-gray-400'} />
                   )}
                 </button>
               </div>
