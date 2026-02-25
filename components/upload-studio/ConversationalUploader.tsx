@@ -1857,21 +1857,14 @@ Would you like to post another track, or shall I show you where to find your new
     return null;
   };
 
-  // Determine whether to show mic or send button
-  const hasTextInput = inputValue.trim().length > 0;
-  const hasUploadedAttachments = attachments.filter(a => a.status === 'uploaded').length > 0;
-  const showSendButton = hasTextInput || hasUploadedAttachments || (isAskingForLocation && locationInput.trim().length > 0);
-
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)] max-w-6xl mx-auto gap-6 px-4">
-      {/* Left Column - Chat */}
-      <div
-        className="flex flex-col flex-1 min-w-0 relative"
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-      >
+    <div
+      className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto px-4 relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {/* Drag Overlay */}
       {isDragOver && (
         <div className="absolute inset-0 z-50 bg-[#0a0e1a]/90 backdrop-blur-sm flex items-center justify-center border-2 border-dashed border-[#81E4F2] rounded-xl m-2">
@@ -1885,8 +1878,63 @@ Would you like to post another track, or shall I show you where to find your new
         </div>
       )}
 
+      {/* Top Row - Drop Zone + Preview Card, side by side */}
+      <div className="flex flex-col sm:flex-row gap-4 py-4 justify-center items-stretch flex-shrink-0">
+        {/* File Drop Zone */}
+        {!isReadyToSubmit && (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={`sm:w-[200px] h-[160px] rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-2 flex-shrink-0 ${
+              isDragOver
+                ? 'border-[#81E4F2] bg-[#81E4F2]/10'
+                : 'border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/50'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+              isDragOver ? 'bg-[#81E4F2]/20' : 'bg-slate-700/50'
+            }`}>
+              <Upload size={20} className={isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'} />
+            </div>
+            <div className="text-center px-3">
+              {attachments.filter(a => a.status === 'uploaded').length > 0 ? (
+                <>
+                  <p className="text-sm font-medium mb-1 text-green-400">
+                    {attachments.filter(a => a.status === 'uploaded').length} file{attachments.filter(a => a.status === 'uploaded').length !== 1 ? 's' : ''} added
+                  </p>
+                  <p className="text-xs text-gray-500">Drop more or</p>
+                </>
+              ) : (
+                <>
+                  <p className={`text-sm font-medium mb-1 ${isDragOver ? 'text-[#81E4F2]' : 'text-gray-300'}`}>
+                    Drop files here
+                  </p>
+                  <p className="text-xs text-gray-500">or</p>
+                </>
+              )}
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="px-4 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            >
+              Browse Files
+            </button>
+          </div>
+        )}
+
+        {/* Preview Card */}
+        <div className="flex-shrink-0">
+          <UploadPreviewCard
+            data={extractedData}
+            coverImageUrl={getCoverImageUrl() || undefined}
+          />
+        </div>
+      </div>
+
       {/* Chat Header */}
-      <div className="px-6 py-4 border-b border-slate-700/50">
+      <div className="px-6 py-3 border-b border-slate-700/50 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-white">Post Studio</h1>
@@ -1908,9 +1956,9 @@ Would you like to post another track, or shall I show you where to find your new
       {/* Messages Area */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
+        className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0"
       >
-        {/* Welcome Hero - shows before any interaction */}
+        {/* Welcome Hero - empty state for chat, hidden once messages exist */}
         {showWelcomeHero && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center transition-all duration-500 ease-out">
             {/* Glowing orb icon */}
@@ -2191,8 +2239,8 @@ Would you like to post another track, or shall I show you where to find your new
         </div>
       )}
 
-      {/* Input Area */}
-      <div className="px-6 py-4 border-t border-slate-700/50">
+      {/* Input Area - pinned to bottom */}
+      <div className="px-6 py-4 border-t border-slate-700/50 flex-shrink-0">
         <div className="flex items-end gap-3">
           <input
             ref={fileInputRef}
@@ -2261,132 +2309,70 @@ Would you like to post another track, or shall I show you where to find your new
                 </p>
               </>
             ) : (
-              <textarea
-                value={inputValue}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  // Stop TTS and switch to text mode when user types
-                  if (isSpeaking) stopSpeaking();
-                  setLastInputMode('text');
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder={attachments.length > 0 ? "Hit send when files are ready, or type here..." : "Type here or use the mic to chat by voice..."}
-                rows={1}
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
-                style={{ minHeight: '48px', maxHeight: '120px' }}
-              />
+              /* Text input with mic icon inside on the right */
+              <div className="relative">
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                    if (isSpeaking) stopSpeaking();
+                    setLastInputMode('text');
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type or speak..."
+                  rows={1}
+                  className="w-full pl-4 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#81E4F2] transition-colors"
+                  style={{ minHeight: '48px', maxHeight: '120px' }}
+                />
+                {/* Mic button inside input, right side */}
+                <button
+                  onClick={isSpeaking ? stopSpeaking : isRecording ? stopRecording : startRecording}
+                  disabled={isTranscribing || isLoading}
+                  className={`absolute right-3 bottom-3 p-1 rounded-lg transition-colors ${
+                    isRecording
+                      ? 'bg-red-500 animate-pulse'
+                      : isSpeaking
+                        ? 'bg-[#81E4F2]/20'
+                        : isTranscribing
+                          ? ''
+                          : 'hover:bg-slate-700'
+                  } disabled:opacity-50`}
+                  title={isSpeaking ? 'Stop speaking' : isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Voice input'}
+                >
+                  {isTranscribing ? (
+                    <Loader2 size={18} className="text-[#81E4F2] animate-spin" />
+                  ) : isSpeaking ? (
+                    <Mic size={18} className="text-[#81E4F2] animate-pulse" />
+                  ) : (
+                    <Mic size={18} className={isRecording ? 'text-white' : 'text-gray-400'} />
+                  )}
+                </button>
+              </div>
             )}
           </div>
 
-          {/* Button cluster - right side: mic OR send */}
-          <div className="flex items-center gap-2">
-            {showSendButton ? (
-              /* Send Button */
-              <button
-                onClick={isAskingForLocation && locationInput.trim()
-                  ? () => handleLocationSelect(locationInput.trim())
-                  : () => sendMessage('text')
-                }
-                disabled={isLoading ||
-                  attachments.some(a => a.status === 'uploading' || a.status === 'pending') || (
-                  isAskingForLocation
-                    ? !locationInput.trim()
-                    : (!inputValue.trim() && attachments.filter(a => a.status === 'uploaded').length === 0)
-                )}
-                className="p-3 bg-[#81E4F2] hover:bg-[#6BC4D4] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title={attachments.some(a => a.status === 'uploading' || a.status === 'pending') ? 'Wait for uploads to complete' : 'Send message'}
-              >
-                <Send size={20} className="text-[#0a0e1a]" />
-              </button>
-            ) : (
-              /* Voice Input Button -- also stops speech when bot is talking */
-              <button
-                onClick={isSpeaking ? stopSpeaking : isRecording ? stopRecording : startRecording}
-                disabled={isTranscribing || isLoading}
-                className={`p-3 rounded-xl transition-colors ${
-                  isRecording
-                    ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                    : isSpeaking
-                      ? 'bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30'
-                      : isTranscribing
-                        ? 'bg-slate-700'
-                        : 'bg-slate-800 hover:bg-slate-700'
-                } disabled:opacity-50`}
-                title={isSpeaking ? 'Stop speaking' : isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Voice input'}
-              >
-                {isTranscribing ? (
-                  <Loader2 size={20} className="text-[#81E4F2] animate-spin" />
-                ) : isSpeaking ? (
-                  <Mic size={20} className="text-[#81E4F2] animate-pulse" />
-                ) : (
-                  <Mic size={20} className={isRecording ? 'text-white' : 'text-gray-400'} />
-                )}
-              </button>
+          {/* Send Button - always visible outside input */}
+          <button
+            onClick={isAskingForLocation && locationInput.trim()
+              ? () => handleLocationSelect(locationInput.trim())
+              : () => sendMessage('text')
+            }
+            disabled={isLoading ||
+              attachments.some(a => a.status === 'uploading' || a.status === 'pending') || (
+              isAskingForLocation
+                ? !locationInput.trim()
+                : (!inputValue.trim() && attachments.filter(a => a.status === 'uploaded').length === 0)
             )}
-          </div>
+            className="p-3 bg-[#81E4F2] hover:bg-[#6BC4D4] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            title={attachments.some(a => a.status === 'uploading' || a.status === 'pending') ? 'Wait for uploads to complete' : 'Send message'}
+          >
+            <Send size={20} className="text-[#0a0e1a]" />
+          </button>
         </div>
 
         <p className="text-xs text-gray-500 mt-2 text-center">
           Type or speak • Enter to send • Shift+Enter for new line
         </p>
-      </div>
-      </div>
-
-      {/* Right Column - Preview Card + Drop Zone */}
-      <div className="hidden lg:flex flex-col gap-4 lg:w-[320px] flex-shrink-0 pt-4 pb-4">
-        {/* Preview Card */}
-        <UploadPreviewCard
-          data={extractedData}
-          coverImageUrl={getCoverImageUrl() || undefined}
-        />
-
-        {/* File Drop Zone - below preview, hidden when ready to submit */}
-        {!isReadyToSubmit && (
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            className={`w-full h-[140px] rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-2 ${
-              isDragOver
-                ? 'border-[#81E4F2] bg-[#81E4F2]/10'
-                : 'border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/50'
-            }`}
-          >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-              isDragOver ? 'bg-[#81E4F2]/20' : 'bg-slate-700/50'
-            }`}>
-              <Upload size={20} className={isDragOver ? 'text-[#81E4F2]' : 'text-gray-400'} />
-            </div>
-            <div className="text-center px-3">
-              {attachments.filter(a => a.status === 'uploaded').length > 0 ? (
-                <>
-                  <p className="text-sm font-medium mb-1 text-green-400">
-                    {attachments.filter(a => a.status === 'uploaded').length} file{attachments.filter(a => a.status === 'uploaded').length !== 1 ? 's' : ''} added
-                  </p>
-                  <p className="text-xs text-gray-500">Drop more or</p>
-                </>
-              ) : (
-                <>
-                  <p className={`text-sm font-medium mb-1 ${isDragOver ? 'text-[#81E4F2]' : 'text-gray-300'}`}>
-                    Drop files here
-                  </p>
-                  <p className="text-xs text-gray-500">or</p>
-                </>
-              )}
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
-              className="px-4 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-            >
-              Browse Files
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
