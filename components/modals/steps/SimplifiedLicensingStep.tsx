@@ -67,7 +67,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 handleInputChange('allow_downloads', checked);
                 handleInputChange('license_type', checked ? 'streaming_download' : 'streaming_only');
                 if (checked && !formData.download_price_stx) {
-                  handleInputChange('download_price_stx', 2);
+                  handleInputChange('download_price_stx', PRICING.download.song);
                 } else if (!checked) {
                   handleInputChange('download_price_stx', null);
                 }
@@ -92,14 +92,14 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                   <div className="flex items-center">
                     <input
                       type="number"
-                      value={formData.download_price_stx || 2}
+                      value={formData.download_price_stx || PRICING.download.song}
                       onChange={(e) => {
                         const price = parseFloat(e.target.value) || 0;
                         handleInputChange('download_price_stx', price);
                         handleInputChange('price_stx', price);
                       }}
                       className="w-24 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
-                      placeholder="2"
+                      placeholder={String(PRICING.download.song)}
                       min="0"
                       step="0.01"
                     />
@@ -179,7 +179,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
   if (formData.content_type === 'ep') {
     // Use ep_files length for new uploads, or ep_song_count for editing existing EPs
     const songCount = formData.ep_files?.length || formData.ep_song_count || 0;
-    const downloadPricePerSong = formData.price_per_song || 2;
+    const downloadPricePerSong = formData.price_per_song || PRICING.download.song;
     const totalEPPrice = (downloadPricePerSong * songCount).toFixed(1);
 
     return (
@@ -240,8 +240,8 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 handleInputChange('license_type', checked ? 'streaming_download' : 'streaming_only');
                 if (checked && !formData.price_per_song) {
                   // Set default price_per_song when enabling downloads
-                  handleInputChange('price_per_song', 2);
-                  handleInputChange('download_price_stx', 2 * songCount);
+                  handleInputChange('price_per_song', PRICING.download.song);
+                  handleInputChange('download_price_stx', PRICING.download.song * songCount);
                 } else if (!checked) {
                   handleInputChange('download_price_stx', null);
                 }
@@ -280,7 +280,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                         handleInputChange('price_stx', price * songCount);
                       }}
                       className="w-20 p-2 bg-slate-800 border border-slate-600 rounded-l text-white text-sm"
-                      placeholder="2"
+                      placeholder={String(PRICING.download.song)}
                       min="0"
                       step="0.01"
                     />

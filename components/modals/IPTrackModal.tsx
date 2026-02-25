@@ -1197,68 +1197,52 @@ export default function IPTrackModal({
   // Render functions for each step
   const renderBasicInfo = () => (
     <div className="space-y-6" style={{ gap: '24px' }}>
-      {/* Content Attribution Wallet */}
-      <div 
-        className="border rounded-lg p-4 space-y-3"
-        style={{
-          background: 'rgba(0, 0, 0, 0.25)',
-          borderColor: 'rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px'
-        }}
-      >
-        <input
-          type="text"
-          value={formData.wallet_address || ''}
-          onChange={(e) => handleInputChange('wallet_address', e.target.value)}
-          readOnly={useVerificationWallet && !!walletToUse}
-          title="Upload for different wallets: Useful for managers, labels, or multiple creative identities"
-          className={`w-full px-3 py-3 rounded-md text-white placeholder-gray-500 border focus:outline-none transition-all duration-200 ${
-            useVerificationWallet && walletToUse
-              ? 'bg-gray-700/50 cursor-not-allowed text-gray-300'
-              : 'bg-black/25 cursor-text text-white'
-          }`}
-          style={{
-            borderColor: useVerificationWallet && walletToUse
-              ? 'rgba(129, 228, 242, 0.3)'
-              : 'rgba(255, 255, 255, 0.08)',
-            borderRadius: '10px',
-            placeholderColor: useVerificationWallet && walletToUse ? '#9ca3af' : '#4a5264'
-          }}
-          placeholder={
-            useVerificationWallet && walletToUse
-              ? "Using authenticated wallet (read-only)"
-              : "0x... or SP... (Wallet for this content)"
-          }
+      {/* Artist Name - First field */}
+      <div>
+        <label className="block text-sm font-normal text-gray-300 mb-2">Artist Name</label>
+        <ArtistAutosuggest
+          value={formData.artist}
+          onChange={(value) => handleInputChange('artist', value)}
+          className="input-field"
+          placeholder="Artist or Project name"
+          required={true}
         />
-
-        {/* Attribution Checkbox - Essential for business use cases */}
-        {walletToUse && (
-          <label className="flex items-center gap-3 cursor-pointer mt-3">
-            <input
-              type="checkbox"
-              checked={useVerificationWallet}
-              onChange={(e) => {
-                setUseVerificationWallet(e.target.checked);
-                if (e.target.checked) {
-                  handleInputChange('wallet_address', walletToUse);
-                } else {
-                  handleInputChange('wallet_address', '');
-                }
-              }}
-              className="w-5 h-5 rounded text-[#81E4F2] focus:ring-[#81E4F2]"
-              style={{
-                background: 'rgba(0, 0, 0, 0.25)',
-                borderColor: '#81E4F2',
-              }}
-            />
-            <span className="text-white text-sm">
-              Use authenticated account for creative ownership ({walletToUse.substring(0, 10)}...)
-            </span>
-          </label>
-        )}
       </div>
 
-      {/* Content Type Selection - New Grid Layout */}
+      {/* Title - Full width, no version field */}
+      <div>
+        <label className="block text-sm font-normal text-gray-300 mb-2">
+          {formData.content_type === 'loop_pack' ? 'Pack Title' :
+           formData.content_type === 'ep' ? 'EP Title' :
+           formData.content_type === 'loop' ? 'Loop Title' :
+           formData.content_type === 'full_song' ? 'Song Title' :
+           formData.content_type === 'video_clip' ? 'Clip Title' : 'Track Title'}
+        </label>
+        <input
+          type="text"
+          value={formData.content_type === 'loop_pack' ? (formData as any).pack_title || formData.title || '' :
+                 formData.content_type === 'ep' ? (formData as any).ep_title || formData.title || '' : formData.title}
+          onChange={(e) => {
+            if (formData.content_type === 'loop_pack') {
+              handleInputChange('pack_title' as any, e.target.value);
+              handleInputChange('title', e.target.value);
+            } else if (formData.content_type === 'ep') {
+              handleInputChange('ep_title' as any, e.target.value);
+              handleInputChange('title', e.target.value);
+            } else {
+              handleInputChange('title', e.target.value);
+            }
+          }}
+          className="input-field"
+          placeholder={formData.content_type === 'loop_pack' ? 'Pack Name (e.g., Underground House Pack)' :
+                      formData.content_type === 'ep' ? 'EP Name (e.g., Midnight Sessions EP)' :
+                      formData.content_type === 'loop' ? 'Loop Name (e.g., Dark Bass Loop)' :
+                      formData.content_type === 'full_song' ? 'Song Name (e.g., Midnight Drive)' :
+                      formData.content_type === 'video_clip' ? 'Clip Name' : 'Track Name'}
+        />
+      </div>
+
+      {/* Content Type Selection */}
       <div>
         <label className="block text-sm font-normal text-gray-300 mb-3">Content Type</label>
         <div className="grid grid-cols-2 gap-3">
@@ -1319,61 +1303,22 @@ export default function IPTrackModal({
         </div>
       </div>
 
-      {/* Title and Version - Conditional based on content type */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
-          <label className="block text-sm font-normal text-gray-300 mb-2">
-            {formData.content_type === 'loop_pack' ? 'Pack Title' :
-             formData.content_type === 'ep' ? 'EP Title' :
-             formData.content_type === 'loop' ? 'Loop Title' :
-             formData.content_type === 'full_song' ? 'Song Title' :
-             formData.content_type === 'video_clip' ? 'Clip Title' : 'Track Title'}
-          </label>
-          <input
-            type="text"
-            value={formData.content_type === 'loop_pack' ? (formData as any).pack_title || '' : 
-                   formData.content_type === 'ep' ? (formData as any).ep_title || '' : formData.title}
-            onChange={(e) => {
-              if (formData.content_type === 'loop_pack') {
-                handleInputChange('pack_title' as any, e.target.value);
-              } else if (formData.content_type === 'ep') {
-                handleInputChange('ep_title' as any, e.target.value);
-                handleInputChange('title', e.target.value); // Also set regular title for card display
-              } else {
-                handleInputChange('title', e.target.value);
-              }
-            }}
-            className="input-field"
-            placeholder={formData.content_type === 'loop_pack' ? 'Pack Name (e.g., Underground House Pack)' :
-                        formData.content_type === 'ep' ? 'EP Name (e.g., Midnight Sessions EP)' :
-                        formData.content_type === 'loop' ? 'Loop Name (e.g., Dark Bass Loop)' :
-                        formData.content_type === 'full_song' ? 'Song Name (e.g., Midnight Drive)' :
-                        formData.content_type === 'video_clip' ? 'Clip Name' : 'Track Name'}
-          />
+      {/* Content Attribution Wallet - Read-only display */}
+      {walletToUse && (
+        <div
+          className="border rounded-lg p-3"
+          style={{
+            background: 'rgba(0, 0, 0, 0.25)',
+            borderColor: 'rgba(129, 228, 242, 0.2)',
+            borderRadius: '12px'
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-xs">Owned by:</span>
+            <span className="text-[#81E4F2] text-sm font-mono">{walletToUse.substring(0, 10)}...{walletToUse.substring(walletToUse.length - 6)}</span>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-normal text-gray-300 mb-2">Version <span className="text-gray-500">(optional)</span></label>
-          <input
-            type="text"
-            value={formData.version}
-            onChange={(e) => handleInputChange('version', e.target.value)}
-            className="input-field"
-            placeholder="optional"
-          />
-        </div>
-      </div>
-
-      {/* Artist */}
-      <div>
-        <label className="block text-sm font-normal text-gray-300 mb-2">Artist Name</label>
-        <ArtistAutosuggest
-          value={formData.artist}
-          onChange={(value) => handleInputChange('artist', value)}
-          className="input-field"
-          placeholder="Artist or Project name"
-          required={true}
-        />
-      </div>
+      )}
 
       {/* Loop Pack Description - Only show for loop packs */}
       {formData.content_type === 'loop_pack' && (

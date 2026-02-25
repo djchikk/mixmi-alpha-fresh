@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IPTrack, ContentType, ValidationResult, IPTrackSplitPreset } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
+import { PRICING, getDefaultDownloadPrice } from '@/config/pricing';
 
 interface IPTrackFormData {
   id: string;
@@ -216,10 +217,10 @@ export function useIPTrackForm({ track, walletAddress }: UseIPTrackFormProps): U
     // For songs: price_stx is the download price
     // For loops: download_price_stx is the per-item price, price_stx is the total (for packs)
     price_stx: track?.price_stx || 0,
-    remix_price: (track as any)?.remix_price || 0.5,
+    remix_price: (track as any)?.remix_price || PRICING.mixer.loopRecording,
     combined_price: (track as any)?.combined_price || 2.5,
     // IMPORTANT: Fall back to price_stx for songs/EPs that only have price_stx set
-    download_price: (track as any)?.download_price_stx || (track as any)?.download_price || track?.price_stx || 2.5,
+    download_price: (track as any)?.download_price_stx || (track as any)?.download_price || track?.price_stx || getDefaultDownloadPrice(track?.content_type || 'loop'),
     // download_price_stx is used directly by SimplifiedLicensingStep for songs/loops
     download_price_stx: (track as any)?.download_price_stx ?? track?.price_stx ?? null,
     // price_per_song/loop are calculated from total for EPs/packs (handled in IPTrackModal)
