@@ -20,6 +20,7 @@ import ProfileInfoModal from "@/components/profile/ProfileInfoModal";
 import { Plus, ChevronDown, ChevronUp, Pencil, ExternalLink, Image, Check } from 'lucide-react';
 import { Track } from '@/components/mixer/types';
 import Crate from '@/components/shared/Crate';
+import CartWidget from '@/components/CartWidget';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import WalletsTab from '@/components/account/WalletsTab';
 
@@ -686,6 +687,9 @@ export default function AccountPage() {
         onSave={fetchTracks}
         contentCategory="visual"
       />
+
+      {/* Cart Widget - Fixed position, top-right corner */}
+      <CartWidget />
 
       {/* Crate - So users can see agent-found tracks */}
       <Crate />
