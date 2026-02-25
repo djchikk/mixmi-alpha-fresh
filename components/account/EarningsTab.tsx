@@ -1153,6 +1153,13 @@ export default function EarningsTab({
                                   setPendingResolveInputs(prev => ({ ...prev, [pending.name]: wallet }));
                                 }
                               }}
+                              uploaderWallet={suiAddress || activePersona?.sui_address || activePersona?.wallet_address || undefined}
+                              onPersonaCreated={(persona) => {
+                                // When a TBD persona is created, set the wallet in the input for resolution
+                                setPendingResolveInputs(prev => ({ ...prev, [pending.name]: persona.walletAddress }));
+                                // Refresh TBD list since we just created one
+                                fetchTbdPersonas();
+                              }}
                               className="w-full px-3 py-2 bg-[#0a0f1a] border border-[#1E293B] rounded-lg text-white text-sm focus:border-[#81E4F2] focus:outline-none"
                               placeholder="Search user or enter wallet"
                             />
