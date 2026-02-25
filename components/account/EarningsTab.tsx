@@ -801,17 +801,19 @@ export default function EarningsTab({
         </button>
         <button
           onClick={() => setView('resolve')}
-          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+          className={`px-4 py-2 rounded-lg text-sm transition-colors relative ${
             view === 'resolve'
               ? 'bg-amber-500 text-slate-900 font-medium'
-              : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+              : (pendingSplits.length + tbdPersonas.length) > 0
+                ? 'bg-amber-900/40 text-amber-400 border border-amber-500/50 hover:bg-amber-900/60 animate-pulse'
+                : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
           }`}
         >
           <span className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className={`w-4 h-4 ${(pendingSplits.length + tbdPersonas.length) > 0 && view !== 'resolve' ? 'text-amber-400' : ''}`} />
             Resolve
             {(pendingSplits.length + tbdPersonas.length) > 0 && (
-              <span className="px-1.5 py-0.5 bg-amber-600 text-white text-xs rounded-full">
+              <span className="px-1.5 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">
                 {pendingSplits.length + tbdPersonas.length}
               </span>
             )}
@@ -1128,10 +1130,13 @@ export default function EarningsTab({
                             </div>
                             <button
                               onClick={() => setExpandedPending(prev => ({ ...prev, [pending.name]: !prev[pending.name] }))}
-                              className="text-xs text-gray-500 mt-1 hover:text-gray-400 transition-colors"
+                              className="flex items-center gap-1.5 text-xs text-gray-400 mt-1.5 hover:text-amber-400 transition-colors group"
                             >
-                              {uniqueTrackCount} track{uniqueTrackCount !== 1 ? 's' : ''} · {splitSummary}
-                              {isExpanded ? <ChevronUp className="w-3 h-3 inline ml-1" /> : <ChevronDown className="w-3 h-3 inline ml-1" />}
+                              <span>{uniqueTrackCount} track{uniqueTrackCount !== 1 ? 's' : ''} · {splitSummary}</span>
+                              {isExpanded
+                                ? <ChevronUp className="w-4 h-4 text-amber-500 group-hover:text-amber-400" />
+                                : <ChevronDown className="w-4 h-4 text-amber-500 group-hover:text-amber-400" />
+                              }
                             </button>
                           </div>
                         </div>
