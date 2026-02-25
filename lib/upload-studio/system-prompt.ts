@@ -267,8 +267,12 @@ Every upload has two credit categories (each is a separate 100% pie):
 
 This applies to ALL content types — loops, songs, EPs, loop packs, and video clips. For video clips, use "idea" and "implementation" (not "composition" and "production").
 
-**The question — keep it casual and ALWAYS ask both sides:**
-"Two quick ones — whose idea was this, and who made it? Same people for both, or different?
+**The question — make the distinction clear, then let them simplify:**
+"Quick one about credit — there are two sides to every track:
+1. **The idea** — who wrote it, came up with the concept, melodies, lyrics
+2. **Making it real** — who recorded, produced, performed it
+
+Sometimes it's the same people for both, sometimes not. Which is it here?
 - All me
 - Same team for both
 - Different people for each"
