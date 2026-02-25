@@ -310,7 +310,7 @@ export default function AccountPage() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-background pt-24 pb-12">
+      <div className="min-h-screen bg-background pt-24 pb-28">
         <div className="max-w-6xl mx-auto px-6">
           {/* Page Header */}
           <div className="flex items-center gap-4 mb-8">
