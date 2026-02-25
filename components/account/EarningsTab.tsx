@@ -380,11 +380,13 @@ export default function EarningsTab({
 
     setResolvingPending(pendingName);
     try {
-      const uploaderWallet = personas.find(p => p.sui_address || p.wallet_address)?.sui_address
-        || personas.find(p => p.sui_address || p.wallet_address)?.wallet_address;
+      // Collect ALL wallet addresses for this account (tracks may be uploaded by different personas)
+      const uploaderWallets = personas
+        .map(p => p.sui_address || p.wallet_address)
+        .filter(Boolean) as string[];
 
-      if (!uploaderWallet) {
-        console.error('No uploader wallet found');
+      if (uploaderWallets.length === 0) {
+        console.error('No uploader wallets found');
         return;
       }
 
@@ -397,7 +399,7 @@ export default function EarningsTab({
           pendingName,
           resolvedWallet,
           trackIds,
-          uploaderWallet,
+          uploaderWallets,
         }),
       });
 

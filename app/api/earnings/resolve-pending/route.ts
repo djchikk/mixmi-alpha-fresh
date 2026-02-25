@@ -17,11 +17,16 @@ const SPLIT_FIELDS = [
 
 export async function POST(request: NextRequest) {
   try {
-    const { pendingName, resolvedWallet, trackIds, uploaderWallet } = await request.json();
+    const { pendingName, resolvedWallet, trackIds, uploaderWallet, uploaderWallets } = await request.json();
 
-    if (!pendingName || !resolvedWallet || !trackIds?.length || !uploaderWallet) {
+    // Support both single wallet (legacy) and array of wallets
+    const validWallets: string[] = uploaderWallets?.length
+      ? uploaderWallets
+      : uploaderWallet ? [uploaderWallet] : [];
+
+    if (!pendingName || !resolvedWallet || !trackIds?.length || validWallets.length === 0) {
       return NextResponse.json(
-        { error: 'Missing required fields: pendingName, resolvedWallet, trackIds, uploaderWallet' },
+        { error: 'Missing required fields: pendingName, resolvedWallet, trackIds, uploaderWallet(s)' },
         { status: 400 }
       );
     }
@@ -44,8 +49,8 @@ export async function POST(request: NextRequest) {
 
       const track = trackData as Record<string, any>;
 
-      // Security: verify the requesting user owns this track
-      if (track.primary_uploader_wallet !== uploaderWallet) {
+      // Security: verify the requesting user owns this track (check all account wallets)
+      if (!validWallets.includes(track.primary_uploader_wallet)) {
         console.error(`Ownership mismatch for track ${trackId}`);
         continue;
       }
