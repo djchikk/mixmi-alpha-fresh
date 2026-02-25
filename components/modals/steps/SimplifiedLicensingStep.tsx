@@ -29,8 +29,8 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
               <p className="text-gray-400 text-sm mb-3">
-                Your song can be used in the platform mixer for live mixing and recorded remixes.
-                You earn <strong>${PRICING.mixer.loopRecording} USDC</strong> each time someone records a remix that includes an 8-bar section from your song.
+                Make your song available for other creators to remix.
+                You earn <strong>${PRICING.mixer.loopRecording} USDC</strong> each time your music is used in a recorded remix.
               </p>
 
               {/* Protected message when unchecked */}
@@ -48,7 +48,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                   <div className="flex items-center gap-2">
                     <span className="text-gray-400 text-sm">Recording fee:</span>
                     <span className="text-[#81E4F2] font-bold text-lg">${PRICING.mixer.loopRecording} USDC</span>
-                    <span className="text-gray-500 text-xs">per recorded remix</span>
+                    <span className="text-gray-500 text-xs">per remix use</span>
                   </div>
                 </div>
               )}
@@ -201,8 +201,8 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
               <p className="text-gray-400 text-sm mb-3">
-                Songs in your EP can be used in the platform mixer for live mixing and recorded remixes.
-                You earn <strong>${PRICING.mixer.loopRecording} USDC</strong> per song each time someone records a remix that includes an 8-bar section from a song in your EP.
+                Make songs in your EP available for other creators to remix.
+                You earn <strong>${PRICING.mixer.loopRecording} USDC</strong> each time your music is used in a recorded remix.
               </p>
 
               {/* Protected message when unchecked */}
@@ -220,7 +220,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                   <div className="flex items-center gap-2">
                     <span className="text-gray-400 text-sm">Recording fee:</span>
                     <span className="text-[#81E4F2] font-bold text-lg">${PRICING.mixer.loopRecording} USDC</span>
-                    <span className="text-gray-500 text-xs">per song per recorded remix</span>
+                    <span className="text-gray-500 text-xs">per remix use</span>
                   </div>
                 </div>
               )}
@@ -391,7 +391,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
               </div>
-              <p className="text-gray-400 text-sm mb-3">You earn ${PRICING.mixer.loopRecording} USDC each time someone records a remix using a loop from this pack</p>
+              <p className="text-gray-400 text-sm mb-3">Make your loops available for other creators to remix. You earn ${PRICING.mixer.loopRecording} USDC each time your music is used in a recorded remix.</p>
 
               {/* Protected message when unchecked */}
               {formData.remix_protected && (
@@ -408,7 +408,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                   <div className="flex items-center gap-2">
                     <span className="text-gray-400 text-sm">Recording fee:</span>
                     <span className="text-[#81E4F2] font-bold text-lg">${PRICING.mixer.loopRecording} USDC</span>
-                    <span className="text-gray-500 text-xs">per loop</span>
+                    <span className="text-gray-500 text-xs">per remix use</span>
                   </div>
                 </div>
               )}
@@ -537,7 +537,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
                 <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Required</span>
               </div>
-              <p className="text-gray-400 text-sm mt-1">You earn ${PRICING.mixer.loopRecording} USDC each time someone records a mix using this clip</p>
+              <p className="text-gray-400 text-sm mt-1">You earn ${PRICING.mixer.loopRecording} USDC each time your clip is used in a recorded remix.</p>
             </div>
           </label>
 
@@ -649,7 +649,7 @@ export default function SimplifiedLicensingStep({ formData, handleInputChange }:
               <span className="text-gray-300 font-medium">PLATFORM REMIX</span>
               <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Recommended</span>
             </div>
-            <p className="text-gray-400 text-sm mt-1">You earn ${PRICING.mixer.loopRecording} USDC each time someone records a remix using this loop</p>
+            <p className="text-gray-400 text-sm mt-1">You earn ${PRICING.mixer.loopRecording} USDC each time your loop is used in a recorded remix.</p>
           </div>
         </label>
 

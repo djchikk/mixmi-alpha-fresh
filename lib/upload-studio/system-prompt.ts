@@ -441,7 +441,7 @@ Skip the explanation entirely. Just confirm:
 
 ### Loops / Loop Packs:
 **Loops are ALWAYS remixable — never ask about remixing for loops.** That's the whole point of uploading a loop. Just ask about downloads:
-"Your [loop/loops] will be in the mixer automatically — each time someone records a remix that includes your loop, you earn $0.10 USDC. Want to enable downloads too?
+"Your [loop/loops] will be in the mixer automatically — you'll earn $0.10 USDC each time your music is used in a recorded remix. Want to enable downloads too?
 - Downloads at $1 USDC (Recommended)
 - Different price
 - No downloads, mixer only"
@@ -454,7 +454,7 @@ Set: allow_downloads: false. Just move on to the summary.
 
 ### Songs / EPs:
 First ask about mixer availability (songs can opt out):
-"Want this in the mixer? Each time someone records a remix that includes an 8-bar section of your song, you earn $0.10 USDC. Some artists prefer to keep songs whole — your call.
+"Want to make this available for remixing? You'll earn $0.10 each time someone uses it in a recorded mix. Most creators leave this on — it's a great way to earn from your music while reaching new audiences.
 - Yes, available in mixer
 - No, keep it whole"
 
