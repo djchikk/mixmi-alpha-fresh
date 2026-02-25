@@ -201,7 +201,9 @@ Batch-resolve `pending:` splits across multiple tracks.
 }
 ```
 
-**Security:** Verifies `primary_uploader_wallet` matches `uploaderWallet` for each track before updating.
+**Security:** Verifies `primary_uploader_wallet` matches one of the caller's persona wallets (all sent as `uploaderWallets` array). This ensures you can only resolve splits on tracks you uploaded.
+
+**Important distinction:** Ownership check is about WHO UPLOADED the track (must be one of your personas). The resolved wallet can belong to ANYONE in the system — any persona, any account, or even a raw wallet address pasted directly.
 
 ---
 
