@@ -6,6 +6,7 @@ import { Persona } from '@/contexts/AuthContext';
 import { DollarSign, ArrowUpRight, Clock, Users, ExternalLink, Wallet, Send, RefreshCw, Copy, Check, ChevronDown, ChevronUp, QrCode, AlertCircle, UserPlus, Link2, UserCheck, Search } from 'lucide-react';
 import QRCodeModal from '@/components/shared/QRCodeModal';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import CollaboratorAutosuggest from '@/components/shared/CollaboratorAutosuggest';
 
 interface Earning {
   id: string;
@@ -51,6 +52,17 @@ interface TbdPersona {
   createdAt: string;
 }
 
+interface PendingSplit {
+  name: string;
+  tracks: Array<{
+    id: string;
+    title: string;
+    splitType: 'composition' | 'production';
+    splitPosition: number;
+    percentage: number;
+  }>;
+}
+
 interface EarningsTabProps {
   accountId: string | null;
   personas: Persona[];
@@ -81,6 +93,13 @@ export default function EarningsTab({
   const [linkSearchQuery, setLinkSearchQuery] = useState('');
   const [linkSearchResults, setLinkSearchResults] = useState<Array<{ username: string; displayName: string; walletAddress: string; suiAddress: string | null }>>([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
+
+  // Pending collaborator splits (from pending: prefix in split fields)
+  const [pendingSplits, setPendingSplits] = useState<PendingSplit[]>([]);
+  const [loadingPending, setLoadingPending] = useState(false);
+  const [resolvingPending, setResolvingPending] = useState<string | null>(null); // name being resolved
+  const [pendingResolveInputs, setPendingResolveInputs] = useState<Record<string, string>>({}); // name → wallet input value
+  const [expandedPending, setExpandedPending] = useState<Record<string, boolean>>({}); // name → expanded state
 
   // Invite generation state
   const [generatingInvite, setGeneratingInvite] = useState<string | null>(null); // TBD persona ID being processed
@@ -271,10 +290,137 @@ export default function EarningsTab({
     setLoadingTbd(false);
   };
 
-  // Fetch TBD personas when view changes to resolve
+  // Fetch pending splits (tracks with pending: prefix in split fields)
+  const fetchPendingSplits = async () => {
+    if (!accountId) return;
+
+    setLoadingPending(true);
+    try {
+      // Get all persona wallets for this account
+      const walletAddresses = personas
+        .map(p => p.sui_address || p.wallet_address)
+        .filter(Boolean) as string[];
+
+      if (walletAddresses.length === 0) {
+        setPendingSplits([]);
+        setLoadingPending(false);
+        return;
+      }
+
+      // Query tracks owned by this user that might have pending splits
+      // Use ilike to find any pending: prefix across all 6 split fields
+      const { data: tracks, error } = await supabase
+        .from('ip_tracks')
+        .select('id, title, composition_split_1_wallet, composition_split_1_percentage, composition_split_2_wallet, composition_split_2_percentage, composition_split_3_wallet, composition_split_3_percentage, production_split_1_wallet, production_split_1_percentage, production_split_2_wallet, production_split_2_percentage, production_split_3_wallet, production_split_3_percentage')
+        .in('primary_uploader_wallet', walletAddresses)
+        .or('composition_split_1_wallet.ilike.pending:%,composition_split_2_wallet.ilike.pending:%,composition_split_3_wallet.ilike.pending:%,production_split_1_wallet.ilike.pending:%,production_split_2_wallet.ilike.pending:%,production_split_3_wallet.ilike.pending:%');
+
+      if (error) {
+        console.error('Error fetching pending splits:', error);
+        setPendingSplits([]);
+        setLoadingPending(false);
+        return;
+      }
+
+      if (!tracks || tracks.length === 0) {
+        setPendingSplits([]);
+        setLoadingPending(false);
+        return;
+      }
+
+      // Group by collaborator name
+      const grouped: Record<string, PendingSplit['tracks']> = {};
+
+      for (const track of tracks) {
+        const splitTypes = ['composition', 'production'] as const;
+        for (const splitType of splitTypes) {
+          for (let pos = 1; pos <= 3; pos++) {
+            const walletField = `${splitType}_split_${pos}_wallet` as keyof typeof track;
+            const percentField = `${splitType}_split_${pos}_percentage` as keyof typeof track;
+            const wallet = track[walletField] as string | null;
+            const percentage = track[percentField] as number | null;
+
+            if (wallet && wallet.startsWith('pending:')) {
+              const name = wallet.replace('pending:', '');
+              if (!grouped[name]) grouped[name] = [];
+              grouped[name].push({
+                id: track.id,
+                title: track.title || 'Untitled',
+                splitType,
+                splitPosition: pos,
+                percentage: percentage || 0,
+              });
+            }
+          }
+        }
+      }
+
+      const result: PendingSplit[] = Object.entries(grouped).map(([name, tracks]) => ({
+        name,
+        tracks,
+      }));
+
+      setPendingSplits(result);
+    } catch (error) {
+      console.error('Error fetching pending splits:', error);
+    }
+    setLoadingPending(false);
+  };
+
+  // Resolve a pending collaborator
+  const resolvePendingCollaborator = async (pendingName: string, resolvedWallet: string) => {
+    if (!resolvedWallet || resolvedWallet.startsWith('pending:')) return;
+
+    const pending = pendingSplits.find(p => p.name === pendingName);
+    if (!pending) return;
+
+    setResolvingPending(pendingName);
+    try {
+      const uploaderWallet = personas.find(p => p.sui_address || p.wallet_address)?.sui_address
+        || personas.find(p => p.sui_address || p.wallet_address)?.wallet_address;
+
+      if (!uploaderWallet) {
+        console.error('No uploader wallet found');
+        return;
+      }
+
+      const trackIds = [...new Set(pending.tracks.map(t => t.id))];
+
+      const response = await fetch('/api/earnings/resolve-pending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pendingName,
+          resolvedWallet,
+          trackIds,
+          uploaderWallet,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Clear the input and refresh
+        setPendingResolveInputs(prev => {
+          const next = { ...prev };
+          delete next[pendingName];
+          return next;
+        });
+        await fetchPendingSplits();
+      } else {
+        console.error('Failed to resolve pending:', result.error);
+      }
+    } catch (error) {
+      console.error('Error resolving pending collaborator:', error);
+    }
+    setResolvingPending(null);
+  };
+
+  // Fetch TBD personas and pending splits when view changes to resolve
   useEffect(() => {
     if (view === 'resolve' && accountId) {
       fetchTbdPersonas();
+      fetchPendingSplits();
     }
   }, [view, accountId]);
 
@@ -654,9 +800,9 @@ export default function EarningsTab({
           <span className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
             Resolve
-            {tbdPersonas.length > 0 && (
+            {(pendingSplits.length + tbdPersonas.length) > 0 && (
               <span className="px-1.5 py-0.5 bg-amber-600 text-white text-xs rounded-full">
-                {tbdPersonas.length}
+                {pendingSplits.length + tbdPersonas.length}
               </span>
             )}
           </span>
@@ -925,120 +1071,221 @@ export default function EarningsTab({
           </div>
         </div>
       ) : view === 'resolve' ? (
-        /* Resolve View - TBD Personas */
-        <div className="space-y-4">
-          {loadingTbd ? (
+        /* Resolve View - Pending Splits + TBD Personas */
+        <div className="space-y-6">
+          {(loadingTbd || loadingPending) ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
             </div>
-          ) : tbdPersonas.length === 0 ? (
+          ) : (pendingSplits.length === 0 && tbdPersonas.length === 0) ? (
             <div className="text-center py-12 text-gray-500">
               <UserCheck className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
               <p className="text-green-400 font-medium">All caught up!</p>
               <p className="text-sm text-gray-600 mt-2">
-                No TBD collaborators to resolve
+                No collaborators to resolve
               </p>
             </div>
           ) : (
             <>
-              {/* TBD Personas List */}
-              <div className="space-y-3">
-                {tbdPersonas.map((tbd) => (
-                  <div
-                    key={tbd.id}
-                    className="p-4 bg-[#101726] border border-amber-900/30 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <UserAvatar
-                          src={null}
-                          name={tbd.username || tbd.displayName}
-                          size={40}
-                        />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium">{tbd.displayName}</span>
-                            <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded">
-                              @{tbd.username}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {tbd.trackCount} track{tbd.trackCount !== 1 ? 's' : ''} · Created {formatDate(tbd.createdAt)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-mono text-amber-400">
-                          ${tbd.balance.toFixed(2)}
-                        </div>
-                        <div className="text-xs text-gray-500">held</div>
-                      </div>
-                    </div>
+              {/* Pending Collaborators Section */}
+              {pendingSplits.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-amber-400 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Pending Collaborators
+                  </h3>
+                  {pendingSplits.map((pending) => {
+                    const uniqueTrackCount = new Set(pending.tracks.map(t => t.id)).size;
+                    const splitSummary = pending.tracks
+                      .map(t => `${t.percentage}% ${t.splitType}`)
+                      .filter((v, i, a) => a.indexOf(v) === i)
+                      .join(', ');
+                    const isExpanded = expandedPending[pending.name] || false;
+                    const inputValue = pendingResolveInputs[pending.name] || '';
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={() => generateInviteLink(tbd)}
-                        disabled={generatingInvite === tbd.id}
-                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
-                          inviteCopied === tbd.id
-                            ? 'bg-green-600 text-white'
-                            : 'bg-slate-800 hover:bg-slate-700 text-gray-300'
-                        } disabled:opacity-50`}
+                    return (
+                      <div
+                        key={pending.name}
+                        className="p-4 bg-[#101726] border border-amber-900/30 rounded-lg"
                       >
-                        {generatingInvite === tbd.id ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : inviteCopied === tbd.id ? (
-                          <>
-                            <Check className="w-4 h-4" />
-                            Link Copied!
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="w-4 h-4" />
-                            Invite
-                          </>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium">{pending.name}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-600/30 rounded">
+                                pending
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => setExpandedPending(prev => ({ ...prev, [pending.name]: !prev[pending.name] }))}
+                              className="text-xs text-gray-500 mt-1 hover:text-gray-400 transition-colors"
+                            >
+                              {uniqueTrackCount} track{uniqueTrackCount !== 1 ? 's' : ''} · {splitSummary}
+                              {isExpanded ? <ChevronUp className="w-3 h-3 inline ml-1" /> : <ChevronDown className="w-3 h-3 inline ml-1" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Expanded track list */}
+                        {isExpanded && (
+                          <div className="mt-3 space-y-1">
+                            {pending.tracks.map((t, i) => (
+                              <div key={`${t.id}-${t.splitType}-${t.splitPosition}`} className="flex items-center gap-2 text-xs text-gray-400 pl-1">
+                                <span className="text-gray-600">·</span>
+                                <span className="text-gray-300 truncate flex-1">{t.title}</span>
+                                <span className="text-gray-500">{t.percentage}% {t.splitType}</span>
+                              </div>
+                            ))}
+                          </div>
                         )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setResolveModal({ persona: tbd, action: 'link' });
-                          setLinkSearchQuery('');
-                          setLinkSearchResults([]);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 text-[#81E4F2] rounded-lg transition-colors text-sm"
-                      >
-                        <Link2 className="w-4 h-4" />
-                        Link to User
-                      </button>
-                      <button
-                        onClick={() => setResolveModal({ persona: tbd, action: 'merge' })}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#A8E66B]/20 hover:bg-[#A8E66B]/30 text-[#A8E66B] rounded-lg transition-colors text-sm"
-                      >
-                        <UserCheck className="w-4 h-4" />
-                        This is Me
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
 
-              {/* Resolve Info */}
-              <div className="p-4 bg-amber-900/10 border border-amber-900/30 rounded-lg text-sm text-amber-200/80">
-                <p className="font-medium mb-1">About TBD Collaborators</p>
-                <p className="text-amber-200/60">
-                  These are placeholder accounts created for collaborators who weren't on mixmi when you uploaded.
-                  Their earnings are held safely until you resolve them:
-                </p>
-                <ul className="text-amber-200/60 mt-2 space-y-1 text-xs">
-                  <li>• <strong>Invite</strong> - Send them a link to join mixmi and claim their earnings</li>
-                  <li>• <strong>Link to User</strong> - Connect to an existing mixmi user</li>
-                  <li>• <strong>This is Me</strong> - Merge into one of your own personas</li>
-                </ul>
-              </div>
+                        {/* Resolution input */}
+                        <div className="flex gap-2 mt-3 items-center">
+                          <div className="flex-1">
+                            <CollaboratorAutosuggest
+                              value={inputValue}
+                              onChange={(value) => setPendingResolveInputs(prev => ({ ...prev, [pending.name]: value }))}
+                              onUserSelect={(user) => {
+                                const wallet = user.suiAddress || user.walletAddress || '';
+                                if (wallet) {
+                                  setPendingResolveInputs(prev => ({ ...prev, [pending.name]: wallet }));
+                                }
+                              }}
+                              className="w-full px-3 py-2 bg-[#0a0f1a] border border-[#1E293B] rounded-lg text-white text-sm focus:border-[#81E4F2] focus:outline-none"
+                              placeholder="Search user or enter wallet"
+                            />
+                          </div>
+                          <button
+                            onClick={() => resolvePendingCollaborator(pending.name, inputValue)}
+                            disabled={!inputValue || inputValue.startsWith('pending:') || resolvingPending === pending.name}
+                            className="px-4 py-2 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 text-[#81E4F2] rounded-lg transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {resolvingPending === pending.name ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                            Resolve
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Pending info box */}
+                  <div className="p-3 bg-amber-900/10 border border-amber-900/30 rounded-lg text-xs text-amber-200/60">
+                    These collaborators were named during upload but haven't been matched to a mixmi user yet.
+                    Search by name or paste a wallet address to resolve.
+                  </div>
+                </div>
+              )}
+
+              {/* TBD Personas Section */}
+              {tbdPersonas.length > 0 && (
+                <div className="space-y-3">
+                  {pendingSplits.length > 0 && (
+                    <h3 className="text-sm font-medium text-amber-400 flex items-center gap-2 mt-2">
+                      <Users className="w-4 h-4" />
+                      TBD Collaborators
+                    </h3>
+                  )}
+                  {tbdPersonas.map((tbd) => (
+                    <div
+                      key={tbd.id}
+                      className="p-4 bg-[#101726] border border-amber-900/30 rounded-lg"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <UserAvatar
+                            src={null}
+                            name={tbd.username || tbd.displayName}
+                            size={40}
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium">{tbd.displayName}</span>
+                              <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded">
+                                @{tbd.username}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {tbd.trackCount} track{tbd.trackCount !== 1 ? 's' : ''} · Created {formatDate(tbd.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-mono text-amber-400">
+                            ${tbd.balance.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500">held</div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => generateInviteLink(tbd)}
+                          disabled={generatingInvite === tbd.id}
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                            inviteCopied === tbd.id
+                              ? 'bg-green-600 text-white'
+                              : 'bg-slate-800 hover:bg-slate-700 text-gray-300'
+                          } disabled:opacity-50`}
+                        >
+                          {generatingInvite === tbd.id ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : inviteCopied === tbd.id ? (
+                            <>
+                              <Check className="w-4 h-4" />
+                              Link Copied!
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="w-4 h-4" />
+                              Invite
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setResolveModal({ persona: tbd, action: 'link' });
+                            setLinkSearchQuery('');
+                            setLinkSearchResults([]);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#81E4F2]/20 hover:bg-[#81E4F2]/30 text-[#81E4F2] rounded-lg transition-colors text-sm"
+                        >
+                          <Link2 className="w-4 h-4" />
+                          Link to User
+                        </button>
+                        <button
+                          onClick={() => setResolveModal({ persona: tbd, action: 'merge' })}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#A8E66B]/20 hover:bg-[#A8E66B]/30 text-[#A8E66B] rounded-lg transition-colors text-sm"
+                        >
+                          <UserCheck className="w-4 h-4" />
+                          This is Me
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* TBD Info */}
+                  <div className="p-4 bg-amber-900/10 border border-amber-900/30 rounded-lg text-sm text-amber-200/80">
+                    <p className="font-medium mb-1">About TBD Collaborators</p>
+                    <p className="text-amber-200/60">
+                      These are placeholder accounts created for collaborators who weren't on mixmi when you uploaded.
+                      Their earnings are held safely until you resolve them:
+                    </p>
+                    <ul className="text-amber-200/60 mt-2 space-y-1 text-xs">
+                      <li>· <strong>Invite</strong> - Send them a link to join mixmi and claim their earnings</li>
+                      <li>· <strong>Link to User</strong> - Connect to an existing mixmi user</li>
+                      <li>· <strong>This is Me</strong> - Merge into one of your own personas</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
