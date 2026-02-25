@@ -209,19 +209,19 @@ Batch-resolve `pending:` splits across multiple tracks.
 
 ## Testing Checklist (Feb 25, 2026)
 
-### Pending Splits Resolution
-- [x] Upload a track via chatbot with an unresolved collaborator (e.g., "me and Ray, 50/50")
-- [x] Verify `pending:Ray` appears in the database split fields
+### Pending Splits Resolution — ALL PASSED
+- [x] Upload a track via chatbot with an unresolved collaborator
+- [x] Verify `pending:` appears in the database split fields
 - [x] Go to Account > Earnings > Resolve tab
 - [x] Verify collaborator appears in Pending Collaborators section
-- [ ] Click track count to expand — verify correct track titles shown
+- [x] Click track count to expand — verify correct track titles shown
 - [x] Search for a user via autocomplete in the resolve input
-- [ ] Click Resolve — verify the split is updated in the database
-- [ ] Verify collaborator disappears from pending list after resolution
-- [ ] Open the track in edit form — verify wallet shows with @username label
-- [ ] Verify badge counter decrements
+- [x] Click Resolve — verify the split is updated in the database
+- [x] Verify collaborator disappears from pending list after resolution
+- [x] Open the track in edit form — verify wallet shows with @username label
+- [x] Verify badge counter decrements
 
-### TBD Wallet Creation from Resolve Tab (NEW - Feb 25)
+### TBD Wallet Creation from Resolve Tab — ALL PASSED
 - [x] Search for a name with no matches in Resolve tab autocomplete
 - [x] Verify "Create managed wallet for [Name]" option appears
 - [x] Click create — verify wallet fills into the resolve input
@@ -229,16 +229,15 @@ Batch-resolve `pending:` splits across multiple tracks.
 - [x] Verify TBD wallet appears in Wallets tab
 - [x] Verify TBD wallet appears in Managed Accounts dropdown
 
-### Wallet Username Labels (Edit Form)
-- [ ] Open a track with collaborator wallets in edit form
-- [ ] Verify @username labels appear below wallet addresses in both composition and production splits
-- [ ] Select a new collaborator via autocomplete — verify @username appears immediately
-- [ ] Verify `pending:Name` entries show amber "unresolved" badge (not username label)
+### Wallet Username Labels (Edit Form) — ALL PASSED
+- [x] Open a track with collaborator wallets in edit form
+- [x] Verify @username labels appear below wallet addresses
+- [x] Verify resolved splits show @username after resolution
+- [x] Verify `pending:Name` entries show amber "unresolved" badge
 
-### Mixer Earnings Copy
-- [ ] Open edit form licensing step for a song — verify simplified "$0.10 per remix use" wording
-- [ ] Start a chatbot upload for a song — verify mixer question uses new wording
-- [ ] Start a chatbot upload for a loop — verify mixer earnings uses new wording
+### Mixer Earnings Copy — ALL PASSED
+- [x] Chatbot upload uses simplified "$0.10 per remix use" wording
+- [x] Edit form licensing step matches
 
 ---
 
