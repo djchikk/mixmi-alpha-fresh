@@ -1534,18 +1534,25 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 <>
                   {ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
                     // Downloadable pack: Show total pack price and per-loop price
-                    <>
-                      <div className="flex">
-                        <span className="text-gray-500 w-24">Download:</span>
-                        <span className="text-gray-300">${(ipRights.download_price_usdc * (packLoops.length || 1)).toFixed(2)} USDC (full pack)</span>
-                      </div>
-                      {packLoops.length > 1 && (
-                        <div className="flex">
-                          <span className="text-gray-500 w-24">Per loop:</span>
-                          <span className="text-gray-300">${ipRights.download_price_usdc} USDC</span>
-                        </div>
-                      )}
-                    </>
+                    // Use child record price as per-item (always stores per-item regardless of creation path)
+                    (() => {
+                      const perLoopPrice = packLoops[0]?.download_price_usdc ?? packLoops[0]?.download_price_stx ?? ipRights.download_price_usdc;
+                      const totalPrice = perLoopPrice * (packLoops.length || 1);
+                      return (
+                        <>
+                          <div className="flex">
+                            <span className="text-gray-500 w-24">Download:</span>
+                            <span className="text-gray-300">${totalPrice.toFixed(2)} USDC (full pack)</span>
+                          </div>
+                          {packLoops.length > 1 && (
+                            <div className="flex">
+                              <span className="text-gray-500 w-24">Per loop:</span>
+                              <span className="text-gray-300">${perLoopPrice} USDC</span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()
                   ) : (
                     // Remix-only pack: Show per-loop remix price
                     <div className="flex">
@@ -1575,20 +1582,27 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
                 </>
               ) : track.content_type === 'ep' ? (
                 // EPs: Show total EP price and per-song price
+                // Use child record price as per-item (always stores per-item regardless of creation path)
                 <>
                   {ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
-                    <>
-                      <div className="flex">
-                        <span className="text-gray-500 w-24">Download:</span>
-                        <span className="text-gray-300">${(ipRights.download_price_usdc * (packLoops.length || 1)).toFixed(2)} USDC (full EP)</span>
-                      </div>
-                      {packLoops.length > 1 && (
-                        <div className="flex">
-                          <span className="text-gray-500 w-24">Per song:</span>
-                          <span className="text-gray-300">${ipRights.download_price_usdc} USDC</span>
-                        </div>
-                      )}
-                    </>
+                    (() => {
+                      const perSongPrice = packLoops[0]?.download_price_usdc ?? packLoops[0]?.download_price_stx ?? ipRights.download_price_usdc;
+                      const totalEPPrice = perSongPrice * (packLoops.length || 1);
+                      return (
+                        <>
+                          <div className="flex">
+                            <span className="text-gray-500 w-24">Download:</span>
+                            <span className="text-gray-300">${totalEPPrice.toFixed(2)} USDC (full EP)</span>
+                          </div>
+                          {packLoops.length > 1 && (
+                            <div className="flex">
+                              <span className="text-gray-500 w-24">Per song:</span>
+                              <span className="text-gray-300">${perSongPrice} USDC</span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()
                   ) : (
                     <div className="flex">
                       <span className="text-gray-500 w-24">Downloads:</span>

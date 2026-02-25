@@ -389,21 +389,30 @@ export default function IPTrackModal({
                 console.log(`📀 ${track.content_type === 'ep' ? 'EP' : 'Loop Pack'} has ${children.length} tracks`);
                 handleInputChange('ep_song_count', children.length);
 
-                // Calculate and set price_per_song from stored download_price_stx for EPs
-                if (track.content_type === 'ep' && (track as any).download_price_stx && children.length > 0) {
-                  const pricePerSong = (track as any).download_price_stx / children.length;
-                  handleInputChange('price_per_song', pricePerSong);
-                  console.log(`💰 EP price per song calculated: ${pricePerSong} USDC (total: ${(track as any).download_price_stx} / ${children.length} songs)`);
-                }
+                // Read per-item price from first child record (always stores per-item regardless of creation path)
+                if (children.length > 0) {
+                  const { data: firstChild } = await supabase
+                    .from('ip_tracks')
+                    .select('download_price_usdc, download_price_stx')
+                    .eq('id', children[0].id)
+                    .single();
 
-                // Calculate and set price_per_loop and loop_count from stored download_price_stx for loop packs
-                if (track.content_type === 'loop_pack' && children.length > 0) {
-                  handleInputChange('loop_count', children.length);
-                  if ((track as any).download_price_stx) {
-                    const pricePerLoop = (track as any).download_price_stx / children.length;
-                    handleInputChange('price_per_loop', pricePerLoop);
-                    console.log(`💰 Loop pack price per loop calculated: ${pricePerLoop} USDC (total: ${(track as any).download_price_stx} / ${children.length} loops)`);
+                  if (firstChild) {
+                    const perItemPrice = firstChild.download_price_usdc ?? firstChild.download_price_stx;
+                    if (track.content_type === 'ep' && perItemPrice) {
+                      handleInputChange('price_per_song', perItemPrice);
+                      console.log(`💰 EP price per song from child: ${perItemPrice} USDC`);
+                    }
+                    if (track.content_type === 'loop_pack') {
+                      handleInputChange('loop_count', children.length);
+                      if (perItemPrice) {
+                        handleInputChange('price_per_loop', perItemPrice);
+                        console.log(`💰 Loop pack price per loop from child: ${perItemPrice} USDC`);
+                      }
+                    }
                   }
+                } else if (track.content_type === 'loop_pack') {
+                  handleInputChange('loop_count', 0);
                 }
 
                 // Initialize trackMetadata from existing database records

@@ -277,15 +277,18 @@ async function processLoopPack(formData: SubmitFormData, authSession: any, walle
     bpm: baseTrackData.bpm, // Use pack-level BPM from form
     // Explicitly inherit licensing from pack
     allow_downloads: baseTrackData.allow_downloads,
-    // USDC pricing for loop packs
+    // USDC pricing for loop packs — download_price = per-item, price = total
     remix_price_usdc: PRICING.mixer.loopRecording,
     download_price_usdc: baseTrackData.allow_downloads === true
+      ? ((formData as any).price_per_loop || PRICING.download.loop)
+      : null,
+    price_usdc: baseTrackData.allow_downloads === true
       ? ((formData as any).price_per_loop || PRICING.download.loop) * formData.loop_files!.length
       : null,
-    // Legacy STX columns (same values for backwards compat)
+    // Legacy STX columns (same values)
     remix_price_stx: PRICING.mixer.loopRecording,
     download_price_stx: baseTrackData.allow_downloads === true
-      ? ((formData as any).price_per_loop || PRICING.download.loop) * formData.loop_files!.length
+      ? ((formData as any).price_per_loop || PRICING.download.loop)
       : null,
     price_stx: baseTrackData.allow_downloads === true
       ? ((formData as any).price_per_loop || PRICING.download.loop) * formData.loop_files!.length
@@ -442,12 +445,13 @@ async function processEP(formData: SubmitFormData, authSession: any, walletAddre
     duration: null, // EP duration could be sum of all songs, but null for now
     bpm: uniformBpm, // Set to uniform BPM if all songs have same BPM, otherwise null
     key: null, // EPs can have songs with different keys, so no master key
-    // USDC pricing for EPs
-    remix_price_usdc: 0, // EPs can't be remixed
-    download_price_usdc: ((formData as any).price_per_song || PRICING.download.song) * formData.ep_files!.length,
-    // Legacy STX columns
+    // USDC pricing for EPs — download_price = per-item, price = total
+    remix_price_usdc: 0,
+    download_price_usdc: (formData as any).price_per_song || PRICING.download.song,
+    price_usdc: ((formData as any).price_per_song || PRICING.download.song) * formData.ep_files!.length,
+    // Legacy STX columns (same values)
     remix_price_stx: 0,
-    download_price_stx: ((formData as any).price_per_song || PRICING.download.song) * formData.ep_files!.length,
+    download_price_stx: (formData as any).price_per_song || PRICING.download.song,
     price_stx: ((formData as any).price_per_song || PRICING.download.song) * formData.ep_files!.length,
     description: formData.description + ` (EP containing ${formData.ep_files!.length} songs)`,
   };
@@ -591,29 +595,49 @@ export function useIPTrackSubmit({
         // Loops/Videos: remix_price_usdc ($0.10 default) + optional download_price_usdc
 
         // Get user-entered download price (form uses USDC values now)
+        // Convention: download_price_usdc = per-item price, price_usdc = total (for packs/EPs)
         ...((() => {
-          const userDownloadPrice = (formData as any).download_price_stx ?? (formData as any).download_price ?? null;
           const isDownloadable = formData.allow_downloads === true;
           const isSongOrEP = formData.content_type === 'full_song' || formData.content_type === 'ep';
+          const isEP = formData.content_type === 'ep';
+          const isPack = formData.content_type === 'loop_pack';
 
-          // Calculate download price based on content type
-          const downloadPrice = isSongOrEP
-            ? (userDownloadPrice ?? PRICING.download.song)
-            : isDownloadable
-              ? (userDownloadPrice ?? PRICING.download.loop)
-              : null;
+          // For EPs/packs, use per-item price (not the total from SimplifiedLicensingStep)
+          let downloadPrice: number | null;
+          let totalPrice: number | null;
+
+          if (isEP) {
+            const perSong = (formData as any).price_per_song || PRICING.download.song;
+            const songCount = (formData as any).ep_song_count || 1;
+            downloadPrice = isDownloadable ? perSong : null;
+            totalPrice = isDownloadable ? perSong * songCount : 0;
+          } else if (isPack) {
+            const perLoop = (formData as any).price_per_loop || PRICING.download.loop;
+            const loopCount = (formData as any).loop_count || 1;
+            downloadPrice = isDownloadable ? perLoop : null;
+            totalPrice = isDownloadable ? perLoop * loopCount : 0;
+          } else {
+            const userDownloadPrice = (formData as any).download_price_stx ?? (formData as any).download_price ?? null;
+            downloadPrice = isSongOrEP
+              ? (userDownloadPrice ?? PRICING.download.song)
+              : isDownloadable
+                ? (userDownloadPrice ?? PRICING.download.loop)
+                : null;
+            totalPrice = downloadPrice;
+          }
 
           // Recording/remix fee (for mixer-compatible content)
           const remixPrice = isSongOrEP ? 0 : PRICING.mixer.loopRecording;
 
           return {
-            // USDC columns (primary)
+            // USDC columns (primary) — download_price = per-item, price = total
             remix_price_usdc: remixPrice,
             download_price_usdc: downloadPrice,
+            price_usdc: totalPrice ?? remixPrice,
             // STX columns (backwards compatibility - same values)
             remix_price_stx: remixPrice,
             download_price_stx: downloadPrice,
-            price_stx: downloadPrice ?? remixPrice, // Legacy field
+            price_stx: totalPrice ?? remixPrice,
           };
         })()),
 
