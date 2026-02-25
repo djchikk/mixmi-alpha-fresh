@@ -615,6 +615,7 @@ export default function AccountPage() {
                   personas={personas}
                   activePersona={activePersona}
                   suiAddress={suiAddress}
+                  refreshPersonas={refreshPersonas}
                 />
               )}
               {activeTab === "wallets" && (

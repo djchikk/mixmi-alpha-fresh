@@ -68,6 +68,7 @@ interface EarningsTabProps {
   personas: Persona[];
   activePersona: Persona | null;
   suiAddress: string | null;
+  refreshPersonas?: () => Promise<void>;
 }
 
 export default function EarningsTab({
@@ -75,6 +76,7 @@ export default function EarningsTab({
   personas,
   activePersona,
   suiAddress,
+  refreshPersonas,
 }: EarningsTabProps) {
   const [earnings, setEarnings] = useState<Earning[]>([]);
   const [treasuryHoldings, setTreasuryHoldings] = useState<TreasuryHolding[]>([]);
@@ -1159,6 +1161,9 @@ export default function EarningsTab({
                                 setPendingResolveInputs(prev => ({ ...prev, [pending.name]: persona.walletAddress }));
                                 // Refresh TBD list since we just created one
                                 fetchTbdPersonas();
+                                // Refresh personas so new TBD shows in Wallets tab and Managed Accounts
+                                refreshPersonas?.();
+                                fetchWalletBalances();
                               }}
                               className="w-full px-3 py-2 bg-[#0a0f1a] border border-[#1E293B] rounded-lg text-white text-sm focus:border-[#81E4F2] focus:outline-none"
                               placeholder="Search user or enter wallet"
