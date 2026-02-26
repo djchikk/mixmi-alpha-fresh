@@ -199,19 +199,6 @@ export default function Header() {
           sandbox
         </Link>
         <button
-          id="onborda-upload"
-          onClick={() => {
-            if (!isAuthenticated || !effectiveAddress) {
-              setIsSignInModalOpen(true);
-            } else {
-              setShowUploadTypeModal(true);
-            }
-          }}
-          className="text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95 transition-all duration-300 tracking-wide"
-        >
-          post
-        </button>
-        <button
           onClick={() => {
             if (typeof window !== 'undefined' && (window as any).openHelpWidget) {
               (window as any).openHelpWidget();
@@ -223,8 +210,18 @@ export default function Header() {
         </button>
       </nav>
 
-      {/* Right: Wallet Authentication */}
-      <div className="flex-1 flex justify-end items-center gap-4">
+      {/* Right: Post button + Authentication */}
+      <div className="flex-1 flex justify-end items-center gap-3">
+        {/* + Post button - only when signed in */}
+        {isAuthenticated && effectiveAddress && (
+          <button
+            onClick={() => setShowUploadTypeModal(true)}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#81E4F2]/10 hover:bg-[#81E4F2]/20 border border-[#81E4F2]/30 hover:border-[#81E4F2]/50 text-[#81E4F2] rounded-full text-sm font-medium transition-all"
+          >
+            <Plus size={14} />
+            <span>Post</span>
+          </button>
+        )}
         <div className="hidden md:block">
           {isAuthenticated && effectiveAddress ? (
             <div className="relative" ref={avatarDropdownRef}>
@@ -439,15 +436,19 @@ export default function Header() {
               Sandbox
             </Link>
 
-            <button
-              onClick={() => {
-                setShowUploadTypeModal(true);
-                setIsMobileMenuOpen(false);
-              }}
-              className="text-gray-300 hover:text-white font-medium active:scale-95 transition-all duration-300 text-left"
-            >
-              Post
-            </button>
+            {/* + Post button in mobile - only when signed in */}
+            {isAuthenticated && effectiveAddress && (
+              <button
+                onClick={() => {
+                  setShowUploadTypeModal(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-1.5 text-[#81E4F2] font-medium active:scale-95 transition-all duration-300 text-left"
+              >
+                <Plus size={14} />
+                Post
+              </button>
+            )}
 
             <button
               onClick={() => {
