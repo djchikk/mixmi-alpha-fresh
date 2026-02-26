@@ -215,7 +215,7 @@ export default function Header() {
         {/* + Post button - only when signed in */}
         {isAuthenticated && effectiveAddress && (
           <button
-            onClick={() => setShowUploadTypeModal(true)}
+            onClick={() => router.push('/upload-studio')}
             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#81E4F2]/10 hover:bg-[#81E4F2]/20 border border-[#81E4F2]/30 hover:border-[#81E4F2]/50 text-[#81E4F2] rounded-full text-sm font-medium transition-all"
           >
             <Plus size={14} />
@@ -440,7 +440,7 @@ export default function Header() {
             {isAuthenticated && effectiveAddress && (
               <button
                 onClick={() => {
-                  setShowUploadTypeModal(true);
+                  router.push('/upload-studio');
                   setIsMobileMenuOpen(false);
                 }}
                 className="flex items-center gap-1.5 text-[#81E4F2] font-medium active:scale-95 transition-all duration-300 text-left"
