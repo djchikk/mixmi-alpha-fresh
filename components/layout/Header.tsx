@@ -24,6 +24,7 @@ export default function Header() {
   const isGlobePage = pathname === '/';
   const isWelcomePage = pathname === '/welcome';
   const isMixerPage = pathname === '/mixer';
+  const isGraphPage = pathname === '/creation-graph';
   const isProfilePage = pathname?.startsWith('/profile');
   const isStorePage = pathname?.startsWith('/store');
 
@@ -197,6 +198,16 @@ export default function Header() {
           }`}
         >
           sandbox
+        </Link>
+        <Link
+          href="/creation-graph"
+          className={`transition-all duration-300 tracking-wide ${
+            isGraphPage
+              ? 'text-white font-bold transform scale-105'
+              : 'text-gray-300 hover:text-white hover:scale-105 font-medium active:scale-95'
+          }`}
+        >
+          graph
         </Link>
         <button
           onClick={() => {
@@ -434,6 +445,18 @@ export default function Header() {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Sandbox
+            </Link>
+
+            <Link
+              href="/creation-graph"
+              className={`transition-all duration-300 ${
+                isGraphPage
+                  ? 'text-white font-bold'
+                  : 'text-gray-300 hover:text-white font-medium active:scale-95'
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Graph
             </Link>
 
             {/* + Post button in mobile - only when signed in */}
