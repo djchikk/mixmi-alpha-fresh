@@ -370,6 +370,39 @@ async function updateAgentPreferences(
       updates.default_splits_template = namedSplits;
     }
 
+    // Starter preferences: first upload seeds defaults for future Express uploads
+    const starterPrefs = (trackData as any).starter_preferences;
+    if (starterPrefs && typeof starterPrefs === 'object') {
+      if (starterPrefs.default_location && !updates.default_location) {
+        updates.default_location = starterPrefs.default_location;
+      }
+      if (starterPrefs.default_tags && !updates.default_tags) {
+        updates.default_tags = starterPrefs.default_tags;
+      }
+      if (starterPrefs.default_allow_downloads !== undefined && updates.default_allow_downloads === undefined) {
+        updates.default_allow_downloads = starterPrefs.default_allow_downloads;
+      }
+      if (starterPrefs.default_download_price_usdc && !updates.default_download_price_usdc) {
+        updates.default_download_price_usdc = starterPrefs.default_download_price_usdc;
+      }
+      if (starterPrefs.typical_content_type && !updates.typical_content_type) {
+        updates.typical_content_type = starterPrefs.typical_content_type;
+      }
+      if (starterPrefs.collaborator_groups && Array.isArray(starterPrefs.collaborator_groups)) {
+        updates.collaborator_groups = starterPrefs.collaborator_groups;
+      }
+      if (starterPrefs.bio_draft_material) {
+        updates.bio_draft_material = starterPrefs.bio_draft_material;
+      }
+      updates.preferences_auto_generated = true;
+      console.log('🌱 Starter preferences from first upload:', {
+        location: !!starterPrefs.default_location,
+        tags: starterPrefs.default_tags?.length ?? 0,
+        groups: starterPrefs.collaborator_groups?.length ?? 0,
+        hasBio: !!starterPrefs.bio_draft_material
+      });
+    }
+
     // Save
     const { error: updateError } = await supabase
       .from('agent_preferences')

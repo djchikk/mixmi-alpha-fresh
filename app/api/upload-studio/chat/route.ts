@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import {
-  UPLOAD_STUDIO_SYSTEM_PROMPT,
+  assembleSystemPrompt,
   formatMessagesForAPI,
   parseExtractedData
 } from '@/lib/upload-studio/system-prompt';
@@ -112,14 +112,23 @@ function extractCollaboratorNames(extractedData: any): string[] {
   return [...new Set(names)]; // Deduplicate
 }
 
+interface AgentProfileResult {
+  agentProfile: string;
+  prefs: any;
+  username: string | null;
+}
+
 /**
  * Load agent profile for persona: agent_mission (user-set) + agent_preferences (system-learned).
  * Creates preferences lazily for non-default personas on first upload.
+ * Returns the profile string, raw prefs, and username for prompt assembly.
  */
-async function loadAgentProfile(personaId: string | undefined, walletAddress: string): Promise<string> {
+async function loadAgentProfile(personaId: string | undefined, walletAddress: string): Promise<AgentProfileResult> {
+  const empty: AgentProfileResult = { agentProfile: '', prefs: null, username: null };
+
   if (!personaId) {
     console.log('🤖 Agent profile: no personaId provided (legacy wallet user?)');
-    return '';
+    return empty;
   }
 
   try {
@@ -131,7 +140,7 @@ async function loadAgentProfile(personaId: string | undefined, walletAddress: st
       .eq('is_active', true)
       .maybeSingle();
 
-    if (personaError || !persona) return '';
+    if (personaError || !persona) return empty;
 
     // Load agent_preferences (system-learned defaults)
     let { data: prefs, error: prefsError } = await supabase
@@ -196,6 +205,17 @@ async function loadAgentProfile(personaId: string | undefined, walletAddress: st
         defaults.push(`Usual collaborators: ${splitNames}`);
       }
 
+      // Collaborator groups (for chip-based split selection)
+      if (prefs.collaborator_groups && prefs.collaborator_groups.length > 0) {
+        const groupDescriptions = prefs.collaborator_groups.map((g: any) => {
+          const members = g.composition_splits
+            .map((s: any) => `${s.name} ${s.percentage}%`)
+            .join(', ');
+          return `${g.name} (${members})`;
+        });
+        defaults.push(`Collaborator groups: ${groupDescriptions.join(' | ')}`);
+      }
+
       if (defaults.length > 0) {
         parts.push(`Based on ${prefs.upload_count} previous upload${prefs.upload_count !== 1 ? 's' : ''}:\n- ${defaults.join('\n- ')}`);
       }
@@ -204,18 +224,23 @@ async function loadAgentProfile(personaId: string | undefined, walletAddress: st
       if (prefs.prefers_minimal_questions) {
         parts.push('This creator prefers quick uploads — batch assumptions together and confirm, rather than asking one question at a time.');
       }
+
+      // Auto-generated preferences note
+      if (prefs.preferences_auto_generated) {
+        parts.push('Note: This creator\'s preferences were auto-generated from their first upload. They may not have reviewed them yet.');
+      }
     } else {
       parts.push('This is their first upload — no preferences learned yet. Ask about everything.');
     }
 
-    if (parts.length === 0) return '';
+    if (parts.length === 0) return { agentProfile: '', prefs, username: persona.username };
 
     const profile = `\n\n## Agent Profile for ${persona.display_name || persona.username}\n${parts.join('\n\n')}\n\nWhen suggesting defaults, use their preferences but always confirm. If they correct you, accept gracefully — they may be trying something new.\n`;
     console.log('🤖 Agent profile loaded:', { persona: persona.display_name || persona.username, uploadCount: prefs?.upload_count ?? 0, hasMission: !!persona.agent_mission, sectionsLoaded: parts.length });
-    return profile;
+    return { agentProfile: profile, prefs, username: persona.username };
   } catch (error) {
     console.error('Error loading agent profile:', error);
-    return '';
+    return empty;
   }
 }
 
@@ -243,8 +268,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Load agent profile (creative personality + learned preferences)
-    const agentProfile = await loadAgentProfile(personaId, walletAddress);
-    const enhancedSystemPrompt = UPLOAD_STUDIO_SYSTEM_PROMPT + agentProfile;
+    const { agentProfile, prefs, username } = await loadAgentProfile(personaId, walletAddress);
+
+    // Assemble composable system prompt based on creator context
+    const hasDefaults = !!(prefs?.default_location || prefs?.default_tags?.length || prefs?.default_allow_downloads !== null);
+    const enhancedSystemPrompt = assembleSystemPrompt({
+      uploadCount: prefs?.upload_count ?? 0,
+      hasDefaults,
+      pilotProgram: prefs?.pilot_program ?? null,
+      username: username ?? null,
+      agentProfile,
+    });
 
     // Build attachment info string with duration metadata
     let attachmentInfo = '';
@@ -300,7 +334,8 @@ export async function POST(request: NextRequest) {
       personaMatchesFromPrevious, // Persona search results to inject into context
       walletAddress, // Uploader's wallet address for auto-attaching to splits
       fileMetadata, // File analysis for content type intelligence
-      csvSummary // Bulk CSV upload summary
+      csvSummary, // Bulk CSV upload summary
+      prefs?.collaborator_groups // Collaborator groups for chip-based split selection
     );
 
     // Filter out empty messages and prepare for API
