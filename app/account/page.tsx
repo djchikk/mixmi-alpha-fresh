@@ -1339,6 +1339,7 @@ function SettingsTab({
   }>({});
   const [links, setLinks] = useState<Array<{ platform: string; url: string }>>([]);
   const [profileWalletAddress, setProfileWalletAddress] = useState<string | null>(null); // Actual wallet from user_profiles lookup
+  const [agentPrefs, setAgentPrefs] = useState<any>(null);
 
   // Modal states
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -1403,6 +1404,18 @@ function SettingsTab({
         }
       } else {
         setLinks([]);
+      }
+
+      // Fetch agent preferences (upload defaults learned by chatbot)
+      if (activePersona?.id) {
+        const { data: prefs } = await supabase
+          .from('agent_preferences')
+          .select('upload_count, typical_content_type, default_location, default_tags, default_allow_downloads, default_download_price_usdc, collaborator_groups, bio_draft_material, preferences_auto_generated')
+          .eq('persona_id', activePersona.id)
+          .maybeSingle();
+        setAgentPrefs(prefs);
+      } else {
+        setAgentPrefs(null);
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -1593,6 +1606,106 @@ function SettingsTab({
           <p className="text-gray-500 text-sm">
             Use {agentName || 'your agent'} on the globe page — click the 🤖 next to Crate.
           </p>
+        </div>
+
+        {/* Upload Preferences */}
+        <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl">🎵</span>
+            <h3 className="text-white font-semibold">Upload Preferences</h3>
+          </div>
+          {agentPrefs?.preferences_auto_generated && (
+            <p className="text-amber-400/70 text-xs mb-4">Auto-generated from your first upload — the chatbot will refine these over time</p>
+          )}
+
+          {agentPrefs && agentPrefs.upload_count > 0 ? (
+            <div className="space-y-4">
+              {/* Defaults */}
+              <div>
+                <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Defaults</p>
+                <div className="space-y-2">
+                  {agentPrefs.default_location && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-sm">📍</span>
+                      <div>
+                        <span className="text-gray-400 text-sm">Location: </span>
+                        <span className="text-white text-sm">{agentPrefs.default_location}</span>
+                      </div>
+                    </div>
+                  )}
+                  {agentPrefs.default_tags && agentPrefs.default_tags.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-sm">🏷️</span>
+                      <div className="flex flex-wrap gap-1">
+                        {agentPrefs.default_tags.map((tag: string, i: number) => (
+                          <span key={i} className="px-2 py-0.5 bg-slate-700 text-gray-300 text-xs rounded">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {agentPrefs.typical_content_type && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-sm">🎵</span>
+                      <div>
+                        <span className="text-gray-400 text-sm">Content type: </span>
+                        <span className="text-white text-sm">{agentPrefs.typical_content_type}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm">⬇️</span>
+                    <div>
+                      <span className="text-gray-400 text-sm">Downloads: </span>
+                      <span className="text-white text-sm">
+                        {agentPrefs.default_allow_downloads
+                          ? `enabled at $${agentPrefs.default_download_price_usdc || 1} USDC`
+                          : 'disabled (mixer only)'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm">📊</span>
+                    <div>
+                      <span className="text-gray-400 text-sm">Uploads: </span>
+                      <span className="text-white text-sm">{agentPrefs.upload_count}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Collaborator Groups */}
+              {agentPrefs.collaborator_groups && agentPrefs.collaborator_groups.length > 0 && (
+                <div className="border-t border-[#1E293B] pt-4">
+                  <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Collaborator Groups</p>
+                  <div className="space-y-2">
+                    {agentPrefs.collaborator_groups.map((group: any, i: number) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-[#81E4F2] text-sm font-medium whitespace-nowrap">{group.name}</span>
+                        <span className="text-gray-500 text-sm">—</span>
+                        <span className="text-gray-300 text-sm">
+                          {(group.composition_splits || []).map((s: any) => `${s.name} ${s.percentage}%`).join(', ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-gray-500 text-xs mt-2">Used by the chatbot for quick split selection</p>
+                </div>
+              )}
+
+              {/* Bio Draft */}
+              {agentPrefs.bio_draft_material && (
+                <div className="border-t border-[#1E293B] pt-4">
+                  <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Bio Draft</p>
+                  <p className="text-gray-300 text-sm italic">&ldquo;{agentPrefs.bio_draft_material}&rdquo;</p>
+                  <p className="text-gray-500 text-xs mt-2">Compiled from your uploads — profile bio is edited separately</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm mt-3">
+              Your upload preferences will appear here after your first upload. The chatbot learns your defaults to make future uploads faster.
+            </p>
+          )}
         </div>
 
         {/* Privacy */}
