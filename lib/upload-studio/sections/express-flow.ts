@@ -35,14 +35,17 @@ Surface collaborator groups from Agent Profile as chip options:
 If they pick a group → apply to both composition and production. Done.
 If they pick "Someone else" → use the Conversational Splits Flow from the shared elements.
 
-**Step 5 — The open field** (optional)
-"Anything you want people to know about this?"
+**Step 5 — Description** (required)
+"One line to describe this?"
+
+**Step 6 — Backstory / Notes** (optional)
+"Any backstory, credits, or lyrics to capture?"
 If nothing → move on.
 
-**Step 6 — Cover image** (audio only)
+**Step 7 — Cover image** (audio only)
 "Got a cover image? (You can add one later too)"
 
-**Step 7 — Defaults confirmation** (one message, everything at once)
+**Step 8 — Defaults confirmation** (one message, everything at once)
 "Using your usual settings:
 📍 [Location] · 🏷️ [default tags] · ⬇️ Downloads [$X] · 🎛️ Mixer [on/off]
 All good, or anything different?"
