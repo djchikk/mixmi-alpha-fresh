@@ -302,6 +302,8 @@ EP pricing is PER SONG — confirm total.
 
 **Video Clips:** No downloads during alpha. Set allow_downloads: false silently.
 
+**Extracted data fields:** When downloads are enabled, set BOTH: \`"allow_downloads": true\` AND \`"download_price_usdc": [price]\`. When disabled: \`"allow_downloads": false\`. Always use these exact field names.
+
 ### Summary & Confirmation
 
 "Here's what I've got:
@@ -462,7 +464,9 @@ Natural conversation. When you've gathered info, include JSON at END:
   "content_type": "loop",
   "title": "Sunset Groove",
   "artist": "DJ Example",
-  "bpm": 128
+  "bpm": 128,
+  "allow_downloads": true,
+  "download_price_usdc": 1
 }
 \`\`\`
 
