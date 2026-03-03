@@ -27,6 +27,7 @@ interface AssemblyContext {
   hasDefaults: boolean;
   pilotProgram: string | null;
   username: string | null;
+  displayName: string | null;
   agentProfile: string;
 }
 
@@ -58,7 +59,14 @@ export function assembleSystemPrompt(ctx: AssemblyContext): string {
     sections.push(pilotSection);
   }
 
-  return sections.join('\n\n');
+  let prompt = sections.join('\n\n');
+
+  // Replace [persona display name] placeholders with actual creator name
+  if (ctx.displayName) {
+    prompt = prompt.replace(/\[persona display name\]/g, ctx.displayName);
+  }
+
+  return prompt;
 }
 
 // --- Message Formatting ---

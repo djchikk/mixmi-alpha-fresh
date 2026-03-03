@@ -116,6 +116,7 @@ interface AgentProfileResult {
   agentProfile: string;
   prefs: any;
   username: string | null;
+  displayName: string | null;
 }
 
 /**
@@ -124,7 +125,7 @@ interface AgentProfileResult {
  * Returns the profile string, raw prefs, and username for prompt assembly.
  */
 async function loadAgentProfile(personaId: string | undefined, walletAddress: string): Promise<AgentProfileResult> {
-  const empty: AgentProfileResult = { agentProfile: '', prefs: null, username: null };
+  const empty: AgentProfileResult = { agentProfile: '', prefs: null, username: null, displayName: null };
 
   if (!personaId) {
     console.log('🤖 Agent profile: no personaId provided (legacy wallet user?)');
@@ -233,11 +234,11 @@ async function loadAgentProfile(personaId: string | undefined, walletAddress: st
       parts.push('This is their first upload — no preferences learned yet. Ask about everything.');
     }
 
-    if (parts.length === 0) return { agentProfile: '', prefs, username: persona.username };
+    if (parts.length === 0) return { agentProfile: '', prefs, username: persona.username, displayName: persona.display_name };
 
     const profile = `\n\n## Agent Profile for ${persona.display_name || persona.username}\n${parts.join('\n\n')}\n\nWhen suggesting defaults, use their preferences but always confirm. If they correct you, accept gracefully — they may be trying something new.\n`;
     console.log('🤖 Agent profile loaded:', { persona: persona.display_name || persona.username, uploadCount: prefs?.upload_count ?? 0, hasMission: !!persona.agent_mission, sectionsLoaded: parts.length });
-    return { agentProfile: profile, prefs, username: persona.username };
+    return { agentProfile: profile, prefs, username: persona.username, displayName: persona.display_name };
   } catch (error) {
     console.error('Error loading agent profile:', error);
     return empty;
@@ -268,7 +269,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Load agent profile (creative personality + learned preferences)
-    const { agentProfile, prefs, username } = await loadAgentProfile(personaId, walletAddress);
+    const { agentProfile, prefs, username, displayName } = await loadAgentProfile(personaId, walletAddress);
 
     // Assemble composable system prompt based on creator context
     const hasDefaults = !!(prefs?.default_location || prefs?.default_tags?.length || prefs?.default_allow_downloads !== null);
@@ -277,6 +278,7 @@ export async function POST(request: NextRequest) {
       hasDefaults,
       pilotProgram: prefs?.pilot_program ?? null,
       username: username ?? null,
+      displayName: displayName ?? null,
       agentProfile,
     });
 
