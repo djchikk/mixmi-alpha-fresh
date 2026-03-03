@@ -1697,7 +1697,21 @@ function SettingsTab({
                 <div className="border-t border-[#1E293B] pt-4">
                   <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Bio Draft</p>
                   <p className="text-gray-300 text-sm italic">&ldquo;{agentPrefs.bio_draft_material}&rdquo;</p>
-                  <p className="text-gray-500 text-xs mt-2">Compiled from your uploads — profile bio is edited separately</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(agentPrefs.bio_draft_material);
+                        const btn = document.getElementById('bio-copy-btn');
+                        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000); }
+                      }}
+                      id="bio-copy-btn"
+                      className="text-xs text-[#81E4F2] hover:text-[#81E4F2]/80 transition-colors"
+                    >
+                      Copy to clipboard
+                    </button>
+                    <span className="text-gray-600 text-xs">·</span>
+                    <span className="text-gray-500 text-xs">Use as a starting point for your profile bio</span>
+                  </div>
                 </div>
               )}
             </div>
