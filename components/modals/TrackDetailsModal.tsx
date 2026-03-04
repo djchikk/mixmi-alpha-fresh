@@ -1133,7 +1133,7 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
         {/* Scrollable Content */}
         <div className="overflow-y-auto max-h-[calc(70vh-120px)] p-6 space-y-4">
 
-          {/* Track Title and Artist/Generation - Top Section */}
+          {/* Track Title, Artist, and Badge Chips - Top Section */}
           <div className="mb-4">
             {track.primary_uploader_wallet ? (
               <Link
@@ -1173,6 +1173,20 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
               </Link>
             ) : (
               <p className="text-gray-400 text-sm">{track.artist}</p>
+            )}
+            {/* Badge chips: Type + Creation method */}
+            {!isRadioStation && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-700/80 text-gray-300">
+                  {getTrackType()}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-700/80 text-gray-300">
+                  {(() => {
+                    const aiDisplay = getAIAssistanceDisplay(track);
+                    return `${aiDisplay.emoji} ${aiDisplay.text}`;
+                  })()}
+                </span>
+              </div>
             )}
           </div>
 
@@ -1519,196 +1533,137 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             </div>
           )}
 
-          {/* Price and License - moved here for better flow - Skip for radio stations */}
+          {/* Price and License - Badge = license, line = price. Skip for radio stations */}
           {!isRadioStation && (
           <div>
             <Divider title="PRICE AND LICENSE" />
-            <div className="space-y-1 text-xs">
-              <div className="flex">
-                <span className="text-gray-500 w-24">License:</span>
-                <span className={`${(track.remix_protected || ipRights?.remix_protected) ? 'text-amber-300' : 'text-gray-300'}`}>
-                  {getLicense()}
-                </span>
-              </div>
-              {track.content_type === 'loop_pack' ? (
-                <>
-                  {ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
-                    // Downloadable pack: Show total pack price and per-loop price
-                    // Use child record price as per-item (always stores per-item regardless of creation path)
-                    (() => {
-                      const perLoopPrice = packLoops[0]?.download_price_usdc ?? packLoops[0]?.download_price_stx ?? ipRights.download_price_usdc;
-                      const totalPrice = perLoopPrice * (packLoops.length || 1);
-                      return (
-                        <>
-                          <div className="flex">
-                            <span className="text-gray-500 w-24">Download:</span>
-                            <span className="text-gray-300">${totalPrice.toFixed(2)} USDC (full pack)</span>
-                          </div>
-                          {packLoops.length > 1 && (
-                            <div className="flex">
-                              <span className="text-gray-500 w-24">Per loop:</span>
-                              <span className="text-gray-300">${perLoopPrice} USDC</span>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()
-                  ) : (
-                    // Remix-only pack: Show per-loop remix price
-                    <div className="flex">
-                      <span className="text-gray-500 w-24">Remix Fee:</span>
-                      <span className="text-gray-300">${PRICING.mixer.loopRecording} USDC per loop</span>
-                    </div>
-                  )}
-                  <div className="flex">
-                    <span className="text-gray-500 w-24">Loops:</span>
-                    <span className="text-gray-300">{packLoops.length || '?'} loops in pack</span>
-                  </div>
-                </>
-              ) : track.content_type === 'loop' ? (
-                // Loops: Show different pricing based on allow_downloads
-                <>
-                  {ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
-                    <div className="flex">
-                      <span className="text-gray-500 w-24">Download:</span>
-                      <span className="text-gray-300">${ipRights.download_price_usdc} USDC</span>
-                    </div>
-                  ) : (
-                    <div className="flex">
-                      <span className="text-gray-500 w-24">Remix Fee:</span>
-                      <span className="text-gray-300">${PRICING.mixer.loopRecording} USDC per mix</span>
-                    </div>
-                  )}
-                </>
-              ) : track.content_type === 'ep' ? (
-                // EPs: Show total EP price and per-song price
-                // Use child record price as per-item (always stores per-item regardless of creation path)
-                <>
-                  {ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
-                    (() => {
-                      const perSongPrice = packLoops[0]?.download_price_usdc ?? packLoops[0]?.download_price_stx ?? ipRights.download_price_usdc;
-                      const totalEPPrice = perSongPrice * (packLoops.length || 1);
-                      return (
-                        <>
-                          <div className="flex">
-                            <span className="text-gray-500 w-24">Download:</span>
-                            <span className="text-gray-300">${totalEPPrice.toFixed(2)} USDC (full EP)</span>
-                          </div>
-                          {packLoops.length > 1 && (
-                            <div className="flex">
-                              <span className="text-gray-500 w-24">Per song:</span>
-                              <span className="text-gray-300">${perSongPrice} USDC</span>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()
-                  ) : (
-                    <div className="flex">
-                      <span className="text-gray-500 w-24">Downloads:</span>
-                      <span className="text-gray-400">Not available</span>
-                    </div>
-                  )}
-                  <div className="flex">
-                    <span className="text-gray-500 w-24">Songs:</span>
-                    <span className="text-gray-300">{packLoops.length || '?'} songs in EP</span>
-                  </div>
-                </>
-              ) : (
-                // Songs: Only show download price if downloads are enabled
-                ipRights?.allow_downloads && ipRights?.download_price_usdc !== null ? (
-                  <div className="flex">
-                    <span className="text-gray-500 w-24">Download:</span>
-                    <span className="text-gray-300">${ipRights.download_price_usdc} USDC</span>
-                  </div>
-                ) : (
-                  <div className="flex">
-                    <span className="text-gray-500 w-24">Downloads:</span>
-                    <span className="text-gray-400">Not available</span>
-                  </div>
-                )
-              )}
-              {track.open_to_commercial && (
-                <div className="flex">
-                  <span className="text-gray-500 w-24">Commercial:</span>
-                  <span className="text-green-400">
-                    ✓ {track.collab_contact_fee ? `(Contact: $${track.collab_contact_fee} USDC)` : ''}
+            <div className="space-y-2 text-xs">
+              {/* License badge */}
+              {(() => {
+                const isRemixProtected = track.remix_protected || ipRights?.remix_protected;
+                const allowsDownloads = track.allow_downloads || ipRights?.allow_downloads;
+                const isVideo = track.content_type === 'video_clip';
+
+                let licenseIcon = '🎛️';
+                let licenseText = '';
+
+                if (isVideo) {
+                  licenseText = 'Mixer Only (alpha)';
+                } else if (isRemixProtected && allowsDownloads) {
+                  licenseIcon = '🔒';
+                  licenseText = 'Streaming + Download Only';
+                } else if (isRemixProtected) {
+                  licenseIcon = '🔒';
+                  licenseText = 'Streaming Only';
+                } else if (allowsDownloads) {
+                  licenseText = 'Mixer + Download';
+                } else {
+                  licenseText = 'Mixer Only';
+                }
+
+                return (
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isRemixProtected ? 'bg-amber-900/40 text-amber-300' : 'bg-slate-700 text-gray-300'}`}>
+                    {licenseIcon} {licenseText}
                   </span>
-                </div>
-              )}
-              {track.open_to_collaboration && (
-                <div className="flex">
-                  <span className="text-gray-500 w-24">Collaboration:</span>
-                  <span className="text-green-400">
-                    ✓ {track.collab_contact_fee ? `(Contact: $${track.collab_contact_fee} USDC)` : ''}
-                  </span>
+                );
+              })()}
+
+              {/* Price line */}
+              {(() => {
+                const allowsDownloads = ipRights?.allow_downloads;
+                const isVideo = track.content_type === 'video_clip';
+
+                if (isVideo) return null; // No price for video in alpha
+
+                if (track.content_type === 'loop_pack') {
+                  if (allowsDownloads && ipRights?.download_price_usdc !== null) {
+                    const perLoopPrice = packLoops[0]?.download_price_usdc ?? packLoops[0]?.download_price_stx ?? ipRights?.download_price_usdc;
+                    const totalPrice = perLoopPrice * (packLoops.length || 1);
+                    return (
+                      <div className="text-gray-300">
+                        ⬇️ ${totalPrice.toFixed(2)} full pack{packLoops.length > 1 ? ` · $${perLoopPrice} per loop` : ''} · {packLoops.length || '?'} loops
+                      </div>
+                    );
+                  }
+                  return <div className="text-gray-400">🎛️ ${PRICING.mixer.loopRecording} USDC per loop in mixer</div>;
+                }
+
+                if (track.content_type === 'ep') {
+                  if (allowsDownloads && ipRights?.download_price_usdc !== null) {
+                    const perSongPrice = packLoops[0]?.download_price_usdc ?? packLoops[0]?.download_price_stx ?? ipRights?.download_price_usdc;
+                    const totalEPPrice = perSongPrice * (packLoops.length || 1);
+                    return (
+                      <div className="text-gray-300">
+                        ⬇️ ${totalEPPrice.toFixed(2)} full EP{packLoops.length > 1 ? ` · $${perSongPrice} per song` : ''} · {packLoops.length || '?'} songs
+                      </div>
+                    );
+                  }
+                  return <div className="text-gray-400">Downloads not available</div>;
+                }
+
+                if (track.content_type === 'loop') {
+                  if (allowsDownloads && ipRights?.download_price_usdc !== null) {
+                    return <div className="text-gray-300">⬇️ ${ipRights.download_price_usdc} USDC</div>;
+                  }
+                  return <div className="text-gray-400">🎛️ ${PRICING.mixer.loopRecording} USDC per mix</div>;
+                }
+
+                // Songs and other types
+                if (allowsDownloads && ipRights?.download_price_usdc !== null) {
+                  return <div className="text-gray-300">⬇️ ${ipRights.download_price_usdc} USDC</div>;
+                }
+                return null;
+              })()}
+
+              {/* Commercial / Collaboration badges */}
+              {(track.open_to_commercial || track.open_to_collaboration) && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {track.open_to_commercial && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-green-900/40 text-green-400">
+                      Commercial{track.collab_contact_fee ? ` · $${track.collab_contact_fee}` : ''}
+                    </span>
+                  )}
+                  {track.open_to_collaboration && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-green-900/40 text-green-400">
+                      Collaboration{track.collab_contact_fee ? ` · $${track.collab_contact_fee}` : ''}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
           </div>
           )}
 
-          {/* Basic Info */}
-          <div>
-            <Divider title="BASIC INFO" />
-            <div className="space-y-1 text-xs">
-              <div className="flex">
-                <span className="text-gray-500 w-24">{isRadioStation ? 'Station:' : 'Title:'}</span>
-                <span className="text-gray-300">{track.title}</span>
-              </div>
-              {!isRadioStation && (
+          {/* Radio Station Info - Only for radio stations (replaces BASIC INFO for them) */}
+          {isRadioStation && (
+            <div>
+              <Divider title="STATION INFO" />
+              <div className="space-y-1 text-xs">
                 <div className="flex">
-                  <span className="text-gray-500 w-24">{track.remix_depth && track.remix_depth > 0 ? 'Remixer:' : 'Artist:'}</span>
-                  <span className="text-gray-300">
-                    {/* Use persona name lookup for remixer, fall back to track.artist */}
-                    {collaboratorNames[track.primary_uploader_wallet] || track.artist}
-                  </span>
+                  <span className="text-gray-500 w-24">Status:</span>
+                  <span className="text-[#FFC044] font-bold">🔴 LIVE</span>
                 </div>
-              )}
-              <div className="flex">
-                <span className="text-gray-500 w-24">Type:</span>
-                <span className="text-gray-300">{getTrackType()}</span>
-              </div>
-              {isRadioStation && (
-                <>
+                {track.genre && (
                   <div className="flex">
-                    <span className="text-gray-500 w-24">Status:</span>
-                    <span className="text-[#FFC044] font-bold">🔴 LIVE</span>
+                    <span className="text-gray-500 w-24">Genre:</span>
+                    <span className="text-gray-300">{track.genre}</span>
                   </div>
-                  {track.genre && (
-                    <div className="flex">
-                      <span className="text-gray-500 w-24">Genre:</span>
-                      <span className="text-gray-300">{track.genre}</span>
-                    </div>
-                  )}
-                  {track.location && (
-                    <div className="flex">
-                      <span className="text-gray-500 w-24">Location:</span>
-                      <span className="text-gray-300">{track.location}</span>
-                    </div>
-                  )}
-                  {track.description && (
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 mb-1">Description:</span>
-                      <span className="text-gray-300 text-xs leading-relaxed">{track.description}</span>
-                    </div>
-                  )}
-                </>
-              )}
-              {/* AI Assistance Display - Only for non-radio content */}
-              {!isRadioStation && (
-                <div className="flex">
-                  <span className="text-gray-500 w-24">Creation:</span>
-                  <span className="text-gray-300">
-                    {(() => {
-                      const aiDisplay = getAIAssistanceDisplay(track);
-                      return `${aiDisplay.emoji} ${aiDisplay.text}`;
-                    })()}
-                  </span>
-                </div>
-              )}
+                )}
+                {track.location && (
+                  <div className="flex">
+                    <span className="text-gray-500 w-24">Location:</span>
+                    <span className="text-gray-300">{track.location}</span>
+                  </div>
+                )}
+                {track.description && (
+                  <div className="flex flex-col">
+                    <span className="text-gray-500 mb-1">Description:</span>
+                    <span className="text-gray-300 text-xs leading-relaxed">{track.description}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Derived From - Shows where this content came from (NOT remixes) */}
           {derivedFromTrack && (
@@ -1728,26 +1683,25 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
           )}
 
 
-          {/* Tags (including location tags) */}
-          {track.tags && track.tags.length > 0 && (
-            <div>
-              <Divider title="TAGS" />
-              <div className="flex flex-wrap gap-1">
-                {track.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className={`px-2 py-1 rounded text-xs ${
-                      tag.startsWith('🌍')
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-700 text-gray-300'
-                    }`}
-                  >
-                    {tag}
-                  </span>
-                ))}
+          {/* Tags (location tags filtered out — shown in LOCATIONS section instead) */}
+          {(() => {
+            const nonLocationTags = (track.tags || []).filter((tag: string) => !tag.startsWith('🌍'));
+            return nonLocationTags.length > 0 && (
+              <div>
+                <Divider title="TAGS" />
+                <div className="flex flex-wrap gap-1">
+                  {nonLocationTags.map((tag: string, index: number) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 rounded text-xs bg-slate-700 text-gray-300"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Aggregated Locations (for remixes, includes source track locations) */}
           {(() => {
@@ -1820,14 +1774,56 @@ export default function TrackDetailsModal({ track, isOpen, onClose }: TrackDetai
             </div>
           )}
 
-          {/* Notes & Credits */}
+          {/* Notes & Credits — parses Lyrics:/Credits: prefixed sections into sub-headers */}
           {(track.tell_us_more || track.notes || ipRights?.notes) && (
-            <div>
-              <Divider title="NOTES & CREDITS" />
-              <p className="text-xs text-gray-300 leading-relaxed">
-                {track.tell_us_more || track.notes || ipRights?.notes}
-              </p>
-            </div>
+            (() => {
+              const rawNotes = (track.tell_us_more || track.notes || ipRights?.notes || '') as string;
+              // Split into sections by prefix markers
+              const lyricsMatch = rawNotes.match(/Lyrics:\s*([\s\S]*?)(?=(?:Credits:|Cultural context:)|$)/i);
+              const creditsMatch = rawNotes.match(/Credits:\s*([\s\S]*?)(?=(?:Lyrics:|Cultural context:)|$)/i);
+              const culturalMatch = rawNotes.match(/Cultural context:\s*([\s\S]*?)(?=(?:Lyrics:|Credits:)|$)/i);
+              const hasPrefixes = lyricsMatch || creditsMatch || culturalMatch;
+
+              // Main notes: everything before any prefix, or the whole thing
+              const mainNotes = hasPrefixes
+                ? rawNotes.replace(/(?:Lyrics:|Credits:|Cultural context:)\s*[\s\S]*$/i, '').trim()
+                : rawNotes;
+
+              return (
+                <div className="space-y-3">
+                  {mainNotes && (
+                    <div>
+                      <Divider title="NOTES" />
+                      <p className="text-xs text-gray-300 leading-relaxed">{mainNotes}</p>
+                    </div>
+                  )}
+                  {lyricsMatch?.[1]?.trim() && (
+                    <div>
+                      <Divider title="LYRICS" />
+                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">{lyricsMatch[1].trim()}</p>
+                    </div>
+                  )}
+                  {creditsMatch?.[1]?.trim() && (
+                    <div>
+                      <Divider title="CREDITS" />
+                      <p className="text-xs text-gray-300 leading-relaxed">{creditsMatch[1].trim()}</p>
+                    </div>
+                  )}
+                  {culturalMatch?.[1]?.trim() && (
+                    <div>
+                      <Divider title="CULTURAL CONTEXT" />
+                      <p className="text-xs text-gray-300 leading-relaxed">{culturalMatch[1].trim()}</p>
+                    </div>
+                  )}
+                  {!hasPrefixes && !mainNotes && (
+                    <div>
+                      <Divider title="NOTES" />
+                      <p className="text-xs text-gray-300 leading-relaxed">{rawNotes}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
 
 
