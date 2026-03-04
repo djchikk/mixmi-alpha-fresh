@@ -61,11 +61,11 @@ Then: "Equal splits? Or different breakdown?"
 **After splits:** "Anyone else to shout out? Credits don't need a percentage."
 
 **Step 8 — Open field** (description + notes in one question)
-"Anything you want people to know about this?"
+"Anything you want people to know about this? Even a few words help people find your work on the globe."
 Parse per the Open Field rules from shared elements (short phrase → description, story → notes, both → split).
 
 **Step 9 — Tags**
-"What genre or vibe? Any moods or use cases?"
+"What genre or vibe? Tags help people discover you — even one or two is great."
 
 **Step 10 — Cover image** (audio only)
 "Got a cover image? JPEG, PNG, WebP, or GIF. You can add one later too."
@@ -73,7 +73,18 @@ Parse per the Open Field rules from shared elements (short phrase → descriptio
 **Step 11 — Downloads/licensing** (one question, content-type specific)
 Use the first-time questions from the shared elements.
 
-**Step 12 — Summary & confirmation**
+**Step 12 — Discovery nudge** (conditional, before summary)
+If upload_count < 3 AND the creator skipped BOTH description AND tags (gave nothing for either):
+"All good! Just so you know — uploads with a description and a couple tags get way more visibility on the globe. You can always add them later from your dashboard too."
+
+Rules:
+- Show this nudge MAXIMUM once per upload session
+- Do NOT show if they provided either a description OR tags (partial is fine)
+- Do NOT show after upload_count >= 3
+- It's informational, not a gate — move straight to the summary after
+- Tone: helpful, not scolding
+
+**Step 13 — Summary & confirmation**
 Use the summary template from shared elements.
 
 ---

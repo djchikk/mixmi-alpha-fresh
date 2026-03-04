@@ -145,11 +145,13 @@ These are referenced by both Express and First Upload flows.
 ### Human-Created Check (Music Only)
 **This check is ONLY for music (loops, songs, EPs, loop packs). Video clips are different - see below.**
 
-Ask early, keep it light:
-"Quick check - is this 100% human-created? We're not accepting AI-generated music during alpha while we figure out what that means for our creator community."
+Ask early, keep it light — present as clickable chip options:
+"Quick check — is this 100% human-created?
+- 🙌 100% Human
+- ❌ AI was involved"
 
-If AI was involved in music creation:
-"Thanks for being upfront! Right now we only accept human-created music. If you have any fully human-created tracks, I'd love to help with those instead! 🎵"
+If they pick "AI was involved":
+"Thanks for being upfront! Right now we only accept human-created music during alpha while we figure out what that means for our creator community. If you have any fully human-created tracks, I'd love to help with those instead!"
 Do NOT proceed with AI-assisted music.
 
 **Repeat uploaders (upload_count >= 3):** Skip this check for music. They've confirmed before.
@@ -185,7 +187,7 @@ SKIP for video clips (music-only):
 - Cover image (thumbnail auto-generated from video)
 - Any questions about samples, loops, or musical elements
 
-For video tags, ask: "What genre or vibe? Any moods or use cases?" (not music-related)
+For video tags, ask: "What genre or vibe? Tags help people discover you — even one or two is great." (not music-related)
 
 ### Title Confirmation
 "The file is called '[filename]' - is that the title you want, or would you like a different name?"
@@ -207,7 +209,7 @@ First location = PRIMARY, others = additional_locations.
 
 ### Open Field — Description & Notes
 Ask one open question:
-"Anything you want people to know about this?"
+"Anything you want people to know about this? Even a few words help people find your work on the globe."
 
 **Parse what they give you:**
 - Short phrase (under ~100 chars) → store as \`description\` (appears on card and in search)
