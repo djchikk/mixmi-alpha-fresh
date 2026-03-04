@@ -7,6 +7,16 @@ import { PRICING } from '@/config/pricing';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import AddPersonaModal from '@/components/modals/AddPersonaModal';
 import QRCodeModal from '@/components/shared/QRCodeModal';
+import { supabase } from '@/lib/supabase';
+
+interface TbdPersona {
+  id: string;
+  username: string;
+  display_name: string;
+  sui_address: string | null;
+  balance_usdc: number;
+  created_at: string;
+}
 
 interface WalletsTabProps {
   walletAddress: string | null;
@@ -29,6 +39,10 @@ export default function WalletsTab({
   const [disconnecting, setDisconnecting] = useState(false);
   const [qrModal, setQrModal] = useState<{ address: string; label: string; username?: string } | null>(null);
   const [isAddPersonaModalOpen, setIsAddPersonaModalOpen] = useState(false);
+
+  // TBD managed wallets
+  const [tbdPersonas, setTbdPersonas] = useState<TbdPersona[]>([]);
+  const [loadingTbd, setLoadingTbd] = useState(false);
 
   // On-chain wallet balances
   const [walletBalances, setWalletBalances] = useState<Record<string, { usdc: number; sui: number }>>({});
@@ -56,10 +70,32 @@ export default function WalletsTab({
     setLoadingBalances(false);
   };
 
-  // Fetch balances on mount
+  // Fetch TBD managed wallets
+  const fetchTbdPersonas = async () => {
+    if (!activePersona?.account_id) return;
+    setLoadingTbd(true);
+    try {
+      const { data, error } = await supabase
+        .from('personas')
+        .select('id, username, display_name, sui_address, balance_usdc, created_at')
+        .eq('account_id', activePersona.account_id)
+        .eq('is_active', true)
+        .like('username', '%-tbd%');
+
+      if (!error && data) {
+        setTbdPersonas(data);
+      }
+    } catch (err) {
+      console.error('Error fetching TBD personas:', err);
+    }
+    setLoadingTbd(false);
+  };
+
+  // Fetch balances and TBD personas on mount
   useEffect(() => {
     if (activePersona?.account_id) {
       fetchWalletBalances();
+      fetchTbdPersonas();
     }
   }, [activePersona?.account_id]);
 
@@ -395,6 +431,93 @@ export default function WalletsTab({
           )}
         </div>
       </div>
+
+      {/* Managed Wallets (TBD collaborators) */}
+      {tbdPersonas.length > 0 && (
+        <div className="p-6 bg-[#101726] border border-[#1E293B] rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-white font-semibold">Managed Wallets</h3>
+            <span className="text-xs text-gray-500">{tbdPersonas.length} collaborator{tbdPersonas.length !== 1 ? 's' : ''}</span>
+          </div>
+          <p className="text-gray-400 text-sm mb-4">
+            Wallets you manage for collaborators not yet on mixmi. Their earnings are held until they claim their account.
+          </p>
+
+          <div className="space-y-3">
+            {tbdPersonas.map((tbd) => {
+              const balance = tbd.sui_address && walletBalances[tbd.sui_address];
+
+              return (
+                <div
+                  key={tbd.id}
+                  className="rounded-lg border bg-[#0a0f1a] border-[#1E293B] hover:border-gray-600 transition-colors"
+                >
+                  <div className="flex items-center gap-4 p-4">
+                    {/* TBD indicator */}
+                    <div className="flex-shrink-0 w-4" />
+
+                    {/* Avatar */}
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E293B] flex-shrink-0">
+                      <UserAvatar
+                        src={null}
+                        name={tbd.username || tbd.id}
+                        size={48}
+                      />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-medium truncate">
+                        {tbd.display_name || tbd.username}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">@{tbd.username}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-amber-900/30 text-amber-400 rounded">TBD</span>
+                      </div>
+                      {tbd.sui_address && (
+                        <div className="text-xs text-gray-500 font-mono truncate mt-1">
+                          {tbd.sui_address.slice(0, 10)}...{tbd.sui_address.slice(-6)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Balance */}
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-amber-400 font-mono font-medium">
+                        ${(balance ? balance.usdc : tbd.balance_usdc || 0).toFixed(2)} USDC
+                      </div>
+                      {balance?.sui !== undefined && balance.sui > 0 && (
+                        <div className="text-xs text-gray-500">
+                          {balance.sui.toFixed(4)} SUI
+                        </div>
+                      )}
+                    </div>
+
+                    {/* QR */}
+                    {tbd.sui_address && (
+                      <button
+                        onClick={() => setQrModal({
+                          address: tbd.sui_address!,
+                          label: 'Managed Wallet',
+                          username: tbd.username
+                        })}
+                        className="p-1.5 text-gray-400 hover:text-amber-400 transition-colors flex-shrink-0"
+                        title="Show QR Code"
+                      >
+                        <QrCode size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-gray-500 text-xs mt-3">
+            Manage claims and invites from the Earnings tab &gt; Resolve
+          </p>
+        </div>
+      )}
 
       {/* Modals */}
       <AddPersonaModal
