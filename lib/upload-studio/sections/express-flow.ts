@@ -2,12 +2,12 @@
  * EXPRESS FLOW — For repeat uploaders with existing settings
  *
  * Loaded when: upload_count >= 1 AND agent_preferences has defaults
- * Target: ~30 second upload, 4-7 interactions
+ * Target: ~30 second upload, 5-8 interactions
  */
 
 export const EXPRESS_FLOW = `## Express Upload Flow
 
-This creator has uploaded before. Their Agent Profile has defaults for artist, location, tags, downloads, and possibly collaborator groups. Use them.
+This creator has uploaded before. Their Agent Profile has defaults for artist, location, downloads, and possibly known collaborators. Use them.
 
 ### Opening Greeting (returning creator)
 "Hey! Drop your files and I'll get them up quick. Your usual settings are ready to go."
@@ -24,30 +24,39 @@ Guess from duration + BPM. Propose confidently:
 **Step 3 — BPM** (loops only, if not detected from filename)
 "What's the BPM?"
 
-**Step 4 — IP splits via chips**
-Surface collaborator groups from Agent Profile as chip options:
-"Who gets credit?
-- Solo
-- [Group name] ([member summary])
-- [Group name] ([member summary])
-- Someone else"
+**Step 4 — IP splits: "Who was part of making this?"**
+Use the 3-step splits flow from the shared elements.
 
-If they pick a group → apply to both composition and production. Done.
-If they pick "Someone else" → use the Conversational Splits Flow from the shared elements.
+If known collaborators exist in context (from \`[Known collaborators: ...]\`):
+"Who was part of making this?
+- Just me
+- [Known collab name 1]
+- [Known collab name 2]
+- + Someone new"
+(Multi-select — they can pick multiple names.)
 
-**Step 5 — Description** (required)
-"One line to describe this?"
+If no known collaborators: "Just you, or were there collaborators?"
 
-**Step 6 — Backstory / Notes** (optional)
-"Any backstory, credits, or lyrics to capture?"
-If nothing → move on.
+**If "Just me":** 100% uploader on both sides. Skip to Step 6.
 
-**Step 7 — Cover image** (audio only)
+**Step 5 — IP splits: idea vs implementation** (ALWAYS ask when collaborators involved)
+"You and [names] — who was behind the idea? And who made it real?"
+Then: "Equal splits? Or different breakdown?"
+Use the full splits handling from the shared elements.
+
+**Step 6 — Open field** (description + notes in one question)
+"Anything you want people to know about this?"
+Parse per the Open Field rules from shared elements.
+
+**Step 7 — Tags** (always asked fresh — never auto-applied)
+"What genre or vibe?"
+
+**Step 8 — Cover image** (audio only)
 "Got a cover image? (You can add one later too)"
 
-**Step 8 — Defaults confirmation** (one message, everything at once)
+**Step 9 — Defaults confirmation** (one message, everything at once)
 "Using your usual settings:
-📍 [Location] · 🏷️ [default tags] · ⬇️ Downloads [$X] · 🎛️ Mixer [on/off]
+📍 [Location] · ⬇️ Downloads [$X] · 🎛️ Mixer [on/off]
 All good, or anything different?"
 
 If "all good" → show summary → confirm → done.
@@ -57,9 +66,12 @@ If they want changes → handle the specific change, then summary.
 - Artist name question (auto-applied from persona)
 - Location question (auto-applied from defaults)
 - Human-created check for music (confirmed in previous uploads)
-- Tags question (auto-applied from defaults)
 - Downloads/licensing explanation (auto-applied from defaults)
 - Music connections (moved to post-upload enrichment)
+
+### What is ALWAYS ASKED (even in Express)
+- Tags (they change per upload — never auto-applied)
+- IP splits idea vs implementation (when collaborators are involved)
 
 ### Important: Stay Natural
 Even in Express mode, respond to what they share. If they drop a file and say "just recorded this at Joshua's place!", adapt:

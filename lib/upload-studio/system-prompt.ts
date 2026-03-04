@@ -92,7 +92,7 @@ export function formatMessagesForAPI(
   uploaderWallet?: string,
   fileMetadata?: string,
   csvSummary?: string,
-  collaboratorGroups?: Array<{ name: string; composition_splits: Array<{ name: string; percentage: number }>; production_splits: Array<{ name: string; percentage: number }> }>
+  knownCollaborators?: Array<{ name: string; notes?: string }>
 ) {
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -155,15 +155,12 @@ export function formatMessagesForAPI(
     userContent += `\n\n${csvSummary}`;
   }
 
-  // Add collaborator groups for chip-based split selection
-  if (collaboratorGroups && collaboratorGroups.length > 0) {
-    const groupList = collaboratorGroups.map(g => {
-      const members = g.composition_splits
-        .map(s => `${s.name} ${s.percentage}%`)
-        .join(', ');
-      return `${g.name} (${members})`;
-    }).join(' | ');
-    userContent += `\n\n[Collaborator groups: ${groupList}]`;
+  // Add known collaborators for chip-based split selection
+  if (knownCollaborators && knownCollaborators.length > 0) {
+    const collabList = knownCollaborators.map(c =>
+      c.notes ? `${c.name} (${c.notes})` : c.name
+    ).join(', ');
+    userContent += `\n\n[Known collaborators: ${collabList}]`;
   }
 
   messages.push({ role: 'user', content: userContent });

@@ -370,6 +370,27 @@ async function updateAgentPreferences(
       updates.default_splits_template = namedSplits;
     }
 
+    // Incremental known_collaborators learning: extract new names from splits and merge
+    if (namedSplits.length > 0) {
+      const existingCollabs: Array<{ name: string; notes?: string }> = prefs.known_collaborators || [];
+      const existingNames = new Set(existingCollabs.map((c: any) => c.name.toLowerCase()));
+      const newCollabs: Array<{ name: string; notes?: string }> = [];
+
+      // Deduplicate namedSplits by name (same person may appear in both composition and production)
+      const seenNames = new Set<string>();
+      for (const split of namedSplits) {
+        const lower = split.name.toLowerCase();
+        if (!existingNames.has(lower) && !seenNames.has(lower)) {
+          seenNames.add(lower);
+          newCollabs.push({ name: split.name, notes: split.role });
+        }
+      }
+
+      if (newCollabs.length > 0) {
+        updates.known_collaborators = [...existingCollabs, ...newCollabs];
+      }
+    }
+
     // Starter preferences: first upload seeds defaults for future Express uploads
     const starterPrefs = (trackData as any).starter_preferences;
     if (starterPrefs && typeof starterPrefs === 'object') {
@@ -388,8 +409,8 @@ async function updateAgentPreferences(
       if (starterPrefs.typical_content_type && !updates.typical_content_type) {
         updates.typical_content_type = starterPrefs.typical_content_type;
       }
-      if (starterPrefs.collaborator_groups && Array.isArray(starterPrefs.collaborator_groups)) {
-        updates.collaborator_groups = starterPrefs.collaborator_groups;
+      if (starterPrefs.known_collaborators && Array.isArray(starterPrefs.known_collaborators)) {
+        updates.known_collaborators = starterPrefs.known_collaborators;
       }
       if (starterPrefs.bio_draft_material) {
         updates.bio_draft_material = starterPrefs.bio_draft_material;
@@ -398,7 +419,7 @@ async function updateAgentPreferences(
       console.log('🌱 Starter preferences from first upload:', {
         location: !!starterPrefs.default_location,
         tags: starterPrefs.default_tags?.length ?? 0,
-        groups: starterPrefs.collaborator_groups?.length ?? 0,
+        collaborators: starterPrefs.known_collaborators?.length ?? 0,
         hasBio: !!starterPrefs.bio_draft_material
       });
     }

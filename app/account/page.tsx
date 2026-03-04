@@ -1410,7 +1410,7 @@ function SettingsTab({
       if (activePersona?.id) {
         const { data: prefs } = await supabase
           .from('agent_preferences')
-          .select('upload_count, typical_content_type, default_location, default_tags, default_allow_downloads, default_download_price_usdc, collaborator_groups, bio_draft_material, preferences_auto_generated')
+          .select('upload_count, typical_content_type, default_location, default_tags, default_allow_downloads, default_download_price_usdc, known_collaborators, bio_draft_material, preferences_auto_generated')
           .eq('persona_id', activePersona.id)
           .maybeSingle();
         setAgentPrefs(prefs);
@@ -1633,16 +1633,6 @@ function SettingsTab({
                       </div>
                     </div>
                   )}
-                  {agentPrefs.default_tags && agentPrefs.default_tags.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <span className="text-sm">🏷️</span>
-                      <div className="flex flex-wrap gap-1">
-                        {agentPrefs.default_tags.map((tag: string, i: number) => (
-                          <span key={i} className="px-2 py-0.5 bg-slate-700 text-gray-300 text-xs rounded">{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   {agentPrefs.typical_content_type && (
                     <div className="flex items-start gap-2">
                       <span className="text-sm">🎵</span>
@@ -1673,41 +1663,83 @@ function SettingsTab({
                 </div>
               </div>
 
-              {/* Collaborator Groups */}
-              {agentPrefs.collaborator_groups && agentPrefs.collaborator_groups.length > 0 && (
-                <div className="border-t border-[#1E293B] pt-4">
-                  <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Collaborator Groups</p>
-                  <div className="space-y-2">
-                    {agentPrefs.collaborator_groups.map((group: any, i: number) => {
-                      const comp = (group.composition_splits || []).map((s: any) => `${s.name} ${s.percentage}%`).join(', ');
-                      const prod = (group.production_splits || []).map((s: any) => `${s.name} ${s.percentage}%`).join(', ');
-                      const sameSplits = comp === prod;
-                      const isWritingOnly = group.name?.includes('(writing)');
-                      const isProductionOnly = group.name?.includes('(production)');
-                      return (
-                        <div key={i}>
-                          <div className="flex items-start gap-2">
-                            <span className="text-[#81E4F2] text-sm font-medium whitespace-nowrap">
-                              {group.name}{sameSplits && !isWritingOnly && !isProductionOnly && !group.name?.includes('Solo') ? ' (writing & production)' : ''}
-                            </span>
-                          </div>
-                          {sameSplits || isWritingOnly ? (
-                            <p className="text-gray-300 text-sm ml-1 mt-0.5">{comp}</p>
-                          ) : isProductionOnly ? (
-                            <p className="text-gray-300 text-sm ml-1 mt-0.5">{prod}</p>
-                          ) : (
-                            <div className="ml-1 mt-0.5 space-y-0.5">
-                              <p className="text-gray-300 text-sm"><span className="text-gray-500">Writing:</span> {comp}</p>
-                              <p className="text-gray-300 text-sm"><span className="text-gray-500">Production:</span> {prod}</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+              {/* Known Collaborators */}
+              <div className="border-t border-[#1E293B] pt-4">
+                <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Known Collaborators</p>
+                {agentPrefs.known_collaborators && agentPrefs.known_collaborators.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {agentPrefs.known_collaborators.map((collab: any, i: number) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-700 text-gray-200 text-sm rounded-full group"
+                        title={collab.notes || undefined}
+                      >
+                        {collab.name}
+                        {collab.notes && <span className="text-gray-500 text-xs">· {collab.notes}</span>}
+                        <button
+                          onClick={async () => {
+                            const updated = agentPrefs.known_collaborators.filter((_: any, j: number) => j !== i);
+                            const { error } = await supabase
+                              .from('agent_preferences')
+                              .update({ known_collaborators: updated })
+                              .eq('persona_id', activePersona?.id);
+                            if (!error) {
+                              setAgentPrefs({ ...agentPrefs, known_collaborators: updated });
+                            }
+                          }}
+                          className="text-gray-500 hover:text-red-400 transition-colors ml-0.5"
+                          aria-label={`Remove ${collab.name}`}
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                    <button
+                      onClick={async () => {
+                        const name = prompt('Collaborator name:');
+                        if (!name?.trim()) return;
+                        const notes = prompt('Role or note (optional):');
+                        const newCollab = { name: name.trim(), ...(notes?.trim() ? { notes: notes.trim() } : {}) };
+                        const updated = [...(agentPrefs.known_collaborators || []), newCollab];
+                        const { error } = await supabase
+                          .from('agent_preferences')
+                          .update({ known_collaborators: updated })
+                          .eq('persona_id', activePersona?.id);
+                        if (!error) {
+                          setAgentPrefs({ ...agentPrefs, known_collaborators: updated });
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1 border border-dashed border-gray-600 text-gray-400 text-sm rounded-full hover:border-[#81E4F2] hover:text-[#81E4F2] transition-colors"
+                    >
+                      + Add
+                    </button>
                   </div>
-                  <p className="text-gray-500 text-xs mt-2">Used by the chatbot for quick split selection</p>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="text-gray-500 text-sm">No collaborators yet</p>
+                    <button
+                      onClick={async () => {
+                        const name = prompt('Collaborator name:');
+                        if (!name?.trim()) return;
+                        const notes = prompt('Role or note (optional):');
+                        const newCollab = { name: name.trim(), ...(notes?.trim() ? { notes: notes.trim() } : {}) };
+                        const updated = [newCollab];
+                        const { error } = await supabase
+                          .from('agent_preferences')
+                          .update({ known_collaborators: updated })
+                          .eq('persona_id', activePersona?.id);
+                        if (!error) {
+                          setAgentPrefs({ ...agentPrefs, known_collaborators: updated });
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1 border border-dashed border-gray-600 text-gray-400 text-sm rounded-full hover:border-[#81E4F2] hover:text-[#81E4F2] transition-colors"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                )}
+                <p className="text-gray-500 text-xs mt-2">Shown as quick-select chips during upload</p>
+              </div>
 
               {/* Bio Draft */}
               {agentPrefs.bio_draft_material && (

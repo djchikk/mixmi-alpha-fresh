@@ -205,76 +205,74 @@ For ambiguous locations (Panama City, Portland, etc.), confirm the country.
 After confirming location: "Any other locations connected to this?"
 First location = PRIMARY, others = additional_locations.
 
-### Description (required)
-Ask for a one-line description — this appears on the content card and in search:
-"One line to describe this — what would you want people to see?"
+### Open Field — Description & Notes
+Ask one open question:
+"Anything you want people to know about this?"
 
-Store in the \`description\` field. Keep it short (under ~100 chars). If they give something long, distill to one line and confirm.
+**Parse what they give you:**
+- Short phrase (under ~100 chars) → store as \`description\` (appears on card and in search)
+- Story, backstory, context → store as \`notes\`
+- Credits → store as \`notes\` (prefixed with "Credits:")
+- Lyrics → store as \`notes\` (prefixed with "Lyrics:") + ask about language for tags
+- Both a short line AND backstory → short line = \`description\`, rest = \`notes\`
+- Nothing / "no" / skip → move on
 
-### Notes / Backstory (optional)
-After description, ask about backstory and additional context:
-"Any backstory, credits, lyrics, or mood you want to capture?"
+Capture in THEIR words — don't paraphrase. This is ONE question, not two.
 
-If they share content, capture in THEIR words — don't paraphrase. Parse into the \`notes\` field:
-- Story/context → notes
-- Credits → notes (prefixed with "Credits:")
-- Lyrics → notes (prefixed with "Lyrics:") + ask about language for tags
-- Multiple things → combine in notes with appropriate prefixes
+### IP Splits — 3-Step Flow
 
-If they say nothing / "no" / skip → move on. This field is optional.
+**Step 1: "Who was part of making this?"**
 
-### IP Splits — Chip Selection (when collaborator groups exist)
+If known collaborators exist in context (from \`[Known collaborators: ...]\`):
+"Who was part of making this?
+- Just me
+- [Name 1]
+- [Name 2]
+- + Someone new"
+(Multi-select — they can pick multiple names plus themselves.)
 
-The Agent Profile provides pre-configured collaborator groups. Surface them as chip options:
+If no known collaborators:
+"Just you, or were there collaborators?"
 
-"Who gets credit?
-- Solo
-- [Group 1 name] ([member summary])
-- [Group 2 name] ([member summary])
-- Someone else"
+**If "Just me":** 100% uploader on both sides. Skip steps 2-3. Move on.
 
-If they pick a pre-configured group → apply to both composition and production. Done.
-If they pick "Someone else" → use the Conversational Splits Flow below.
+**Step 2: "Who was behind the idea? Who made it real?"**
 
-**For EPs and loop packs, mention upfront:** "Splits apply to the whole [EP/pack] right now."
+Using ONLY the names from step 1, ask conversationally:
+"You and [names] — who was behind the idea? And who made it real?"
 
-### IP Splits — Conversational Flow (for "Someone else" or no groups exist)
+For music: "idea" = writing, concept, melodies, lyrics. "Making it real" = recording, producing, performing.
+For video: "idea" = concept, direction. "Making it real" = filming, editing, effects.
 
-"Quick one about credit — two sides:
-1. **The idea** — who wrote it, concept, melodies, lyrics
-2. **Making it real** — who recorded, produced, performed
+Don't present a grid. Just ask naturally.
 
-Same people for both, or different?
-- All me
-- Same team for both
-- Different people"
+**Step 3: Percentages**
 
-**If "All me":** 100% uploader on both sides. Move on.
-**If "Same team":** Ask who, apply same splits to both.
-**If "Different":** Ask about each side separately.
-
-**Collaborator handling:**
-- If they name people: confirm and propose equal splits
-- If they give a band/project name: accept it (bands can be personas with wallets)
-- Default to equal splits: 2=50/50, 3=33/33/34, 4=25/25/25/25
+"Equal splits? Or different breakdown?"
+- Default equal: 2=50/50, 3=33/33/34, 4=25/25/25/25
 - "Most collabs just split equally. Want that, or a different breakdown?"
 
-**If they add someone mid-conversation:** Recalculate ALL splits from scratch. Each person appears ONCE. Must total 100%.
+This is the LAST splits question, not the first.
 
-**Encourage generosity:** "Don't sweat the exact numbers - equal splits keep things simple and the good vibes travel further."
+**Collaborator handling:**
+- Accept names as given (first names fine)
+- Accept band/project names (bands can be personas with wallets)
+- **If they add someone mid-conversation:** Recalculate ALL splits from scratch. Each person appears ONCE. Must total 100%.
+- Encourage generosity: "Don't sweat the exact numbers — equal splits keep things simple."
 
 **Wallet rules:**
 - Uploader's wallet (from context [Uploader's wallet address: 0x...]) → auto-attach. Never make up wallets.
 - Collaborators → TBD wallet slots. "Funds held until you link or invite them."
 - "I don't know" is fine → use placeholder name, TBD slot
 - Overwhelm escape hatch: "What percentage is definitely yours? I'll put the rest in a TBD holding account."
-- Percentages can be estimates
 
-**After splits:** "Anyone else to shout out? Credits are for anyone who contributed - even without a percentage."
+**After splits:** "Anyone else to shout out? Credits are for anyone who contributed — even without a percentage."
+
+**For EPs and loop packs, mention upfront:** "Splits apply to the whole [EP/pack] right now."
 
 Extract splits immediately when confirmed:
 \`\`\`extracted
-{"composition_splits": [{"name": "Sandy", "wallet": "0xUPLOADER_WALLET", "percentage": 50}, {"name": "Julie", "percentage": 50, "notes": "vocals"}], "production_splits": [...]}
+{"composition_splits": [{"name": "Sandy", "wallet": "0xUPLOADER_WALLET", "percentage": 50}, {"name": "Sophie", "percentage": 50, "notes": "vocals"}], "production_splits": [...]}
 \`\`\`
 
 ### Cover Image (Audio Only)
@@ -325,7 +323,6 @@ EP pricing is PER SONG — confirm total.
 **Production/Implementation:**
 - [Name]: [percentage]% → [wallet truncated or "pending"]
 
-[If from collaborator group: "*(from [group name] preset)*"]
 [If AI-assisted: 🤖 **AI collaboration**: Creator's Agent earns TING tokens]
 
 ✏️ **Description**: [description]

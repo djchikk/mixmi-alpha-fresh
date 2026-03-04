@@ -206,15 +206,12 @@ async function loadAgentProfile(personaId: string | undefined, walletAddress: st
         defaults.push(`Usual collaborators: ${splitNames}`);
       }
 
-      // Collaborator groups (for chip-based split selection)
-      if (prefs.collaborator_groups && prefs.collaborator_groups.length > 0) {
-        const groupDescriptions = prefs.collaborator_groups.map((g: any) => {
-          const members = g.composition_splits
-            .map((s: any) => `${s.name} ${s.percentage}%`)
-            .join(', ');
-          return `${g.name} (${members})`;
-        });
-        defaults.push(`Collaborator groups: ${groupDescriptions.join(' | ')}`);
+      // Known collaborators (for chip-based split selection)
+      if (prefs.known_collaborators && prefs.known_collaborators.length > 0) {
+        const collabDescriptions = prefs.known_collaborators.map((c: any) =>
+          c.notes ? `${c.name} (${c.notes})` : c.name
+        );
+        defaults.push(`Known collaborators: ${collabDescriptions.join(', ')}`);
       }
 
       if (defaults.length > 0) {
@@ -337,7 +334,7 @@ export async function POST(request: NextRequest) {
       walletAddress, // Uploader's wallet address for auto-attaching to splits
       fileMetadata, // File analysis for content type intelligence
       csvSummary, // Bulk CSV upload summary
-      prefs?.collaborator_groups // Collaborator groups for chip-based split selection
+      prefs?.known_collaborators // Known collaborators for chip-based split selection
     );
 
     // Filter out empty messages and prepare for API
