@@ -348,10 +348,17 @@ async function updateAgentPreferences(
       updates.default_download_price_usdc = trackData.download_price_usdc || trackData.download_price_stx;
     }
 
-    // Location: track most recent primary location
+    // Location: track most recent primary location and accumulate known_locations
     const locationText = (trackData as any).location || trackData.primary_location;
     if (locationText) {
       updates.default_location = locationText;
+
+      // Incremental known_locations learning: add new locations
+      const existingLocations: string[] = prefs.known_locations || [];
+      const existingLower = new Set(existingLocations.map((l: string) => l.toLowerCase().trim()));
+      if (!existingLower.has(locationText.toLowerCase().trim())) {
+        updates.known_locations = [...existingLocations, locationText];
+      }
     }
 
     // Splits template: store if there are named collaborators
@@ -411,6 +418,9 @@ async function updateAgentPreferences(
       }
       if (starterPrefs.known_collaborators && Array.isArray(starterPrefs.known_collaborators)) {
         updates.known_collaborators = starterPrefs.known_collaborators;
+      }
+      if (starterPrefs.known_locations && Array.isArray(starterPrefs.known_locations)) {
+        updates.known_locations = starterPrefs.known_locations;
       }
       if (starterPrefs.bio_draft_material) {
         updates.bio_draft_material = starterPrefs.bio_draft_material;

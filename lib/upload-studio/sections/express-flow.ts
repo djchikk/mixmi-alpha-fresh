@@ -54,9 +54,21 @@ Everything goes to \`notes\` — see Open Field rules in shared elements.
 **Step 8 — Cover image** (audio only)
 "Got a cover image? (You can add one later too)"
 
-**Step 9 — Defaults confirmation** (one message, everything at once)
+**Step 9 — Location** (chip selection if known locations exist)
+If known locations exist in context (from \`[Known locations: ...]\`):
+"Where's this from?
+- [Default location]
+- [Known location 1]
+- [Known location 2]
+- + Somewhere new"
+They pick one. If "+ Somewhere new": "What city, country, or region?"
+
+If NO known locations but default_location exists: "From [default location] again, or somewhere different?"
+If NO locations at all: "Where's this from? City, country, or region."
+
+**Step 10 — Defaults confirmation** (one message, remaining defaults)
 "Using your usual settings:
-📍 [Location] · ⬇️ Downloads [$X] · 🎛️ Mixer [on/off]
+⬇️ Downloads [$X] · 🎛️ Mixer [on/off]
 All good, or anything different?"
 
 If "all good" → show summary → confirm → done.
@@ -64,7 +76,6 @@ If they want changes → handle the specific change, then summary.
 
 ### What Gets SKIPPED in Express
 - Artist name question (auto-applied from persona)
-- Location question (auto-applied from defaults)
 - Human-created check for music (confirmed in previous uploads)
 - Downloads/licensing explanation (auto-applied from defaults)
 - Music connections (moved to post-upload enrichment)

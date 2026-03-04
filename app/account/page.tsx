@@ -1344,6 +1344,10 @@ function SettingsTab({
   const [addCollabMode, setAddCollabMode] = useState(false);
   const [addCollabValue, setAddCollabValue] = useState('');
   const [addCollabNotes, setAddCollabNotes] = useState('');
+  const [addLocationMode, setAddLocationMode] = useState(false);
+  const [addLocationValue, setAddLocationValue] = useState('');
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [priceValue, setPriceValue] = useState('');
 
   // Modal states
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -1414,7 +1418,7 @@ function SettingsTab({
       if (activePersona?.id) {
         const { data: prefs } = await supabase
           .from('agent_preferences')
-          .select('upload_count, typical_content_type, default_location, default_tags, default_allow_downloads, default_download_price_usdc, known_collaborators, bio_draft_material, preferences_auto_generated')
+          .select('upload_count, typical_content_type, default_location, default_tags, default_allow_downloads, default_download_price_usdc, default_allow_remixing, default_remix_opt_out, known_collaborators, known_locations, bio_draft_material, preferences_auto_generated')
           .eq('persona_id', activePersona.id)
           .maybeSingle();
         setAgentPrefs(prefs);
@@ -1624,50 +1628,231 @@ function SettingsTab({
 
           {agentPrefs && agentPrefs.upload_count > 0 ? (
             <div className="space-y-4">
-              {/* Defaults */}
+
+              {/* LOCATIONS */}
               <div>
-                <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Defaults</p>
-                <div className="space-y-2">
+                <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Locations</p>
+                <div className="flex flex-wrap gap-2">
+                  {/* Default location as primary chip */}
                   {agentPrefs.default_location && (
-                    <div className="flex items-start gap-2">
-                      <span className="text-sm">📍</span>
-                      <div>
-                        <span className="text-gray-400 text-sm">Location: </span>
-                        <span className="text-white text-sm">{agentPrefs.default_location}</span>
-                      </div>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#81E4F2]/20 border border-[#81E4F2]/40 text-[#81E4F2] text-sm rounded-full">
+                      📍 {agentPrefs.default_location}
+                      <span className="text-[#81E4F2]/60 text-xs">· default</span>
+                    </span>
                   )}
-                  {agentPrefs.typical_content_type && (
-                    <div className="flex items-start gap-2">
-                      <span className="text-sm">🎵</span>
-                      <div>
-                        <span className="text-gray-400 text-sm">Content type: </span>
-                        <span className="text-white text-sm">{agentPrefs.typical_content_type}</span>
-                      </div>
-                    </div>
+
+                  {/* Known locations as secondary chips */}
+                  {(agentPrefs.known_locations || []).map((loc: string, i: number) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-700 text-gray-200 text-sm rounded-full"
+                    >
+                      {loc}
+                      <button
+                        onClick={async () => {
+                          const updated = (agentPrefs.known_locations || []).filter((_: string, j: number) => j !== i);
+                          const { error } = await supabase
+                            .from('agent_preferences')
+                            .update({ known_locations: updated })
+                            .eq('persona_id', activePersona?.id);
+                          if (!error) {
+                            setAgentPrefs({ ...agentPrefs, known_locations: updated });
+                          }
+                        }}
+                        className="text-gray-500 hover:text-red-400 transition-colors ml-0.5"
+                        aria-label={`Remove ${loc}`}
+                      >
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+
+                  {/* + Add location */}
+                  {!addLocationMode && (
+                    <button
+                      onClick={() => setAddLocationMode(true)}
+                      className="inline-flex items-center gap-1 px-3 py-1 border border-dashed border-gray-600 text-gray-400 text-sm rounded-full hover:border-[#81E4F2] hover:text-[#81E4F2] transition-colors"
+                    >
+                      + Add
+                    </button>
                   )}
-                  <div className="flex items-start gap-2">
-                    <span className="text-sm">⬇️</span>
-                    <div>
-                      <span className="text-gray-400 text-sm">Downloads: </span>
-                      <span className="text-white text-sm">
-                        {agentPrefs.default_allow_downloads
-                          ? `enabled at $${agentPrefs.default_download_price_usdc || 1} USDC`
-                          : 'disabled (mixer only)'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-sm">📊</span>
-                    <div>
-                      <span className="text-gray-400 text-sm">Uploads: </span>
-                      <span className="text-white text-sm">{agentPrefs.upload_count}</span>
-                    </div>
-                  </div>
                 </div>
+
+                {/* Inline add location form */}
+                {addLocationMode && (
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      type="text"
+                      value={addLocationValue}
+                      onChange={(e) => setAddLocationValue(e.target.value)}
+                      placeholder="City, country, or region..."
+                      className="flex-1 bg-[#0a0f1a] border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm focus:border-[#81E4F2] focus:outline-none"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && addLocationValue.trim()) {
+                          const updated = [...(agentPrefs.known_locations || []), addLocationValue.trim()];
+                          supabase
+                            .from('agent_preferences')
+                            .update({ known_locations: updated })
+                            .eq('persona_id', activePersona?.id)
+                            .then(({ error }) => {
+                              if (!error) {
+                                setAgentPrefs({ ...agentPrefs, known_locations: updated });
+                                setAddLocationValue('');
+                                setAddLocationMode(false);
+                              }
+                            });
+                        } else if (e.key === 'Escape') {
+                          setAddLocationMode(false);
+                          setAddLocationValue('');
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!addLocationValue.trim()) return;
+                        const updated = [...(agentPrefs.known_locations || []), addLocationValue.trim()];
+                        const { error } = await supabase
+                          .from('agent_preferences')
+                          .update({ known_locations: updated })
+                          .eq('persona_id', activePersona?.id);
+                        if (!error) {
+                          setAgentPrefs({ ...agentPrefs, known_locations: updated });
+                          setAddLocationValue('');
+                          setAddLocationMode(false);
+                        }
+                      }}
+                      disabled={!addLocationValue.trim()}
+                      className="px-4 py-2 text-sm font-medium text-white bg-[#81E4F2]/20 border border-[#81E4F2]/40 rounded-lg hover:bg-[#81E4F2]/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => { setAddLocationMode(false); setAddLocationValue(''); }}
+                      className="px-3 py-2 text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-gray-500 text-xs mt-2">Shown as quick-select chips during upload — places your work on the globe</p>
               </div>
 
-              {/* Known Collaborators */}
+              {/* LICENSING & DOWNLOADS */}
+              <div className="border-t border-[#1E293B] pt-4">
+                <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Licensing & Downloads</p>
+                <div className="space-y-3">
+                  {/* Downloads toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">⬇️</span>
+                      <span className="text-gray-300 text-sm">Allow downloads</span>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newVal = !agentPrefs.default_allow_downloads;
+                        const { error } = await supabase
+                          .from('agent_preferences')
+                          .update({ default_allow_downloads: newVal })
+                          .eq('persona_id', activePersona?.id);
+                        if (!error) {
+                          setAgentPrefs({ ...agentPrefs, default_allow_downloads: newVal });
+                        }
+                      }}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${agentPrefs.default_allow_downloads ? 'bg-[#81E4F2]' : 'bg-gray-600'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${agentPrefs.default_allow_downloads ? 'translate-x-5' : ''}`} />
+                    </button>
+                  </div>
+
+                  {/* Download price (shown when downloads enabled) */}
+                  {agentPrefs.default_allow_downloads && (
+                    <div className="flex items-center justify-between ml-7">
+                      <span className="text-gray-400 text-sm">Download price</span>
+                      {editingPrice ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400 text-sm">$</span>
+                          <input
+                            type="number"
+                            value={priceValue}
+                            onChange={(e) => setPriceValue(e.target.value)}
+                            className="w-20 bg-[#0a0f1a] border border-gray-700 rounded px-2 py-1 text-white text-sm text-right focus:border-[#81E4F2] focus:outline-none"
+                            min="0"
+                            step="0.5"
+                            autoFocus
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter') {
+                                const price = parseFloat(priceValue) || 1;
+                                const { error } = await supabase
+                                  .from('agent_preferences')
+                                  .update({ default_download_price_usdc: price })
+                                  .eq('persona_id', activePersona?.id);
+                                if (!error) {
+                                  setAgentPrefs({ ...agentPrefs, default_download_price_usdc: price });
+                                }
+                                setEditingPrice(false);
+                              } else if (e.key === 'Escape') {
+                                setEditingPrice(false);
+                              }
+                            }}
+                            onBlur={async () => {
+                              const price = parseFloat(priceValue) || 1;
+                              const { error } = await supabase
+                                .from('agent_preferences')
+                                .update({ default_download_price_usdc: price })
+                                .eq('persona_id', activePersona?.id);
+                              if (!error) {
+                                setAgentPrefs({ ...agentPrefs, default_download_price_usdc: price });
+                              }
+                              setEditingPrice(false);
+                            }}
+                          />
+                          <span className="text-gray-400 text-sm">USDC</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setPriceValue(String(agentPrefs.default_download_price_usdc || 1));
+                            setEditingPrice(true);
+                          }}
+                          className="text-white text-sm hover:text-[#81E4F2] transition-colors"
+                        >
+                          ${agentPrefs.default_download_price_usdc || 1} USDC
+                          <Pencil className="inline w-3 h-3 ml-1.5 text-gray-500" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Remix opt-out toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🎛️</span>
+                      <span className="text-gray-300 text-sm">Allow remixing in mixer</span>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newVal = !agentPrefs.default_remix_opt_out;
+                        const { error } = await supabase
+                          .from('agent_preferences')
+                          .update({ default_remix_opt_out: newVal })
+                          .eq('persona_id', activePersona?.id);
+                        if (!error) {
+                          setAgentPrefs({ ...agentPrefs, default_remix_opt_out: newVal });
+                        }
+                      }}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${!agentPrefs.default_remix_opt_out ? 'bg-[#81E4F2]' : 'bg-gray-600'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${!agentPrefs.default_remix_opt_out ? 'translate-x-5' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-gray-500 text-xs mt-3">These defaults are applied during upload — you can override per track</p>
+              </div>
+
+              {/* KNOWN COLLABORATORS */}
               <div className="border-t border-[#1E293B] pt-4">
                 <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Known Collaborators</p>
 
@@ -1722,11 +1907,9 @@ function SettingsTab({
                         className="w-full bg-[#101726] border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm focus:border-[#81E4F2] focus:outline-none"
                         uploaderWallet={effectiveWallet}
                         onUserSelect={(user) => {
-                          // User found on mixmi — use their display name
                           setAddCollabValue(user.displayName || user.username || '');
                         }}
                         onPersonaCreated={(persona) => {
-                          // TBD wallet created — use the display name
                           setAddCollabValue(persona.displayName || persona.username);
                         }}
                       />
@@ -1780,7 +1963,7 @@ function SettingsTab({
                 <p className="text-gray-500 text-xs mt-2">Shown as quick-select chips during upload · search finds existing mixmi users or creates a managed wallet</p>
               </div>
 
-              {/* Bio Draft */}
+              {/* BIO DRAFT */}
               {agentPrefs.bio_draft_material && (
                 <div className="border-t border-[#1E293B] pt-4">
                   <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Bio Draft</p>

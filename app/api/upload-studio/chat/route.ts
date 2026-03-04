@@ -214,6 +214,16 @@ async function loadAgentProfile(personaId: string | undefined, walletAddress: st
         defaults.push(`Known collaborators: ${collabDescriptions.join(', ')}`);
       }
 
+      // Known locations (for chip-based location selection)
+      if (prefs.known_locations && prefs.known_locations.length > 0) {
+        defaults.push(`Known locations: ${prefs.known_locations.join(', ')}`);
+      }
+
+      // Remix opt-out preference
+      if (prefs.default_remix_opt_out) {
+        defaults.push('Remix: opted out of mixer remixing by default');
+      }
+
       if (defaults.length > 0) {
         parts.push(`Based on ${prefs.upload_count} previous upload${prefs.upload_count !== 1 ? 's' : ''}:\n- ${defaults.join('\n- ')}`);
       }
@@ -334,7 +344,8 @@ export async function POST(request: NextRequest) {
       walletAddress, // Uploader's wallet address for auto-attaching to splits
       fileMetadata, // File analysis for content type intelligence
       csvSummary, // Bulk CSV upload summary
-      prefs?.known_collaborators // Known collaborators for chip-based split selection
+      prefs?.known_collaborators, // Known collaborators for chip-based split selection
+      prefs?.known_locations // Known locations for chip-based location selection
     );
 
     // Filter out empty messages and prepare for API

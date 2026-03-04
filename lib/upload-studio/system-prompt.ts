@@ -92,7 +92,8 @@ export function formatMessagesForAPI(
   uploaderWallet?: string,
   fileMetadata?: string,
   csvSummary?: string,
-  knownCollaborators?: Array<{ name: string; notes?: string }>
+  knownCollaborators?: Array<{ name: string; notes?: string }>,
+  knownLocations?: string[]
 ) {
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -161,6 +162,11 @@ export function formatMessagesForAPI(
       c.notes ? `${c.name} (${c.notes})` : c.name
     ).join(', ');
     userContent += `\n\n[Known collaborators: ${collabList}]`;
+  }
+
+  // Add known locations for chip-based location selection
+  if (knownLocations && knownLocations.length > 0) {
+    userContent += `\n\n[Known locations: ${knownLocations.join(', ')}]`;
   }
 
   messages.push({ role: 'user', content: userContent });

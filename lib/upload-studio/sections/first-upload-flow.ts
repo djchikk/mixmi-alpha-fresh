@@ -102,6 +102,7 @@ After the user confirms, your final extracted JSON MUST include a starter_prefer
   "readyToSubmit": true,
   "starter_preferences": {
     "default_location": "Nairobi, Kenya",
+    "known_locations": ["Nairobi, Kenya"],
     "default_allow_downloads": true,
     "default_download_price_usdc": 1,
     "typical_content_type": "loop",
@@ -113,6 +114,7 @@ After the user confirms, your final extracted JSON MUST include a starter_prefer
 }
 \`\`\`
 Replace the example values with ACTUAL values from this conversation. Use the creator's real name, location, download preference, and content type.
+**known_locations** should include the default_location plus any additional locations they mentioned (e.g. "any other locations connected to this?").
 
 **If they named collaborators**, include each unique collaborator name with optional notes (role, instrument, relationship):
 \`\`\`json
