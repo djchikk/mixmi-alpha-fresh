@@ -60,9 +60,9 @@ Then: "Equal splits? Or different breakdown?"
 
 **After splits:** "Anyone else to shout out? Credits don't need a percentage."
 
-**Step 8 — Open field** (description + notes in one question)
+**Step 8 — Open field** (everything goes to notes)
 "Anything you want people to know about this? Even a few words help people find your work on the globe."
-Parse per the Open Field rules from shared elements (short phrase → description, story → notes, both → split).
+Everything goes to \`notes\` — see Open Field rules in shared elements.
 
 **Step 9 — Tags**
 "What genre or vibe? Tags help people discover you — even one or two is great."

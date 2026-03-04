@@ -119,10 +119,11 @@ function detectVideoDuration(file: File): Promise<number | null> {
 
 /**
  * Extract quick-reply options from an assistant message.
- * Looks for 2-4 consecutive lines starting with "- " that follow a question.
- * Returns the message text (without options) and the option strings, or null.
+ * Looks for 2-10 consecutive lines starting with "- " that follow a question.
+ * Returns the message text (without options), the option strings, and whether
+ * this is a multi-select question (collaborator selection with "Just me" + names).
  */
-function extractQuickReplies(content: string): { textBeforeOptions: string; options: string[] } | null {
+function extractQuickReplies(content: string): { textBeforeOptions: string; options: string[]; multiSelect: boolean } | null {
   const lines = content.split('\n');
 
   // Find the last group of consecutive "- " lines
@@ -136,7 +137,7 @@ function extractQuickReplies(content: string): { textBeforeOptions: string; opti
     } else {
       if (currentStart !== -1) {
         const groupSize = i - currentStart;
-        if (groupSize >= 2 && groupSize <= 4) {
+        if (groupSize >= 2 && groupSize <= 10) {
           groupStart = currentStart;
           groupEnd = i;
         }
@@ -147,7 +148,7 @@ function extractQuickReplies(content: string): { textBeforeOptions: string; opti
   // Check if group extends to end of content
   if (currentStart !== -1) {
     const groupSize = lines.length - currentStart;
-    if (groupSize >= 2 && groupSize <= 4) {
+    if (groupSize >= 2 && groupSize <= 10) {
       groupStart = currentStart;
       groupEnd = lines.length;
     }
@@ -164,7 +165,12 @@ function extractQuickReplies(content: string): { textBeforeOptions: string; opti
   // Trim trailing empty lines from textBefore
   const textBeforeOptions = textBefore.replace(/\n+$/, '');
 
-  return { textBeforeOptions, options };
+  // Detect multi-select: collaborator selection has "Just me" + name options + "Someone new"
+  const hasJustMe = options.some(o => o.toLowerCase().includes('just me'));
+  const hasSomeoneNew = options.some(o => o.toLowerCase().includes('someone new'));
+  const multiSelect = hasJustMe && hasSomeoneNew && options.length >= 3;
+
+  return { textBeforeOptions, options, multiSelect };
 }
 
 /** Strip any ```extracted...``` code blocks that slipped through API parsing */
@@ -299,6 +305,7 @@ export default function ConversationalUploader({ walletAddress, personaId }: Con
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [lastInputMode, setLastInputMode] = useState<'voice' | 'text'>('text');
+  const [multiSelectChips, setMultiSelectChips] = useState<Set<string>>(new Set());
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -1984,7 +1991,7 @@ Would you like to post another track, or shall I show you where to find your new
                 )}
 
                 {/* Quick-reply chips for assistant messages */}
-                {quickReplies && (
+                {quickReplies && !quickReplies.multiSelect && (
                   <div className="flex flex-wrap gap-2 mt-1">
                     {quickReplies.options.map((option, optIndex) => (
                       <button
@@ -1996,6 +2003,61 @@ Would you like to post another track, or shall I show you where to find your new
                         {getOptionLabel(option)}
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* Multi-select chips (collaborator selection) */}
+                {quickReplies && quickReplies.multiSelect && (
+                  <div className="space-y-2 mt-1">
+                    <div className="flex flex-wrap gap-2">
+                      {quickReplies.options.map((option, optIndex) => {
+                        const isJustMe = option.toLowerCase().includes('just me');
+                        const isSelected = multiSelectChips.has(option);
+                        return (
+                          <button
+                            key={optIndex}
+                            onClick={() => {
+                              if (isJustMe) {
+                                // "Just me" sends immediately (solo path)
+                                setMultiSelectChips(new Set());
+                                sendMessage(lastInputMode, option);
+                                return;
+                              }
+                              // Toggle selection
+                              setMultiSelectChips(prev => {
+                                const next = new Set(prev);
+                                if (next.has(option)) next.delete(option);
+                                else next.add(option);
+                                return next;
+                              });
+                            }}
+                            disabled={isLoading}
+                            className={`text-sm rounded-xl px-4 py-2 cursor-pointer transition-all disabled:opacity-50 disabled:pointer-events-none ${
+                              isSelected
+                                ? 'bg-[#81E4F2]/20 border border-[#81E4F2] text-[#81E4F2]'
+                                : isJustMe
+                                  ? 'bg-slate-700/60 hover:bg-slate-600/80 border border-slate-500/40 hover:border-slate-400 text-gray-300'
+                                  : 'bg-slate-700/60 hover:bg-slate-600/80 border border-[#81E4F2]/40 hover:border-[#81E4F2] text-[#81E4F2]'
+                            }`}
+                          >
+                            {isSelected ? '✓ ' : ''}{getOptionLabel(option)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {multiSelectChips.size > 0 && (
+                      <button
+                        onClick={() => {
+                          const selected = Array.from(multiSelectChips).map(getOptionLabel).join(', ');
+                          setMultiSelectChips(new Set());
+                          sendMessage(lastInputMode, selected);
+                        }}
+                        disabled={isLoading}
+                        className="px-4 py-2 text-sm font-medium bg-[#81E4F2]/20 border border-[#81E4F2] text-[#81E4F2] rounded-xl hover:bg-[#81E4F2]/30 transition-all"
+                      >
+                        Done — {multiSelectChips.size} selected
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

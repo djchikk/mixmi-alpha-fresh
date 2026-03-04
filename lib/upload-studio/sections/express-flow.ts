@@ -44,9 +44,9 @@ If no known collaborators: "Just you, or were there collaborators?"
 Then: "Equal splits? Or different breakdown?"
 Use the full splits handling from the shared elements.
 
-**Step 6 — Open field** (description + notes in one question)
+**Step 6 — Open field** (everything goes to notes)
 "Anything you want people to know about this? Even a few words help people find your work on the globe."
-Parse per the Open Field rules from shared elements.
+Everything goes to \`notes\` — see Open Field rules in shared elements.
 
 **Step 7 — Tags** (always asked fresh — never auto-applied)
 "What genre or vibe? Tags help people discover you — even one or two is great."
