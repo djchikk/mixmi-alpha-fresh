@@ -42,3 +42,4 @@ reference/
 
 # Database backups
 /backups/
+node_modules/
