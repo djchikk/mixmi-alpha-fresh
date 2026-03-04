@@ -341,10 +341,11 @@ async function updateAgentPreferences(
     if (trackData.allow_remixing !== undefined) {
       updates.default_allow_remixing = trackData.allow_remixing;
     }
-    if (trackData.allow_downloads !== undefined) {
+    // Only learn download preferences from audio uploads — video always forces downloads off
+    if (trackData.allow_downloads !== undefined && contentType !== 'video_clip') {
       updates.default_allow_downloads = trackData.allow_downloads;
     }
-    if ((trackData.download_price_usdc || trackData.download_price_stx) && trackData.allow_downloads) {
+    if ((trackData.download_price_usdc || trackData.download_price_stx) && trackData.allow_downloads && contentType !== 'video_clip') {
       updates.default_download_price_usdc = trackData.download_price_usdc || trackData.download_price_stx;
     }
 
@@ -407,10 +408,11 @@ async function updateAgentPreferences(
       if (starterPrefs.default_tags && !updates.default_tags) {
         updates.default_tags = starterPrefs.default_tags;
       }
-      if (starterPrefs.default_allow_downloads !== undefined && updates.default_allow_downloads === undefined) {
+      // Only seed download defaults from audio — video always forces downloads off
+      if (starterPrefs.default_allow_downloads !== undefined && updates.default_allow_downloads === undefined && contentType !== 'video_clip') {
         updates.default_allow_downloads = starterPrefs.default_allow_downloads;
       }
-      if (starterPrefs.default_download_price_usdc && !updates.default_download_price_usdc) {
+      if (starterPrefs.default_download_price_usdc && !updates.default_download_price_usdc && contentType !== 'video_clip') {
         updates.default_download_price_usdc = starterPrefs.default_download_price_usdc;
       }
       if (starterPrefs.typical_content_type && !updates.typical_content_type) {

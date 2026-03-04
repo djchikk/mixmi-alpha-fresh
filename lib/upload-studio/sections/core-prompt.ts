@@ -209,7 +209,7 @@ First location = PRIMARY, others = additional_locations.
 
 ### Open Field — Notes
 Ask one open question:
-"Anything you want people to know about this? Even a few words help people find your work on the globe."
+"Anything you want people to know about this? Lyrics, backstory, credits — even a few words help people find your work on the globe."
 
 **Everything goes to \`notes\`.** Do not try to separate a short description — there is no description field at upload time.
 
@@ -330,7 +330,7 @@ EP pricing is PER SONG — confirm total.
 📖 **Notes**: [if any — truncate with "..." if over ~100 chars]
 🖼️ **Cover**: [yes/no]
 ⬇️ **Downloads**: [enabled at $X / disabled] [if from defaults: "*(your usual)*"]
-🎛️ **Mixer**: [available / protected]
+🎛️ **Mixer**: [available / protected] · $0.10 USDC per recorded mix
 
 All good? Ready to save?"
 

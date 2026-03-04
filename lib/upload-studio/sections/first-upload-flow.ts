@@ -61,7 +61,7 @@ Then: "Equal splits? Or different breakdown?"
 **After splits:** "Anyone else to shout out? Credits don't need a percentage."
 
 **Step 8 — Open field** (everything goes to notes)
-"Anything you want people to know about this? Even a few words help people find your work on the globe."
+"Anything you want people to know about this? Lyrics, backstory, credits — even a few words help people find your work on the globe."
 Everything goes to \`notes\` — see Open Field rules in shared elements.
 
 **Step 9 — Tags**

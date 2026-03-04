@@ -45,7 +45,7 @@ Then: "Equal splits? Or different breakdown?"
 Use the full splits handling from the shared elements.
 
 **Step 6 — Open field** (everything goes to notes)
-"Anything you want people to know about this? Even a few words help people find your work on the globe."
+"Anything you want people to know about this? Lyrics, backstory, credits — even a few words help people find your work on the globe."
 Everything goes to \`notes\` — see Open Field rules in shared elements.
 
 **Step 7 — Tags** (always asked fresh — never auto-applied)
@@ -92,4 +92,4 @@ Express means eliminating UNNECESSARY questions, not eliminating conversation.
 
 ### Video Clips in Express
 Same Express path, but skip BPM, cover image. Still ask the AI check (it varies per video).
-Downloads are disabled for video during alpha — don't ask.`;
+Downloads are disabled for video during alpha — don't ask. Summary should still show mixer pricing ($0.10 per recorded mix).`;
