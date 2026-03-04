@@ -1913,7 +1913,7 @@ Would you like to post another track, or shall I show you where to find your new
           const cleanContent = message.role === 'assistant' ? stripExtractedBlocks(message.content) : message.content;
           const parsed = message.role === 'assistant' ? extractQuickReplies(cleanContent) : null;
           const displayContent = parsed ? parsed.textBeforeOptions : cleanContent;
-          const quickReplies = isLastMessage && !isLoading ? parsed : null;
+          const quickReplies = parsed && (!isLastMessage || !isLoading) ? parsed : null;
 
           // Summary message: last assistant message when ready to submit
           const isSummaryMessage = isLastMessage && message.role === 'assistant' && isReadyToSubmit && !bulkMode;
@@ -1983,7 +1983,7 @@ Would you like to post another track, or shall I show you where to find your new
                   </div>
                 )}
 
-                {/* Quick-reply chips for the last assistant message */}
+                {/* Quick-reply chips for assistant messages */}
                 {quickReplies && (
                   <div className="flex flex-wrap gap-2 mt-1">
                     {quickReplies.options.map((option, optIndex) => (
