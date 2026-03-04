@@ -23,6 +23,7 @@ import Crate from '@/components/shared/Crate';
 import CartWidget from '@/components/CartWidget';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import WalletsTab from '@/components/account/WalletsTab';
+import CollaboratorAutosuggest from '@/components/shared/CollaboratorAutosuggest';
 
 type Tab = "uploads" | "library" | "history" | "settings" | "earnings" | "wallets";
 
@@ -1340,6 +1341,9 @@ function SettingsTab({
   const [links, setLinks] = useState<Array<{ platform: string; url: string }>>([]);
   const [profileWalletAddress, setProfileWalletAddress] = useState<string | null>(null); // Actual wallet from user_profiles lookup
   const [agentPrefs, setAgentPrefs] = useState<any>(null);
+  const [addCollabMode, setAddCollabMode] = useState(false);
+  const [addCollabValue, setAddCollabValue] = useState('');
+  const [addCollabNotes, setAddCollabNotes] = useState('');
 
   // Modal states
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -1666,79 +1670,114 @@ function SettingsTab({
               {/* Known Collaborators */}
               <div className="border-t border-[#1E293B] pt-4">
                 <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Known Collaborators</p>
-                {agentPrefs.known_collaborators && agentPrefs.known_collaborators.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {agentPrefs.known_collaborators.map((collab: any, i: number) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-700 text-gray-200 text-sm rounded-full group"
-                        title={collab.notes || undefined}
+
+                {/* Existing chips */}
+                <div className="flex flex-wrap gap-2">
+                  {(agentPrefs.known_collaborators || []).map((collab: any, i: number) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-700 text-gray-200 text-sm rounded-full"
+                      title={collab.notes || undefined}
+                    >
+                      {collab.name}
+                      {collab.notes && <span className="text-gray-500 text-xs">· {collab.notes}</span>}
+                      <button
+                        onClick={async () => {
+                          const updated = agentPrefs.known_collaborators.filter((_: any, j: number) => j !== i);
+                          const { error } = await supabase
+                            .from('agent_preferences')
+                            .update({ known_collaborators: updated })
+                            .eq('persona_id', activePersona?.id);
+                          if (!error) {
+                            setAgentPrefs({ ...agentPrefs, known_collaborators: updated });
+                          }
+                        }}
+                        className="text-gray-500 hover:text-red-400 transition-colors ml-0.5"
+                        aria-label={`Remove ${collab.name}`}
                       >
-                        {collab.name}
-                        {collab.notes && <span className="text-gray-500 text-xs">· {collab.notes}</span>}
-                        <button
-                          onClick={async () => {
-                            const updated = agentPrefs.known_collaborators.filter((_: any, j: number) => j !== i);
-                            const { error } = await supabase
-                              .from('agent_preferences')
-                              .update({ known_collaborators: updated })
-                              .eq('persona_id', activePersona?.id);
-                            if (!error) {
-                              setAgentPrefs({ ...agentPrefs, known_collaborators: updated });
-                            }
-                          }}
-                          className="text-gray-500 hover:text-red-400 transition-colors ml-0.5"
-                          aria-label={`Remove ${collab.name}`}
-                        >
-                          &times;
-                        </button>
-                      </span>
-                    ))}
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+
+                  {/* + Add button (toggles inline form) */}
+                  {!addCollabMode && (
                     <button
-                      onClick={async () => {
-                        const name = prompt('Collaborator name:');
-                        if (!name?.trim()) return;
-                        const notes = prompt('Role or note (optional):');
-                        const newCollab = { name: name.trim(), ...(notes?.trim() ? { notes: notes.trim() } : {}) };
-                        const updated = [...(agentPrefs.known_collaborators || []), newCollab];
-                        const { error } = await supabase
-                          .from('agent_preferences')
-                          .update({ known_collaborators: updated })
-                          .eq('persona_id', activePersona?.id);
-                        if (!error) {
-                          setAgentPrefs({ ...agentPrefs, known_collaborators: updated });
-                        }
-                      }}
+                      onClick={() => setAddCollabMode(true)}
                       className="inline-flex items-center gap-1 px-3 py-1 border border-dashed border-gray-600 text-gray-400 text-sm rounded-full hover:border-[#81E4F2] hover:text-[#81E4F2] transition-colors"
                     >
                       + Add
                     </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <p className="text-gray-500 text-sm">No collaborators yet</p>
-                    <button
-                      onClick={async () => {
-                        const name = prompt('Collaborator name:');
-                        if (!name?.trim()) return;
-                        const notes = prompt('Role or note (optional):');
-                        const newCollab = { name: name.trim(), ...(notes?.trim() ? { notes: notes.trim() } : {}) };
-                        const updated = [newCollab];
-                        const { error } = await supabase
-                          .from('agent_preferences')
-                          .update({ known_collaborators: updated })
-                          .eq('persona_id', activePersona?.id);
-                        if (!error) {
-                          setAgentPrefs({ ...agentPrefs, known_collaborators: updated });
-                        }
-                      }}
-                      className="inline-flex items-center gap-1 px-3 py-1 border border-dashed border-gray-600 text-gray-400 text-sm rounded-full hover:border-[#81E4F2] hover:text-[#81E4F2] transition-colors"
-                    >
-                      + Add
-                    </button>
+                  )}
+                </div>
+
+                {/* Inline add form with search */}
+                {addCollabMode && (
+                  <div className="mt-3 p-3 bg-[#0a0f1a] border border-gray-700 rounded-lg space-y-2">
+                    <div className="relative">
+                      <CollaboratorAutosuggest
+                        value={addCollabValue}
+                        onChange={setAddCollabValue}
+                        placeholder="Search by name or username..."
+                        className="w-full bg-[#101726] border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm focus:border-[#81E4F2] focus:outline-none"
+                        uploaderWallet={effectiveWallet}
+                        onUserSelect={(user) => {
+                          // User found on mixmi — use their display name
+                          setAddCollabValue(user.displayName || user.username || '');
+                        }}
+                        onPersonaCreated={(persona) => {
+                          // TBD wallet created — use the display name
+                          setAddCollabValue(persona.displayName || persona.username);
+                        }}
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={addCollabNotes}
+                      onChange={(e) => setAddCollabNotes(e.target.value)}
+                      placeholder="Role or note (optional) — e.g. producer, vocals"
+                      className="w-full bg-[#101726] border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm focus:border-[#81E4F2] focus:outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!addCollabValue.trim()) return;
+                          const newCollab = {
+                            name: addCollabValue.trim(),
+                            ...(addCollabNotes.trim() ? { notes: addCollabNotes.trim() } : {})
+                          };
+                          const updated = [...(agentPrefs.known_collaborators || []), newCollab];
+                          const { error } = await supabase
+                            .from('agent_preferences')
+                            .update({ known_collaborators: updated })
+                            .eq('persona_id', activePersona?.id);
+                          if (!error) {
+                            setAgentPrefs({ ...agentPrefs, known_collaborators: updated });
+                            setAddCollabValue('');
+                            setAddCollabNotes('');
+                            setAddCollabMode(false);
+                          }
+                        }}
+                        disabled={!addCollabValue.trim()}
+                        className="px-4 py-1.5 text-sm font-medium text-white bg-[#81E4F2]/20 border border-[#81E4F2]/40 rounded-lg hover:bg-[#81E4F2]/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Add
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAddCollabMode(false);
+                          setAddCollabValue('');
+                          setAddCollabNotes('');
+                        }}
+                        className="px-4 py-1.5 text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
-                <p className="text-gray-500 text-xs mt-2">Shown as quick-select chips during upload</p>
+
+                <p className="text-gray-500 text-xs mt-2">Shown as quick-select chips during upload · search finds existing mixmi users or creates a managed wallet</p>
               </div>
 
               {/* Bio Draft */}
